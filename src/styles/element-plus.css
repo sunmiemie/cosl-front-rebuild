@@ -70,15 +70,15 @@ html.dark-blue {
   /** fill-color */
   --el-fill-color-darker: #002b6b;
   --el-fill-color-dark: #002b6b;
-  --el-fill-color: #002b6b;
+  --el-fill-color: #88b3f1;
   --el-fill-color-light: #002359;
   --el-fill-color-lighter: #002359;
   --el-fill-color-blank: #001b44;
   --el-fill-color-extra-light: #001b44;
   /** bg-color */
-  --el-bg-color-page: #001535;
-  --el-bg-color: #001b44;
-  --el-bg-color-overlay: #002359;
+  --el-bg-color-page: #6aa0f1;
+  --el-bg-color: #a8c6f5;
+  --el-bg-color-overlay: #a0c2f6;
   /** mask-color */
   --el-mask-color: rgba(0, 0, 0, 0.5);
   --el-mask-color-extra-light: rgba(0, 0, 0, 0.3);
