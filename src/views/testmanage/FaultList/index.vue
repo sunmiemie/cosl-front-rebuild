@@ -112,10 +112,17 @@ const getTableData = () => {
   }
 }
 const handleLink = (data: any, i: string) => {
+  console.log(data)
   if (i === "受理") {
+//     submitApi(data)
+//       .then(() => {
+//         ElMessage.success("提交成功")
+//       })
     aspectDialog.value = true
   } else if (i === "处理") {
     DefaultSuccess.value = true
+    Vue.set(DefaultSuccess,'data',data)
+    console.log(DefaultSuccess)
   } else if (i === "详情") {
     dialogVisible2.value = true
   }

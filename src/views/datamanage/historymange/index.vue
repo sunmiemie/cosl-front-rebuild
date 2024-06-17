@@ -6,7 +6,7 @@ import { ElButton, ElDrawer } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-
+import { fileDownoload } from '@/api/file/index'
 defineOptions({
   // 命名当前组件
   name: "ElementPlus"
@@ -103,7 +103,32 @@ const getTableData = () => {
   }
 }
 
-const handleLink = (data: any, i: string) => {}
+const handleLink = (data: any, i: string) => {
+   if(i=="导出"){
+    fileDownoload(data.reportNumber).then((res:any) => {
+    console.log(res)
+    download(res, 'application/pdf', data.reportNumber)
+  })
+    
+   }else{
+  return
+   }
+}
+const download = (file: any, fileType: string, fileName: string) => {
+  const blob = new Blob([file], {
+    type: fileType
+  })
+  const a = document.createElement('a')
+  const href = URL.createObjectURL(blob)
+  a.href = href
+  a.download = fileName
+  document.body.appendChild(a)
+  a.click()
+  // 下载完成移除a元素
+  document.body.removeChild(a)
+  // 释放blob对象
+  URL.revokeObjectURL(href)
+}
 
 const handleSearch = () => {
   //paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
