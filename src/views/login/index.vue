@@ -44,7 +44,6 @@ const handleLogin = () => {
           router.push({ path: "/" })
         })
         .catch(() => {
-          createCode()
           loginFormData.password = ""
         })
         .finally(() => {
@@ -63,7 +62,7 @@ const handleLogin = () => {
     <Owl :close-eyes="isFocus" />
     <div class="login-card">
       <div class="title">
-        <img src="@/assets/layouts/logo-text-2.png" />
+        <img src="@/assets/layouts/logo-text-2.png"  alt=""/>
       </div>
       <div class="content">
         <el-form ref="loginFormRef" :model="loginFormData" :rules="loginFormRules" @keyup.enter="handleLogin">
@@ -73,7 +72,7 @@ const handleLogin = () => {
               placeholder="用户名"
               type="text"
               tabindex="1"
-              :prefix-icon="User"
+              prefix-icon="User"
               size="large"
             />
           </el-form-item>
@@ -83,7 +82,7 @@ const handleLogin = () => {
               placeholder="密码"
               type="password"
               tabindex="2"
-              :prefix-icon="Lock"
+              prefix-icon="Lock"
               size="large"
               show-password
               @blur="handleBlur"

@@ -561,19 +561,19 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         </el-form-item>
 
         <el-form-item>
-          <el-button :icon="Search" type="primary" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+          <el-button icon="Search" type="primary" @click="handleSearch">查询</el-button>
+          <el-button icon="Refresh" @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button :icon="CirclePlus" type="primary" @click="addTest">新增测试</el-button>
+          <el-button icon="CirclePlus" type="primary" @click="addTest">新增测试</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
-            <el-button :icon="RefreshRight" circle type="primary" @click="" />
+            <el-button icon="RefreshRight" circle type="primary" @click="" />
           </el-tooltip>
         </div>
       </div>
@@ -767,7 +767,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                 <div class="info-header">
                   <el-text size="large">1.确认被测电路板信息</el-text>
                   <el-card shadow="never" style="margin-top: 10px">
-                    <el-space :size="size" spacer="|">
+                    <el-space :size="10" spacer="|">
                       <el-text size="large">电路板型号:{{ CircuitBoardModel }}</el-text>
                       <el-text>批次ID:{{ Batch }}</el-text>
                       <el-text size="large">{{ CircuitBatch }}</el-text>
