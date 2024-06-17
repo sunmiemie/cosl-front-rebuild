@@ -273,7 +273,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="searchData.name" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="type" label="设备型号">
-          <el-select v-model="searchData.type" placeholder="请选择">
+          <el-select v-model="searchData.type" placeholder="请选择" style="width: 150px;">
             <el-option v-for="item in TypeList" :label="item.name" :value="item.id" :key="item.id" />
           </el-select>
         </el-form-item>

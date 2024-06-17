@@ -5,12 +5,14 @@ import { useSettingsStore } from "@/store/modules/settings"
 import useResize from "./hooks/useResize"
 import { useWatermark } from "@/hooks/useWatermark"
 import { useDevice } from "@/hooks/useDevice"
+import { useUserStore } from "@/store/modules/user"
 import { useLayoutMode } from "@/hooks/useLayoutMode"
 import LeftMode from "./LeftMode.vue"
 import TopMode from "./TopMode.vue"
 import LeftTopMode from "./LeftTopMode.vue"
 import { Settings, RightPanel } from "./components"
 import { getCssVariableValue, setCssVariableValue } from "@/utils"
+import { format } from "date-fns"
 
 /** Layout 布局响应式 */
 useResize()
@@ -19,6 +21,7 @@ const { setWatermark, clearWatermark } = useWatermark()
 const { isMobile } = useDevice()
 const { isLeft, isTop, isLeftTop } = useLayoutMode()
 const settingsStore = useSettingsStore()
+const userStore = useUserStore()
 const { showSettings, showTagsView, showWatermark, showGreyMode, showColorWeakness } = storeToRefs(settingsStore)
 
 const classes = computed(() => {
@@ -40,7 +43,9 @@ watchEffect(() => {
 
 /** 开启或关闭系统水印 */
 watchEffect(() => {
-  showWatermark.value ? setWatermark(import.meta.env.VITE_APP_TITLE) : clearWatermark()
+  const today = format(new Date(), "yyyy-MM-dd") // 获取当前日期
+  const watermarkText = `${userStore.username} ${today}` // 拼接用户名和日期
+  showWatermark.value ? setWatermark(watermarkText) : clearWatermark()
 })
 </script>
 

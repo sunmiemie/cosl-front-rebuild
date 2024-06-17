@@ -368,7 +368,7 @@ onMounted(() => {
             <el-input v-model="DetailsearchData.seria" placeholder="请输入" />
           </el-form-item>
           <el-form-item prop="status" label="板状态">
-            <el-select v-model="DetailsearchData.status" placeholder="请选择">
+            <el-select v-model="DetailsearchData.status" placeholder="请选择" style="width: 150px;">
               <el-option v-for="model in SearchStatusData" :label="model.name" :value="model.id" :key="model.id" />
             </el-select>
           </el-form-item>

@@ -39,3 +39,18 @@ export function usePagination(initialPaginationData: PaginationData = {}) {
 
   return { paginationData, handleCurrentChange, handleSizeChange }
 }
+
+export function useDetailPagination(initialPaginationData: PaginationData = {}) {
+  /** 合并分页参数 */
+  const paginationDetailData = reactive({ ...defaultPaginationData, ...initialPaginationData })
+  /** 改变当前页码 */
+  const handleDetailCurrentChange = (value: number) => {
+    paginationDetailData.currentPage = value
+  }
+  /** 改变页面大小 */
+  const handleDetailSizeChange = (value: number) => {
+    paginationDetailData.pageSize = value
+  }
+
+  return { paginationDetailData, handleDetailCurrentChange, handleDetailSizeChange }
+}

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, type Ref } from "vue"
 import type { CalendarDateType, CalendarInstance } from "element-plus"
-import { getDailyInspection } from "@/api/everytest/DailyInspections/index"
+import { getDailyInspection } from "@/api/everytest/Dailyinspections"
 import { onMounted } from "vue"
 const inspectionData: any = ref({})
 const loading: Ref<boolean> = ref(false)

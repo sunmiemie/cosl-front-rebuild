@@ -1,9 +1,8 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { createBoardModelDataApi, getBoardModelDataApi, updateBoardModelDataApi } from "@/api/boardmodel"
-import { getInstrumentDataApi } from "@/api/instrument/index"
+import { getInstrumentDataApi } from "@/api/instrument"
 import { ElMessage, type FormInstance, type FormRules } from "element-plus"
-import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { type GetBoardModelData } from "@/api/boardmodel/types/boardmodel"
@@ -21,12 +20,12 @@ const formRef = ref<FormInstance | null>(null)
 const formData = reactive({
   name: "",
   des: "",
-  checkList: "",
+  type: "",
   id: null
 })
 const formRules: FormRules = reactive({
   name: [{ required: true, trigger: "blur", message: "请输入型号名称" }],
-  type: [{ required: true, trigger: "blur", message: "请选择类型" }],
+  type: [{ required: true, message: "请选择类型" }],
   des: [{ required: true, trigger: "blur", message: "请输入描述" }]
 })
 const handleCreate = () => {
@@ -45,7 +44,7 @@ const handleCreate = () => {
         updateBoardModelDataApi({
           id: formData.id,
           name: formData.name,
-          checkList: formData.checkList,
+          type: formData.type,
           des: formData.des
         })
           .then(() => {
@@ -65,7 +64,7 @@ const resetForm = () => {
   currentUpdateId.value = undefined
   formData.name = ""
   formData.des = ""
-  formData.checkList = ""
+  formData.type = ""
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 const headers = ref([
@@ -132,7 +131,7 @@ const handleSelectionChange = (val: any) => {
 // 编辑
 const DetailList = ref([])
 const handleLink = async (data: any) => {
-  formData.checkList = data.instrument_data[0].id
+  formData.type = data.instrument_data[0].id
   console.log(data)
 
   currentUpdateId.value = data.id
@@ -171,19 +170,19 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="searchData.name" placeholder="请输入" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+          <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
+          <el-button icon="Refresh" @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" :icon="CirclePlus" @click="addType">新增电路板型号</el-button>
+          <el-button type="primary" icon="CirclePlus" @click="addType">新增电路板型号</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
-            <el-button type="primary" :icon="RefreshRight" circle @click="getTableData" />
+            <el-button type="primary" icon="RefreshRight" circle @click="getTableData" />
           </el-tooltip>
         </div>
       </div>
@@ -219,7 +218,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="formData.name" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="type" label="关联仪器">
-          <el-select v-model="formData.checkList" placeholder="Select" style="width: 240px">
+          <el-select v-model="formData.type" placeholder="Select" style="width: 240px">
             <el-option v-for="item in DetailList" :key="item.id" :label="item.label" :value="item.id" />
           </el-select>
         </el-form-item>

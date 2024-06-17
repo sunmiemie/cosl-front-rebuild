@@ -1,9 +1,9 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { createFixtureDataApi, getFixtureDataApi, updateFixtureDataApi } from "@/api/fixture"
-import { getAnnualinspection } from '@/api/Annualinspection/index'
-import { fileDownoload } from '@/api/file/index'
-import { getFixtureModelDataApi } from "@/api/fixturemodel/index"
+import { getAnnualinspection } from '@/api/Annualinspection'
+import { fileDownoload } from '@/api/file'
+import { getFixtureModelDataApi } from "@/api/fixturemodel"
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus";
 import { CirclePlus, Refresh, RefreshRight, Search, Printer, UploadFilled } from "@element-plus/icons-vue";
 import { usePagination } from "@/hooks/usePagination"
@@ -304,12 +304,12 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="searchData.seria" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="name" label="夹具状态">
-          <el-select v-model="searchData.status">
+          <el-select v-model="searchData.status" style="width: 150px;">
             <el-option v-for="item in ModelStatus" :label="item.name" :value="item.status" :key="item.status" />
           </el-select>
         </el-form-item>
-        <el-form-item prop="type" label="夹具型号">
-          <el-select v-model="searchData.model" placeholder="请选择">
+        <el-form-item prop="type" label="夹具型号" >
+          <el-select v-model="searchData.model" placeholder="请选择" style="width: 150px;">
             <el-option v-for="item in ModelData" :label="item.name" :value="item.id" :key="item.id" />
           </el-select>
         </el-form-item>
@@ -425,7 +425,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 <style lang="scss" scoped>
 .search-wrapper {
   margin-bottom: 20px;
-
   :deep(.el-card__body) {
     padding-bottom: 2px;
   }

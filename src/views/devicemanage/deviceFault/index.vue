@@ -179,7 +179,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="searchData.username" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="username" label="工单状态">
-          <el-select v-model="searchData.username" placeholder="请选择" />
+          <el-select v-model="searchData.username" placeholder="请选择" style="width: 150px;"/>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>

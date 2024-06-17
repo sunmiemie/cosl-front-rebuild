@@ -10,7 +10,7 @@ export function createFixtureDataApi(data: Fixture.CreateFixtureRequestData) {
 }
 
 /** 改 */
-export function updateFixtureDataApi(data: Fixture.UpdateFixtureRequestData) {
+export function updateFixtureDataApi(data: { model: string; id: string | undefined; seria: string }) {
   return request({
     url: "equipment/fixture/update",
     method: "post",
