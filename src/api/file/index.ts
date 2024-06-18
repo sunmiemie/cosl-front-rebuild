@@ -1,9 +1,8 @@
-
-import { request } from '@/utils/service'
+import { request } from "@/utils/service"
 
 /**
- * 文件下载          
-*/
+ * 文件下载
+ */
 type FileDownload = (name: string) => Promise<{
   code: number
   data: any
@@ -11,17 +10,21 @@ type FileDownload = (name: string) => Promise<{
 
 export const fileDownoload: FileDownload = (name: string) => {
   return request({
-    method: 'get',
-    url: '/equipment/downloadfile',
-    responseType: 'blob',
+    method: "get",
+    url: "/equipment/downloadfile",
+    responseType: "blob",
     params: {
       name
     }
   })
 }
-
-
-
-
-
-
+export const reportDownoload: FileDownload = (name: string) => {
+  return request({
+    method: "get",
+    url: "data/report/download",
+    responseType: "blob",
+    params: {
+      name
+    }
+  })
+}

@@ -255,7 +255,7 @@ const handleDownload = (info: infoType) => {
   let { name } = info
   fileDownoload(name).then((res) => {
     console.log(res)
-    download(res, 'application/vnd.ms-excel', name)
+    download(res, "application/vnd.ms-excel", name)
   })
 }
 /** 监听分页参数的变化 */

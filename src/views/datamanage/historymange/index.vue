@@ -6,7 +6,9 @@ import { ElButton, ElDrawer } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import { fileDownoload } from '@/api/file/index'
+import {fileDownoload, reportDownoload} from "@/api/file/index"
+import { getReportDataApi } from "@/api/report"
+
 defineOptions({
   // 命名当前组件
   name: "ElementPlus"
@@ -49,44 +51,22 @@ interface TableDataType {
 }
 
 const headers1 = ref([
-  { prop: "reportNumber", label: "报告编号", align: "center" },
-  { prop: "reportType", label: "报告类型", align: "center" },
-  { prop: "reportAuthor", label: "测试人 ", align: "center" },
-  { prop: "reportTime", label: "生成时间", align: "center" },
+  { prop: "id", label: "报告编号", align: "center" },
+  { prop: "type", label: "报告类型", align: "center" },
+  { prop: "user", label: "测试人 ", align: "center" },
+  { prop: "date", label: "生成时间", align: "center" },
   { prop: "status", label: "报告状态", type: "tag", align: "center" },
   { prop: "link", label: "操作 ", type: "link" }
 ])
-const TableData = ref<Array<TableDataType>>([
-  {
-    reportNumber: "123456781",
-    reportType: "功能性测试",
-    reportAuthor: "editor",
-    reportTime: "2025年5月3日",
-    status: "0"
-  },
-  {
-    reportNumber: "123456781",
-    reportType: "功能性测试",
-    reportAuthor: "editor",
-    reportTime: "2025年5月3日",
-    status: "0"
-  },
-  {
-    reportNumber: "123456781",
-    reportType: "功能性测试",
-    reportAuthor: "editor",
-    reportTime: "2025年5月3日",
-    status: "1"
-  }
-])
+const TableData = ref<Array<TableDataType>>([])
 
 const searchFormRef = ref<FormInstance | null>(null)
 // 查询
 const searchData = reactive({
-  reportNumber: "",
-  reportAuthor: "",
-  reportType: "",
-  reportTime: ""
+  id: "",
+  user: "",
+  type: "",
+  date: ""
 })
 const defineLink = (status: string) => {
   switch (status) {
@@ -97,28 +77,38 @@ const defineLink = (status: string) => {
   }
 }
 const getTableData = () => {
-  for (let i = 0; i < TableData.value.length; i++) {
-    console.log(TableData.value[i])
-    TableData.value[i].link = defineLink(TableData.value[i].status)
-  }
+  loading.value = true
+  getReportDataApi({
+    currentPage: paginationData.currentPage,
+    size: paginationData.pageSize,
+    id: searchData.id || undefined,
+    user: searchData.user || undefined,
+    type: searchData.type || undefined,
+    date: searchData.date || undefined
+  }).then((res) => {
+    TableData.value = res.data.list
+    paginationData.total = res.data.total
+    for (let i = 0; i < TableData.value.length; i++) {
+      TableData.value[i].link = defineLink(TableData.value[i].status)
+    }
+    loading.value = false
+  })
 }
 
 const handleLink = (data: any, i: string) => {
-   if(i=="导出"){
-    fileDownoload(data.reportNumber).then((res:any) => {
-    console.log(res)
-    download(res, 'application/pdf', data.reportNumber)
-  })
-    
-   }else{
-  return
-   }
+  if (i == "导出") {
+    reportDownoload(data.report_filepath).then((res) => {
+      download(res, "application/octet-stream", data.report_filepath)
+    })
+  } else {
+    return
+  }
 }
 const download = (file: any, fileType: string, fileName: string) => {
   const blob = new Blob([file], {
     type: fileType
   })
-  const a = document.createElement('a')
+  const a = document.createElement("a")
   const href = URL.createObjectURL(blob)
   a.href = href
   a.download = fileName

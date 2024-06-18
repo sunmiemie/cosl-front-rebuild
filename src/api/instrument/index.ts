@@ -1,9 +1,10 @@
 import { request } from "@/utils/service"
 import type * as Instrument from "./types/instrument"
+import {UnwrapNestedRefs} from "vue";
 
 // 仪器管理
 
-export function createInstrumentDataApi(data: Instrument.CreateInstrumentRequestData) {
+export function createInstrumentDataApi(data: UnwrapNestedRefs<{ name: string; id: null; type: null }>) {
   return request({
     url: "equipment/instrument/add",
     method: "post",
@@ -20,7 +21,7 @@ export function deleteInstrumentDataApi(id: string) {
 }
 
 /** 改 */
-export function updateInstrumentDataApi(data: Instrument.UpdateInstrumentRequestData) {
+export function updateInstrumentDataApi(data: { name: string; id: null; type: null }) {
   return request({
     url: "equipment/instrument/update",
     method: "post",

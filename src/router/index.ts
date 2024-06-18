@@ -284,17 +284,8 @@ export const constantRoutes: RouteRecordRaw[] = [
     },
     children: [
       {
-        path: "/historymange",
-        component: () => import("@/views/datamanage/historymange/index.vue"),
-        name: "HistoryMange",
-        meta: {
-          title: "历史测试报告管理",
-          keepAlive: true
-        }
-      },
-      {
         path: "report",
-        component: () => import("@/views/datamanage/report/index.vue"),
+        component: () => import("@/views/datamanage/historymange/index.vue"),
         name: "Report",
         meta: {
           title: "测试报告管理",
