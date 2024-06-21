@@ -1,9 +1,11 @@
+
 <template>
     <div class="app-container">
         <el-card class="test-check">
             <!-- 审核测试工艺 -->
             <h2>审核测试工艺</h2>
-            <el-button type="primary" style="margin: 20px 10px;">功能性测试</el-button>
+            <el-button type="primary" style="margin: 20px 10px;">功能性测试1</el-button>
+            <!--<process-preview v-model:preview-list=""/>
             <el-row>
                 <el-col :span="12">
                     <el-text size="large">1.测试工艺基本信息</el-text>
@@ -40,7 +42,7 @@
                         </el-upload>
                     </div>
                 </el-col>
-            </el-row>
+            </el-row>-->
             <el-button type="success" icon="Check" size="large">审核通过</el-button>
             <el-button type="danger" size="large" icon="Close">审核未通过</el-button>
 
@@ -50,6 +52,7 @@
 </template>
 <script setup>
 import { ref, reactive } from 'vue';
+import ProcessPreview from "@/components/Check/ProcessPreview.vue"
 const CheckEquipment = reactive({
     fixture: '',
     host: '',

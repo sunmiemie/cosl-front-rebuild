@@ -87,13 +87,20 @@ const defineLink = (status: string) => {
   }
 }
 const getTableData = () => {
+  //  getCheckData({
+  //    currentPage: paginationData.currentPage,
+  //    size: paginationData.pageSize
+  //  }).then((res) => {
+  //    TableData.value = res.data.list
   for (let i = 0; i < TableData.value.length; i++) {
     TableData.value[i].link = defineLink(TableData.value[i].status)
   }
+//})
 }
 const handleLink = (data: any, i: string) => {
   if (i === '审核') {
     // CheckDialog.value = true
+    console.log(data,i)
     router.push({ name: 'checktestlist' })
   }
 }
