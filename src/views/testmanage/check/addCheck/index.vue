@@ -1,11 +1,10 @@
-
 <template>
-    <div class="app-container">
-        <el-card class="test-check">
-            <!-- 审核测试工艺 -->
-            <h2>审核测试工艺</h2>
-            <el-button type="primary" style="margin: 20px 10px;">功能性测试1</el-button>
-            <!--<process-preview v-model:preview-list=""/>
+  <div class="app-container">
+    <el-card class="test-check">
+      <!-- 审核测试工艺 -->
+      <h2>审核测试工艺</h2>
+      <el-button type="primary" style="margin: 20px 10px">功能性测试1</el-button>
+      <!--<process-preview v-model:preview-list=""/>
             <el-row>
                 <el-col :span="12">
                     <el-text size="large">1.测试工艺基本信息</el-text>
@@ -43,77 +42,76 @@
                     </div>
                 </el-col>
             </el-row>-->
-            <el-button type="success" icon="Check" size="large">审核通过</el-button>
-            <el-button type="danger" size="large" icon="Close">审核未通过</el-button>
-
-        </el-card>
-    </div>
-
+      <el-button type="success" icon="Check" size="large">审核通过</el-button>
+      <el-button type="danger" size="large" icon="Close">审核未通过</el-button>
+    </el-card>
+  </div>
 </template>
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive } from "vue"
 import ProcessPreview from "@/components/Check/ProcessPreview.vue"
 const CheckEquipment = reactive({
-    fixture: '',
-    host: '',
-    other: [{
-        number: 123,
-        region: "A型号"
-    }, {
-        number: 123,
-        region: "A型号"
-    }]
+  fixture: "",
+  host: "",
+  other: [
+    {
+      number: 123,
+      region: "A型号"
+    },
+    {
+      number: 123,
+      region: "A型号"
+    }
+  ]
 })
 
 const handleSuccess = (response, file, fileList) => {
-    const url = 'https://www.example.com/example.pdf'; // 替换为你要下载的文件链接
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', '');
-    link.style.display = 'none';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const url = "https://www.example.com/example.pdf" // 替换为你要下载的文件链接
+  const link = document.createElement("a")
+  link.href = url
+  link.setAttribute("download", "")
+  link.style.display = "none"
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
 }
-
 </script>
 <style scoped lang="scss">
 .search-wrapper {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 
-    :deep(.el-card__body) {
-        padding-bottom: 2px;
-    }
+  :deep(.el-card__body) {
+    padding-bottom: 2px;
+  }
 }
 
 .toolbar-wrapper {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
 }
 
 .table-wrapper {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .pager-wrapper {
-    display: flex;
-    justify-content: flex-end;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .el-link {
-    margin-right: 8px;
+  margin-right: 8px;
 }
 
 .test-check {
-    position: relative;
+  position: relative;
 }
 
 .check-file {
-    margin-top: 20px;
-    width: 15vw;
-    height: 200px;
-    border: 1px dashed #ccc;
-
+  margin-top: 20px;
+  width: 15vw;
+  height: 200px;
+  border: 1px dashed #ccc;
 }
 </style>

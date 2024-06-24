@@ -15,11 +15,10 @@ export type TestProcessListResponse = {
 export type TestProcessDetailResponse = {
   code: 0
   data: Array<{
-    ID:  string
+    ID: string
     type?: string
     version: string
-    status:  number
+    status: number
     user: string
   }>
 }
-

@@ -80,12 +80,12 @@
             <el-text class="mx-1" size="large">3.上传测试脚本</el-text>
             <el-upload
               v-model:file-list="fileList"
+              :auto-upload="false"
+              :limit="1"
               :on-change="handleFileChange"
+              :on-exceed="handleExceed"
               :show-file-list="true"
               drag
-              :limit="1"
-              :auto-upload="false"
-              :on-exceed="handleExceed"
               style="margin: 10px 0"
             >
               <el-icon class="el-icon--upload">
@@ -101,9 +101,7 @@
         <template #footer>
           <div style="display: flex; justify-content: flex-end">
             <el-button>取消</el-button>
-            <el-button style="margin-left: 10px" type="primary" @click="handleconfirmAddProcess(ruleFormRef)"
-              >确认新增
-            </el-button>
+            <el-button style="margin-left: 10px" type="primary" @click="confirmAddProcess">确认新增</el-button>
           </div>
         </template>
       </el-card>
@@ -128,12 +126,12 @@
             <el-text size="large">2.增加目检测试工艺</el-text>
             <el-upload
               v-model:file-list="fileList"
+              :auto-upload="false"
+              :limit="1"
               :on-change="handleFileChange"
+              :on-exceed="handleExceed"
               :show-file-list="true"
               drag
-              :limit="1"
-              :auto-upload="false"
-              :on-exceed="handleExceed"
             >
               <el-icon class="el-icon--upload">
                 <upload-filled />
@@ -148,7 +146,7 @@
         <template #footer>
           <div style="display: flex; justify-content: flex-end">
             <el-button>取消</el-button>
-            <el-button style="margin-left: 10px" type="primary" @click="handleconfirmAddProcess">确认新增</el-button>
+            <el-button style="margin-left: 10px" type="primary" @click="handleAddEyesProcess">确认新增</el-button>
           </div>
         </template>
       </el-card>
@@ -173,12 +171,12 @@
             <el-text size="large">2.增加X-Ray测试工艺</el-text>
             <el-upload
               v-model:file-list="fileList"
+              :auto-upload="false"
+              :limit="1"
               :on-change="handleFileChange"
+              :on-exceed="handleExceed"
               :show-file-list="true"
               drag
-              :limit="1"
-              :auto-upload="false"
-              :on-exceed="handleExceed"
             >
               <el-icon class="el-icon--upload">
                 <upload-filled />
@@ -193,7 +191,7 @@
         <template #footer>
           <div style="display: flex; justify-content: flex-end">
             <el-button>取消</el-button>
-            <el-button style="margin-left: 10px" type="primary" @click="handleconfirmAddProcess">确认新增</el-button>
+            <el-button style="margin-left: 10px" type="primary" @click="handleAddXrayProcess">确认新增</el-button>
           </div>
         </template>
       </el-card>
@@ -362,22 +360,22 @@
         <img-editor :img-url="editImg" @save="saveEdit" />
       </div>
     </el-dialog>
-    <el-dialog
-      v-model="confirmDialogVisible"
-      :title="'确认提交:' + form.curType"
-      align-center
-      width="20%"
-      @close="captcha?.reset()"
-    >
-      <div>
-        <CaptchaSlider ref="captcha" success-tip="已确认" tip="滑动来进行提交" @success="confirmAddProcess" />
-      </div>
-    </el-dialog>
   </div>
+  <el-dialog
+    v-model="confirmDialogVisible"
+    :title="'确认提交:' + form.curType"
+    align-center
+    width="30%"
+    @close="captcha?.reset()"
+  >
+    <div>
+      <CaptchaSlider ref="captcha" success-tip="已确认" tip="滑动来进行提交" @success="confirmAddProcess" />
+    </div>
+  </el-dialog>
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, nextTick, markRaw } from "vue"
+import { ref, reactive, nextTick } from "vue"
 import { useRouter } from "vue-router"
 import ParaProcess from "@/views/testmanage/addprocess/parametersprocesss/index.vue"
 import RecordProcess from "@/views/testmanage/addprocess/recordprocess/index.vue"
@@ -387,12 +385,12 @@ import imgEditor from "@/components/imgEditor/index.vue"
 import "vue-cropper/dist/index.css"
 import { ElScrollbar, ElMessageBox, ElMessage } from "element-plus"
 import type { FormInstance, FormRules, UploadUserFile } from "element-plus"
-import { Delete, UploadFilled } from "@element-plus/icons-vue"
+import { UploadFilled } from "@element-plus/icons-vue"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getFixtureModelDataApi } from "@/api/fixturemodel"
 import { getEquipmentTypeDataApi } from "@/api/otherModelType"
 import { getPsiModelDataApi } from "@/api/psimodel"
-import { upoloadfuncttest } from "@/api/addprocess"
+import { upoloadfuncttest, upoloadeyestest, upoloadxraytest } from "@/api/addprocess"
 import { useUserStore } from "@/store/modules/test"
 
 defineOptions({
@@ -435,8 +433,8 @@ const form = reactive({
   processName: "",
   processDesc: "",
   curStep: "1",
-  curType: "",
-  curTypeId: -1
+  curType: "功能性测试",
+  curTypeId: 1
 })
 // 功能性测试form
 const functform = reactive({
@@ -654,15 +652,70 @@ const saveEdit = async (data) => {
 }
 const handleconfirmAddProcess = (formEl: FormInstance | undefined) => {
   confirmDialogVisible.value = true
-  // console.log(functform)
 }
-
+const eyesFile = ref(null)
+const xrayFile = ref(null)
 //选择文件
 const handleFileChange = (file: any) => {
   functform.File = file.raw
+  eyesFile.value = file.raw
+  xrayFile.value = file.raw
   fileList.value.push({ name: file.name, url: URL.createObjectURL(file.raw) })
 }
-
+const handleAddEyesProcess = () => {
+  interface FormDataFields {
+    name: string
+    version: string
+    file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
+    board_model_id: string
+    testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
+  }
+  const data: FormDataFields = {
+    name: form.name,
+    version: form.version,
+    file: eyesFile.value,
+    board_model_id: testStore.board_model_id,
+    testtype: form.curTypeId
+  }
+  const fromData = new FormData()
+  for (const key in data) {
+    fromData.append(key, data[key])
+  }
+  upoloadeyestest(fromData).then((res) => {
+    if (res.code == 0) {
+      ElMessage.success("新增成功")
+      confirmDialogVisible.value = false
+      router.push("/testmanage/testprocess")
+    }
+  })
+}
+const handleAddXrayProcess = () => {
+  interface FormDataFields {
+    name: string
+    version: string
+    file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
+    board_model_id: string
+    testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
+  }
+  const data: FormDataFields = {
+    name: form.name,
+    version: form.version,
+    file: xrayFile.value,
+    board_model_id: testStore.board_model_id,
+    testtype: form.curTypeId
+  }
+  const fromData = new FormData()
+  for (const key in data) {
+    fromData.append(key, data[key])
+  }
+  upoloadxraytest(fromData).then((res) => {
+    if (res.code == 0) {
+      ElMessage.success("新增成功")
+      confirmDialogVisible.value = false
+      router.back()
+    }
+  })
+}
 const confirmAddProcess = () => {
   interface FormDataFields {
     name: string
@@ -670,7 +723,7 @@ const confirmAddProcess = () => {
     fixtureId: string
     hostId: string
     equipmentId: string // 假设 equipmentId 已经被转化为字符串
-    File: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
+    file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
     board_model_id: string
     testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
   }
@@ -681,27 +734,16 @@ const confirmAddProcess = () => {
     fixtureId: functform.fixtureId,
     hostId: functform.hostId,
     equipmentId: JSON.stringify(functform.equipmentId),
-    File: functform.File,
+    file: functform.File,
     board_model_id: testStore.board_model_id,
     testtype: form.curTypeId
   }
-
   const fromData = new FormData()
 
   for (const key in data) {
     fromData.append(key, data[key])
   }
-
-  // fromData.append('name', functform.name)
-  // fromData.append('version', functform.version)
-  // fromData.append('fixtureId', functform.fixtureId)
-  // fromData.append('hostId', functform.hostId)
-  // fromData.append('equipmentId', JSON.stringify(functform.equipmentId))
-  // fromData.append('file', functform.File)
-  // fromData.append('board_model_id', testStore.board_model_id)
-  // fromData.append('testtype', form.curTypeId)
   upoloadfuncttest(fromData).then((res) => {
-    // console.log(res)
     if (res.code == 0) {
       ElMessage.success("新增成功")
     }
