@@ -1,4 +1,9 @@
 <template>
+  <el-affix :offset="90">
+    <el-button type="primary" style="margin-left: 10px"
+      >当前编辑电路板：{{ testStore.board_model_name !== "" ? testStore.board_model_name : "未定义" }}</el-button
+    >
+  </el-affix>
   <div class="app-container">
     <header>
       <el-row class="mb-4">

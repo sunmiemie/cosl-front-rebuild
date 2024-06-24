@@ -43,16 +43,6 @@ const drawer: Ref<boolean> = ref(false)
 const addTest = () => {
   router.push("/testmanage/addprocess")
 }
-// X-Ray测试
-const form = reactive({
-  name: "",
-  version: "",
-  region: "",
-  host: "",
-  radio1: "1",
-  processName: "",
-  processDesc: ""
-})
 
 // 提交审核
 const onSubmit = () => {
@@ -222,8 +212,10 @@ const defaultProps = {
   label: "label"
 }
 const handleNodeClick = (data) => {
+  console.log(data)
   searchData.boardModel = data.id
   testStore.board_model_id = data.id
+  testStore.board_model_name = data.label
   if (data.children === undefined) {
     getTableData()
   }

@@ -13,13 +13,11 @@ export const getTestMangePath = (): Promise<TestMange.getTestMangePathType> => {
 }
 
 // 根据批次id获取电路板信息(id,序列号)
-export const getbordsinfo = (id: string) => {
+export const getbordsinfo = (params: any) => {
   return request<TestMange.getBordsInfoType>({
     url: "/test/unitboardlist",
     method: "get",
-    params: {
-      id
-    }
+    params
   })
 }
 

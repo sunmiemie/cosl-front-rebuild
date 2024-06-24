@@ -28,6 +28,7 @@ export default {
       type: Array,
       required: true
     },
+    refValue: undefined,
     selection: Boolean,
     border: Boolean,
     stripe: Boolean
@@ -36,51 +37,105 @@ export default {
 </script>
 
 <template>
-  <el-table ref="table" :data="tableData" :border="border" :stripe="stripe" :row-key="(row) => {
-    return row.id
-  }
-    " @selection-change="handleSelectionChange">
+  <el-table
+    :ref="refValue"
+    :data="tableData"
+    :border="border"
+    :stripe="stripe"
+    :row-key="
+      (row) => {
+        return row.id
+      }
+    "
+    @selection-change="handleSelectionChange"
+  >
     <!-- columnData属性列 -->
     <el-table-column v-if="selection" type="selection" width="30" align="center" :fixed="'left'" />
     <template v-for="item in columnData" :key="item.id">
-      <el-table-column v-if="item.type === 'link'" :label="item.label" :prop="item.prop" :width="item.width"
-        :align="item.align" :fixed="'right'" :sortable="item.sort" :formatter="item.formatter">
+      <el-table-column
+        v-if="item.type === 'link'"
+        :label="item.label"
+        :prop="item.prop"
+        :width="item.width"
+        :align="item.align"
+        :fixed="'right'"
+        :sortable="item.sort"
+        :formatter="item.formatter"
+      >
         <template #default="scope">
           <slot :name="item.prop" v-bind="scope" />
         </template>
       </el-table-column>
-      <el-table-column v-else-if="item.type === 'tag'" :label="item.label" :prop="item.prop" :width="item.width"
-        :align="item.align" :fixed="item.fixed" :sortable="item.sort" :filters="item.filters"
-        :formatter="item.formatter">
-
+      <el-table-column
+        v-else-if="item.type === 'tag'"
+        :label="item.label"
+        :prop="item.prop"
+        :width="item.width"
+        :align="item.align"
+        :fixed="item.fixed"
+        :sortable="item.sort"
+        :filters="item.filters"
+        :formatter="item.formatter"
+      >
         <template #default="scope">
           <slot :name="item.prop" v-bind="scope" />
         </template>
       </el-table-column>
-      <el-table-column v-else-if="item.type === 'btn'" :label="item.label" :prop="item.prop" :width="item.width"
-        :align="item.align" :fixed="item.fixed" :sortable="item.sort" :filters="item.filters"
-        :formatter="item.formatter">
-
+      <el-table-column
+        v-else-if="item.type === 'btn'"
+        :label="item.label"
+        :prop="item.prop"
+        :width="item.width"
+        :align="item.align"
+        :fixed="item.fixed"
+        :sortable="item.sort"
+        :filters="item.filters"
+        :formatter="item.formatter"
+      >
         <template #default="scope">
           <slot :name="item.prop" v-bind="scope" />
         </template>
       </el-table-column>
-      <el-table-column v-else-if="item.type === 'progress'" :label="item.label" :prop="item.prop" :width="item.width"
-        :align="item.align" :fixed="item.fixed" :sortable="item.sort" :filters="item.filters"
-        :formatter="item.formatter">
+      <el-table-column
+        v-else-if="item.type === 'progress'"
+        :label="item.label"
+        :prop="item.prop"
+        :width="item.width"
+        :align="item.align"
+        :fixed="item.fixed"
+        :sortable="item.sort"
+        :filters="item.filters"
+        :formatter="item.formatter"
+      >
         <template #default="scope">
           <slot :name="item.prop" v-bind="scope" />
         </template>
       </el-table-column>
-      <el-table-column v-else-if="item.type === 'select'" :label="item.label" :prop="item.prop" :width="item.width"
-        :align="item.align" :fixed="item.fixed" :sortable="item.sort" :filters="item.filters"
-        :formatter="item.formatter">
+      <el-table-column
+        v-else-if="item.type === 'select'"
+        :label="item.label"
+        :prop="item.prop"
+        :width="item.width"
+        :align="item.align"
+        :fixed="item.fixed"
+        :sortable="item.sort"
+        :filters="item.filters"
+        :formatter="item.formatter"
+      >
         <template #default="scope">
           <slot :name="item.prop" v-bind="scope" />
         </template>
       </el-table-column>
-      <el-table-column v-else :label="item.label" :prop="item.prop" :width="item.width" :align="item.align"
-        :fixed="item.fixed" :sortable="item.sort" :formatter="item.formatter" />
+      <el-table-column
+        v-else
+        :label="item.label"
+        :prop="item.prop"
+        :width="item.width"
+        :align="item.align"
+        :fixed="item.fixed"
+        :sortable="item.sort"
+        :formatter="item.formatter"
+      />
     </template>
   </el-table>
 </template>

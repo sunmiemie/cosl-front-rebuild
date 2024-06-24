@@ -1,15 +1,12 @@
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref } from "vue"
-import { ElMessage, ElMessageBox, ElScrollbar, ElTree, type FormInstance, type FormRules } from "element-plus"
-import { CirclePlus, Refresh, RefreshRight, Search, Check } from "@element-plus/icons-vue"
+import { ElScrollbar, ElTable, ElTree, type FormInstance } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import {
-  getTestMangePath,
-  getbordsinfo,
-  getTestMangeTable,
-} from "@/api/testMangelist/index"
+import { getTestMangePath, getbordsinfo, getTestMangeTable } from "@/api/testMangelist/index"
 import type { GetBoardData } from "@/api/board/types/board"
+import { getTestTypeDataApi } from "@/api/testtype"
+import { getTestProcessList } from "@/api/addprocess"
 
 defineOptions({
   // 命名当前组件
@@ -17,106 +14,15 @@ defineOptions({
 })
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-// 点击隐藏
+const currentRow = ref()
 const showFlags = ref(true)
+const showProcess = ref(true)
 const testFlags = ref(true)
 const dialogVisible = ref<boolean>(false)
 const PublicVisible = ref<boolean>(false)
-const checkedFixture = ref([])
-const checkedPsi = ref([])
-const checkedEquipment = ref([])
-const fixtures = ref([
-  { id: 1, name: "fixture1" },
-  { id: 2, name: "fixture2" },
-  { id: 3, name: "fixture3" },
-  { id: 4, name: "fixture4" },
-  { id: 5, name: "fixture5" },
-  { id: 6, name: "fixture6" },
-  { id: 7, name: "fixture7" }
-])
-const psis = ref([
-  { id: 1, name: "psi1" },
-  { id: 2, name: "psi2" },
-  { id: 3, name: "psi3" },
-  { id: 4, name: "psi4" },
-  { id: 5, name: "psi5" },
-  { id: 6, name: "psi6" },
-  { id: 7, name: "psi7" }
-])
-const equipments = ref([
-  { id: 1, name: "equipment1" },
-  { id: 2, name: "equipment2" },
-  { id: 3, name: "equipment3" },
-  { id: 4, name: "equipment4" },
-  { id: 5, name: "equipment5" },
-  { id: 6, name: "equipment6" },
-  { id: 7, name: "equipment7" }
-])
-//#region 增
-const formRef = ref<FormInstance | null>(null)
-
-// const handleCreate = () => {
-//   formRef.value?.validate((valid: boolean, fields) => {
-//     if (valid) {
-//       if (currentUpdateId.value === undefined) {
-//         createTableDataApi(formData)
-//           .then(() => {
-//             ElMessage.success("新增成功")
-//             //getTableData()
-//           })
-//           .finally(() => {
-//             dialogVisible.value = false
-//           })
-//       } else {
-//         updateTableDataApi({
-//           id: currentUpdateId.value,
-//           username: formData.username
-//         })
-//           .then(() => {
-//             ElMessage.success("修改成功")
-//             //getTableData()
-//           })
-//           .finally(() => {
-//             dialogVisible.value = false
-//           })
-//       }
-//     } else {
-//       console.error("表单校验不通过", fields)
-//     }
-//   })
-// }
-// const resetForm = () => {
-//   currentUpdateId.value = undefined
-//   formData.username = ""
-//   formData.password = ""
-// }
-//#endregion
-
-//#region 删
-// const handleDelete = (row: GetTableData) => {
-//   ElMessageBox.confirm(`正在删除用户：${row.username}，确认删除？`, "提示", {
-//     confirmButtonText: "确定",
-//     cancelButtonText: "取消",
-//     type: "warning"
-//   }).then(() => {
-//     deleteTableDataApi(row.id).then(() => {
-//       ElMessage.success("删除成功")
-//       //getTableData()
-//     })
-//   })
-// }
-//#endregion
-
-//#region 改
-// const currentUpdateId = ref<undefined | string>(undefined)
-// const handleUpdate = (row: GetTableData) => {
-//   currentUpdateId.value = row.id
-//   formData.username = row.username
-//   dialogVisible.value = true
-// }
-//#endregion
-
-//const tableData = ref<GetTableData[]>([])
+const testTypeList = ref([])
+const processList = ref([])
+const showProcessList = ref([])
 interface TableDataType {
   testunit_id?: number
   testunit_name?: string
@@ -137,7 +43,7 @@ const headers = ref([
   { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
   { prop: "link", label: "操作", type: "link" }
 ])
-
+const selectedRows = ref([])
 const addHeaders = ref([
   { prop: "id", label: "电路板ID", align: "center" },
   { prop: "serial_num", label: "电路板序列号", align: "center" }
@@ -181,8 +87,6 @@ const getTableData = () => {
     console.log(TableData.value[i])
     TableData.value[i].link = defineLink(TableData.value[i].testunit_status)
   }
-  // This code will be executed after the next DOM update
-  // You can safely access updated DOM elements or properties here
 }
 
 // 发布与删除测试工单
@@ -222,12 +126,6 @@ const goBack = () => {
   drawer.value = false
 }
 
-// 时间选择器
-// const value1 = ref<[Date, Date]>()
-// 查询
-/**
- * Query button
- */
 const handleSearch = async () => {
   // 查询Table表格数据
   // 深拷贝
@@ -241,42 +139,7 @@ const handleSearch = async () => {
   // 判断是否为第一页，是则重新渲染，否则置一
   // paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
 }
-
-const shortcuts = [
-  {
-    text: "Last week",
-    value: () => {
-      const end = new Date()
-      const start = new Date()
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 7)
-      return [start, end]
-    }
-  },
-  {
-    text: "Last month",
-    value: () => {
-      const end = new Date()
-      const start = new Date()
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 30)
-      return [start, end]
-    }
-  },
-  {
-    text: "Last 3 months",
-    value: () => {
-      const end = new Date()
-      const start = new Date()
-      start.setTime(start.getTime() - 3600 * 1000 * 24 * 90)
-      return [start, end]
-    }
-  }
-]
 const resetSearch = () => {
-  // searchData.TestName = ''
-  // searchData.TestStatus = '',
-  // searchData.TestType = '',
-  // searchData.number = ''
-  // searchData.Daterange = ''
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
   getMangeData()
 }
@@ -290,95 +153,14 @@ const form = reactive({
   radio2: "",
   checkedOptions: ["option2"]
 })
-// test
-const test = reactive({
-  name: "电路板名称",
-  AllType: ["功能性测试", "X-Ray测试"],
-  // 功能性测试类型....
-  test1: {
-    fixtureMangerList: [
-      {
-        ID: "123",
-        number: "123"
-      },
-      {
-        ID: "123",
-        number: "123"
-      }
-    ],
-    hostMangerList: [
-      {
-        ID: "123",
-        number: "123"
-      },
-      {
-        ID: "123",
-        number: "123"
-      }
-    ],
-    otherMangerList: [
-      {
-        ID: "123",
-        number: "123"
-      }
-    ]
-  },
-  // X-Ray测试
-  test2: {
-    fixtureMangerList: [
-      {
-        ID: "123",
-        number: "123"
-      },
-      {
-        ID: "123",
-        number: "123"
-      }
-    ],
-    otherMangerList: [
-      {
-        ID: "123",
-        number: "123"
-      }
-    ]
-  },
-  // .......
-  test3: {
-    fixtureMangerList: [
-      {
-        ID: "123",
-        number: "123"
-      },
-      {
-        ID: "123",
-        number: "123"
-      }
-    ],
-    hostMangerList: [
-      {
-        ID: "123",
-        number: "123"
-      },
-      {
-        ID: "123",
-        number: "123"
-      }
-    ],
-    otherMangerList: [
-      {
-        ID: "123",
-        number: "123"
-      }
-    ]
-  }
-})
+const handleSelectionChange = (val: any) => {
+  selectedRows.value = val
+}
+const singleTableRef = ref<InstanceType<typeof ElTable>>()
 
-// 当前电路板信息
-const CurrentTestInfo = reactive({
-  region: "",
-  number: ""
-})
-// 测试工单详情
+const setCurrent = (row) => {
+  singleTableRef.value!.setCurrentRow(row)
+}
 const formInline = reactive<PublicType>({
   number: "",
   name: "",
@@ -386,11 +168,20 @@ const formInline = reactive<PublicType>({
   starttime: "",
   endtime: ""
 })
-
+const selectedType = reactive({
+  id: "",
+  name: ""
+})
 //选择测试工艺
 const SelectTestType = (type) => {
-  console.log(type)
-  testFlags.value = false
+  selectedType.id = type.number
+  selectedType.name = type.name
+  showProcess.value = false
+  showProcessList.value = processList.value.find((item) => {
+    return item.type === type.name
+  }).versionList
+  // setCurrent(showProcessList.value[0])
+  currentRow.value = showProcessList.value[0]
 }
 
 // 确认新增
@@ -451,11 +242,28 @@ const clickNode = async (data: NodeData & any, node: any) => {
   CircuitBatch.value = data.label
   CircuitBoardModel.value = node.parent.data.label
   showFlags.value = false
+  getTestTypeData()
   // 根据id获取电路版信息
-  const result = await getbordsinfo(data.id)
+  const result = await getbordsinfo({ batchId: data.id, boardModelId: node.parent.data.id })
   tableData1.value = result.data
+  getTestProcessList({
+    boardModel_id: node.parent.data.id
+  }).then((res) => {
+    console.log(res.data)
+    processList.value = res.data
+  })
 }
-
+const handleSingleSelectChange = (val) => {
+  currentRow.value = val
+}
+const getTestTypeData = () => {
+  getTestTypeDataApi({
+    currentPage: 1,
+    size: 9999999
+  }).then((res) => {
+    testTypeList.value = res.data.list
+  })
+}
 // 关闭DiaLog
 const closeDiaLog = () => {
   showFlags.value = true
@@ -473,47 +281,26 @@ const defaultProps = {
 watch(filterText, (val) => {
   treeRef.value!.filter(val)
 })
-let data: Tree[] = []
-
+const treeData: Ref<any[]> = ref([])
 const filterNode = (value: string, data: Tree) => {
   if (!value) return true
   return data.label.includes(value)
 }
-// 新增测试
 const addTest = async () => {
+  await getTreeData()
   dialogVisible.value = true
 }
-const multipleTableRef = ref()
-const multipleSelection = ref([])
-// 选择框
-const handleSelectionChange = async (val: any) => {
-  if (val.length == 1) {
-    // return;
-    // console.log(val[0].id);
-    // let selectBatch = await getTestMangeInfo(val[0].id)
-  } else {
-    multipleTableRef.value.clearSelection()
-  }
-}
-
-// 重置数据
 const ResetInfo = () => {
   form["data1"] = ""
   form["region"] = ""
   form["number"] = ""
   testFlags.value = true
 }
-
-/**
- * Fetch the path data from the server and store it
- */
-async function getMangeData() {
-  // Fetch the path data from the server
+async function getTreeData() {
   const result = await getTestMangePath()
-  // Call the API to get the path data
-  data = result.Pathdata
-  // 获取Table表格数据
-  //  分页
+  treeData.value = result.Pathdata
+}
+async function getMangeData() {
   const currentpage = paginationData.currentPage
   const size = paginationData.pageSize
   const tableResult = await getTestMangeTable({ currentPage: currentpage, pageSize: size })
@@ -537,19 +324,22 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
           <el-input v-model="searchData.TestName" placeholder="请输入" />
         </el-form-item>
         <el-form-item label="测试类型">
-          <el-select v-model="searchData.TestType" placeholder="请选择">
-            <el-option label="功能性测试" value="功能性测试" />
-            <el-option label="X-Ray测试" value="X-Ray测试" />
-            <el-option label="可靠性测试" value="可靠性测试" />
+          <el-select
+            v-model="searchData.TestType"
+            placeholder="请选择"
+            style="width: 150px"
+            @visible-change="getTestTypeData"
+          >
+            <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="测试状态">
-          <el-select v-model="searchData.TestStatus" placeholder="请选择">
-            <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" />
+          <el-select v-model="searchData.TestStatus" placeholder="请选择" style="width: 150px">
+            <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
           </el-select>
         </el-form-item>
         <!-- 时间选择器 -->
-        <el-form-item label="选择时间范围">
+        <el-form-item label="创建时间范围">
           <el-date-picker
             v-model="searchData['Daterange'] as any"
             end-placeholder="结束日期"
@@ -573,7 +363,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         </div>
         <div>
           <el-tooltip content="刷新当前页">
-            <el-button icon="RefreshRight" circle type="primary" @click="" />
+            <el-button circle icon="RefreshRight" type="primary" @click="getMangeData" />
           </el-tooltip>
         </div>
       </div>
@@ -586,7 +376,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
             <el-tag v-if="row.testunit_status === '3'" type="success"> 测试正常</el-tag>
             <el-tag v-if="row.testunit_status === '4'" type="danger"> 测试异常</el-tag>
           </template>
-
           <template #link="{ row }">
             <el-link v-for="i in row.link" class="el-link" type="primary" @click="handleLink(row, i)">{{ i }}</el-link>
           </template>
@@ -752,7 +541,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
               </template>
               <el-tree
                 ref="treeRef"
-                :data="data"
+                :data="treeData"
                 :filter-node-method="filterNode"
                 :props="defaultProps"
                 default-expand-all
@@ -788,99 +577,38 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                   </el-card>
                 </div>
                 <div>
-                  <el-text size="large">2.确认测试工艺</el-text>
+                  <el-text size="large">2.确认测试类型</el-text>
                   <div style="margin-top: 10px">
-                    <el-button v-for="item in test.AllType" class="test-type" @click="SelectTestType(item)"
-                      >{{ item }}
+                    <el-button
+                      v-show="item.processCount !== 0"
+                      v-for="item in testTypeList"
+                      class="test-type"
+                      @click="SelectTestType(item)"
+                      :key="item"
+                      >{{ item.name }}
                     </el-button>
                   </div>
                   <el-card shadow="never" style="margin-top: 10px; margin-bottom: 10px">
-                    <div v-if="testFlags" style="display: flex; justify-content: center">请先选择工艺类型</div>
-                    <div v-else class="test-type-contentShow">
-                      <el-row :gutter="20">
-                        <el-col :span="8">
-                          <div v-if="test.test1" class="select-fixture">
-                            <p>选择夹具（单选）</p>
-                            <div>
-                              <el-checkbox-group v-model="checkedFixture" :max="1">
-                                <el-card shadow="never" style="--el-card-padding: 0px">
-                                  <el-scrollbar height="200px">
-                                    <el-checkbox
-                                      v-for="fixture in fixtures"
-                                      :key="fixture.id"
-                                      :label="fixture.name"
-                                      :value="fixture.id"
-                                      style="
-                                        margin: 0;
-                                        width: 100%;
-                                        border: 0.5px solid var(--el-border-color);
-                                        padding: 0 9px 0 11px;
-                                      "
-                                      >夹具ID:{{ fixture.id }} 夹具名称:{{ fixture.name }}
-                                    </el-checkbox>
-                                  </el-scrollbar>
-                                </el-card>
-                              </el-checkbox-group>
-                            </div>
-                          </div>
-                        </el-col>
-                        <el-col :span="8">
-                          <div v-if="test.test2">
-                            <p>选择主机（单选）</p>
-                            <el-checkbox-group v-model="checkedPsi" :max="1">
-                              <el-card shadow="never" style="--el-card-padding: 0px">
-                                <el-scrollbar always="always" height="200px">
-                                  <el-checkbox
-                                    v-for="psi in psis"
-                                    :key="psi.id"
-                                    :label="psi.name"
-                                    :value="psi.id"
-                                    style="
-                                      margin: 0;
-                                      width: 100%;
-                                      border: 0.5px solid var(--el-border-color);
-                                      padding: 0 9px 0 11px;
-                                    "
-                                    >主机ID:{{ psi.id }} 主机名称:{{ psi.name }}
-                                  </el-checkbox>
-                                </el-scrollbar>
-                              </el-card>
-                            </el-checkbox-group>
-                          </div>
-                        </el-col>
-                        <el-col :span="8">
-                          <div v-if="true" class="select-other">
-                            <p>选择其他设备（多选）</p>
-                            <div>
-                              <el-checkbox-group v-model="checkedEquipment">
-                                <el-card shadow="never" style="--el-card-padding: 0px">
-                                  <el-scrollbar always="always" height="200px">
-                                    <el-checkbox
-                                      v-for="equipment in equipments"
-                                      :key="equipment.id"
-                                      :label="equipment.name"
-                                      :value="equipment.id"
-                                      style="
-                                        margin: 0;
-                                        width: 100%;
-                                        border: 0.5px solid var(--el-border-color);
-                                        padding: 0 9px 0 11px;
-                                      "
-                                      >其他设备ID:{{ equipment.id }} 其他设备名称:{{ equipment.name }}
-                                    </el-checkbox>
-                                  </el-scrollbar>
-                                </el-card>
-                              </el-checkbox-group>
-                            </div>
-                          </div>
-                        </el-col>
-                      </el-row>
+                    <div v-if="showProcess" style="display: flex; justify-content: center">请先选择测试类型</div>
+                    <div v-else-if="!showProcess">
+                      <div style="margin-bottom: 10px">
+                        <el-space :size="10" spacer="|">
+                          <el-text size="large">所选测试:{{ selectedType.name }}</el-text>
+                          <el-text>所选工艺ID:{{ currentRow.id }}</el-text>
+                          <el-text size="large">所选工艺版本:{{ currentRow.version }}</el-text>
+                        </el-space>
+                      </div>
+                      <el-table
+                        ref="singleTableRef"
+                        :data="showProcessList"
+                        highlight-current-row
+                        @current-change="handleSingleSelectChange"
+                      >
+                        <el-table-column prop="id" label="工艺ID" width="100" />
+                        <el-table-column prop="version" label="工艺版本" width="100" />
+                      </el-table>
                     </div>
                   </el-card>
-                </div>
-                <div class="info-footer">
-                  <el-text size="large">3.确认结束日期</el-text>
-                  <el-date-picker v-model="form.data1" placeholder="请选择" style="margin-left: 20px" type="date" />
                 </div>
               </div>
             </el-card>
@@ -889,8 +617,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       </div>
       <div class="test-footer">
         <div>
-          <el-button :icon="Check" type="primary" @click="submitAdd">确认新增</el-button>
-          <el-button :icon="RefreshRight" type="info" @click="ResetInfo">信息重置</el-button>
+          <el-button icon="Check" type="primary" @click="submitAdd">确认新增</el-button>
+          <el-button icon="RefreshRight" type="info" @click="ResetInfo">信息重置</el-button>
         </div>
       </div>
     </el-dialog>
