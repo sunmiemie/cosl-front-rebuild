@@ -3,7 +3,6 @@ import { reactive, ref, watch } from "vue"
 import { createFixtureModelDataApi, getFixtureModelDataApi, updateFixtureModelDataApi } from "@/api/fixturemodel"
 import { type GetFixtureModelData } from "@/api/fixturemodel/types/fixturemodel"
 import { ElMessage, type FormInstance, type FormRules } from "element-plus"
-import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 defineOptions({
@@ -23,12 +22,15 @@ const formData = reactive({
   des: "",
   supplier: "",
   type: "",
-  number: ""
+  count: ""
 })
 const formRules: FormRules = reactive({
+  id: [{ required: true, trigger: "blur", message: "请输入物料号" }],
   name: [{ required: true, trigger: "blur", message: "请输入类型名称" }],
-  type: [{ required: false, trigger: "blur", message: "请选择绑定电路板" }],
-  des: [{ required: true, trigger: "blur", message: "请输入描述" }]
+  type: [{ required: true, trigger: "blur", message: "请选择夹具类型" }],
+  des: [{ required: true, trigger: "blur", message: "请输入描述" }],
+  supplier: [{ required: true, trigger: "blur", message: "请输入供应商" }],
+  count: [{ required: true, trigger: "blur", message: "请输入槽位数量" }]
 })
 const handleCreate = () => {
   formRef.value?.validate((valid: boolean, fields) => {
@@ -66,8 +68,10 @@ const resetForm = () => {
   currentUpdateId.value = undefined
   formData.name = ""
   formData.type = ""
-  formData.number = ""
+  formData.supplier = ""
   formData.des = ""
+  formData.id = ""
+  formData.count = ""
 }
 
 //#region 改
@@ -76,6 +80,7 @@ const headers = ref([
   { prop: "id", label: "夹具型号ID", align: "center" },
   { prop: "name", label: "夹具型号名称", align: "center" },
   { prop: "supplier", label: "夹具供应商", type: "center" },
+  { prop: "typeName", label: "夹具类型", type: "center" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
 const TableData = ref<GetFixtureModelData[]>([])
@@ -114,6 +119,7 @@ const handleLink = async (data: any) => {
   formData.name = data.name
   formData.id = data.id
   formData.des = data.des
+  formData.type = String(data.type)
   dialogVisible.value = true
 }
 const handleSearch = () => {
@@ -144,19 +150,19 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="searchData.name" placeholder="请输入" />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+          <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
+          <el-button icon="Refresh" @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" :icon="CirclePlus" @click="addfixturetype">新增夹具型号</el-button>
+          <el-button type="primary" icon="CirclePlus" @click="addfixturetype">新增夹具型号</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
-            <el-button type="primary" :icon="RefreshRight" circle @click="getTableData" />
+            <el-button type="primary" icon="RefreshRight" circle @click="getTableData" />
           </el-tooltip>
         </div>
       </div>
@@ -183,17 +189,28 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <!-- 新增/修改 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="currentUpdateId === undefined ? '新夹具类型' : '修改夹具类型'"
+      :title="currentUpdateId === undefined ? '新增夹具型号' : '编辑夹具型号'"
       @close="resetForm"
       width="50%"
     >
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="130px" label-position="left">
+        <el-form-item prop="id" label="夹具物料号:">
+          <el-input v-model="formData.id" type="number" :min="0" placeholder="请输入" />
+        </el-form-item>
         <el-form-item prop="name" label="夹具型号名称:">
           <el-input v-model="formData.name" placeholder="请输入" />
         </el-form-item>
-
-        <el-form-item label="夹具供应商">
+        <el-form-item prop="supplier" label="夹具供应商:">
           <el-input v-model="formData.supplier" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item prop="type" label="夹具类型:">
+          <el-select v-model="formData.type" placeholder="请选择" style="width: 240px">
+            <el-option value="0" label="功能性测试夹具" />
+            <el-option value="1" label="XRay测试夹具" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="formData.type === '1'" prop="count" label="槽位数量:">
+          <el-input v-model="formData.count" type="number" :min="0" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="des" label="夹具描述:">
           <el-input type="textarea" v-model="formData.des" placeholder="请输入" />

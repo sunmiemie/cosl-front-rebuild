@@ -2,9 +2,7 @@ import { request } from "@/utils/service"
 import type * as BoardModel from "./types/boardmodel"
 import { UnwrapNestedRefs } from "vue"
 
-export function createBoardModelDataApi(
-  data: UnwrapNestedRefs<{ des: string; name: string; id: null; type: string }>
-) {
+export function createBoardModelDataApi(data: UnwrapNestedRefs<{ des: string; name: string; id: null; type: string }>) {
   return request({
     url: "equipment/boardmodel/add",
     method: "post",
@@ -21,7 +19,14 @@ export function deleteBoardModelDataApi(id: string) {
 }
 
 /** 改 */
-export function updateBoardModelDataApi(data: { des: string; name: string; id: null; type: string }) {
+export function updateBoardModelDataApi(data: {
+  des: string
+  name: string
+  isCommon: boolean
+  model: string
+  id: null
+  type: string
+}) {
   return request({
     url: "equipment/boardmodel/update",
     method: "post",

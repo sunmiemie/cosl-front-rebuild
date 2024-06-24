@@ -62,14 +62,15 @@ const headers = ref([
   { prop: "name", label: "电路板型号", align: "center", width: "150" },
   { prop: "seria", label: "电路板序列号", align: "center", width: "250" },
   { prop: "startTime", label: "入库时间", align: "center", width: "150" },
-  { prop: "status", label: "功能性测试", type: "tag", align: "center", width: "120" },
-  { prop: "status", label: "X-Ray测试", type: "tag", align: "center", width: "120" },
-  { prop: "status", label: "可靠性测试", type: "tag", align: "center", width: "120" },
+  { prop: "statusFunc", label: "功能性测试", type: "tag", align: "center", width: "120" },
+  { prop: "statusEyes", label: "目检测试", type: "tag", align: "center", width: "120" },
+  { prop: "statusXray", label: "X-Ray测试", type: "tag", align: "center", width: "120" },
+  { prop: "statusHalt", label: "可靠性测试", type: "tag", align: "center", width: "120" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
 
 const batchHeaders = ref([
-  { prop: "id", label: "批次ID", align: "center" },
+  { prop: "id", label: "批次号", align: "center" },
   { prop: "name", label: "批次名称", align: "center" },
   { prop: "supplier", label: "供应商", align: "center" },
   { prop: "startTime", label: "入库时间", align: "center" },
@@ -304,7 +305,7 @@ onMounted(() => {
       <el-col v-else :span="19">
         <el-card shadow="never" class="search-wrapper">
           <el-form ref="searchFormRef" :inline="true" :model="searchData">
-            <el-form-item prop="seria" label="批次ID">
+            <el-form-item prop="seria" label="批次号">
               <el-input v-model="searchData.id" placeholder="请输入" />
             </el-form-item>
             <el-form-item prop="name" label="批次名称">
@@ -387,7 +388,7 @@ onMounted(() => {
           </div>
           <div>
             <el-tooltip content="刷新当前页">
-              <el-button type="primary" icon="refresh-right" circle @click="getTableData" />
+              <el-button type="primary" icon="refresh-right" circle @click="getDetailTableData" />
             </el-tooltip>
           </div>
         </div>
@@ -399,11 +400,29 @@ onMounted(() => {
             stripe
             @selection-change="handleSelectionChange"
           >
-            <template #status="{ row }">
-              <el-tag v-if="row.status === '0'"> 待测试 </el-tag>
-              <el-tag v-if="row.status === '1'" type="warning"> 已测试 </el-tag>
-              <el-tag v-if="row.status === '2'" type="success"> 检测正常 </el-tag>
-              <el-tag v-if="row.status === '3'" type="danger"> 检测异常 </el-tag>
+            <template #statusFunc="{ row }">
+              <el-tag v-if="row.status[0] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row.status[0] === 1" type="warning"> 已测试 </el-tag>
+              <el-tag v-if="row.status[0] === 2" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row.status[0] === 3" type="danger"> 检测异常 </el-tag>
+            </template>
+            <template #statusEyes="{ row }">
+              <el-tag v-if="row.status[1] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row.status[1] === 1" type="warning"> 已测试 </el-tag>
+              <el-tag v-if="row.status[1] === 2" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row.status[1] === 3" type="danger"> 检测异常 </el-tag>
+            </template>
+            <template #statusXray="{ row }">
+              <el-tag v-if="row.status[2] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row.status[2] === 1" type="warning"> 已测试 </el-tag>
+              <el-tag v-if="row.status[2] === 2" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row.status[2] === 3" type="danger"> 检测异常 </el-tag>
+            </template>
+            <template #statusHalt="{ row }">
+              <el-tag v-if="row.status[3] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row.status[3] === 1" type="warning"> 已测试 </el-tag>
+              <el-tag v-if="row.status[3] === 2" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row.status[3] === 3" type="danger"> 检测异常 </el-tag>
             </template>
             <template #link="{ row }">
               <el-link type="primary" class="el-link" @click="handleLink(row, '二维码')"> 二维码 </el-link>

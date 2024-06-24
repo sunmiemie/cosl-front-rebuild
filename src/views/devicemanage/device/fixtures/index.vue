@@ -1,25 +1,24 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { createFixtureDataApi, getFixtureDataApi, updateFixtureDataApi } from "@/api/fixture"
-import { getAnnualinspection } from '@/api/Annualinspection'
-import { fileDownoload } from '@/api/file'
+import { getAnnualinspection } from "@/api/Annualinspection"
+import { fileDownoload } from "@/api/file"
 import { getFixtureModelDataApi } from "@/api/fixturemodel"
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus";
-import { CirclePlus, Refresh, RefreshRight, Search, Printer, UploadFilled } from "@element-plus/icons-vue";
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
+import { CirclePlus, Refresh, RefreshRight, Search, Printer, UploadFilled } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { type GetFixtureData } from "@/api/fixture/types/fixture"
 import QrcodeVue from "qrcode.vue"
 import { GetFixtureModelData } from "@/api/fixturemodel/types/fixturemodel"
 import { format } from "date-fns"
-import axios from "axios";
+
 defineOptions({
   // 命名当前组件
   name: "ElementPlus"
 })
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-
 //#region 增
 const dialogVisible = ref<boolean>(false)
 const qrcodeVisible = ref<boolean>(false)
@@ -102,7 +101,7 @@ const headers = ref([
   { prop: "startTime", label: "入库时间", align: "center" },
   { prop: "status", label: "夹具状态", type: "tag", align: "center" },
   { prop: "link", label: "操作", type: "link" },
-  { prop: 'download', label: '下载', type: 'btn', align: 'center' }
+  { prop: "download", label: "下载", type: "btn", align: "center" }
 ])
 
 // 表格
@@ -175,7 +174,7 @@ const handleSelectionChange = (val: any) => {
   selectedRows.value = val
 }
 const getSelection = () => {
-  // console.log("print", selectedRows.value)
+  console.log("print", selectedRows.value)
 }
 const currentModel = ref()
 const handleLink = (data: any, i: string) => {
@@ -250,24 +249,26 @@ const resetCheck = (formEl: any) => {
   fileList.file = []
 }
 const handleCheck = () => {
-  let form = new FormData()
-  form.append('FileName', fileList.file[0].raw)
-  form.append('id', currentUpdateId.value)
-  form.append('date', checkData.updateDate)
-  form.append('type', '1')
-  getAnnualinspection(form).then((res) => {
-    ElMessage.success('更新成功')
-    getTableData()
-  }).finally(() => {
-    checkVisible.value = false;
-  })
+  const form = new FormData()
+  form.append("FileName", fileList.file[0].raw)
+  form.append("id", currentUpdateId.value)
+  form.append("date", checkData.updateDate)
+  form.append("type", "1")
+  getAnnualinspection(form)
+    .then((res) => {
+      ElMessage.success("更新成功")
+      getTableData()
+    })
+    .finally(() => {
+      checkVisible.value = false
+    })
 }
 
 const download = (file: any, fileType: string, fileName: string) => {
   const blob = new Blob([file], {
     type: fileType
   })
-  const a = document.createElement('a')
+  const a = document.createElement("a")
   const href = URL.createObjectURL(blob)
   a.href = href
   a.download = fileName
@@ -285,10 +286,10 @@ interface infoType {
 }
 // 下载
 const handleDownload = (info: infoType) => {
-  let { name } = info
+  const { name } = info
   fileDownoload(name).then((res) => {
     console.log(res)
-    download(res, 'application/vnd.ms-excel', name)
+    download(res, "application/vnd.ms-excel", name)
   })
 }
 
@@ -304,37 +305,43 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="searchData.seria" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="name" label="夹具状态">
-          <el-select v-model="searchData.status" style="width: 150px;">
+          <el-select v-model="searchData.status" style="width: 150px">
             <el-option v-for="item in ModelStatus" :label="item.name" :value="item.status" :key="item.status" />
           </el-select>
         </el-form-item>
-        <el-form-item prop="type" label="夹具型号" >
-          <el-select v-model="searchData.model" placeholder="请选择" style="width: 150px;">
+        <el-form-item prop="type" label="夹具型号">
+          <el-select v-model="searchData.model" placeholder="请选择" style="width: 150px">
             <el-option v-for="item in ModelData" :label="item.name" :value="item.id" :key="item.id" />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+          <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
+          <el-button icon="Refresh" @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" :icon="CirclePlus" @click="dialogVisible = true">新增夹具</el-button>
-          <el-button v-if="selectedRows.length > 0" type="warning" :icon="Printer"
-            @click="getSelection">打印二维码</el-button>
+          <el-button type="primary" icon="CirclePlus" @click="dialogVisible = true">新增夹具</el-button>
+          <el-button v-if="selectedRows.length > 0" type="warning" icon="Printer" @click="getSelection"
+            >打印二维码</el-button
+          >
         </div>
         <div>
           <el-tooltip content="刷新当前页">
-            <el-button type="primary" :icon="RefreshRight" circle @click="getTableData" />
+            <el-button type="primary" icon="RefreshRight" circle @click="getTableData" />
           </el-tooltip>
         </div>
       </div>
       <div class="table-wrapper">
-        <TableComponent :tableData="TableData" :column-data="headers" selection stripe
-          @selection-change="handleSelectionChange">
+        <TableComponent
+          :tableData="TableData"
+          :column-data="headers"
+          selection
+          stripe
+          @selection-change="handleSelectionChange"
+        >
           <template #status="{ row }">
             <el-tag v-if="row.status === 0" type="success"> 正常 </el-tag>
             <el-tag v-if="row.status === 1" type="warning"> 临检 </el-tag>
@@ -361,22 +368,33 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
               </el-table>
             </el-popover>
 
-            <el-popover :width="300"
-              popper-style="box-shadow: rgb(14 18 22 / 35%) 0px 10px 38px -10px, rgb(14 18 22 / 20%) 0px 10px 20px -15px; padding: 20px;">
-            </el-popover>
+            <el-popover
+              :width="300"
+              popper-style="box-shadow: rgb(14 18 22 / 35%) 0px 10px 38px -10px, rgb(14 18 22 / 20%) 0px 10px 20px -15px; padding: 20px;"
+            />
           </template>
-
         </TableComponent>
       </div>
       <div class="pager-wrapper">
-        <el-pagination background :layout="paginationData.layout" :page-sizes="paginationData.pageSizes"
-          :total="paginationData.total" :page-size="paginationData.pageSize" :currentPage="paginationData.currentPage"
-          @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+        <el-pagination
+          background
+          :layout="paginationData.layout"
+          :page-sizes="paginationData.pageSizes"
+          :total="paginationData.total"
+          :page-size="paginationData.pageSize"
+          :currentPage="paginationData.currentPage"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
       </div>
     </el-card>
     <!-- 新增/修改 -->
-    <el-dialog v-model="dialogVisible" :title="currentUpdateId === undefined ? '新增夹具' : '编辑夹具'" @close="resetForm"
-      width="30%">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="currentUpdateId === undefined ? '新增夹具' : '编辑夹具'"
+      @close="resetForm"
+      width="30%"
+    >
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" label-position="left">
         <el-form-item prop="model" label="夹具型号">
           <el-select v-model="formData.model" placeholder="请选择">
@@ -398,10 +416,23 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-dialog title="更新年检" v-model="checkVisible" width="30%">
       <el-form ref="checkRef" label-width="100px" label-position="left">
         <el-form-item prop="checkFile" label="年检文件:">
-          <el-upload class="upload-demo" drag accept=".xls,.xlsx" headers="Content-Type':'multipart/form-data" action=""
-            v-model:file-list="fileList.file" multiple style="width: 100%" :on-exceed="exceedFile"
-            :on-error="handleError" :on-success="handleSuccess" :before-upload="beforeUpload" :show-file-list="true"
-            :auto-upload="false" :limit="1">
+          <el-upload
+            class="upload-demo"
+            drag
+            accept=".xls,.xlsx"
+            headers="Content-Type':'multipart/form-data"
+            action=""
+            v-model:file-list="fileList.file"
+            multiple
+            style="width: 100%"
+            :on-exceed="exceedFile"
+            :on-error="handleError"
+            :on-success="handleSuccess"
+            :before-upload="beforeUpload"
+            :show-file-list="true"
+            :auto-upload="false"
+            :limit="1"
+          >
             <el-icon class="el-icon--upload"><upload-filled /></el-icon>
             <div class="el-upload__text">拖拽文件至此 或 <em>点击选择文件上传</em></div>
             <template #tip>
@@ -410,8 +441,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </el-upload>
         </el-form-item>
         <el-form-item prop="updateDate" label="下次年检:">
-          <el-date-picker v-model="checkData.updateDate" type="date" value-format="YYYY-MM-DD" placeholder="选择一个日期"
-            size="default" />
+          <el-date-picker
+            v-model="checkData.updateDate"
+            type="date"
+            value-format="YYYY-MM-DD"
+            placeholder="选择一个日期"
+            size="default"
+          />
         </el-form-item>
       </el-form>
       <template #footer>

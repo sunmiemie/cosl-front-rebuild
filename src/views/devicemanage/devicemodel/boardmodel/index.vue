@@ -18,19 +18,29 @@ const { paginationData, handleCurrentChange, handleSizeChange } = usePagination(
 const dialogVisible = ref<boolean>(false)
 const formRef = ref<FormInstance | null>(null)
 const formData = reactive({
+  id: null,
   name: "",
   des: "",
   type: "",
-  id: null
+  model: "",
+  isCommon: false
 })
 const formRules: FormRules = reactive({
+  id: [{ required: true, trigger: "blur", message: "请输入物料号" }],
   name: [{ required: true, trigger: "blur", message: "请输入型号名称" }],
-  type: [{ required: true, message: "请选择类型" }],
+  type: [{ required: true, trigger: "blur", message: "请选择类型" }],
+  model: [{ required: true, trigger: "blur", message: "请输入规格型号" }],
   des: [{ required: true, trigger: "blur", message: "请输入描述" }]
 })
 const handleCreate = () => {
   formRef.value?.validate((valid: boolean, fields) => {
     if (valid) {
+      if (formData.type === "general") {
+        formData.type = ""
+        formData.isCommon = true
+      } else {
+        formData.isCommon = false
+      }
       if (currentUpdateId.value === undefined) {
         createBoardModelDataApi(formData)
           .then(() => {
@@ -45,7 +55,9 @@ const handleCreate = () => {
           id: formData.id,
           name: formData.name,
           type: formData.type,
-          des: formData.des
+          des: formData.des,
+          model: formData.model,
+          isCommon: formData.isCommon
         })
           .then(() => {
             ElMessage.success("修改成功")
@@ -68,8 +80,9 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 const headers = ref([
-  { prop: "id", label: "电路板型号ID", align: "center" },
-  { prop: "name", label: "电路板型号名称", align: "center" },
+  { prop: "id", label: "电路板物料号", align: "center" },
+  { prop: "name", label: "电路板物料名称", align: "center" },
+  { prop: "model", label: "规格型号", align: "center" },
   { prop: "type", label: "关联仪器", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
@@ -132,7 +145,7 @@ const handleSelectionChange = (val: any) => {
 const DetailList = ref([])
 const handleLink = async (data: any) => {
   formData.type = data.instrument_data[0].id
-  console.log(data)
+  formData.model = data.model
 
   currentUpdateId.value = data.id
   formData.name = data.name
@@ -163,7 +176,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
   <div class="app-container">
     <el-card v-loading="loading" shadow="never" class="search-wrapper">
       <el-form ref="searchFormRef" :inline="true" :model="searchData">
-        <el-form-item prop="number" label="型号ID">
+        <el-form-item prop="number" label="物料号">
           <el-input v-model="searchData.id" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="name" label="型号名称">
@@ -214,11 +227,18 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       width="50%"
     >
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="130px" label-position="left">
-        <el-form-item prop="name" label="电路板型号名称">
+        <el-form-item prop="id" label="电路板物料号">
+          <el-input v-model="formData.id" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item prop="name" label="电路板物料名称">
           <el-input v-model="formData.name" placeholder="请输入" />
         </el-form-item>
+        <el-form-item prop="model" label="电路板规格型号">
+          <el-input v-model="formData.model" placeholder="请输入" />
+        </el-form-item>
         <el-form-item prop="type" label="关联仪器">
-          <el-select v-model="formData.type" placeholder="Select" style="width: 240px">
+          <el-select v-model="formData.type" placeholder="请选择" style="width: 240px">
+            <el-option value="general" label="通用" />
             <el-option v-for="item in DetailList" :key="item.id" :label="item.label" :value="item.id" />
           </el-select>
         </el-form-item>
