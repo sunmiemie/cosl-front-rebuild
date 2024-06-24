@@ -7,6 +7,7 @@ import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-v
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import type { UploadProps } from "element-plus"
+import Vue from "vue"
 
 defineOptions({
   // 命名当前组件
@@ -112,7 +113,6 @@ const getTableData = () => {
   }
 }
 const handleLink = (data: any, i: string) => {
-  console.log(data)
   if (i === "受理") {
 //     submitApi(data)
 //       .then(() => {
@@ -121,7 +121,7 @@ const handleLink = (data: any, i: string) => {
     aspectDialog.value = true
   } else if (i === "处理") {
     DefaultSuccess.value = true
-    Vue.set(DefaultSuccess,'data',data)
+    DefaultSuccess.data = data
     console.log(DefaultSuccess)
   } else if (i === "详情") {
     dialogVisible2.value = true
