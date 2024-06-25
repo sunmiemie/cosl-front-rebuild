@@ -3,15 +3,23 @@ import { reactive, ref, watch, type Ref } from "vue"
 import { ElScrollbar, ElTable, ElTree, type FormInstance } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import { getTestMangePath, getbordsinfo, getTestMangeTable } from "@/api/testMangelist/index"
-import type { GetBoardData } from "@/api/board/types/board"
+import {
+  getTestMangePath,
+  getbordsinfo,
+  getTestMangeTable,
+  createTestUnitApi,
+  publicTestUnitApi,
+  deleteTestUnitApi
+} from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
+import { useUserStore } from "@/store/modules/user"
 
 defineOptions({
   // 命名当前组件
   name: "ElementPlus"
 })
+const userStore = useUserStore()
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const currentRow = ref()
@@ -40,6 +48,7 @@ const headers = ref([
   { prop: "user_name", label: "创建人", align: "center" },
   { prop: "testunit_starttime", label: "创建时间", align: "center" },
   { prop: "testunit_endtime", label: "结束时间", align: "center" },
+  { prop: "process_type", label: "测试类型", align: "center" },
   { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
   { prop: "link", label: "操作", type: "link" }
 ])
@@ -71,7 +80,7 @@ const searchData = reactive<SearchDataType>({
 const defineLink = (status: string) => {
   switch (status) {
     case "0":
-      return { 1: "发布", 2: "编辑", 3: "删除" }
+      return { 1: "发布", 2: "删除" }
     case "1":
       return { 1: "详情" }
     case "2":
@@ -91,7 +100,7 @@ const getTableData = () => {
 
 // 发布与删除测试工单
 interface PublicType {
-  number?: string | number
+  number: number
   name?: string
   user?: string
   starttime?: string
@@ -105,11 +114,7 @@ const PublicOrDelete = ref<string>("发布")
 const drawer: Ref<boolean> = ref(false)
 // link操作逻辑
 const handleLink = (data: any, i: string) => {
-  if (i === "编辑") {
-    console.log(data)
-    dialogVisible.value = true
-    showFlags.value = false
-  } else if (i === "发布") {
+  if (i === "发布") {
     PublicVisible.value = true
     PublicFormInfo = data
     PublicOrDelete.value = "发布"
@@ -118,6 +123,16 @@ const handleLink = (data: any, i: string) => {
     PublicFormInfo = data
     PublicOrDelete.value = "删除"
   } else if (i === "详情") {
+    detailform.unitId = data.testunit_id
+    detailform.unitName = data.testunit_name
+    detailform.user = data.user_name
+    detailform.startTime = data.testunit_starttime
+    detailform.boardId = data.board_id
+    detailform.boardSerial = data.board_serial
+    detailform.boardModel = data.boardmodel_name
+    detailform.testType = data.process_type
+    detailform.processId = data.process_id
+    detailform.processVersion = data.process_version
     drawer.value = true
   }
 }
@@ -127,11 +142,14 @@ const goBack = () => {
 }
 
 const handleSearch = async () => {
+  console.log(searchData)
   // 查询Table表格数据
   // 深拷贝
   const params = JSON.parse(JSON.stringify(searchData))
   // 拼接时间参数
-  params.Daterange = params.Daterange.join("-")
+  if (params.Daterange !== "") {
+    params.Daterange = params.Daterange.join("-")
+  }
   // 调用接口
   const tableResult = await getTestMangeTable(params)
   // 赋值
@@ -145,48 +163,88 @@ const resetSearch = () => {
 }
 //#endregion
 // 确认新增传递给后端的参数
-const form = reactive({
-  region: "",
-  number: "",
-  data1: "",
-  radio1: "",
-  radio2: "",
-  checkedOptions: ["option2"]
+const detailform = reactive({
+  unitId: "",
+  unitName: "",
+  user: "",
+  startTime: "",
+  boardModel: "",
+  boardId: "",
+  boardSerial: "",
+  testType: "",
+  processId: "",
+  processVersion: ""
 })
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
+  console.log(selectedRows.value)
 }
 const singleTableRef = ref<InstanceType<typeof ElTable>>()
 
-const setCurrent = (row) => {
+const setCurrent = (row?: any) => {
   singleTableRef.value!.setCurrentRow(row)
+  if (row !== undefined && row !== null) {
+    selectedType.processId = row.id
+    selectedType.processVersion = row.version
+  }
 }
-const formInline = reactive<PublicType>({
-  number: "",
-  name: "",
-  user: "",
-  starttime: "",
-  endtime: ""
-})
 const selectedType = reactive({
   id: "",
-  name: ""
+  name: "",
+  processId: "",
+  processVersion: ""
 })
 //选择测试工艺
-const SelectTestType = (type) => {
+const SelectTestType = async (type) => {
+  const result = await getbordsinfo({
+    batchId: Batch.value,
+    boardModelId: CircuitBoardModelId.value,
+    testTypeId: type.number
+  })
+  await Promise.all((boardTableData.value = result.data))
+  showProcessList.value = []
+  selectedType.processId = ""
+  selectedType.processVersion = ""
   selectedType.id = type.number
   selectedType.name = type.name
+  if (showProcess.value === false) {
+    await setCurrent()
+  }
   showProcess.value = false
-  showProcessList.value = processList.value.find((item) => {
+  const process = processList.value.find((item) => {
     return item.type === type.name
-  }).versionList
-  // setCurrent(showProcessList.value[0])
-  currentRow.value = showProcessList.value[0]
+  })
+  if (process !== undefined && process !== null) {
+    await Promise.all(
+      process.versionList.map(async (item) => {
+        if (item.status === 3) {
+          showProcessList.value.push(item)
+        }
+      })
+    )
+    await Promise.all(
+      showProcessList.value.map(async (item) => {
+        if (item.activate === 1) {
+          await setCurrent(item)
+          selectedType.processId = item.id
+          selectedType.processVersion = item.version
+        }
+      })
+    )
+  }
 }
 
 // 确认新增
 const submitAdd = () => {
-  dialogVisible.value = false
+  createTestUnitApi({
+    boardList: selectedRows.value,
+    testTypeId: selectedType.id,
+    processId: selectedType.processId,
+    userId: userStore.userid
+  }).then(() => {
+    getMangeData()
+    dialogVisible.value = false
+  })
 }
 // 测试状态
 const TestStatus = reactive([
@@ -205,14 +263,26 @@ const TestStatus = reactive([
   {
     status: 3,
     mes: "测试正常"
+  },
+  {
+    status: 4,
+    mes: "测试异常"
   }
 ])
 
 // 确认发布或删除
 const confirm = async (value: string) => {
   if (value === "发布") {
-    // let result = await TestMangePublc(PublicFormInfo)
+    publicTestUnitApi({ id: PublicFormInfo["testunit_id"] }).then((res) => {
+      console.log(res)
+      getMangeData()
+    })
   } else {
+    console.log(PublicFormInfo.number)
+    deleteTestUnitApi(PublicFormInfo["testunit_id"]).then((res) => {
+      getMangeData()
+      console.log(res)
+    })
   }
   PublicVisible.value = false
 }
@@ -226,8 +296,9 @@ interface Tree {
 const Batch = ref()
 const CircuitBatch = ref()
 const CircuitBoardModel = ref()
+const CircuitBoardModelId = ref()
 //  电路板ID和序列号
-const tableData1 = ref<GetBoardData[]>([])
+const boardTableData = ref([])
 
 type NodeData = {
   id: string
@@ -238,23 +309,28 @@ const clickNode = async (data: NodeData & any, node: any) => {
     return
   }
   // 点击叶子节点，设置批次ID和型号
+  currentRow.value = undefined
+  selectedRows.value = []
   Batch.value = data.id
   CircuitBatch.value = data.label
   CircuitBoardModel.value = node.parent.data.label
+  CircuitBoardModelId.value = node.parent.data.id
   showFlags.value = false
+  showProcess.value = true
   getTestTypeData()
-  // 根据id获取电路版信息
-  const result = await getbordsinfo({ batchId: data.id, boardModelId: node.parent.data.id })
-  tableData1.value = result.data
   getTestProcessList({
     boardModel_id: node.parent.data.id
   }).then((res) => {
-    console.log(res.data)
     processList.value = res.data
   })
+  console.log(currentRow.value, selectedRows.value)
 }
 const handleSingleSelectChange = (val) => {
   currentRow.value = val
+  if (val !== undefined && val !== null) {
+    selectedType.processId = val.id
+    selectedType.processVersion = val.version
+  }
 }
 const getTestTypeData = () => {
   getTestTypeDataApi({
@@ -289,12 +365,6 @@ const filterNode = (value: string, data: Tree) => {
 const addTest = async () => {
   await getTreeData()
   dialogVisible.value = true
-}
-const ResetInfo = () => {
-  form["data1"] = ""
-  form["region"] = ""
-  form["number"] = ""
-  testFlags.value = true
 }
 async function getTreeData() {
   const result = await getTestMangePath()
@@ -380,136 +450,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
             <el-link v-for="i in row.link" class="el-link" type="primary" @click="handleLink(row, i)">{{ i }}</el-link>
           </template>
         </TableComponent>
-        <!-- 发布 删除 -->
-        <el-dialog v-model="PublicVisible" :show-close="true" width="44%">
-          <template #header="{ close }">
-            <div class="my-header">
-              <h2>{{ PublicOrDelete }}测试工单</h2>
-              <!-- <button @click="close">X</button> -->
-            </div>
-          </template>
-          <el-form :inline="true" :model="PublicFormInfo">
-            <el-form-item label="工单号">
-              <!-- <el-input type="text" disabled="false"> -->
-              <el-input v-model="PublicFormInfo['testunit_id']" disabled type="text" />
-            </el-form-item>
-            <el-form-item label="测试名称">
-              <!-- <el-input type="text" disabled="false"> -->
-              <el-input v-model="PublicFormInfo['testunit_name']" disabled type="text" />
-            </el-form-item>
-            <el-form-item label="测试类型">
-              <!-- <el-input type="text" disabled="false"> -->
-              <el-input v-model="PublicFormInfo['process_type']" disabled type="text" />
-            </el-form-item>
-            <br />
-            <el-form-item label="创建人">
-              <!-- <el-input type="text" disabled="false"> -->
-              <el-input v-model="PublicFormInfo['user_name']" disabled style="width: 100px" type="text" />
-            </el-form-item>
-            <el-form-item label="创建日期">
-              <!-- <el-input type="text" disabled="false"> -->
-              <el-input v-model="PublicFormInfo['testunit_starttime']" disabled style="width: 120px" type="text" />
-            </el-form-item>
-            <el-form-item label="结束日期 ">
-              <!-- <el-input type="text" disabled="false"> -->
-              <el-input v-model="PublicFormInfo['testunit_endtime']" disabled style="width: 120px" type="text" />
-            </el-form-item>
-          </el-form>
-          <el-button
-            :type="PublicOrDelete === '发布' ? 'primary' : 'danger'"
-            icon="Check"
-            size="large"
-            style="position: relative; left: 50%; transform: translateX(-50%); width: 170px"
-            @click="confirm(PublicOrDelete)"
-            >确认{{ PublicOrDelete }}
-          </el-button>
-        </el-dialog>
-        <!-- 详情 -->
-        <el-drawer v-model="drawer" :append-to-body="true" :with-header="false" size="1200">
-          <header class="drawer-head">
-            <el-page-header @back="goBack">
-              <template #content>
-                <span class="text-large font-600 mr-3">测试工单详情</span>
-              </template>
-            </el-page-header>
-          </header>
-          <el-header style="margin: 20px 0 20px 0">
-            <el-text size="large">测试基本信息</el-text>
-            <el-form
-              :inline="true"
-              :model="formInline"
-              class="demo-form-inline"
-              label-position="top"
-              style="margin: 10px"
-            >
-              <el-form-item label="工单号" style="width: 20%">
-                <el-input v-model="formInline.number" disabled />
-              </el-form-item>
-              <el-form-item label="测试名称" style="width: 20%">
-                <el-input v-model="formInline.name" disabled />
-              </el-form-item>
-              <el-form-item label="创建人" style="width: 14%">
-                <el-input v-model="formInline.user" disabled />
-              </el-form-item>
-              <el-form-item label="创建日期" style="width: 15%">
-                <el-input v-model="formInline.starttime" disabled />
-              </el-form-item>
-              <el-form-item label="结束日期" style="width: 15%">
-                <el-input v-model="formInline.endtime" disabled />
-              </el-form-item>
-            </el-form>
-          </el-header>
-          <el-main class="drawer-main">
-            <el-text size="large" style="margin-top: 20px">被测电路板信息</el-text>
-            <el-row>
-              <el-col :span="24">
-                <el-card class="info-box" shadow="never" style="margin: 20px 0">
-                  <el-text class="mx-1" style="margin-right: 20px">A型号电路板</el-text>
-                  <span>批次 ID ：xxxxx</span>
-                  <span style="margin: 0 20px"
-                    >电路板ID
-                    <el-input v-model="form.region" disabled style="width: 150px" />
-                  </span>
-                  <span style="margin: 0 20px">
-                    电路板序列号
-                    <el-input v-model="form.number" disabled style="width: 150px" />
-                  </span>
-                </el-card>
-              </el-col>
-            </el-row>
-          </el-main>
-          <el-footer class="drawer-footer">
-            <el-text size="large">所选测试工艺信息</el-text>
-            <el-button style="position: relative; top: 40px; right: 120px" type="primary">功能性测试</el-button>
-            <el-row style="margin-top: 60px">
-              <el-col :span="24">
-                <div class="drawer-jiaju">
-                  <el-text size="large">夹具：xxx</el-text>
-                  <el-text size="large">ID：xxx</el-text>
-                  <el-text size="large">序列号：xxx</el-text>
-                </div>
-              </el-col>
-            </el-row>
-            <el-row>
-              <el-col :span="24">
-                <div class="drawer-host">
-                  <el-text size="large">主机：xxx</el-text>
-                  <el-text size="large">ID：xxx</el-text>
-                  <el-text size="large">序列号：xxx</el-text>
-                </div>
-              </el-col>
-            </el-row>
-            <el-row>
-              <el-col :span="24">
-                <div v-for="item in 5" class="drawer-other">
-                  <el-text size="large">其他设备：xxx</el-text>
-                  <el-text size="large">ID：xxx</el-text>
-                  <el-text size="large">序列号：xxx</el-text>
-                </div>
-              </el-col>
-            </el-row>
-          </el-footer>
-        </el-drawer>
       </div>
       <div class="pager-wrapper">
         <el-pagination
@@ -524,14 +464,68 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         />
       </div>
     </el-card>
-    <!-- 新增/修改 -->
-    <el-dialog v-model="dialogVisible" width="85%" @close="closeDiaLog">
-      <template #header>
-        <div class="head-test">
-          <h2>新增测试工单：</h2>
-          <el-input class="head-ipt" placeholder="请填写测试工单名称" />
-        </div>
-      </template>
+    <!-- 详情 -->
+    <el-drawer v-model="drawer" :append-to-body="true" :with-header="false" size="1000">
+      <header class="drawer-head">
+        <el-page-header @back="goBack">
+          <template #content>
+            <span class="text-large font-600 mr-3">测试工单详情</span>
+          </template>
+        </el-page-header>
+      </header>
+      <el-header style="margin: 20px 0 20px 0">
+        <el-text size="large">测试基本信息</el-text>
+        <el-form :inline="true" :model="detailform" class="demo-form-inline" label-position="top" style="margin: 10px">
+          <el-form-item label="工单号" style="width: 13%">
+            <el-input v-model="detailform.unitId" disabled />
+          </el-form-item>
+          <el-form-item label="测试名称" style="width: 380px">
+            <el-input v-model="detailform.unitName" disabled />
+          </el-form-item>
+          <el-form-item label="创建人" style="width: 14%">
+            <el-input v-model="detailform.user" disabled />
+          </el-form-item>
+          <el-form-item label="创建日期" style="width: 16%">
+            <el-input v-model="detailform.startTime" disabled />
+          </el-form-item>
+        </el-form>
+      </el-header>
+      <el-main class="drawer-main">
+        <el-text size="large" style="margin-top: 20px">被测电路板信息</el-text>
+        <el-row>
+          <el-col :span="24">
+            <el-card class="info-box" shadow="never" style="margin: 20px 0">
+              <el-text size="large" style="margin-right: 20px">{{ detailform.boardModel }}</el-text>
+              <span style="margin: 0 20px"
+                >电路板ID:
+                <el-input v-model="detailform.boardId" disabled style="width: 150px" />
+              </span>
+              <span style="margin: 0 20px">
+                电路板序列号
+                <el-input v-model="detailform.boardSerial" disabled style="width: 150px" />
+              </span>
+            </el-card>
+          </el-col>
+        </el-row>
+      </el-main>
+      <el-footer class="drawer-footer">
+        <el-text size="large">所选测试工艺信息</el-text>
+        <br />
+        <el-button type="primary" style="margin-top: 10px">{{ detailform.testType }}</el-button>
+        <el-card class="info-box" shadow="never" style="margin: 20px 0">
+          <span style="margin: 0 20px"
+            >使用工艺ID:
+            <el-input v-model="detailform.processId" disabled style="width: 150px" />
+          </span>
+          <span style="margin: 0 20px">
+            使用工艺版本:
+            <el-input v-model="detailform.processVersion" disabled style="width: 150px" />
+          </span>
+        </el-card>
+      </el-footer>
+    </el-drawer>
+    <!-- 新增 -->
+    <el-dialog v-model="dialogVisible" width="85%" @close="closeDiaLog" title="新增测试工单" align-center>
       <div>
         <el-row :gutter="20">
           <el-col :span="5">
@@ -554,7 +548,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
               <div v-if="showFlags">请先在左侧选择被测电路板</div>
               <div v-else>
                 <div class="info-header">
-                  <el-text size="large">1.确认被测电路板信息</el-text>
+                  <el-text size="large">1.确认测试类型</el-text>
                   <el-card shadow="never" style="margin-top: 10px">
                     <el-space :size="10" spacer="|">
                       <el-text size="large">电路板型号:{{ CircuitBoardModel }}</el-text>
@@ -562,22 +556,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                       <el-text size="large">{{ CircuitBatch }}</el-text>
                     </el-space>
                   </el-card>
-                  <el-card shadow="never" style="margin-top: 10px; margin-bottom: 10px">
-                    <el-scrollbar height="220px">
-                      <div class="table-wrapper">
-                        <TableComponent
-                          :column-data="addHeaders"
-                          :table-data="tableData1"
-                          selection
-                          stripe
-                          @selection-change="handleSelectionChange"
-                        />
-                      </div>
-                    </el-scrollbar>
-                  </el-card>
-                </div>
-                <div>
-                  <el-text size="large">2.确认测试类型</el-text>
                   <div style="margin-top: 10px">
                     <el-button
                       v-show="item.processCount !== 0"
@@ -590,24 +568,47 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                   </div>
                   <el-card shadow="never" style="margin-top: 10px; margin-bottom: 10px">
                     <div v-if="showProcess" style="display: flex; justify-content: center">请先选择测试类型</div>
-                    <div v-else-if="!showProcess">
+                    <div v-else-if="!showProcess" style="display: flex; flex-direction: column">
                       <div style="margin-bottom: 10px">
                         <el-space :size="10" spacer="|">
                           <el-text size="large">所选测试:{{ selectedType.name }}</el-text>
-                          <el-text>所选工艺ID:{{ currentRow.id }}</el-text>
-                          <el-text size="large">所选工艺版本:{{ currentRow.version }}</el-text>
+                          <el-text>所选工艺ID:{{ selectedType.processId }}</el-text>
+                          <el-text>所选工艺版本:{{ selectedType.processVersion }}</el-text>
                         </el-space>
                       </div>
-                      <el-table
-                        ref="singleTableRef"
-                        :data="showProcessList"
-                        highlight-current-row
-                        @current-change="handleSingleSelectChange"
-                      >
-                        <el-table-column prop="id" label="工艺ID" width="100" />
-                        <el-table-column prop="version" label="工艺版本" width="100" />
-                      </el-table>
+                      <div>
+                        <el-scrollbar height="220px">
+                          <el-table
+                            ref="singleTableRef"
+                            :data="showProcessList"
+                            highlight-current-row
+                            @current-change="handleSingleSelectChange"
+                          >
+                            <el-table-column prop="id" label="工艺ID" />
+                            <el-table-column prop="version" label="工艺版本" />
+                          </el-table>
+                        </el-scrollbar>
+                      </div>
                     </div>
+                  </el-card>
+                </div>
+                <div>
+                  <el-text size="large">2.确认被测电路板</el-text>
+                  <el-card v-if="showProcess" shadow="never" style="margin-top: 10px; margin-bottom: 10px">
+                    <div style="display: flex; justify-content: center">请先选择测试类型</div>
+                  </el-card>
+                  <el-card v-if="!showProcess" shadow="never" style="margin-top: 10px; margin-bottom: 10px">
+                    <el-scrollbar height="220px">
+                      <div class="table-wrapper">
+                        <TableComponent
+                          :column-data="addHeaders"
+                          :table-data="boardTableData"
+                          selection
+                          stripe
+                          @selection-change="handleSelectionChange"
+                        />
+                      </div>
+                    </el-scrollbar>
                   </el-card>
                 </div>
               </div>
@@ -615,12 +616,55 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
           </el-col>
         </el-row>
       </div>
-      <div class="test-footer">
-        <div>
-          <el-button icon="Check" type="primary" @click="submitAdd">确认新增</el-button>
-          <el-button icon="RefreshRight" type="info" @click="ResetInfo">信息重置</el-button>
+      <template #footer>
+        <el-button
+          icon="Check"
+          type="primary"
+          @click="submitAdd"
+          :disabled="currentRow === undefined || selectedRows.length === 0"
+          >确认新增</el-button
+        >
+      </template>
+    </el-dialog>
+    <!-- 发布 删除 -->
+    <el-dialog v-model="PublicVisible" :show-close="true" width="44%">
+      <template #header="{ close }">
+        <div class="my-header">
+          <h2>{{ PublicOrDelete }}测试工单</h2>
+          <!-- <button @click="close">X</button> -->
         </div>
-      </div>
+      </template>
+      <el-form :inline="true" :model="PublicFormInfo">
+        <el-form-item label="工单号">
+          <!-- <el-input type="text" disabled="false"> -->
+          <el-input v-model="PublicFormInfo['testunit_id']" disabled type="text" />
+        </el-form-item>
+        <el-form-item label="测试名称">
+          <!-- <el-input type="text" disabled="false"> -->
+          <el-input v-model="PublicFormInfo['testunit_name']" disabled type="text" style="width: 350px" />
+        </el-form-item>
+        <br />
+        <el-form-item label="测试类型">
+          <!-- <el-input type="text" disabled="false"> -->
+          <el-input v-model="PublicFormInfo['process_type']" disabled type="text" />
+        </el-form-item>
+        <el-form-item label="创建人">
+          <!-- <el-input type="text" disabled="false"> -->
+          <el-input v-model="PublicFormInfo['user_name']" disabled style="width: 100px" type="text" />
+        </el-form-item>
+        <el-form-item label="创建日期">
+          <!-- <el-input type="text" disabled="false"> -->
+          <el-input v-model="PublicFormInfo['testunit_starttime']" disabled style="width: 180px" type="text" />
+        </el-form-item>
+      </el-form>
+      <el-button
+        :type="PublicOrDelete === '发布' ? 'primary' : 'danger'"
+        icon="Check"
+        size="large"
+        style="position: relative; left: 50%; transform: translateX(-50%); width: 170px"
+        @click="confirm(PublicOrDelete)"
+        >确认{{ PublicOrDelete }}
+      </el-button>
     </el-dialog>
   </div>
 </template>
@@ -707,11 +751,5 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 
 .table-wrapper {
   margin-bottom: 20px;
-}
-
-.test-footer {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
 }
 </style>

@@ -1,10 +1,10 @@
 <template>
-  <el-affix :offset="90">
-    <el-button type="primary" style="margin-left: 10px"
-      >当前编辑电路板：{{ testStore.board_model_name !== "" ? testStore.board_model_name : "未定义" }}</el-button
-    >
-  </el-affix>
   <div class="app-container">
+    <el-affix :offset="90">
+      <el-button type="primary" style="margin-left: 10px"
+        >当前编辑电路板：{{ testStore.board_model_name !== "" ? testStore.board_model_name : "未定义" }}</el-button
+      >
+    </el-affix>
     <header>
       <el-row class="mb-4">
         <div class="selectTypeBtn">
@@ -28,13 +28,13 @@
         <el-row>
           <el-col :span="7">
             <el-text size="large">1.填写测试工艺信息</el-text>
-            <el-form :model="functform" :rules="rules" style="margin: 10px 0">
+            <el-form :model="form" style="margin: 10px 0">
               <el-form-item label="工艺名称:">
-                <el-input v-model="functform.name" placeholder="请填写" style="margin-right: 80px" type="text" />
+                <el-input v-model="form.name" placeholder="请填写" style="margin-right: 80px" type="text" />
               </el-form-item>
               <el-form-item label="工艺版本:" prop="version">
                 <el-input
-                  v-model="functform.version"
+                  v-model="form.version"
                   placeholder="请填写"
                   style="margin-right: 80px"
                   type="text"
@@ -49,17 +49,12 @@
             <el-text size="large">2.选择绑定设备</el-text>
             <el-form :model="form" style="margin: 10px 0">
               <el-form-item label="绑定夹具:">
-                <el-select
-                  v-model="functform.fixtureId"
-                  filterable
-                  placeholder="请选择(输入可搜索)"
-                  style="width: 190px"
-                >
+                <el-select v-model="form.fixtureId" filterable placeholder="请选择(输入可搜索)" style="width: 190px">
                   <el-option v-for="item in fixtureModelList" :key="item.id" :label="item.name" :value="item.id" />
                 </el-select>
               </el-form-item>
               <el-form-item label="绑定主机:">
-                <el-select v-model="functform.hostId" filterable placeholder="请选择(输入可搜索)" style="width: 190px">
+                <el-select v-model="form.hostId" filterable placeholder="请选择(输入可搜索)" style="width: 190px">
                   <el-option
                     v-for="item in psiModelList"
                     :key="item.psimodel_id"
@@ -70,7 +65,7 @@
               </el-form-item>
               <el-form-item label="其他设备:">
                 <el-select
-                  v-model="functform.equipmentId"
+                  v-model="form.equipmentId"
                   filterable
                   multiple
                   placeholder="请选择(输入可搜索)"
@@ -106,7 +101,7 @@
         <template #footer>
           <div style="display: flex; justify-content: flex-end">
             <el-button>取消</el-button>
-            <el-button style="margin-left: 10px" type="primary" @click="confirmAddProcess">确认新增</el-button>
+            <el-button style="margin-left: 10px" type="primary" @click="confirmAddFuncProcess">确认新增</el-button>
           </div>
         </template>
       </el-card>
@@ -120,7 +115,7 @@
                 <el-input v-model="form.name" placeholder="请填写" type="text" />
               </el-form-item>
               <el-form-item label="工艺版本:">
-                <el-input v-model="form.version" placeholder="请填写" type="text">
+                <el-input v-model="form.version" placeholder="请填写" type="text" @change="handleVision">
                   <template #prepend>V</template>
                 </el-input>
               </el-form-item>
@@ -165,7 +160,7 @@
                 <el-input v-model="form.name" placeholder="请填写" type="text" />
               </el-form-item>
               <el-form-item label="工艺版本:">
-                <el-input v-model="form.version" placeholder="请填写" type="text">
+                <el-input v-model="form.version" placeholder="请填写" type="text" @change="handleVision">
                   <template #prepend>V</template>
                 </el-input>
               </el-form-item>
@@ -348,7 +343,7 @@
         <template #footer>
           <div style="display: flex; justify-content: flex-end">
             <el-button>取消</el-button>
-            <el-button style="margin-left: 10px" type="primary" @click="handleconfirmAddProcess">确认新增</el-button>
+            <el-button style="margin-left: 10px" type="primary" @click="">确认新增</el-button>
           </div>
         </template>
       </el-card>
@@ -365,18 +360,18 @@
         <img-editor :img-url="editImg" @save="saveEdit" />
       </div>
     </el-dialog>
+    <el-dialog
+      v-model="confirmDialogVisible"
+      :title="'确认提交:' + form.curType"
+      align-center
+      width="30%"
+      @close="captcha?.reset()"
+    >
+      <div>
+        <CaptchaSlider ref="captcha" success-tip="已确认" tip="滑动来进行提交" @success="confirmAddFuncProcess" />
+      </div>
+    </el-dialog>
   </div>
-  <el-dialog
-    v-model="confirmDialogVisible"
-    :title="'确认提交:' + form.curType"
-    align-center
-    width="30%"
-    @close="captcha?.reset()"
-  >
-    <div>
-      <CaptchaSlider ref="captcha" success-tip="已确认" tip="滑动来进行提交" @success="confirmAddProcess" />
-    </div>
-  </el-dialog>
 </template>
 
 <script lang="ts" setup>
@@ -387,9 +382,8 @@ import RecordProcess from "@/views/testmanage/addprocess/recordprocess/index.vue
 import ScanProcess from "@/views/testmanage/addprocess/scanprocess/index.vue"
 import { CaptchaExposed, CaptchaSlider } from "vexip-ui"
 import imgEditor from "@/components/imgEditor/index.vue"
-import "vue-cropper/dist/index.css"
 import { ElScrollbar, ElMessageBox, ElMessage } from "element-plus"
-import type { FormInstance, FormRules, UploadUserFile } from "element-plus"
+import type { UploadUserFile } from "element-plus"
 import { UploadFilled } from "@element-plus/icons-vue"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getFixtureModelDataApi } from "@/api/fixturemodel"
@@ -421,78 +415,50 @@ const stoppers = []
 const fixtureModelList = ref([])
 const psiModelList = ref([])
 const equipmentModelList = ref([])
-
+const eyesFile = ref(null)
+const xrayFile = ref(null)
 const fileList = ref<UploadUserFile[]>([])
-const handleExceed = () => {
-  ElMessage.warning("最多只能上传一个文件！")
-}
 const showprocessRight = ref(true)
-// X-Ray测试
 const form = reactive({
   name: "",
   version: "",
   fixtureId: "",
   hostId: "",
   equipmentId: [],
-  radio1: "1",
   processName: "",
   processDesc: "",
   curStep: "1",
   curType: "功能性测试",
-  curTypeId: 1
-})
-// 功能性测试form
-const functform = reactive({
-  name: "",
-  version: "",
-  fixtureId: "",
-  hostId: "",
-  equipmentId: [],
+  curTypeId: 1,
   File: null
 })
 
-const validatePass = (rule: any, value: any, callback: any) => {
-  console.log(value)
-
-  if (value.toString() === testStore.versionArr.includes(functform.version)) {
-    console.log("该版本已存在")
-
-    callback(new Error("该版本已存在"))
-  } else {
-    callback()
-  }
+const handleExceed = () => {
+  ElMessage.warning("最多只能上传一个文件！")
 }
-
-interface ruleForm {
-  version: string
-}
-
-const ruleFormRef = ref<FormInstance>()
-const rules = reactive<FormRules<ruleForm>>({
-  version: [{ validator: validatePass, trigger: "blur" }]
-})
-
-//工艺版本处理
 const handleVision = () => {
-  //
-  // testStore.versionArr.find(item=>{
-  //   if(item==functform.version){
-  //     ElMessage.error('该版本已存在')
-  //   }else{
-  //     ElMessage.success('该版本可以使用')
-  //   }
-  // })
-  if (testStore.versionArr.includes(functform.version)) {
-    ElMessage.error("该版本已存在")
-  } else if (functform.version == "") {
-    return
+  if (testStore.versionArr.length === 0) {
+    ElMessage.success("该版本号可使用")
   } else {
-    ElMessage.success("该版本可以使用")
+    for (let i = 0; i < testStore.versionArr.length; i++) {
+      if (testStore.versionArr[i].type === form.curType) {
+        const versionList = testStore.versionArr.find((item) => {
+          return item.type === form.curType
+        }).versionList
+        for (let i = 0; i < versionList.length; i++) {
+          if (versionList[i].version === form.version) {
+            ElMessage.error("该版本号已存在")
+            form.version = ""
+            return
+          }
+        }
+        ElMessage.success("该版本号可使用")
+        return
+      }
+    }
+    ElMessage.success("该版本号可使用")
   }
-  console.log(functform.version)
-  console.log(testStore.versionArr)
 }
-
 const getTestTypeData = () => {
   getTestTypeDataApi({
     currentPage: 1,
@@ -571,7 +537,6 @@ const addStep = async () => {
   await nextTick()
   stepScrollbarRef.value!.scrollTo(0, stepInnerRef.value!.scrollHeight)
 }
-
 const currentStep = (stepCur: any) => {
   form.curStep = stepCur
   const result = stepinfo.find((item) => {
@@ -621,7 +586,6 @@ const removeCom = (val: any) => {
       .info.tabList.filter((component) => component.id !== val)
   })
 }
-
 const removeStep = (val: any) => {
   form.curStep = val
   ElMessageBox.confirm("该操作将导致该步骤所有已编辑的数据被永久性移除", "删除确认:第" + val + "步", {
@@ -655,106 +619,117 @@ const saveEdit = async (data) => {
   stoppers.forEach((stop) => stop())
   stoppers.splice(0, stoppers.length)
 }
-const handleconfirmAddProcess = (formEl: FormInstance | undefined) => {
-  confirmDialogVisible.value = true
-}
-const eyesFile = ref(null)
-const xrayFile = ref(null)
 //选择文件
 const handleFileChange = (file: any) => {
-  functform.File = file.raw
+  form.File = file.raw
   eyesFile.value = file.raw
   xrayFile.value = file.raw
   fileList.value.push({ name: file.name, url: URL.createObjectURL(file.raw) })
 }
 const handleAddEyesProcess = () => {
-  interface FormDataFields {
-    name: string
-    version: string
-    file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
-    board_model_id: string
-    testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
-  }
-  const data: FormDataFields = {
-    name: form.name,
-    version: form.version,
-    file: eyesFile.value,
-    board_model_id: testStore.board_model_id,
-    testtype: form.curTypeId
-  }
-  const fromData = new FormData()
-  for (const key in data) {
-    fromData.append(key, data[key])
-  }
-  upoloadeyestest(fromData).then((res) => {
-    if (res.code == 0) {
-      ElMessage.success("新增成功")
-      confirmDialogVisible.value = false
-      router.push("/testmanage/testprocess")
+  ElMessageBox.confirm("确认提交工艺吗？", "提交确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    interface FormDataFields {
+      name: string
+      version: string
+      file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
+      board_model_id: string
+      testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
     }
+    const data: FormDataFields = {
+      name: form.name,
+      version: form.version,
+      file: eyesFile.value,
+      board_model_id: testStore.board_model_id,
+      testtype: form.curTypeId
+    }
+    const fromData = new FormData()
+    for (const key in data) {
+      fromData.append(key, data[key])
+    }
+    upoloadeyestest(fromData).then((res) => {
+      if (res.code == 0) {
+        ElMessage.success("新增成功")
+        confirmDialogVisible.value = false
+        router.push("/testmanage/testprocess")
+      }
+    })
   })
 }
 const handleAddXrayProcess = () => {
-  interface FormDataFields {
-    name: string
-    version: string
-    file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
-    board_model_id: string
-    testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
-  }
-  const data: FormDataFields = {
-    name: form.name,
-    version: form.version,
-    file: xrayFile.value,
-    board_model_id: testStore.board_model_id,
-    testtype: form.curTypeId
-  }
-  const fromData = new FormData()
-  for (const key in data) {
-    fromData.append(key, data[key])
-  }
-  upoloadxraytest(fromData).then((res) => {
-    if (res.code == 0) {
-      ElMessage.success("新增成功")
-      confirmDialogVisible.value = false
-      router.back()
+  ElMessageBox.confirm("确认提交工艺吗？", "提交确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    interface FormDataFields {
+      name: string
+      version: string
+      file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
+      board_model_id: string
+      testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
     }
+    const data: FormDataFields = {
+      name: form.name,
+      version: form.version,
+      file: xrayFile.value,
+      board_model_id: testStore.board_model_id,
+      testtype: form.curTypeId
+    }
+    const fromData = new FormData()
+    for (const key in data) {
+      fromData.append(key, data[key])
+    }
+    upoloadxraytest(fromData).then((res) => {
+      if (res.code == 0) {
+        ElMessage.success("新增成功")
+        confirmDialogVisible.value = false
+        router.push("/testmanage/testprocess")
+      }
+    })
   })
 }
-const confirmAddProcess = () => {
-  interface FormDataFields {
-    name: string
-    version: string
-    fixtureId: string
-    hostId: string
-    equipmentId: string // 假设 equipmentId 已经被转化为字符串
-    file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
-    board_model_id: string
-    testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
-  }
-
-  const data: FormDataFields = {
-    name: functform.name,
-    version: functform.version,
-    fixtureId: functform.fixtureId,
-    hostId: functform.hostId,
-    equipmentId: JSON.stringify(functform.equipmentId),
-    file: functform.File,
-    board_model_id: testStore.board_model_id,
-    testtype: form.curTypeId
-  }
-  const fromData = new FormData()
-
-  for (const key in data) {
-    fromData.append(key, data[key])
-  }
-  upoloadfuncttest(fromData).then((res) => {
-    if (res.code == 0) {
-      ElMessage.success("新增成功")
+const confirmAddFuncProcess = () => {
+  ElMessageBox.confirm("确认提交工艺吗？", "提交确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    interface FormDataFields {
+      name: string
+      version: string
+      fixtureId: string
+      hostId: string
+      equipmentId: string // 假设 equipmentId 已经被转化为字符串
+      file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
+      board_model_id: string
+      testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
     }
+    const data: FormDataFields = {
+      name: form.name,
+      version: form.version,
+      fixtureId: form.fixtureId,
+      hostId: form.hostId,
+      equipmentId: JSON.stringify(form.equipmentId),
+      file: form.File,
+      board_model_id: testStore.board_model_id,
+      testtype: form.curTypeId
+    }
+    const fromData = new FormData()
+    for (const key in data) {
+      fromData.append(key, data[key])
+    }
+    upoloadfuncttest(fromData).then((res) => {
+      if (res.code == 0) {
+        ElMessage.success("新增成功")
+        confirmDialogVisible.value = false
+        router.push("/testmanage/testprocess")
+      }
+    })
   })
-  confirmDialogVisible.value = false
-  router.push("/testmanage/testprocess")
 }
 getTestTypeData()
 getPsiModelModelData()

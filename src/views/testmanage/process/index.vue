@@ -23,7 +23,6 @@ const treeLoading = ref<boolean>(false)
 const dialogVisible = ref<boolean>(false)
 const dialogVisibleEdit = ref<boolean>(false)
 const DialogCheck = ref<boolean>(false)
-const formRef = ref<FormInstance | null>(null)
 const treeRef = ref<InstanceType<typeof ElTree>>()
 const filterText = ref("")
 const testType = ref<number>()
@@ -115,7 +114,6 @@ const getTreeData = () => {
     isTree: true
   })
     .then((res) => {
-      console.log(res.data.list)
       TreeData.value = res.data.list
     })
     .catch(() => {
@@ -130,10 +128,9 @@ const getTableData = () => {
     boardModel_id: searchData.boardModel
   }).then((res) => {
     TableData.value = res.data
-    console.log(res.data)
+    testStore.versionArr = res.data
   })
   for (let i = 0; i < TableData.value.length; i++) {
-    console.log(TableData.value[i])
     TableData.value[i].link = defineLink(TableData.value[i].status)
   }
 }
@@ -200,6 +197,8 @@ const handleLinkDetail = (data: any, i: string) => {
     TestCheck.value = data
   } else if (i === "编辑") {
     dialogVisibleEdit.value = true
+  } else if (i === "删除") {
+
   }
 }
 // 返回
@@ -212,7 +211,6 @@ const defaultProps = {
   label: "label"
 }
 const handleNodeClick = (data) => {
-  console.log(data)
   searchData.boardModel = data.id
   testStore.board_model_id = data.id
   testStore.board_model_name = data.label

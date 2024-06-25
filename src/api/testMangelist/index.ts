@@ -21,70 +21,28 @@ export const getbordsinfo = (params: any) => {
   })
 }
 
-// 根据型号id获取信息
-
-/**
- * @description 传入一个电路板型号id值，获取该型号电路板的名称，
- * 可进行的测试（功能性测试.....)，
- * 以及每个可进行测试的当前激活的测试工艺所绑定的设备型号下的具体设备列表（夹具，主机，其他设备）
- */
-export const getTestMangeInfo = (id) => {
+export const createTestUnitApi = (data: any) => {
   return request({
-    url: "/test/publictest",
-    method: "get",
-    params: {
-      id
-    }
+    url: "/test/testunit/add/",
+    method: "post",
+    data
   })
 }
-/**
- * @description 发布测试工单
- * @param {object} params - 参数
- * @param {string} params.number - 测试工单编号
- * @param {string} params.name - 测试工单名称
- * @param {string} params.starttime - 开始时间
- * @param {string} params.endtime - 结束时间
- * @param {string} params.type - 测试工艺类型
- * @returns {Promise<void>} - 无响应体
- */
-export const TestMangePublc = ({ number, name, starttime, endtime, type }) => {
+export const publicTestUnitApi = (data: any) => {
   return request({
-    url: "/test/testTicket",
-    method: "get",
-    params: {
-      number,
-      name,
-      starttime,
-      endtime,
-      type
-    }
+    url: "/test/testunit/public/",
+    method: "put",
+    data
   })
 }
-
 // 删除测试工单
-export const DelTestMange = ({ number, name, starttime, endtime, type }) => {
+export const deleteTestUnitApi = (id: number) => {
   return request({
-    url: "/test/deleteTick",
-    method: "get",
-    params: {
-      number,
-      name,
-      starttime,
-      endtime,
-      type
-    }
+    url: `/test/testunit/delete/${id}`,
+    method: "delete"
   })
 }
 
-/**
- * @description 获取测试工单列表表格
- * @param {object} params - 参数
- * @param {string} [params.number] - 工单编号
- * @param {string} [params.TestName] - 工单名称
- * @param {string} [params.TestType] - 工单类型
- * @param {string} [params.TestStatus] - 工单状态
- * @returns {Promise<TestMange.getTestMangeTableType>} 测试工单列表
- */
 export const getTestMangeTable = ({
   number,
   TestName,
