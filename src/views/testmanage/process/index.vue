@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref } from "vue"
 import { useRouter } from "vue-router"
-import {ElMessage, ElMessageBox, ElTree, type FormInstance} from "element-plus"
+import { ElMessage, ElMessageBox, ElTree, type FormInstance } from "element-plus"
 import { ElButton, ElDrawer } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
@@ -191,7 +191,6 @@ const CurrentVersion = (val, row) => {
     getTestProcessList({
       boardModel_id: searchData.boardModel
     }).then((res) => {
-      console.log(res.data)
       TableData.value = res.data
     })
   })
@@ -216,7 +215,6 @@ const handleLinkDetail = (data: any, i: string) => {
       })
     })
   } else if (i === "详情") {
-
   }
 }
 // 返回
@@ -238,7 +236,6 @@ const handleNodeClick = (data) => {
 }
 // 详情查询
 const handleSearch = () => {
-  // paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
   getTestProcessDetail({
     boardModel_id: searchData.boardModel,
     testtype: searchData.testType,
@@ -246,12 +243,12 @@ const handleSearch = () => {
     version: searchData.version
   }).then((res) => {
     ProcessDataDetail.value = res.data
+    for (let i = 0; i < ProcessDataDetail.value.length; i++) {
+      ProcessDataDetail.value[i].link = defineLink(ProcessDataDetail.value[i].status)
+    }
   })
 }
 
-/**
- * 重置查询条件
- */
 const resetSearch = () => {
   // 重置工艺ID
   searchData.ID = ""
@@ -259,6 +256,7 @@ const resetSearch = () => {
   searchData.type = ""
   // 重置工艺版本
   searchData.version = ""
+  getDetailTableData(searchData.testType)
 }
 const filterNode = (value: string, data: any) => {
   if (!value) return true
