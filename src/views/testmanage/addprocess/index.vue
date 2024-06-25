@@ -101,7 +101,7 @@
         <template #footer>
           <div style="display: flex; justify-content: flex-end">
             <el-button>取消</el-button>
-            <el-button style="margin-left: 10px" type="primary" @click="confirmAddFuncProcess">确认新增</el-button>
+            <el-button style="margin-left: 10px" type="primary" @click="handleAddFuncProcess">确认新增</el-button>
           </div>
         </template>
       </el-card>
@@ -368,7 +368,7 @@
       @close="captcha?.reset()"
     >
       <div>
-        <CaptchaSlider ref="captcha" success-tip="已确认" tip="滑动来进行提交" @success="confirmAddFuncProcess" />
+        <CaptchaSlider ref="captcha" success-tip="已确认" tip="滑动来进行提交" @success="handleAddFuncProcess" />
       </div>
     </el-dialog>
   </div>
@@ -692,7 +692,7 @@ const handleAddXrayProcess = () => {
     })
   })
 }
-const confirmAddFuncProcess = () => {
+const handleAddFuncProcess = () => {
   ElMessageBox.confirm("确认提交工艺吗？", "提交确认", {
     confirmButtonText: "确认",
     cancelButtonText: "取消",

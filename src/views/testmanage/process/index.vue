@@ -1,14 +1,20 @@
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref } from "vue"
 import { useRouter } from "vue-router"
-import { ElMessage, ElTree, type FormInstance } from "element-plus"
+import { ElMessage, ElMessageBox, ElTree, type FormInstance } from "element-plus"
 import { ElButton, ElDrawer } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { getInstrumentDataApi } from "@/api/instrument"
 import { useUserStore } from "@/store/modules/test"
-import { getTestProcessDetail, getTestProcessList, changeVersion, submitCheck } from "@/api/addprocess/index"
+import {
+  getTestProcessDetail,
+  getTestProcessList,
+  changeVersion,
+  submitCheck,
+  deleteTestProcessApi
+} from "@/api/addprocess"
 
 const testStore = useUserStore()
 defineOptions({
@@ -185,7 +191,6 @@ const CurrentVersion = (val, row) => {
     getTestProcessList({
       boardModel_id: searchData.boardModel
     }).then((res) => {
-      console.log(res.data)
       TableData.value = res.data
     })
   })
@@ -198,7 +203,18 @@ const handleLinkDetail = (data: any, i: string) => {
   } else if (i === "编辑") {
     dialogVisibleEdit.value = true
   } else if (i === "删除") {
-
+    ElMessageBox.confirm("确认提交工艺吗？", "提交确认", {
+      confirmButtonText: "确认",
+      cancelButtonText: "取消",
+      type: "warning"
+    }).then(() => {
+      deleteTestProcessApi(data.ID).then((res) => {
+        getDetailTableData(testType.value)
+        getTableData()
+        console.log(res)
+      })
+    })
+  } else if (i === "详情") {
   }
 }
 // 返回
@@ -220,7 +236,6 @@ const handleNodeClick = (data) => {
 }
 // 详情查询
 const handleSearch = () => {
-  // paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
   getTestProcessDetail({
     boardModel_id: searchData.boardModel,
     testtype: searchData.testType,
@@ -228,12 +243,12 @@ const handleSearch = () => {
     version: searchData.version
   }).then((res) => {
     ProcessDataDetail.value = res.data
+    for (let i = 0; i < ProcessDataDetail.value.length; i++) {
+      ProcessDataDetail.value[i].link = defineLink(ProcessDataDetail.value[i].status)
+    }
   })
 }
 
-/**
- * 重置查询条件
- */
 const resetSearch = () => {
   // 重置工艺ID
   searchData.ID = ""
@@ -241,6 +256,7 @@ const resetSearch = () => {
   searchData.type = ""
   // 重置工艺版本
   searchData.version = ""
+  getDetailTableData(searchData.testType)
 }
 const filterNode = (value: string, data: any) => {
   if (!value) return true
@@ -352,6 +368,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                   </template>
                   <template #link="{ row }">
                     <el-link
+                      v-show="!(i === '编辑' && row.type !== '可靠性测试')"
                       v-for="i in row.link"
                       class="el-link"
                       type="primary"

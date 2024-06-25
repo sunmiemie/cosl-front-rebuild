@@ -3,7 +3,7 @@ import type * as AddProcess from "./types/index"
 /**
  * 功能性测试
  */
-export const upoloadfuncttest = (data): Promise<AddProcess.upoloadfuncttestResponse> => {
+export const upoloadfuncttest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
   return request({
     url: "/test/addprocess/functaddtest/",
     method: "post",
@@ -11,7 +11,7 @@ export const upoloadfuncttest = (data): Promise<AddProcess.upoloadfuncttestRespo
     data
   })
 }
-export const upoloadeyestest = (data): Promise<AddProcess.upoloadfuncttestResponse> => {
+export const upoloadeyestest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
   return request({
     url: "/test/addprocess/eyestest/",
     method: "post",
@@ -19,7 +19,7 @@ export const upoloadeyestest = (data): Promise<AddProcess.upoloadfuncttestRespon
     data
   })
 }
-export const upoloadxraytest = (data): Promise<AddProcess.upoloadfuncttestResponse> => {
+export const upoloadxraytest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
   return request({
     url: "/test/addprocess/xraytest/",
     method: "post",
@@ -28,7 +28,7 @@ export const upoloadxraytest = (data): Promise<AddProcess.upoloadfuncttestRespon
   })
 }
 //获取测试工艺列表数据
-export const getTestProcessList = (params): Promise<AddProcess.TestProcessListResponse> => {
+export const getTestProcessList = (params: any): Promise<AddProcess.TestProcessListResponse> => {
   return request({
     url: "/test/addprocess/list/",
     method: "get",
@@ -37,14 +37,19 @@ export const getTestProcessList = (params): Promise<AddProcess.TestProcessListRe
 }
 
 //获取测试工艺详情数据
-export const getTestProcessDetail = (params):Promise<AddProcess.TestProcessDetailResponse> => {
+export const getTestProcessDetail = (params: any): Promise<AddProcess.TestProcessDetailResponse> => {
   return request({
     url: "/test/addprocess/detail/",
     method: "get",
     params
   })
 }
-
+export const deleteTestProcessApi = (id: number) => {
+  return request({
+    url: `/test/process/delete/${id}`,
+    method: "delete"
+  })
+}
 //提交审核
 export const submitCheck = (data: any) => {
   return request({
@@ -54,7 +59,7 @@ export const submitCheck = (data: any) => {
   })
 }
 //更改当前版本
-export const changeVersion = (params) => {
+export const changeVersion = (params: any) => {
   return request({
     url: "/test/addprocess/versionupdate",
     method: "get",

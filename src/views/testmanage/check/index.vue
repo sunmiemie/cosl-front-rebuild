@@ -123,7 +123,12 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="searchData.name" placeholder="请输入" />
         </el-form-item>
         <el-form-item label="测试类型">
-          <el-select @visible-change="getTestTypeData" style="width: 150px" v-model="searchData.type" placeholder="请选择">
+          <el-select
+            @visible-change="getTestTypeData"
+            style="width: 150px"
+            v-model="searchData.type"
+            placeholder="请选择"
+          >
             <el-option v-for="item in testTypeList" :value="item.number" :label="item.name" />
           </el-select>
         </el-form-item>
