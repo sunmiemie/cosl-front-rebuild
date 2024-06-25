@@ -44,7 +44,12 @@ export const getTestProcessDetail = (params):Promise<AddProcess.TestProcessDetai
     params
   })
 }
-
+export const deleteTestProcessApi = (id: number) => {
+  return request({
+    url: `/test/process/delete/${id}`,
+    method: "delete"
+  })
+}
 //提交审核
 export const submitCheck = (data: any) => {
   return request({

@@ -99,6 +99,7 @@ const headers = ref([
   { prop: "supplier", label: "夹具供应商", align: "center" },
   { prop: "seria", label: "夹具序列号", align: "center" },
   { prop: "startTime", label: "入库时间", align: "center" },
+  { prop: "fixture_check", label: "下次年检时间", align: "center" },
   { prop: "status", label: "夹具状态", type: "tag", align: "center" },
   { prop: "link", label: "操作", type: "link" },
   { prop: "download", label: "下载", type: "btn", align: "center" }
