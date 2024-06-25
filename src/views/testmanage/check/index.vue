@@ -96,7 +96,7 @@ const handleLink = (data: any, i: string) => {
   if (i === "审核") {
     // CheckDialog.value = true
     console.log(data, i)
-    router.push({ name: "checktestlist", query:{data:data}})
+    router.push({ name: "checktestlist", query:data})
   }
 }
 const handleSearch = () => {
