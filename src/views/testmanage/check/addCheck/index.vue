@@ -60,7 +60,7 @@
                 </div>
               </div>
               <el-divider style="margin-top: 0; margin-bottom: 0" />
-              <process-preview v-model:preview-list="processJson.eyes" :has-plane="true" />
+              <!--<process-preview v-model:preview-list="processJson.eyes" :has-plane="true" />-->
             </div>
             <div v-if="anyObj.type=='xray测试'"
                  style="width: calc(100vw - 40px); height: calc(100vh - 160px); background: rgba(245,246,248,0.5); border-radius: 6px">
