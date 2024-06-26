@@ -109,8 +109,13 @@ export const constantRoutes: RouteRecordRaw[] = [
       },
       {
         path: "checktestlist",
-        component: () => import("@/views/testmanage/check/addCheck/index.vue"),
-        name: "checktestlist"
+        component: () => import("@/views/testmanage/check/testCheck/index.vue"),
+        name: "checktestlist",
+        meta: {
+          title: "工艺审核",
+          keepAlive: true,
+          hidden: true
+        }
       },
       {
         path: "testTypelist",

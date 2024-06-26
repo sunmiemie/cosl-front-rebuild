@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
-import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
-import { useRoute, useRouter } from "vue-router"
+import { type FormInstance } from "element-plus"
+import { useRouter } from "vue-router"
 import { usePagination } from "@/hooks/usePagination"
 import { checkListDataApi } from "@/api/check"
 import { getTestTypeDataApi } from "@/api/testtype"
@@ -18,12 +18,12 @@ const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
 //#region 增
-const dialogVisible = ref<boolean>(false)
-const CheckInfo = reactive<any>({
+
+const CheckInfo = reactive({
   name: "",
   version: ""
 })
-const CheckEquipment = reactive<any>({
+const CheckEquipment = reactive({
   fixture: "",
   host: "",
   other: [
@@ -38,14 +38,6 @@ const CheckEquipment = reactive<any>({
   ]
 })
 
-interface TableDataType {
-  number: string
-  name: string
-  type: string
-  version: string
-  status: string
-  link?: any
-}
 const headers = ref<any>([
   { prop: "testprocess_id", label: "工艺ID", align: "center" },
   { prop: "testprocess_name", label: "工艺名称", align: "center" },
@@ -56,7 +48,7 @@ const headers = ref<any>([
 ])
 const TableData = ref<any>([])
 const searchFormRef = ref<FormInstance | null>(null)
-const searchData = reactive<any>({
+const searchData = reactive({
   number: "",
   name: "",
   type: ""
@@ -92,11 +84,10 @@ const getTableData = () => {
       loading.value = false
     })
 }
-const handleLink = (data: any, i: string) => {
+const handleLink = (data: any, i: any) => {
   if (i === "审核") {
-    // CheckDialog.value = true
     console.log(data, i)
-    router.push({ name: "checktestlist", query:data})
+    router.push({ name: "checktestlist", query: data })
   }
 }
 const handleSearch = () => {
@@ -129,7 +120,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             v-model="searchData.type"
             placeholder="请选择"
           >
-            <el-option v-for="item in testTypeList" :value="item.number" :label="item.name" />
+            <el-option v-for="item in testTypeList" :value="item.number" :label="item.name" :key="item.number" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -150,10 +141,10 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       <div class="table-wrapper">
         <TableComponent :tableData="TableData" :column-data="headers" stripe>
           <template #status="{ row }">
-            <el-tag v-if="row.status === '1'" type="warning"> 待审核 </el-tag>
+            <el-tag v-if="row['status'] === '1'" type="warning"> 待审核 </el-tag>
           </template>
           <template #link="{ row }">
-            <el-link v-for="i in row.link" type="primary" @click="handleLink(row, i)" :key="i">{{ i }}</el-link>
+            <el-link v-for="i in row['link']" type="primary" @click="handleLink(row, i)" :key="i">{{ i }}</el-link>
           </template>
         </TableComponent>
       </div>
@@ -183,7 +174,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                 <el-input disabled v-model="CheckEquipment.host" />
               </el-form-item>
               <el-form-item label="其他设备:" style="width: 15vw">
-                <el-input disabled v-for="item in CheckEquipment.other" style="margin: 10px 0">
+                <el-input disabled v-for="item in CheckEquipment.other" style="margin: 10px 0" :key="item.number">
                   <template #prefix> {{ item.number }} 型号：{{ item.region }} </template>
                 </el-input>
               </el-form-item>

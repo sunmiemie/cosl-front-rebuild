@@ -390,13 +390,15 @@ import { getFixtureModelDataApi } from "@/api/fixturemodel"
 import { getEquipmentTypeDataApi } from "@/api/otherModelType"
 import { getPsiModelDataApi } from "@/api/psimodel"
 import { upoloadfuncttest, upoloadeyestest, upoloadxraytest } from "@/api/addprocess"
-import { useUserStore } from "@/store/modules/test"
+import { useTestStore } from "@/store/modules/test"
+import { useUserStore } from "@/store/modules/user"
 
 defineOptions({
   // 命名当前组件
   name: "ElementPlus"
 })
-const testStore = useUserStore()
+const testStore = useTestStore()
+const userStore = useUserStore()
 const router = useRouter()
 const testTypeShow = ref<any>("功能性测试")
 const innerRef = ref<HTMLDivElement>()
@@ -632,19 +634,13 @@ const handleAddEyesProcess = () => {
     cancelButtonText: "取消",
     type: "warning"
   }).then(() => {
-    interface FormDataFields {
-      name: string
-      version: string
-      file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
-      board_model_id: string
-      testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
-    }
-    const data: FormDataFields = {
+    const data: any = {
       name: form.name,
       version: form.version,
       file: eyesFile.value,
       board_model_id: testStore.board_model_id,
-      testtype: form.curTypeId
+      testtype: form.curTypeId,
+      userId: userStore.userid
     }
     const fromData = new FormData()
     for (const key in data) {
@@ -665,19 +661,13 @@ const handleAddXrayProcess = () => {
     cancelButtonText: "取消",
     type: "warning"
   }).then(() => {
-    interface FormDataFields {
-      name: string
-      version: string
-      file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
-      board_model_id: string
-      testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
-    }
-    const data: FormDataFields = {
+    const data: any = {
       name: form.name,
       version: form.version,
       file: xrayFile.value,
       board_model_id: testStore.board_model_id,
-      testtype: form.curTypeId
+      testtype: form.curTypeId,
+      userId: userStore.userid
     }
     const fromData = new FormData()
     for (const key in data) {
@@ -698,16 +688,6 @@ const handleAddFuncProcess = () => {
     cancelButtonText: "取消",
     type: "warning"
   }).then(() => {
-    interface FormDataFields {
-      name: string
-      version: string
-      fixtureId: string
-      hostId: string
-      equipmentId: string // 假设 equipmentId 已经被转化为字符串
-      file: File | Blob | null // 假设 File 是 File 或 Blob 类型，或者可能是 null
-      board_model_id: string
-      testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
-    }
     const data: any = {
       name: form.name,
       version: form.version,
@@ -716,7 +696,8 @@ const handleAddFuncProcess = () => {
       equipmentId: JSON.stringify(form.equipmentId),
       file: form.File,
       board_model_id: testStore.board_model_id,
-      testtype: form.curTypeId
+      testtype: form.curTypeId,
+      userId: userStore.userid
     }
     const fromData = new FormData()
     for (const key in data) {

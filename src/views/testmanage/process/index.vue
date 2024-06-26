@@ -7,7 +7,7 @@ import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-v
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { getInstrumentDataApi } from "@/api/instrument"
-import { useUserStore } from "@/store/modules/test"
+import { useTestStore } from "@/store/modules/test"
 import {
   getTestProcessDetail,
   getTestProcessList,
@@ -16,7 +16,7 @@ import {
   deleteTestProcessApi
 } from "@/api/addprocess"
 
-const testStore = useUserStore()
+const testStore = useTestStore()
 defineOptions({
   // 命名当前组件
   name: "ElementPlus"

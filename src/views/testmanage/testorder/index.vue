@@ -101,7 +101,7 @@ interface PublicType {
   link?: string
 }
 
-let PublicFormInfo = reactive<any>({
+let PublicFormInfo = reactive({
   testunit_id: "",
   testunit_name: "",
   process_type: "",
@@ -161,7 +161,7 @@ const resetSearch = () => {
 }
 //#endregion
 // 确认新增传递给后端的参数
-const detailform = reactive<any>({
+const detailform = reactive({
   unitId: "",
   unitName: "",
   user: "",

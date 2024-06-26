@@ -11,10 +11,7 @@ const props = defineProps(["previewList", "hasPlane"])
             <el-text style="margin-left: 10px" size="large">躬曲度检测</el-text>
           </template>
           <div style="border: #cbccd0 1px solid; border-radius: 6px">
-            <el-image style="display: flex;justify-content: center; height: 200px; margin-top: 5px"
-                      :src="props.previewList.plane.leftUrl" fit="contain"/>
-            <el-image style="display: flex;justify-content: center; height: 200px; margin-top: 5px"
-                      :src="props.previewList.plane.rightUrl" fit="contain"/>
+            <el-text>{{ props.previewList.plane.size }}mm</el-text>
           </div>
         </el-collapse-item>
         <el-collapse-item name="1">
@@ -22,20 +19,23 @@ const props = defineProps(["previewList", "hasPlane"])
             <el-text style="margin-left: 10px" size="large">整体检测</el-text>
           </template>
           <div style="border: #cbccd0 1px solid; border-radius: 6px">
-            <el-image style="display: flex;justify-content: center; height: 200px; margin-top: 5px"
-                      :src="props.previewList.total.url" fit="contain"/>
+            <el-image
+              style="display: flex; justify-content: center; height: 200px; margin-top: 5px"
+              :src="props.previewList.total.url"
+              fit="contain"
+            />
             <el-table :data="props.previewList.total.step" stripe border>
-              <el-table-column prop="name" label="检测项名称" width="150"/>
-              <el-table-column prop="desc" label="检测项描述"/>
+              <el-table-column prop="name" label="检测项名称" width="150" />
+              <el-table-column prop="desc" label="检测项描述" />
             </el-table>
             <el-table :data="props.previewList.total.pic" stripe border>
               <el-table-column prop="url" label="留存指导" width="200">
                 <template #default="scope">
-                  <el-image :src="scope.row.url"/>
+                  <el-image :src="scope.row.url" />
                 </template>
               </el-table-column>
-              <el-table-column prop="name" label="留存项名称" width="150"/>
-              <el-table-column prop="desc" label="留存项描述"/>
+              <el-table-column prop="name" label="留存项名称" width="150" />
+              <el-table-column prop="desc" label="留存项描述" />
             </el-table>
           </div>
         </el-collapse-item>
@@ -54,21 +54,23 @@ const props = defineProps(["previewList", "hasPlane"])
                     <el-text style="margin-left: 30px" size="large">通用检测</el-text>
                   </template>
                   <div style="border: #cbccd0 1px solid; border-radius: 6px">
-                    <el-image style="display: flex;justify-content: center; height: 200px; margin-top: 5px"
-                              :src="item.url"
-                              fit="contain"/>
+                    <el-image
+                      style="display: flex; justify-content: center; height: 200px; margin-top: 5px"
+                      :src="item.url"
+                      fit="contain"
+                    />
                     <el-table :data="item.general.step" stripe border>
-                      <el-table-column prop="name" label="检测项名称" width="150"/>
-                      <el-table-column prop="desc" label="检测项描述"/>
+                      <el-table-column prop="name" label="检测项名称" width="150" />
+                      <el-table-column prop="desc" label="检测项描述" />
                     </el-table>
                     <el-table :data="item.general.pic" stripe border>
                       <el-table-column prop="url" label="留存指导" width="200">
                         <template #default="scope">
-                          <el-image :src="scope.row.url"/>
+                          <el-image :src="scope.row.url" />
                         </template>
                       </el-table-column>
-                      <el-table-column prop="name" label="留存项名称" width="150"/>
-                      <el-table-column prop="desc" label="留存项描述"/>
+                      <el-table-column prop="name" label="留存项名称" width="150" />
+                      <el-table-column prop="desc" label="留存项描述" />
                     </el-table>
                   </div>
                 </el-collapse-item>
@@ -82,21 +84,23 @@ const props = defineProps(["previewList", "hasPlane"])
                         <el-text style="margin-left: 40px" size="large">具体点位:{{ item.name }}</el-text>
                       </template>
                       <div style="border: #cbccd0 1px solid; border-radius: 6px">
-                        <el-image style="display: flex;justify-content: center; height: 200px; margin-top: 5px"
-                                  :src="item.url"
-                                  fit="contain"/>
+                        <el-image
+                          style="display: flex; justify-content: center; height: 200px; margin-top: 5px"
+                          :src="item.url"
+                          fit="contain"
+                        />
                         <el-table :data="item.step" stripe border>
-                          <el-table-column prop="name" label="检测项名称" width="150"/>
-                          <el-table-column prop="desc" label="检测项描述"/>
+                          <el-table-column prop="name" label="检测项名称" width="150" />
+                          <el-table-column prop="desc" label="检测项描述" />
                         </el-table>
                         <el-table :data="item.pic" stripe border>
                           <el-table-column prop="url" label="留存指导" width="200">
                             <template #default="scope">
-                              <el-image :src="scope.row.url"/>
+                              <el-image :src="scope.row.url" />
                             </template>
                           </el-table-column>
-                          <el-table-column prop="name" label="留存项名称" width="150"/>
-                          <el-table-column prop="desc" label="留存项描述"/>
+                          <el-table-column prop="name" label="留存项名称" width="150" />
+                          <el-table-column prop="desc" label="留存项描述" />
                         </el-table>
                       </div>
                     </el-collapse-item>

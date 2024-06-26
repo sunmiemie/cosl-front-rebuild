@@ -1,7 +1,7 @@
 import { ref } from "vue"
 import { defineStore } from "pinia"
 
-export const useUserStore = defineStore("test", () => {
+export const useTestStore = defineStore("test", () => {
   const board_model_id = ref<string>("")
   const board_model_name = ref<string>("")
   const versionArr = ref<any>([])
