@@ -38,17 +38,7 @@ const onSubmit = () => {
   DialogCheck.value = false
 }
 //#region 改
-const currentUpdateId = ref<undefined | string>(undefined)
-
-//const tableData = ref<GetTableData[]>([])
-interface TableDataType {
-  reportNumber: string
-  reportType: string
-  reportTime: string
-  reportAuthor: string
-  status: any
-  link?: any
-}
+const currentUpdateId = ref<any>(undefined)
 
 const headers1 = ref([
   { prop: "id", label: "报告编号", align: "center" },
@@ -58,11 +48,11 @@ const headers1 = ref([
   { prop: "status", label: "报告状态", type: "tag", align: "center" },
   { prop: "link", label: "操作 ", type: "link" }
 ])
-const TableData = ref<Array<TableDataType>>([])
+const TableData = ref<any>([])
 
 const searchFormRef = ref<FormInstance | null>(null)
 // 查询
-const searchData = reactive({
+const searchData = reactive<any>({
   id: "",
   user: "",
   type: "",

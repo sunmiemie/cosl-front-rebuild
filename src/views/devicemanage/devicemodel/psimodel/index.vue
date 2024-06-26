@@ -13,7 +13,7 @@ const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const dialogVisible = ref<boolean>(false)
 const formRef = ref<FormInstance | null>(null)
-const formData = reactive({
+const formData = reactive<any>({
   id: "",
   name: "",
   supplier: "",

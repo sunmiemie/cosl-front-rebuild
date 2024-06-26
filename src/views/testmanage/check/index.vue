@@ -12,18 +12,18 @@ defineOptions({
   name: "ElementPlus"
 })
 
-const testTypeList = ref([])
+const testTypeList = ref<any>([])
 const CheckDialog = ref<boolean>(false)
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
 //#region 增
 const dialogVisible = ref<boolean>(false)
-const CheckInfo = reactive({
+const CheckInfo = reactive<any>({
   name: "",
   version: ""
 })
-const CheckEquipment = reactive({
+const CheckEquipment = reactive<any>({
   fixture: "",
   host: "",
   other: [
@@ -46,7 +46,7 @@ interface TableDataType {
   status: string
   link?: any
 }
-const headers = ref([
+const headers = ref<any>([
   { prop: "testprocess_id", label: "工艺ID", align: "center" },
   { prop: "testprocess_name", label: "工艺名称", align: "center" },
   { prop: "testprocess_version", label: "测试版本", align: "center" },
@@ -54,14 +54,14 @@ const headers = ref([
   { prop: "status", label: "流程状态", type: "tag", align: "center" },
   { prop: "link", label: "操作", type: "link" }
 ])
-const TableData = ref<Array<TableDataType>>([])
+const TableData = ref<any>([])
 const searchFormRef = ref<FormInstance | null>(null)
-const searchData = reactive({
+const searchData = reactive<any>({
   number: "",
   name: "",
   type: ""
 })
-const defineLink = (status: string) => {
+const defineLink = (status: any) => {
   switch (status) {
     case "1":
       return { 1: "审核" }
@@ -82,7 +82,7 @@ const getTableData = () => {
     name: searchData.name,
     type: searchData.type
   })
-    .then((res) => {
+    .then((res: any) => {
       TableData.value = res.list
     })
     .finally(() => {

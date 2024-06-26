@@ -76,18 +76,14 @@ import { usePagination } from "@/hooks/usePagination"
 const loading = ref<boolean>(false)
 const dialogVisible = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-const currentUpdateId = ref()
+const currentUpdateId = ref<any>()
 const Loading: Ref<boolean> = ref(false)
-type SearchDataType = {
-  name: string
-  id: string
-}
 // 查询参数
-const searchData = reactive<SearchDataType>({
+const searchData = reactive<any>({
   name: "",
   id: ""
 })
-const formData = reactive({
+const formData = reactive<any>({
   id: "",
   name: ""
 })
@@ -108,7 +104,7 @@ const handleCreate = () => {
         getTableData()
       })
       .finally(() => {
-        Object.keys(formData).forEach((key) => (formData[key] = ""))
+        Object.keys(formData).forEach((key: any) => (formData[key] = ""))
         dialogVisible.value = false
       })
   } else {
@@ -131,17 +127,17 @@ const resect = () => {
 }
 
 const resetSearch = () => {
-  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+  Object.keys(searchData).forEach((key: any) => (searchData[key] = ""))
   getTableData()
 }
 
-const headers = ref([
+const headers = ref<any>([
   { prop: "id", label: "产品id", align: "center" },
   { prop: "name", label: "产品名称", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
 
-const TableData = ref([])
+const TableData = ref<any>([])
 /**
  * Get table data info
  * @description get table data from api
@@ -168,7 +164,7 @@ const getTableData = () => {
 }
 
 // link操作
-const handleLink = (data, i) => {
+const handleLink = (data: any, i: any) => {
   if (i == "详情") {
     /* empty */
   } else {

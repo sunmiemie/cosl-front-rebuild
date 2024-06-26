@@ -11,11 +11,11 @@ defineProps({
   }
 })
 const emit = defineEmits(["onUpdate", "deletePic"])
-const dialogVisible = ref(false)
-const dialogImageUrl = ref("")
-const drag = ref(false)
+const dialogVisible = ref<any>(false)
+const dialogImageUrl = ref<any>("")
+const drag = ref<any>(false)
 // 预览
-const handlePictureCardPreviewFileDetail = (file: string) => {
+const handlePictureCardPreviewFileDetail = (file: any) => {
   dialogImageUrl.value = file
   dialogVisible.value = true
 }

@@ -254,7 +254,7 @@
                         <el-form-item label="步骤名称:" style="margin-top: 15px">
                           <el-input
                             v-model="
-                              stepinfo.find((item) => {
+                              stepinfo.find((item: any) => {
                                 return item.step == form.curStep
                               }).info.name
                             "
@@ -268,7 +268,7 @@
                         <el-form-item label="步骤描述:">
                           <el-input
                             v-model="
-                              stepinfo.find((item) => {
+                              stepinfo.find((item: any) => {
                                 return item.step == form.curStep
                               }).info.desc
                             "
@@ -312,10 +312,10 @@
                           </el-col>
                           <el-col :span="21">
                             <el-card shadow="never" style="background: #fafafa">
-                              <el-scrollbar ref="scrollbarRef" always="always" height="500px">
+                              <el-scrollbar ref="scrollbarRef" always height="500px">
                                 <div ref="innerRef">
                                   <template
-                                    v-for="compontent in stepinfo.find((item) => {
+                                    v-for="compontent in stepinfo.find((item: any) => {
                                       return item.step == form.curStep
                                     }).info.tabList"
                                     :key="compontent.id"
@@ -398,28 +398,28 @@ defineOptions({
 })
 const testStore = useUserStore()
 const router = useRouter()
-const testTypeShow = ref("功能性测试")
+const testTypeShow = ref<any>("功能性测试")
 const innerRef = ref<HTMLDivElement>()
 const stepInnerRef = ref<HTMLDivElement>()
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
 const stepScrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
 const captcha = ref<CaptchaExposed>()
-const testTypeList = ref([])
-const dialogImageUrl = ref("")
-const dialogVisible = ref(false)
-const editDialogVisible = ref(false)
-const confirmDialogVisible = ref(false)
+const testTypeList = ref<any>([])
+const dialogImageUrl = ref<any>("")
+const dialogVisible = ref<any>(false)
+const editDialogVisible = ref<any>(false)
+const confirmDialogVisible = ref<any>(false)
 const currentEditImg = ref("")
-const editImg = ref("")
-const stoppers = []
-const fixtureModelList = ref([])
-const psiModelList = ref([])
-const equipmentModelList = ref([])
-const eyesFile = ref(null)
-const xrayFile = ref(null)
+const editImg = ref<any>("")
+const stoppers = ref<any>([])
+const fixtureModelList = ref<any>([])
+const psiModelList = ref<any>([])
+const equipmentModelList = ref<any>([])
+const eyesFile = ref<any>(null)
+const xrayFile = ref<any>(null)
 const fileList = ref<UploadUserFile[]>([])
-const showprocessRight = ref(true)
-const form = reactive({
+const showprocessRight = ref<any>(true)
+const form = reactive<any>({
   name: "",
   version: "",
   fixtureId: "",
@@ -442,7 +442,7 @@ const handleVision = () => {
   } else {
     for (let i = 0; i < testStore.versionArr.length; i++) {
       if (testStore.versionArr[i].type === form.curType) {
-        const versionList = testStore.versionArr.find((item) => {
+        const versionList = testStore.versionArr.find((item: any) => {
           return item.type === form.curType
         }).versionList
         for (let i = 0; i < versionList.length; i++) {
@@ -507,7 +507,7 @@ const TestType = (type: string, id: number): void => {
     fileList.value = []
   })
 }
-const stepinfo = reactive([
+const stepinfo = reactive<any>([
   {
     step: "1",
     info: {
@@ -539,7 +539,7 @@ const addStep = async () => {
 }
 const currentStep = (stepCur: any) => {
   form.curStep = stepCur
-  const result = stepinfo.find((item) => {
+  const result = stepinfo.find((item: any) => {
     return item.step == stepCur
   })
   // 填充表单
@@ -547,23 +547,23 @@ const currentStep = (stepCur: any) => {
   form.processDesc = result.info.desc
 }
 let idCounter = 0
-const addSteptype = async (type) => {
+const addSteptype = async (type: any) => {
   const comId = idCounter++
   if (type === "ParaProcess") {
     stepinfo
-      .find((item) => {
+      .find((item: any) => {
         return item.step == form.curStep
       })
       .info.tabList.push({ com: ParaProcess, id: comId })
   } else if (type === "RecordProcess") {
     stepinfo
-      .find((item) => {
+      .find((item: any) => {
         return item.step == form.curStep
       })
       .info.tabList.push({ com: RecordProcess, id: comId })
   } else {
     stepinfo
-      .find((item) => {
+      .find((item: any) => {
         return item.step == form.curStep
       })
       .info.tabList.push({ com: ScanProcess, id: comId })
@@ -577,13 +577,13 @@ const removeCom = (val: any) => {
     cancelButtonText: "取消",
     type: "error"
   }).then(() => {
-    stepinfo.find((item) => {
+    stepinfo.find((item: any) => {
       return item.step == form.curStep
     }).info.tabList = stepinfo
-      .find((item) => {
+      .find((item: any) => {
         return item.step == form.curStep
       })
-      .info.tabList.filter((component) => component.id !== val)
+      .info.tabList.filter((component: any) => component.id !== val)
   })
 }
 const removeStep = (val: any) => {
@@ -593,7 +593,7 @@ const removeStep = (val: any) => {
     cancelButtonText: "取消",
     type: "error"
   }).then(() => {
-    const index = stepinfo.findIndex((item) => item.step == val)
+    const index = stepinfo.findIndex((item: any) => item.step == val)
     console.log(index)
     if (index !== -1) {
       stepinfo.splice(index, 1)
@@ -605,19 +605,19 @@ const removeStep = (val: any) => {
     stepNumber = stepinfo.length
   })
 }
-const activeBtn = (val) => {
+const activeBtn = (val: any) => {
   if (val == form.curStep) {
     return "success"
   } else {
     return null
   }
 }
-const saveEdit = async (data) => {
+const saveEdit = async (data: any) => {
   currentEditImg.value = data
   editDialogVisible.value = false
   await nextTick()
-  stoppers.forEach((stop) => stop())
-  stoppers.splice(0, stoppers.length)
+  stoppers.value.forEach((stop: any) => stop())
+  stoppers.value.splice(0, stoppers.value.length)
 }
 //选择文件
 const handleFileChange = (file: any) => {
@@ -708,7 +708,7 @@ const handleAddFuncProcess = () => {
       board_model_id: string
       testtype: string | number // 根据你的实际情况，testtype 可能是字符串或数字
     }
-    const data: FormDataFields = {
+    const data: any = {
       name: form.name,
       version: form.version,
       fixtureId: form.fixtureId,

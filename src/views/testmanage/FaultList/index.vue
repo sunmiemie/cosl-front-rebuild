@@ -28,9 +28,9 @@ const defaultinfo = reactive({
 })
 
 // 显示
-const aspectDialog = ref(false)
-const DefaultSuccess = ref(false)
-const dialogVisible2 = ref(false)
+const aspectDialog = ref<any>(false)
+const DefaultSuccess = ref<any>(false)
+const dialogVisible2 = ref<any>(false)
 const handleCreate = () => {}
 const resetForm = () => {
   currentUpdateId.value = undefined
@@ -121,7 +121,7 @@ const handleLink = (data: any, i: string) => {
     aspectDialog.value = true
   } else if (i === "处理") {
     DefaultSuccess.value = true
-    DefaultSuccess.data = data
+    // DefaultSuccess.data = data
     console.log(DefaultSuccess)
   } else if (i === "详情") {
     dialogVisible2.value = true

@@ -64,14 +64,14 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = ref([
+const headers = ref<any>([
   { prop: "id", label: "设备类型ID", align: "center" },
   { prop: "name", label: "设备类型名称", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
-const TableData = ref([])
+const TableData = ref<any>([])
 const searchFormRef = ref<FormInstance | null>(null)
-const searchData = reactive({
+const searchData = reactive<any>({
   id: "",
   name: ""
 })

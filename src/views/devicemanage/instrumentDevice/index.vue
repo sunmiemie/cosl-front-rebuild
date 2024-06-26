@@ -80,13 +80,10 @@ import { ElMessage } from "element-plus"
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const dialogVisible = ref<boolean>(false)
-const currentUpdateId = ref()
-const Loading: Ref<boolean> = ref(false)
-type SearchDataType = {
-  name: string
-  id: string
-}
-const formData = reactive({
+const currentUpdateId = ref<any>()
+const Loading: Ref<boolean> = ref<any>(false)
+
+const formData = reactive<any>({
   name: "",
   id: null,
   type: null
@@ -101,7 +98,7 @@ const handleCreate = () => {
       })
       .finally(() => {
         dialogVisible.value = false
-        Object.keys(formData).forEach((key) => (formData[key] = ""))
+        Object.keys(formData).forEach((key: any) => (formData[key] = ""))
       })
   } else {
     updateInstrumentDataApi({
@@ -115,40 +112,40 @@ const handleCreate = () => {
       })
       .finally(() => {
         dialogVisible.value = false
-        Object.keys(formData).forEach((key) => (formData[key] = ""))
+        Object.keys(formData).forEach((key: any) => (formData[key] = ""))
       })
   }
 }
 
 // 查询参数
-const searchData = reactive<SearchDataType>({
+const searchData = reactive<any>({
   name: "",
   id: ""
 })
-const TypeList = ref([])
+const TypeList = ref<any>([])
 
 // 查询逻辑 重置
 const handleSearch = () => {
   getTableData()
 }
 const resetSearch = () => {
-  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+  Object.keys(searchData).forEach((key: any) => (searchData[key] = ""))
   getTableData()
 }
 
-const headers = ref([
+const headers = ref<any>([
   { prop: "id", label: "仪器id", align: "center", fixed: "left" },
   { prop: "label", label: "仪器名称", align: "center" },
   { prop: "product", label: "关联产品", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
 
-const TableData = ref([])
+const TableData = ref<any>([])
 
 const closedInstrument = () => {
   dialogVisible.value = false
   currentUpdateId.value = undefined
-  Object.keys(formData).forEach((key) => (formData[key] = ""))
+  Object.keys(formData).forEach((key: any) => (formData[key] = ""))
 }
 
 const getTableData = () => {
@@ -170,14 +167,14 @@ const getTableData = () => {
     currentPage: 1,
     size: 999999
   }).then((res) => {
-    TypeList.value = res.data.list.filter((item) => {
+    TypeList.value = res.data.list.filter((item: any) => {
       return item.id !== 1
     })
   })
 }
 
 // link操作
-const handleLink = (data, i) => {
+const handleLink = (data: any, i: any) => {
   if (i == "详情") {
     /* empty */
   } else {

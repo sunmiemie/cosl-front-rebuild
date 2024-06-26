@@ -35,7 +35,7 @@ const selectDate = (val: CalendarDateType) => {
   getDaily(params)
 }
 
-const getDaily = async (currentMonth?: string) => {
+const getDaily = async (currentMonth?: any) => {
   loading.value = true
   getDailyInspection(currentMonth)
     .then((res) => {
@@ -51,7 +51,7 @@ const getDaily = async (currentMonth?: string) => {
       loading.value = false
     })
 }
-const dropdownSelct = (day, type) => {
+const dropdownSelct = (day: any, type: any) => {
   console.log(day, type)
 }
 

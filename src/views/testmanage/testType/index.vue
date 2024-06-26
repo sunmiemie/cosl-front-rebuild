@@ -15,7 +15,7 @@ const dialogVisible = ref<boolean>(false)
 const formRules: FormRules = reactive({
   name: [{ required: true, trigger: "blur", message: "请输入测试类型名称" }]
 })
-const formData = reactive({
+const formData = reactive<any>({
   id: "",
   name: ""
 })
@@ -57,7 +57,7 @@ const headers = ref([
   { prop: "processCount", label: "所属流程数量", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "center" }
 ])
-const TableData = ref([])
+const TableData = ref<any[]>([])
 const searchFormRef = ref<FormInstance | null>(null)
 const searchData = reactive({
   name: ""
@@ -81,8 +81,7 @@ const getTableData = () => {
 const handleLink = (data: any) => {
   dialogVisible.value = true
   currentUpdateId.value = data.number
-  formData.id = currentUpdateId.value
-  formData.name = data.name
+  typeof currentUpdateId.value === "string" ? (formData.id = currentUpdateId.value) : (formData.name = data.name)
 }
 const handleSearch = () => {
   paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)

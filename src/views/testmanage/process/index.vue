@@ -30,7 +30,7 @@ const dialogVisible = ref<boolean>(false)
 const dialogVisibleEdit = ref<boolean>(false)
 const DialogCheck = ref<boolean>(false)
 const treeRef = ref<InstanceType<typeof ElTree>>()
-const filterText = ref("")
+const filterText = ref<any>("")
 const testType = ref<number>()
 
 interface TestCheckType {
@@ -52,7 +52,7 @@ const addTest = () => {
 // 提交审核
 const onSubmit = () => {
   console.log(TestCheck.value)
-  submitCheck({ id: TestCheck.value.ID }).then((res) => {
+  submitCheck({ id: TestCheck.value.ID }).then((res: any) => {
     if (res.code === 0) {
       ElMessage.success("提交成功")
       getDetailTableData(testType.value)
@@ -78,7 +78,7 @@ const headers1 = ref([
   { prop: "version", label: "当前使用的工艺版本 ", type: "select", align: "center" },
   { prop: "link", label: "操作 ", type: "link" }
 ])
-const TableData = ref([])
+const TableData = ref<any>([])
 const headers2 = ref([
   { prop: "type", label: "测试类型 ", align: "center" },
   { prop: "ID", label: "工艺ID", align: "center" },
@@ -92,14 +92,14 @@ const ProcessDataDetail = ref<Array<ProcessDataDetailType>>([])
 
 const searchFormRef = ref<FormInstance | null>(null)
 // 查询
-const searchData = reactive({
+const searchData = reactive<any>({
   ID: "",
   version: "",
   type: "",
   boardModel: "",
   testType: null
 })
-const defineLink = (status: number) => {
+const defineLink = (status: any) => {
   switch (status) {
     case 0:
       return { 1: "提交审核", 2: "编辑", 3: "删除" }
@@ -164,7 +164,7 @@ const handleLink = (data: any, i: string) => {
     drawer.value = true
   }
 }
-const getDetailTableData = (testType) => {
+const getDetailTableData = (testType: any) => {
   loading.value = true
   getTestProcessDetail({
     boardModel_id: searchData.boardModel,
@@ -181,7 +181,7 @@ const getDetailTableData = (testType) => {
     })
 }
 //当前选中
-const CurrentVersion = (val, row) => {
+const CurrentVersion = (val: any, row: any) => {
   console.log(val)
   console.log(row)
   changeVersion({
@@ -226,7 +226,7 @@ const defaultProps = {
   children: "children",
   label: "label"
 }
-const handleNodeClick = (data) => {
+const handleNodeClick = (data: any) => {
   searchData.boardModel = data.id
   testStore.board_model_id = data.id
   testStore.board_model_name = data.label

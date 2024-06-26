@@ -252,7 +252,7 @@ const resetSearchDetail = async () => {
   getDetailTableData()
 }
 const DrawerClose = () => {
-  Object.keys(DetailsearchData).forEach((key) => (DetailsearchData[key] = ""))
+  Object.keys(DetailsearchData).forEach((key: any) => (DetailsearchData[key] = ""))
 }
 
 const filterNode = (value: string, data: any) => {

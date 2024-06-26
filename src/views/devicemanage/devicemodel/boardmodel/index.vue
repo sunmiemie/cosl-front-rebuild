@@ -142,7 +142,7 @@ const handleSelectionChange = (val: any) => {
   selectedRows.value = val
 }
 // 编辑
-const DetailList = ref([])
+const DetailList = ref<any>([])
 const handleLink = async (data: any) => {
   formData.type = data.instrument_data[0].id
   formData.model = data.model
@@ -155,7 +155,7 @@ const handleLink = async (data: any) => {
 }
 // 新增电路板型号
 const addType = async () => {
-  Object.keys(formData).forEach((key) => (formData[key] = ""))
+  Object.keys(formData).forEach((key: any) => (formData[key] = ""))
   dialogVisible.value = true
 }
 const handleSearch = () => {

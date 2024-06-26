@@ -22,15 +22,15 @@ defineOptions({
 const userStore = useUserStore()
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-const currentRow = ref()
-const showFlags = ref(true)
-const showProcess = ref(true)
-const testFlags = ref(true)
+const currentRow = ref<any>()
+const showFlags = ref<any>(true)
+const showProcess = ref<any>(true)
+const testFlags = ref<any>(true)
 const dialogVisible = ref<boolean>(false)
 const PublicVisible = ref<boolean>(false)
-const testTypeList = ref([])
-const processList = ref([])
-const showProcessList = ref([])
+const testTypeList = ref<any>([])
+const processList = ref<any>([])
+const showProcessList = ref<any>([])
 interface TableDataType {
   testunit_id?: number
   testunit_name?: string
@@ -52,7 +52,7 @@ const headers = ref([
   { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
   { prop: "link", label: "操作", type: "link" }
 ])
-const selectedRows = ref([])
+const selectedRows = ref<any>([])
 const addHeaders = ref([
   { prop: "id", label: "电路板ID", align: "center" },
   { prop: "serial_num", label: "电路板序列号", align: "center" }
@@ -61,15 +61,7 @@ const TableData = ref<Array<TableDataType>>([])
 
 const searchFormRef = ref<FormInstance | null>(null)
 
-interface SearchDataType {
-  number?: string
-  TestName?: string
-  TestType?: string
-  TestStatus?: string
-  Daterange?: string | any
-}
-
-const searchData = reactive<SearchDataType>({
+const searchData = reactive<any>({
   number: "",
   TestName: "",
   TestType: "",
@@ -77,7 +69,7 @@ const searchData = reactive<SearchDataType>({
   Daterange: ""
 })
 
-const defineLink = (status: string) => {
+const defineLink = (status: any) => {
   switch (status) {
     case "0":
       return { 1: "发布", 2: "删除" }
@@ -109,7 +101,13 @@ interface PublicType {
   link?: string
 }
 
-let PublicFormInfo = reactive<PublicType>({})
+let PublicFormInfo = reactive<any>({
+  testunit_id: "",
+  testunit_name: "",
+  process_type: "",
+  user_name: "",
+  testunit_starttime: ""
+})
 const PublicOrDelete = ref<string>("发布")
 const drawer: Ref<boolean> = ref(false)
 // link操作逻辑
@@ -163,7 +161,7 @@ const resetSearch = () => {
 }
 //#endregion
 // 确认新增传递给后端的参数
-const detailform = reactive({
+const detailform = reactive<any>({
   unitId: "",
   unitName: "",
   user: "",
@@ -188,14 +186,14 @@ const setCurrent = (row?: any) => {
     selectedType.processVersion = row.version
   }
 }
-const selectedType = reactive({
+const selectedType = reactive<any>({
   id: "",
   name: "",
   processId: "",
   processVersion: ""
 })
 //选择测试工艺
-const SelectTestType = async (type) => {
+const SelectTestType = async (type: any) => {
   const result = await getbordsinfo({
     batchId: Batch.value,
     boardModelId: CircuitBoardModelId.value,
@@ -211,19 +209,19 @@ const SelectTestType = async (type) => {
     await setCurrent()
   }
   showProcess.value = false
-  const process = processList.value.find((item) => {
+  const process = processList.value.find((item: any) => {
     return item.type === type.name
   })
   if (process !== undefined && process !== null) {
     await Promise.all(
-      process.versionList.map(async (item) => {
+      process.versionList.map(async (item: any) => {
         if (item.status === 3) {
           showProcessList.value.push(item)
         }
       })
     )
     await Promise.all(
-      showProcessList.value.map(async (item) => {
+      showProcessList.value.map(async (item: any) => {
         if (item.activate === 1) {
           await setCurrent(item)
           selectedType.processId = item.id
@@ -247,7 +245,7 @@ const submitAdd = () => {
   })
 }
 // 测试状态
-const TestStatus = reactive([
+const TestStatus = reactive<any>([
   {
     status: 0,
     mes: "已创建"
@@ -293,12 +291,12 @@ interface Tree {
 }
 
 // 电路板信息 型号和批次ID
-const Batch = ref()
-const CircuitBatch = ref()
-const CircuitBoardModel = ref()
-const CircuitBoardModelId = ref()
+const Batch = ref<any>()
+const CircuitBatch = ref<any>()
+const CircuitBoardModel = ref<any>()
+const CircuitBoardModelId = ref<any>()
 //  电路板ID和序列号
-const boardTableData = ref([])
+const boardTableData = ref<any>([])
 
 type NodeData = {
   id: string
@@ -325,7 +323,7 @@ const clickNode = async (data: NodeData & any, node: any) => {
   })
   console.log(currentRow.value, selectedRows.value)
 }
-const handleSingleSelectChange = (val) => {
+const handleSingleSelectChange = (val: any) => {
   currentRow.value = val
   if (val !== undefined && val !== null) {
     selectedType.processId = val.id

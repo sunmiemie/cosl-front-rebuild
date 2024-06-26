@@ -30,7 +30,7 @@ const checkRef = ref<FormInstance | null>(null)
 const fileList = reactive<any>({
   file: []
 })
-const formData = reactive({
+const formData = reactive<any>({
   name: "",
   model: "", // 型号
   seria: "", // 序列号
@@ -89,7 +89,7 @@ const resetForm = () => {
 //#endregion
 
 //#region 改
-const currentUpdateId = ref<undefined | string>(undefined)
+const currentUpdateId = ref<any>(undefined)
 
 //#endregion
 
@@ -202,7 +202,7 @@ const handleSearch = () => {
   paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
 }
 const resetSearch = () => {
-  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+  Object.keys(searchData).forEach((key: any) => (searchData[key] = ""))
   getTableData()
 }
 const closeDialogs = () => {

@@ -18,7 +18,7 @@ export function deleteOtherModelDataApi(id: string) {
 }
 
 /** 改 */
-export function updateOtherModelDataApi(data: Equipment.UpdateEquipmentRequestData) {
+export function updateOtherModelDataApi(data: { name: string; id: null; seria: string; type: string }) {
   return request({
     url: "equipment/otherequipment/update",
     method: "post",
@@ -28,11 +28,11 @@ export function updateOtherModelDataApi(data: Equipment.UpdateEquipmentRequestDa
 
 /** 查 */
 export function getOtherModelDataApi(params: {
-  size: number
-  name: string
-  currentPage: number
-  seria: string
-  type: string
+  size: number;
+  name: string | undefined;
+  currentPage: number;
+  seria: string | undefined;
+  type: string | undefined
 }) {
   return request<Equipment.GetEquipmentResponseData>({
     url: "equipment/otherequipment/list",
