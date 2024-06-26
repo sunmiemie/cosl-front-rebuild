@@ -3,71 +3,67 @@
     <el-card class="test-check">
       <!-- 审核测试工艺 -->
       <h2>审核测试工艺</h2>
-      <el-button type="primary" style="margin: 20px 10px">功能性测试1</el-button>
+      <!--<el-button type="primary" style="margin: 20px 10px">功能性测试1</el-button>-->
       <div style="display: flex; margin-top: 10px">
-        <div v-if="props.type == 'eyes'">
-          {{ data }}
-          <div
-            v-if="currentProcess == 'eyes'"
-            style="
-              width: calc(100vw - 40px);
-              height: calc(100vh - 160px);
-              background: rgba(245, 246, 248, 0.5);
-              margin-right: 10px;
-              border-radius: 6px;
-            "
-          >
-            <div style="display: flex; align-items: center; padding: 6px">
-              <div style="display: flex; align-items: center">
-                <el-icon style="font-size: 20px; margin-right: 10px; margin-left: 10px">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                    <path fill="none" d="M0 0h24v24H0z" />
-                    <path
-                      d="M10 2C10.5523 2 11 2.44772 11 3V7C11 7.55228 10.5523 8 10 8H8V10H13V9C13 8.44772 13.4477 8 14 8H20C20.5523 8 21 8.44772 21 9V13C21 13.5523 20.5523 14 20 14H14C13.4477 14 13 13.5523 13 13V12H8V18H13V17C13 16.4477 13.4477 16 14 16H20C20.5523 16 21 16.4477 21 17V21C21 21.5523 20.5523 22 20 22H14C13.4477 22 13 21.5523 13 21V20H7C6.44772 20 6 19.5523 6 19V8H4C3.44772 8 3 7.55228 3 7V3C3 2.44772 3.44772 2 4 2H10ZM19 18H15V20H19V18ZM19 10H15V12H19V10ZM9 4H5V6H9V4Z"
-                    />
-                  </svg>
-                </el-icon>
-                <el-text style="font-size: 18px">目检流程预览</el-text>
+            <div v-if="anyObj.type=='目检测试'">
+              <div v-if="currentProcess=='eyes'"
+                   style="width: calc(100vw - 40px); height: calc(100vh - 160px); background: rgba(245,246,248,0.5); margin-right: 10px; border-radius: 6px">
+                <div style="display: flex; align-items: center; padding: 6px">
+                  <div style="display: flex; align-items: center">
+                    <el-icon style="font-size: 20px; margin-right: 10px; margin-left: 10px">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill="none" d="M0 0h24v24H0z"></path>
+                        <path
+                            d="M10 2C10.5523 2 11 2.44772 11 3V7C11 7.55228 10.5523 8 10 8H8V10H13V9C13 8.44772 13.4477 8 14 8H20C20.5523 8 21 8.44772 21 9V13C21 13.5523 20.5523 14 20 14H14C13.4477 14 13 13.5523 13 13V12H8V18H13V17C13 16.4477 13.4477 16 14 16H20C20.5523 16 21 16.4477 21 17V21C21 21.5523 20.5523 22 20 22H14C13.4477 22 13 21.5523 13 21V20H7C6.44772 20 6 19.5523 6 19V8H4C3.44772 8 3 7.55228 3 7V3C3 2.44772 3.44772 2 4 2H10ZM19 18H15V20H19V18ZM19 10H15V12H19V10ZM9 4H5V6H9V4Z"></path>
+                      </svg>
+                    </el-icon>
+                    <el-text style="font-size: 18px">目检流程预览</el-text>
+                  </div>
+                </div>
+                <el-divider style="margin-top: 0; margin-bottom: 0"/>
+                <!--<process-preview v-model:preview-list="processJson.eyes"/>-->
               </div>
-            </div>
-            <el-divider style="margin-top: 0; margin-bottom: 0" />
-            <!--<process-preview v-model:preview-list="processJson.eyes"/>-->
-          </div>
-          <div v-if="currentProcess == 'eyesBak'" style="display: flex; align-items: center">
-            <div
-              style="
-                width: calc(50vw - 25px);
-                height: calc(100vh - 160px);
-                background: rgba(245, 246, 248, 0.5);
-                margin-right: 10px;
-                border-radius: 6px;
-              "
-            >
-              <div style="display: flex; align-items: center; padding: 6px">
-                <div style="display: flex; align-items: center">
-                  <el-icon style="font-size: 20px; margin-right: 10px; margin-left: 10px">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                      <path fill="none" d="M0 0h24v24H0z" />
-                      <path
-                        d="M10 2C10.5523 2 11 2.44772 11 3V7C11 7.55228 10.5523 8 10 8H8V10H13V9C13 8.44772 13.4477 8 14 8H20C20.5523 8 21 8.44772 21 9V13C21 13.5523 20.5523 14 20 14H14C13.4477 14 13 13.5523 13 13V12H8V18H13V17C13 16.4477 13.4477 16 14 16H20C20.5523 16 21 16.4477 21 17V21C21 21.5523 20.5523 22 20 22H14C13.4477 22 13 21.5523 13 21V20H7C6.44772 20 6 19.5523 6 19V8H4C3.44772 8 3 7.55228 3 7V3C3 2.44772 3.44772 2 4 2H10ZM19 18H15V20H19V18ZM19 10H15V12H19V10ZM9 4H5V6H9V4Z"
-                      />
-                    </svg>
-                  </el-icon>
-                  <el-text style="font-size: 18px">正面目检流程预览</el-text>
+              <div v-if="currentProcess=='eyesBak'" style="display: flex; align-items: center">
+                <div
+                    style="width: calc(50vw - 25px); height: calc(100vh - 160px); background: rgba(245,246,248,0.5); margin-right: 10px; border-radius: 6px">
+                  <div style="display: flex; align-items: center; padding: 6px">
+                    <div style="display: flex; align-items: center">
+                      <el-icon style="font-size: 20px; margin-right: 10px; margin-left: 10px">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                          <path fill="none" d="M0 0h24v24H0z"></path>
+                          <path
+                              d="M10 2C10.5523 2 11 2.44772 11 3V7C11 7.55228 10.5523 8 10 8H8V10H13V9C13 8.44772 13.4477 8 14 8H20C20.5523 8 21 8.44772 21 9V13C21 13.5523 20.5523 14 20 14H14C13.4477 14 13 13.5523 13 13V12H8V18H13V17C13 16.4477 13.4477 16 14 16H20C20.5523 16 21 16.4477 21 17V21C21 21.5523 20.5523 22 20 22H14C13.4477 22 13 21.5523 13 21V20H7C6.44772 20 6 19.5523 6 19V8H4C3.44772 8 3 7.55228 3 7V3C3 2.44772 3.44772 2 4 2H10ZM19 18H15V20H19V18ZM19 10H15V12H19V10ZM9 4H5V6H9V4Z"></path>
+                        </svg>
+                      </el-icon>
+                      <el-text style="font-size: 18px">正面目检流程预览</el-text>
+                    </div>
+                  </div>
+                  <el-divider style="margin-top: 0; margin-bottom: 0"/>
+                  <!--<process-preview v-model:preview-list="processJson.eyes" :has-plane="true"/>-->
+                </div>
+                <div
+                    style="width: calc(50vw - 25px); height: calc(100vh - 160px); background: rgba(245,246,248,0.5); margin-right: 10px; border-radius: 6px">
+                  <div style="display: flex; align-items: center; padding: 6px">
+                    <div style="display: flex; align-items: center">
+                      <el-icon style="font-size: 20px; margin-right: 10px; margin-left: 10px">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                          <path fill="none" d="M0 0h24v24H0z"></path>
+                          <path
+                              d="M10 2C10.5523 2 11 2.44772 11 3V7C11 7.55228 10.5523 8 10 8H8V10H13V9C13 8.44772 13.4477 8 14 8H20C20.5523 8 21 8.44772 21 9V13C21 13.5523 20.5523 14 20 14H14C13.4477 14 13 13.5523 13 13V12H8V18H13V17C13 16.4477 13.4477 16 14 16H20C20.5523 16 21 16.4477 21 17V21C21 21.5523 20.5523 22 20 22H14C13.4477 22 13 21.5523 13 21V20H7C6.44772 20 6 19.5523 6 19V8H4C3.44772 8 3 7.55228 3 7V3C3 2.44772 3.44772 2 4 2H10ZM19 18H15V20H19V18ZM19 10H15V12H19V10ZM9 4H5V6H9V4Z"></path>
+                        </svg>
+                      </el-icon>
+                      <el-text style="font-size: 18px">背面目检流程预览</el-text>
+                    </div>
+                  </div>
+                  <el-divider style="margin-top: 0; margin-bottom: 0"/>
+                  <!--<process-preview v-model:preview-list="processJson.eyesBak" :has-plane="false"/>-->
                 </div>
               </div>
               <el-divider style="margin-top: 0; margin-bottom: 0" />
-              <process-preview v-model:preview-list="processJson.eyes" :has-plane="true" />
+              <!--<process-preview v-model:preview-list="processJson.eyes" :has-plane="true" />-->
             </div>
-            <div
-              style="
-                width: calc(50vw - 25px);
-                height: calc(100vh - 160px);
-                background: rgba(245, 246, 248, 0.5);
-                margin-right: 10px;
-                border-radius: 6px;
-              "
-            >
+            <div v-if="anyObj.type=='xray测试'"
+                 style="width: calc(100vw - 40px); height: calc(100vh - 160px); background: rgba(245,246,248,0.5); border-radius: 6px">
               <div style="display: flex; align-items: center; padding: 6px">
                 <div style="display: flex; align-items: center">
                   <el-icon style="font-size: 20px; margin-right: 10px; margin-left: 10px">
@@ -81,38 +77,28 @@
                   <el-text style="font-size: 18px">背面目检流程预览</el-text>
                 </div>
               </div>
-              <el-divider style="margin-top: 0; margin-bottom: 0" />
-              <process-preview v-model:preview-list="processJson.eyesBak" :has-plane="false" />
+              <el-divider style="margin-top: 0; margin-bottom: 0"/>
+              <!--<process-preview v-model:preview-list="processJson.xray" :has-plane="false"/>-->
+            </div>
+            <div v-if="anyObj.type=='功能性测试'"
+                 style="width: calc(100vw - 40px); height: calc(100vh - 160px); background: rgba(245,246,248,0.5); border-radius: 6px">
+              <div style="display: flex; align-items: center; padding: 6px">
+                <div style="display: flex; align-items: center">
+                  <el-icon style="font-size: 20px; margin-right: 10px; margin-left: 10px">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                      <path fill="none" d="M0 0h24v24H0z"></path>
+                      <path
+                          d="M10 2C10.5523 2 11 2.44772 11 3V7C11 7.55228 10.5523 8 10 8H8V10H13V9C13 8.44772 13.4477 8 14 8H20C20.5523 8 21 8.44772 21 9V13C21 13.5523 20.5523 14 20 14H14C13.4477 14 13 13.5523 13 13V12H8V18H13V17C13 16.4477 13.4477 16 14 16H20C20.5523 16 21 16.4477 21 17V21C21 21.5523 20.5523 22 20 22H14C13.4477 22 13 21.5523 13 21V20H7C6.44772 20 6 19.5523 6 19V8H4C3.44772 8 3 7.55228 3 7V3C3 2.44772 3.44772 2 4 2H10ZM19 18H15V20H19V18ZM19 10H15V12H19V10ZM9 4H5V6H9V4Z"></path>
+                    </svg>
+                  </el-icon>
+                  <el-text style="font-size: 18px">功能性测试流程预览</el-text>
+                </div>
+              </div>
+              <el-divider style="margin-top: 0; margin-bottom: 0"/>
+              <!--<process-preview v-model:preview-list="processJson.xray" :has-plane="false"/>-->
             </div>
           </div>
-        </div>
-        <div
-          v-if="props.type == 'xray'"
-          style="
-            width: calc(100vw - 40px);
-            height: calc(100vh - 160px);
-            background: rgba(245, 246, 248, 0.5);
-            border-radius: 6px;
-          "
-        >
-          <div style="display: flex; align-items: center; padding: 6px">
-            <div style="display: flex; align-items: center">
-              <el-icon style="font-size: 20px; margin-right: 10px; margin-left: 10px">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                  <path fill="none" d="M0 0h24v24H0z" />
-                  <path
-                    d="M10 2C10.5523 2 11 2.44772 11 3V7C11 7.55228 10.5523 8 10 8H8V10H13V9C13 8.44772 13.4477 8 14 8H20C20.5523 8 21 8.44772 21 9V13C21 13.5523 20.5523 14 20 14H14C13.4477 14 13 13.5523 13 13V12H8V18H13V17C13 16.4477 13.4477 16 14 16H20C20.5523 16 21 16.4477 21 17V21C21 21.5523 20.5523 22 20 22H14C13.4477 22 13 21.5523 13 21V20H7C6.44772 20 6 19.5523 6 19V8H4C3.44772 8 3 7.55228 3 7V3C3 2.44772 3.44772 2 4 2H10ZM19 18H15V20H19V18ZM19 10H15V12H19V10ZM9 4H5V6H9V4Z"
-                  />
-                </svg>
-              </el-icon>
-              <el-text style="font-size: 18px">X-Ray流程预览</el-text>
-            </div>
-          </div>
-          <el-divider style="margin-top: 0; margin-bottom: 0" />
-          <process-preview v-model:preview-list="processJson.xray" :has-plane="false" />
-        </div>
-      </div>
-      <!--<process-preview v-model:preview-list=""/>
+      <!--
             <el-row>
                 <el-col :span="12">
                     <el-text size="large">1.测试工艺基本信息</el-text>
@@ -159,6 +145,9 @@
 import { ref, reactive, onMounted } from "vue"
 import ProcessPreview from "@/components/Check/ProcessPreview.vue"
 //import { type } from "os"
+import { useRoute, useRouter } from "vue-router"
+const router = useRouter()
+const route = useRoute()
 const CheckEquipment = reactive({
   fixture: "",
   host: "",
@@ -174,12 +163,15 @@ const CheckEquipment = reactive({
   ]
 })
 const props = reactive({
-  type: "eyes"
-})
-const currentProcess = "eyes"
-const data = reactive()
-onMounted(() => {
-  data = route.query.data
+    type: "eyes"
+  })
+const currentProcess = 'eyes'
+const anyObj =  reactive({
+    type: ""
+  })
+onMounted(()=>{
+  anyObj.type=route.query.process_type
+  console.log(route.query,12)
 })
 const handleSuccess = (response, file, fileList) => {
   const url = "https://www.example.com/example.pdf" // 替换为你要下载的文件链接
