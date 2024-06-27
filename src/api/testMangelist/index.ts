@@ -81,3 +81,13 @@ export const getTestMangeTable = ({
  */
 
 export const getProcessPath = () => {}
+
+
+// 获取缺陷单详情
+export const submitApi = (params: any) => {
+  return request<TestMange.getBordsInfoType>({
+    url: "",
+    method: "get",
+    params
+  })
+}
