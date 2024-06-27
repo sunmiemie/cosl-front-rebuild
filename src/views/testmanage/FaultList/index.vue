@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
-// import { createTableDataApi, deleteTableDataApi, getTableDataApi, updateTableDataApi } from "@/api/table"
+import { submitApi } from "@/api/testMangelist/index"
 // import { type GetTableData } from "@/api/table/types/table"
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
@@ -31,7 +31,7 @@ const defaultinfo = reactive({
 const aspectDialog = ref<any>(false)
 const DefaultSuccess = ref<any>(false)
 const dialogVisible2 = ref<any>(false)
-const handleCreate = () => {}
+const handleCreate = () => { }
 const resetForm = () => {
   currentUpdateId.value = undefined
 }
@@ -113,11 +113,12 @@ const getTableData = () => {
   }
 }
 const handleLink = (data: any, i: string) => {
+  console.log(data, 123)
   if (i === "受理") {
-//     submitApi(data)
-//       .then(() => {
-//         ElMessage.success("提交成功")
-//       })
+    submitApi(data)
+      .then(() => {
+        ElMessage.success("提交成功")
+      })
     aspectDialog.value = true
   } else if (i === "处理") {
     DefaultSuccess.value = true
@@ -216,13 +217,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </template>
         </TableComponent>
         <!-- 受理成功 -->
-        <el-dialog
-          v-model="aspectDialog"
-          :show-close="false"
-          width="500"
-          style="height: 100px; position: relative"
-          :align-center="true"
-        >
+        <el-dialog v-model="aspectDialog" :show-close="false" width="500" style="height: 100px; position: relative"
+          :align-center="true">
           <template #header>
             <h2>故障受理成功</h2>
             <!-- <el-icon type="Select" :size="30" color="green" style="position: absolute;right: 10%;top: 40% ">
@@ -262,11 +258,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                       <span class="el-upload-list__item-preview" @click="handlePictureCardPreviewInvestigation(file)">
                         <el-icon><zoom-in /></el-icon>
                       </span>
-                      <span
-                        v-if="!disabled"
-                        class="el-upload-list__item-delete"
-                        @click="handleDownloadInvestigation(file)"
-                      >
+                      <span v-if="!disabled" class="el-upload-list__item-delete"
+                        @click="handleDownloadInvestigation(file)">
                         <el-icon>
                           <Download />
                         </el-icon>
@@ -284,11 +277,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
               <el-dialog v-model="dialogVisible1">
                 <img w-full :src="dialogInvestigation" alt="Preview Image" />
               </el-dialog>
-              <el-input
-                v-model="defaultinfo.Troubleshooting"
-                style="width: 500px"
-                placeholder="请输入故障排查文字说明"
-              />
+              <el-input v-model="defaultinfo.Troubleshooting" style="width: 500px" placeholder="请输入故障排查文字说明" />
             </el-col>
           </el-row>
           <el-row style="margin-top: 20px">
@@ -325,17 +314,11 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                 </el-dialog>
               </el-upload>
 
-              <el-input
-                v-model="defaultinfo.Troublestreatment"
-                style="width: 500px"
-                placeholder="请输入故障处理文字说明"
-              />
+              <el-input v-model="defaultinfo.Troublestreatment" style="width: 500px" placeholder="请输入故障处理文字说明" />
             </el-col>
           </el-row>
           <template #footer>
-            <el-button size="large" type="primary" icon="Check" style="position: absolute; left: 20px"
-            >确认处理</el-button
-            >
+            <el-button size="large" type="primary" icon="Check" style="position: absolute; left: 20px">确认处理</el-button>
             <el-button size="large" type="info" icon="Close">取消修改</el-button>
           </template>
         </el-dialog>
@@ -375,25 +358,14 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       </div>
 
       <div class="pager-wrapper">
-        <el-pagination
-          background
-          :layout="paginationData.layout"
-          :page-sizes="paginationData.pageSizes"
-          :total="paginationData.total"
-          :page-size="paginationData.pageSize"
-          :currentPage="paginationData.currentPage"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
+        <el-pagination background :layout="paginationData.layout" :page-sizes="paginationData.pageSizes"
+          :total="paginationData.total" :page-size="paginationData.pageSize" :currentPage="paginationData.currentPage"
+          @size-change="handleSizeChange" @current-change="handleCurrentChange" />
       </div>
     </el-card>
     <!-- 新增/修改 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="currentUpdateId === undefined ? '新增用户' : '修改用户'"
-      @close="resetForm"
-      width="30%"
-    >
+    <el-dialog v-model="dialogVisible" :title="currentUpdateId === undefined ? '新增用户' : '修改用户'" @close="resetForm"
+      width="30%">
       <el-form ref="formRef" label-width="100px" label-position="left">
         <el-form-item prop="username" label="用户名">
           <el-input placeholder="请输入" />
