@@ -1,9 +1,7 @@
 import { request } from "@/utils/service"
 import type * as AddProcess from "./types/index"
-/**
- * 功能性测试
- */
-export const upoloadfuncttest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
+
+export const uploadfuncttest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
   return request({
     url: "/test/addprocess/functaddtest/",
     method: "post",
@@ -11,7 +9,7 @@ export const upoloadfuncttest = (data: any): Promise<AddProcess.upoloadfuncttest
     data
   })
 }
-export const upoloadeyestest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
+export const uploadeyestest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
   return request({
     url: "/test/addprocess/eyestest/",
     method: "post",
@@ -19,9 +17,34 @@ export const upoloadeyestest = (data: any): Promise<AddProcess.upoloadfuncttestR
     data
   })
 }
-export const upoloadxraytest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
+export const uploadxraytest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
   return request({
     url: "/test/addprocess/xraytest/",
+    method: "post",
+    headers: { "Content-Type": "multipart/form-data" },
+    data
+  })
+}
+
+export const updatefuncttest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
+  return request({
+    url: "/test/addprocess/funcupdate/",
+    method: "post",
+    headers: { "Content-Type": "multipart/form-data" },
+    data
+  })
+}
+export const updateeyestest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
+  return request({
+    url: "/test/addprocess/eyesupdate/",
+    method: "post",
+    headers: { "Content-Type": "multipart/form-data" },
+    data
+  })
+}
+export const updatexraytest = (data: any): Promise<AddProcess.upoloadfuncttestResponse> => {
+  return request({
+    url: "/test/addprocess/xrayupdate/",
     method: "post",
     headers: { "Content-Type": "multipart/form-data" },
     data
@@ -62,6 +85,14 @@ export const submitCheck = (data: any) => {
 export const changeVersion = (params: any) => {
   return request({
     url: "/test/addprocess/versionupdate",
+    method: "get",
+    params
+  })
+}
+
+export const getProcessById = (params: any) => {
+  return request({
+    url: "/test/addprocess/getsingle",
     method: "get",
     params
   })

@@ -28,9 +28,8 @@ const qrcodeValue = ref<string>("")
 const dialogDetail = ref<boolean>(false)
 const SearchStatusData = ref([
   { id: "0", name: "待测试" },
-  { id: "1", name: "测试中" },
-  { id: "2", name: "测试正常" },
-  { id: "3", name: "测试异常" }
+  { id: "1", name: "测试正常" },
+  { id: "2", name: "测试异常" }
 ])
 const formData = reactive<any>({
   file: []
@@ -266,6 +265,13 @@ onMounted(() => {
   watch([() => paginationData.currentPage, () => paginationData.pageSize, () => modelId], getTableData, {
     immediate: false
   })
+  watch(
+    [() => paginationDetailData.currentPage, () => paginationDetailData.pageSize, () => modelId],
+    getDetailTableData,
+    {
+      immediate: false
+    }
+  )
 })
 </script>
 
@@ -359,7 +365,7 @@ onMounted(() => {
       <header class="drawer-head">
         <el-page-header @back="goBack">
           <template #content>
-            <span class="text-large font-600 mr-3">测试工艺详情</span>
+            <span class="text-large font-600 mr-3">批次详情</span>
           </template>
         </el-page-header>
       </header>
@@ -367,11 +373,6 @@ onMounted(() => {
         <el-form ref="searchFormRef" :inline="true" :model="DetailsearchData">
           <el-form-item prop="seria" label="序列号">
             <el-input v-model="DetailsearchData.seria" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item prop="status" label="板状态">
-            <el-select v-model="DetailsearchData.status" placeholder="请选择" style="width: 150px;">
-              <el-option v-for="model in SearchStatusData" :label="model.name" :value="model.id" :key="model.id" />
-            </el-select>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" icon="search" @click="handleSearchDetail">查询</el-button>
@@ -402,27 +403,23 @@ onMounted(() => {
           >
             <template #statusFunc="{ row }">
               <el-tag v-if="row.status[0] === 0"> 待测试 </el-tag>
-              <el-tag v-if="row.status[0] === 1" type="warning"> 已测试 </el-tag>
-              <el-tag v-if="row.status[0] === 2" type="success"> 检测正常 </el-tag>
-              <el-tag v-if="row.status[0] === 3" type="danger"> 检测异常 </el-tag>
+              <el-tag v-if="row.status[0] === 1" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row.status[0] === 2" type="danger"> 检测异常 </el-tag>
             </template>
             <template #statusEyes="{ row }">
-              <el-tag v-if="row.status[1] === 0"> 待测试 </el-tag>
-              <el-tag v-if="row.status[1] === 1" type="warning"> 已测试 </el-tag>
-              <el-tag v-if="row.status[1] === 2" type="success"> 检测正常 </el-tag>
-              <el-tag v-if="row.status[1] === 3" type="danger"> 检测异常 </el-tag>
+              <el-tag v-if="row.status[0] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row.status[0] === 1" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row.status[0] === 2" type="danger"> 检测异常 </el-tag>
             </template>
             <template #statusXray="{ row }">
-              <el-tag v-if="row.status[2] === 0"> 待测试 </el-tag>
-              <el-tag v-if="row.status[2] === 1" type="warning"> 已测试 </el-tag>
-              <el-tag v-if="row.status[2] === 2" type="success"> 检测正常 </el-tag>
-              <el-tag v-if="row.status[2] === 3" type="danger"> 检测异常 </el-tag>
+              <el-tag v-if="row.status[0] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row.status[0] === 1" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row.status[0] === 2" type="danger"> 检测异常 </el-tag>
             </template>
             <template #statusHalt="{ row }">
-              <el-tag v-if="row.status[3] === 0"> 待测试 </el-tag>
-              <el-tag v-if="row.status[3] === 1" type="warning"> 已测试 </el-tag>
-              <el-tag v-if="row.status[3] === 2" type="success"> 检测正常 </el-tag>
-              <el-tag v-if="row.status[3] === 3" type="danger"> 检测异常 </el-tag>
+              <el-tag v-if="row.status[0] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row.status[0] === 1" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row.status[0] === 2" type="danger"> 检测异常 </el-tag>
             </template>
             <template #link="{ row }">
               <el-link type="primary" class="el-link" @click="handleLink(row, '二维码')"> 二维码 </el-link>

@@ -49,7 +49,9 @@ const handleCreate = () => {
           supplier: formData.supplier,
           name: formData.name,
           des: formData.des,
-          id: formData.id
+          id: formData.id,
+          count: formData.count,
+          type: formData.type
         })
           .then(() => {
             ElMessage.success("修改成功")
@@ -119,6 +121,7 @@ const handleLink = async (data: any) => {
   formData.name = data.name
   formData.id = data.id
   formData.des = data.des
+  formData.count = data.count
   formData.type = String(data.type)
   dialogVisible.value = true
 }

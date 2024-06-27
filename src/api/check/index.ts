@@ -31,3 +31,11 @@ export const checkFuncDataApi = (params: any) => {
     params
   })
 }
+
+export const checkPassApi = (data: any) => {
+  return request({
+    url: "/test/check/pass/",
+    method: "put",
+    data
+  })
+}

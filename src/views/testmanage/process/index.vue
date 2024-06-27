@@ -4,7 +4,7 @@ import { useRouter } from "vue-router"
 import { ElMessage, ElMessageBox, ElTree, type FormInstance } from "element-plus"
 import { ElButton, ElDrawer } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
-import { usePagination } from "@/hooks/usePagination"
+import { useDetailPagination, usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { getInstrumentDataApi } from "@/api/instrument"
 import { useTestStore } from "@/store/modules/test"
@@ -24,6 +24,7 @@ defineOptions({
 
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+const { paginationDetailData, handleDetailCurrentChange, handleDetailSizeChange } = useDetailPagination()
 const router = useRouter()
 const treeLoading = ref<boolean>(false)
 const dialogVisible = ref<boolean>(false)
@@ -46,6 +47,7 @@ const TestCheck = ref<TestCheckType>({
 })
 const drawer: Ref<boolean> = ref(false)
 const addTest = () => {
+  testStore.test_process_id = ""
   router.push("/testmanage/addprocess")
 }
 
@@ -55,7 +57,7 @@ const onSubmit = () => {
   submitCheck({ id: TestCheck.value.ID }).then((res: any) => {
     if (res.code === 0) {
       ElMessage.success("提交成功")
-      getDetailTableData(testType.value)
+      getDetailTableData()
     }
   })
   DialogCheck.value = false
@@ -74,8 +76,8 @@ interface ProcessDataDetailType {
 
 const headers1 = ref([
   { prop: "type", label: "测试类型", align: "center" },
-  { prop: "activateId", label: "当前使用工艺ID", align: "center" },
-  { prop: "version", label: "当前使用的工艺版本 ", type: "select", align: "center" },
+  { prop: "activateId", label: "当前激活工艺ID", align: "center" },
+  { prop: "version", label: "当前激活工艺版本 ", type: "select", align: "center" },
   { prop: "link", label: "操作 ", type: "link" }
 ])
 const TableData = ref<any>([])
@@ -85,14 +87,14 @@ const headers2 = ref([
   { prop: "version", label: "工艺版本 ", align: "center" },
   { prop: "status", label: "工艺状态", type: "tag", align: "center" },
   { prop: "user", label: "审核人 ", align: "center" },
-
+  { prop: "count", label: "审核次数 ", align: "center" },
   { prop: "link", label: "操作 ", type: "link" }
 ])
 const ProcessDataDetail = ref<Array<ProcessDataDetailType>>([])
 
 const searchFormRef = ref<FormInstance | null>(null)
 // 查询
-const searchData = reactive<any>({
+const searchData = reactive({
   ID: "",
   version: "",
   type: "",
@@ -159,19 +161,22 @@ const handleLink = (data: any, i: string) => {
       console.warn("添加其他测试类型")
   }
   if (i == "详情") {
-    getDetailTableData(testType.value)
+    getDetailTableData()
     searchData.testType = testType.value
     drawer.value = true
   }
 }
-const getDetailTableData = (testType: any) => {
+const getDetailTableData = () => {
   loading.value = true
   getTestProcessDetail({
+    currentPage: paginationDetailData.currentPage,
+    size: paginationDetailData.pageSize,
     boardModel_id: searchData.boardModel,
-    testtype: testType
+    testtype: testType.value
   })
-    .then((res) => {
+    .then((res: any) => {
       ProcessDataDetail.value = res.data
+      paginationDetailData.total = res.total
       for (let i = 0; i < ProcessDataDetail.value.length; i++) {
         ProcessDataDetail.value[i].link = defineLink(ProcessDataDetail.value[i].status)
       }
@@ -201,7 +206,9 @@ const handleLinkDetail = (data: any, i: string) => {
     DialogCheck.value = true
     TestCheck.value = data
   } else if (i === "编辑") {
-    dialogVisibleEdit.value = true
+    testStore.test_process_id = data.ID
+    testStore.board_model_id = ""
+    router.push("/testmanage/addprocess")
   } else if (i === "删除") {
     ElMessageBox.confirm("确认提交工艺吗？", "提交确认", {
       confirmButtonText: "确认",
@@ -209,12 +216,13 @@ const handleLinkDetail = (data: any, i: string) => {
       type: "warning"
     }).then(() => {
       deleteTestProcessApi(data.ID).then((res) => {
-        getDetailTableData(testType.value)
+        getDetailTableData()
         getTableData()
         console.log(res)
       })
     })
   } else if (i === "详情") {
+    console.log(data)
   }
 }
 // 返回
@@ -227,10 +235,10 @@ const defaultProps = {
   label: "label"
 }
 const handleNodeClick = (data: any) => {
-  searchData.boardModel = data.id
-  testStore.board_model_id = data.id
-  testStore.board_model_name = data.label
   if (data.children === undefined) {
+    searchData.boardModel = data.id
+    testStore.board_model_id = data.id
+    testStore.board_model_name = data.label
     getTableData()
   }
 }
@@ -256,7 +264,7 @@ const resetSearch = () => {
   searchData.type = ""
   // 重置工艺版本
   searchData.version = ""
-  getDetailTableData(searchData.testType)
+  getDetailTableData()
 }
 const filterNode = (value: string, data: any) => {
   if (!value) return true
@@ -267,6 +275,9 @@ watch(filterText, (val) => {
 })
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTreeData, { immediate: true })
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: false })
+watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSize], getDetailTableData, {
+  immediate: false
+})
 </script>
 <template>
   <div class="app-container">
@@ -368,7 +379,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                   </template>
                   <template #link="{ row }">
                     <el-link
-                      v-show="!(i === '编辑' && row.type !== '可靠性测试')"
                       v-for="i in row.link"
                       class="el-link"
                       type="primary"
@@ -378,6 +388,18 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                     </el-link>
                   </template>
                 </TableComponent>
+              </div>
+              <div class="pager-wrapper">
+                <el-pagination
+                  background
+                  :layout="paginationDetailData.layout"
+                  :page-sizes="paginationDetailData.pageSizes"
+                  :total="paginationDetailData.total"
+                  :page-size="paginationDetailData.pageSize"
+                  :currentPage="paginationDetailData.currentPage"
+                  @size-change="handleDetailSizeChange"
+                  @current-change="handleDetailCurrentChange"
+                />
               </div>
             </el-card>
           </el-drawer>

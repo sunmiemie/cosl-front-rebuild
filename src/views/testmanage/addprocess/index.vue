@@ -1,14 +1,26 @@
 <template>
   <div class="app-container">
     <el-affix :offset="90">
-      <el-button type="primary" style="margin-left: 10px"
+      <el-button v-if="testStore.board_model_id !== ''" type="primary" style="margin-left: 10px"
         >当前编辑电路板：{{ testStore.board_model_name !== "" ? testStore.board_model_name : "未定义" }}</el-button
       >
+      <el-button v-if="testStore.test_process_id !== ''" type="primary" style="margin-left: 10px"
+        >当前修改工艺ID：{{ testStore.test_process_id }}</el-button
+      >
+      <div style="display: flex; margin-top: 20px">
+        <el-card v-for="(item ,index) in feedBackList" :key="item" style="width: 250px; margin-right: 10px">
+          <el-text>第{{index + 1}}次审核意见:</el-text>
+          <br />
+          <el-text>{{ item }}</el-text>
+        </el-card>
+      </div>
     </el-affix>
     <header>
       <el-row class="mb-4">
         <div class="selectTypeBtn">
           <el-button
+            v-show="(testStore.test_process_id === '') || (testType.name === testTypeShow)"
+            :disabled="testType.name === testTypeShow"
             v-for="testType in testTypeList"
             :key="testType.number"
             :type="testType.name === testTypeShow ? 'success' : ''"
@@ -99,9 +111,13 @@
           </el-col>
         </el-row>
         <template #footer>
-          <div style="display: flex; justify-content: flex-end">
+          <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id === ''">
             <el-button>取消</el-button>
             <el-button style="margin-left: 10px" type="primary" @click="handleAddFuncProcess">确认新增</el-button>
+          </div>
+          <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id !== ''">
+            <el-button @click="router.push('/testmanage/testprocess')">取消</el-button>
+            <el-button style="margin-left: 10px" type="primary" @click="handleUpdateFuncProcess">确认修改</el-button>
           </div>
         </template>
       </el-card>
@@ -144,9 +160,13 @@
           </el-col>
         </el-row>
         <template #footer>
-          <div style="display: flex; justify-content: flex-end">
+          <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id === ''">
             <el-button>取消</el-button>
             <el-button style="margin-left: 10px" type="primary" @click="handleAddEyesProcess">确认新增</el-button>
+          </div>
+          <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id !== ''">
+            <el-button @click="router.push('/testmanage/testprocess')">取消</el-button>
+            <el-button style="margin-left: 10px" type="primary" @click="handleUpdateEyesProcess">确认修改</el-button>
           </div>
         </template>
       </el-card>
@@ -189,9 +209,13 @@
           </el-col>
         </el-row>
         <template #footer>
-          <div style="display: flex; justify-content: flex-end">
+          <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id === ''">
             <el-button>取消</el-button>
             <el-button style="margin-left: 10px" type="primary" @click="handleAddXrayProcess">确认新增</el-button>
+          </div>
+          <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id !== ''">
+            <el-button @click="router.push('/testmanage/testprocess')">取消</el-button>
+            <el-button style="margin-left: 10px" type="primary" @click="handleUpdateXrayProcess">确认修改</el-button>
           </div>
         </template>
       </el-card>
@@ -375,7 +399,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ref, reactive, nextTick } from "vue"
+import { ref, reactive, nextTick, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import ParaProcess from "@/views/testmanage/addprocess/parametersprocesss/index.vue"
 import RecordProcess from "@/views/testmanage/addprocess/recordprocess/index.vue"
@@ -389,7 +413,7 @@ import { getTestTypeDataApi } from "@/api/testtype"
 import { getFixtureModelDataApi } from "@/api/fixturemodel"
 import { getEquipmentTypeDataApi } from "@/api/otherModelType"
 import { getPsiModelDataApi } from "@/api/psimodel"
-import { upoloadfuncttest, upoloadeyestest, upoloadxraytest } from "@/api/addprocess"
+import { uploadfuncttest, uploadeyestest, uploadxraytest, getProcessById,updatexraytest, updateeyestest, updatefuncttest } from "@/api/addprocess"
 import { useTestStore } from "@/store/modules/test"
 import { useUserStore } from "@/store/modules/user"
 
@@ -646,11 +670,11 @@ const handleAddEyesProcess = () => {
     for (const key in data) {
       fromData.append(key, data[key])
     }
-    upoloadeyestest(fromData).then((res) => {
+    uploadeyestest(fromData).then((res) => {
       if (res.code == 0) {
         ElMessage.success("新增成功")
-        confirmDialogVisible.value = false
         router.push("/testmanage/testprocess")
+        testStore.test_process_id = ""
       }
     })
   })
@@ -673,11 +697,11 @@ const handleAddXrayProcess = () => {
     for (const key in data) {
       fromData.append(key, data[key])
     }
-    upoloadxraytest(fromData).then((res) => {
+    uploadxraytest(fromData).then((res) => {
       if (res.code == 0) {
         ElMessage.success("新增成功")
-        confirmDialogVisible.value = false
         router.push("/testmanage/testprocess")
+        testStore.test_process_id = ""
       }
     })
   })
@@ -703,10 +727,92 @@ const handleAddFuncProcess = () => {
     for (const key in data) {
       fromData.append(key, data[key])
     }
-    upoloadfuncttest(fromData).then((res) => {
+    uploadfuncttest(fromData).then((res) => {
       if (res.code == 0) {
         ElMessage.success("新增成功")
-        confirmDialogVisible.value = false
+        router.push("/testmanage/testprocess")
+        testStore.test_process_id = ""
+      }
+    })
+  })
+}
+
+const handleUpdateEyesProcess = () => {
+  ElMessageBox.confirm("确认修改工艺吗？", "提交确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    const data: any = {
+      id: testStore.test_process_id,
+      name: form.name,
+      version: form.version,
+      file: eyesFile.value
+    }
+    const fromData = new FormData()
+    for (const key in data) {
+      fromData.append(key, data[key])
+    }
+    console.log(fromData)
+    updateeyestest(fromData).then((res) => {
+      if (res.code == 0) {
+        ElMessage.success("修改成功")
+        testStore.test_process_id = ""
+        router.push("/testmanage/testprocess")
+      }
+    })
+  })
+}
+const handleUpdateXrayProcess = () => {
+  ElMessageBox.confirm("确认修改工艺吗？", "提交确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    const data: any = {
+      id: testStore.test_process_id,
+      name: form.name,
+      version: form.version,
+      file: xrayFile.value
+    }
+    const fromData = new FormData()
+    for (const key in data) {
+      fromData.append(key, data[key])
+    }
+    console.log(fromData)
+    updatexraytest(fromData).then((res) => {
+      if (res.code == 0) {
+        ElMessage.success("修改成功")
+        testStore.test_process_id = ""
+        router.push("/testmanage/testprocess")
+      }
+    })
+  })
+}
+const handleUpdateFuncProcess = () => {
+  ElMessageBox.confirm("确认修改工艺吗？", "提交确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    const data: any = {
+      id: testStore.test_process_id,
+      name: form.name,
+      version: form.version,
+      fixtureId: form.fixtureId,
+      hostId: form.hostId,
+      equipmentId: JSON.stringify(form.equipmentId),
+      file: form.File
+    }
+    const fromData = new FormData()
+    for (const key in data) {
+      fromData.append(key, data[key])
+    }
+    console.log(fromData)
+    updatefuncttest(fromData).then((res) => {
+      if (res.code == 0) {
+        ElMessage.success("修改成功")
+        testStore.test_process_id = ""
         router.push("/testmanage/testprocess")
       }
     })
@@ -716,6 +822,20 @@ getTestTypeData()
 getPsiModelModelData()
 getFixtureModelData()
 getEquipmentModelData()
+const feedBackList = ref<any>([])
+onMounted(() => {
+  if (testStore.test_process_id !== "") {
+    form.curTypeId = testStore.test_process_id
+    getProcessById({id: testStore.test_process_id}).then((res) => {
+      console.log(res.data)
+      form.curType = res.data.testType
+      form.version = res.data.version
+      feedBackList.value = res.data.feedback
+      form.name = res.data.name
+      testTypeShow.value = res.data.testType
+    })
+  }
+})
 </script>
 
 <style lang="scss" scoped>

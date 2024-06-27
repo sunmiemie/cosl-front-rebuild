@@ -20,7 +20,13 @@ export const getbordsinfo = (params: any) => {
     params
   })
 }
-
+export const downloadOrderJson = (fileid: any) => {
+  return request({
+    url: `/test/testunit/download/${fileid}`,
+    method: "get",
+    responseType: "blob"
+  })
+}
 export const createTestUnitApi = (data: any) => {
   return request({
     url: "/test/testunit/add/",
@@ -36,7 +42,7 @@ export const publicTestUnitApi = (data: any) => {
   })
 }
 // 删除测试工单
-export const deleteTestUnitApi = (id: number) => {
+export const deleteTestUnitApi = (id: string) => {
   return request({
     url: `/test/testunit/delete/${id}`,
     method: "delete"

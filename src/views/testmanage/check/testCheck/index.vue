@@ -119,18 +119,28 @@
           <el-divider style="margin-top: 0; margin-bottom: 0" />
         </div>
       </div>
-      <el-button type="success" icon="Check" size="large">审核通过</el-button>
-      <el-button type="danger" size="large" icon="Close">审核未通过</el-button>
+      <el-button type="success" icon="Check" size="large" @click="handleCheckPass">审核通过</el-button>
+      <el-button type="danger" size="large" icon="Close" @click="reasonVisiable = true">审核未通过</el-button>
     </el-card>
+    <el-dialog align-center title="未通过理由" v-model="reasonVisiable">
+      <el-input type="textarea" v-model="reason" :autosize="{ minRows: 4, maxRows: 4 }" />
+      <template #footer>
+        <el-button type="primary" @click="handleCheckBack">提交</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 <script setup>
 import { ref, reactive, onMounted } from "vue"
 import ProcessPreview from "@/components/Check/ProcessPreview.vue"
-//import { type } from "os"
 import { useRoute, useRouter } from "vue-router"
-import { checkEyesDataApi, checkXrayDataApi, checkFuncDataApi } from "@/api/check"
+import { checkEyesDataApi, checkXrayDataApi, checkFuncDataApi, checkPassApi } from "@/api/check"
+import { useUserStore } from "@/store/modules/user"
+import {ElMessageBox} from "element-plus";
 
+const userStore = useUserStore()
+const reason = ref("")
+const reasonVisiable = ref(false)
 const processJson = ref({
   eyes: {
     plane: {
@@ -161,12 +171,8 @@ const processJson = ref({
   }
 })
 const loading = ref(false)
-const router = useRouter()
 const route = useRoute()
-const props = reactive({
-  type: "eyes"
-})
-const currentProcess = "eyes"
+const router = useRouter()
 const anyObj = reactive({
   id: "",
   type: "",
@@ -200,6 +206,37 @@ onMounted(() => {
     })
   }
 })
+const handleCheckPass = () => {
+  ElMessageBox.confirm("确认审核通过吗？", "审核确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    checkPassApi({
+      id: route.query.testprocess_id,
+      user: userStore.userid,
+      pass: true
+    }).then(() => {
+      router.push("/testmanage/check")
+    })
+  })
+}
+const handleCheckBack = () => {
+  ElMessageBox.confirm("确认审核不通过吗？", "审核确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    checkPassApi({
+      id: route.query.testprocess_id,
+      pass: false,
+      user: userStore.userid,
+      reason: reason.value
+    }).then(() => {
+      router.push("/testmanage/check")
+    })
+  })
+}
 </script>
 <style scoped lang="scss">
 .search-wrapper {

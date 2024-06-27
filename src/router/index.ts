@@ -93,7 +93,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/testmanage/addprocess/index.vue"),
         name: "AddProcess",
         meta: {
-          title: "添加测试工艺",
+          title: "测试工艺",
           keepAlive: true,
           hidden: true
         }

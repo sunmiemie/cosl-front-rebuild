@@ -6,8 +6,6 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "elem
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import type { UploadProps } from "element-plus"
-import Vue from "vue"
 
 defineOptions({
   // 命名当前组件
@@ -16,9 +14,6 @@ defineOptions({
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
-//#region 增
-const dialogVisible = ref<boolean>(false)
-const formRef = ref<FormInstance | null>(null)
 const defaultinfo = reactive({
   ID: "",
   type: "",
@@ -26,69 +21,24 @@ const defaultinfo = reactive({
   Troubleshooting: "",
   Troublestreatment: ""
 })
-
+const statusOptions = ref([
+  {id: '0', name: "待受理"},
+  {id: '1', name: "待处理"},
+  {id: '2', name: "处理完成"}
+])
 // 显示
 const aspectDialog = ref<any>(false)
 const DefaultSuccess = ref<any>(false)
 const dialogVisible2 = ref<any>(false)
-const handleCreate = () => {}
-const resetForm = () => {
-  currentUpdateId.value = undefined
-}
 
-//#endregion
-
-//#region 改
-const currentUpdateId = ref<undefined | string>(undefined)
-
-type TableDataType = {
-  number: string
-  order: string
-  name: string
-  user: string
-  status: string
-  link?: any
-}
-
-//const tableData = ref<GetTableData[]>([])
 const headers = ref([
-  { prop: "number", label: "故障工单号", align: "center" },
+  { prop: "number", label: "缺陷工单号", align: "center" },
   { prop: "order", label: "关联测试工单", align: "center" },
-  { prop: "name", label: "故障名称", align: "center" },
   { prop: "user", label: "责任人", align: "center" },
   { prop: "status", label: "工单状态", type: "tag", align: "center" },
   { prop: "link", label: "操作", type: "link" }
 ])
-const TableData = ref<Array<TableDataType>>([
-  {
-    number: "123456781",
-    order: "123456781",
-    name: "Test",
-    user: "",
-    status: "0"
-  },
-  {
-    number: "123456782",
-    order: "123456782",
-    name: "Test",
-    user: "editor",
-    status: "1"
-  },
-  {
-    number: "123456783",
-    order: "123456783",
-    name: "Test",
-    user: "editor",
-    status: "2"
-  },
-  {
-    number: "123456784",
-    order: "123456784",
-    name: "Test",
-    user: "editor",
-    status: "3"
-  }
-])
+const TableData = ref<any>([])
 const searchFormRef = ref<FormInstance | null>(null)
 const searchData = reactive({
   username: "",
@@ -114,10 +64,6 @@ const getTableData = () => {
 }
 const handleLink = (data: any, i: string) => {
   if (i === "受理") {
-//     submitApi(data)
-//       .then(() => {
-//         ElMessage.success("提交成功")
-//       })
     aspectDialog.value = true
   } else if (i === "处理") {
     DefaultSuccess.value = true
@@ -186,7 +132,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="searchData.username" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="username" label="工单状态">
-          <el-select v-model="searchData.username" placeholder="请选择" />
+          <el-select v-model="searchData.username" placeholder="请选择" style="width: 150px">
+            <el-option v-for="item in statusOptions" :value="item.id" :label="item.name" :key="item.id" />
+          </el-select>
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
@@ -208,8 +156,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <template #status="{ row }">
             <el-tag v-if="row.status === '0'" type="danger"> 待受理 </el-tag>
             <el-tag v-if="row.status === '1'" type="warning"> 待处理 </el-tag>
-            <el-tag v-if="row.status === '2'"> 处理中 </el-tag>
-            <el-tag v-if="row.status === '3'" type="success"> 处理完成 </el-tag>
+            <el-tag v-if="row.status === '2'" type="success"> 处理完成 </el-tag>
           </template>
           <template #link="{ row }">
             <el-link v-for="i in row.link" type="primary" class="el-link" @click="handleLink(row, i)">{{ i }}</el-link>
@@ -387,26 +334,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         />
       </div>
     </el-card>
-    <!-- 新增/修改 -->
-    <el-dialog
-      v-model="dialogVisible"
-      :title="currentUpdateId === undefined ? '新增用户' : '修改用户'"
-      @close="resetForm"
-      width="30%"
-    >
-      <el-form ref="formRef" label-width="100px" label-position="left">
-        <el-form-item prop="username" label="用户名">
-          <el-input placeholder="请输入" />
-        </el-form-item>
-        <el-form-item prop="password" label="密码" v-if="currentUpdateId === undefined">
-          <el-input placeholder="请输入" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleCreate">确认</el-button>
-      </template>
-    </el-dialog>
   </div>
 </template>
 

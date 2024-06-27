@@ -18,7 +18,14 @@ export function deleteFixtureModelDataApi(id: string) {
 }
 
 /** 改 */
-export function updateFixtureModelDataApi(data: FixtureModel.UpdateFixtureModelRequestData) {
+export function updateFixtureModelDataApi(data: {
+  des: string;
+  supplier: string;
+  name: string;
+  count: string;
+  id: string;
+  type: string
+}) {
   return request({
     url: "equipment/fixturemodel/update",
     method: "post",

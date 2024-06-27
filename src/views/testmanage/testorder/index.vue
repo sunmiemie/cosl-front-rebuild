@@ -49,8 +49,10 @@ const headers = ref([
   { prop: "testunit_starttime", label: "创建时间", align: "center" },
   { prop: "testunit_endtime", label: "结束时间", align: "center" },
   { prop: "process_type", label: "测试类型", align: "center" },
+  { prop: "process_id", label: "使用工艺ID", align: "center" },
+  { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
   { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
-  { prop: "link", label: "操作", type: "link" }
+  { prop: "link", label: "操作", type: "link", width: 200 }
 ])
 const selectedRows = ref<any>([])
 const addHeaders = ref([
@@ -61,7 +63,7 @@ const TableData = ref<Array<TableDataType>>([])
 
 const searchFormRef = ref<FormInstance | null>(null)
 
-const searchData = reactive<any>({
+const searchData = reactive({
   number: "",
   TestName: "",
   TestType: "",
@@ -74,7 +76,7 @@ const defineLink = (status: any) => {
     case "0":
       return { 1: "发布", 2: "删除" }
     case "1":
-      return { 1: "详情" }
+      return { 1: "详情", 2: "导出工单", 3: "导入报告" }
     case "2":
       return { 1: "详情" }
     case "3":
@@ -88,17 +90,6 @@ const getTableData = () => {
     console.log(TableData.value[i])
     TableData.value[i].link = defineLink(TableData.value[i].testunit_status)
   }
-}
-
-// 发布与删除测试工单
-interface PublicType {
-  number: number
-  name?: string
-  user?: string
-  starttime?: string
-  endtime?: string
-  type?: string
-  link?: string
 }
 
 let PublicFormInfo = reactive({
@@ -132,6 +123,13 @@ const handleLink = (data: any, i: string) => {
     detailform.processId = data.process_id
     detailform.processVersion = data.process_version
     drawer.value = true
+  } else if (i === "导出工单") {
+    const link = document.createElement("a")
+    link.href = `${import.meta.env.VITE_BASE_API}test/testunit/download/${data.testunit_name}.json?id=${data.testunit_id}`
+    link.setAttribute("download", data.testunit_name + ".json")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 }
 // 关闭详情
@@ -186,7 +184,7 @@ const setCurrent = (row?: any) => {
     selectedType.processVersion = row.version
   }
 }
-const selectedType = reactive<any>({
+const selectedType = reactive({
   id: "",
   name: "",
   processId: "",
@@ -230,6 +228,7 @@ const SelectTestType = async (type: any) => {
       })
     )
   }
+  console.log(currentRow.value)
 }
 
 // 确认新增
@@ -276,7 +275,6 @@ const confirm = async (value: string) => {
       getMangeData()
     })
   } else {
-    console.log(PublicFormInfo.number)
     deleteTestUnitApi(PublicFormInfo["testunit_id"]).then((res) => {
       getMangeData()
       console.log(res)
@@ -369,10 +367,12 @@ async function getTreeData() {
   treeData.value = result.Pathdata
 }
 async function getMangeData() {
+  loading.value = true
   const currentpage = paginationData.currentPage
   const size = paginationData.pageSize
   const tableResult = await getTestMangeTable({ currentPage: currentpage, pageSize: size })
   TableData.value = tableResult.TableData
+  loading.value = false
   paginationData.total = tableResult.total // Store the table data
   getTableData()
 }
@@ -438,14 +438,16 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       <div class="table-wrapper">
         <TableComponent :column-data="headers" :tableData="TableData" stripe>
           <template #testunit_status="{ row }">
-            <el-tag v-if="row.testunit_status === '0'" type="success"> 已创建</el-tag>
-            <el-tag v-if="row.testunit_status === '1'" type="warning"> 待领取</el-tag>
-            <el-tag v-if="row.testunit_status === '2'"> 测试中</el-tag>
-            <el-tag v-if="row.testunit_status === '3'" type="success"> 测试正常</el-tag>
-            <el-tag v-if="row.testunit_status === '4'" type="danger"> 测试异常</el-tag>
+            <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
+            <el-tag v-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
+            <el-tag v-if="row['testunit_status'] === '2'"> 测试中</el-tag>
+            <el-tag v-if="row['testunit_status'] === '3'" type="success"> 测试正常</el-tag>
+            <el-tag v-if="row['testunit_status'] === '4'" type="danger"> 测试异常</el-tag>
           </template>
           <template #link="{ row }">
-            <el-link v-for="i in row.link" class="el-link" type="primary" @click="handleLink(row, i)">{{ i }}</el-link>
+            <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">{{
+              i
+            }}</el-link>
           </template>
         </TableComponent>
       </div>
@@ -619,14 +621,14 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
           icon="Check"
           type="primary"
           @click="submitAdd"
-          :disabled="currentRow === undefined || selectedRows.length === 0"
+          :disabled="currentRow === undefined || currentRow === null || selectedRows.length === 0"
           >确认新增</el-button
         >
       </template>
     </el-dialog>
     <!-- 发布 删除 -->
     <el-dialog v-model="PublicVisible" :show-close="true" width="44%">
-      <template #header="{ close }">
+      <template #header>
         <div class="my-header">
           <h2>{{ PublicOrDelete }}测试工单</h2>
           <!-- <button @click="close">X</button> -->
