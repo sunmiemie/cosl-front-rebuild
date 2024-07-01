@@ -190,13 +190,13 @@ onMounted(() => {
   if (anyObj.type === "目检测试") {
     loading.value = true
     checkEyesDataApi({ id: route.query.testprocess_id }).then((res) => {
-      processJson.value = res.data
+      processJson.value = res.data.json
       loading.value = false
     })
   } else if (anyObj.type === "X-Ray测试") {
     loading.value = true
     checkXrayDataApi({ id: route.query.testprocess_id }).then((res) => {
-      processJson.value = res.data
+      processJson.value = res.data.json
       loading.value = false
     })
   } else if (anyObj.type === "功能性测试") {

@@ -264,6 +264,10 @@ const TestStatus = reactive<any>([
   {
     status: 4,
     mes: "测试异常"
+  },
+  {
+    status: 5,
+    mes: "测试暂存"
   }
 ])
 
@@ -443,6 +447,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
             <el-tag v-if="row['testunit_status'] === '2'"> 测试中</el-tag>
             <el-tag v-if="row['testunit_status'] === '3'" type="success"> 测试正常</el-tag>
             <el-tag v-if="row['testunit_status'] === '4'" type="danger"> 测试异常</el-tag>
+            <el-tag v-if="row['testunit_status'] === '5'" type="warning"> 测试暂存</el-tag>
           </template>
           <template #link="{ row }">
             <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">{{

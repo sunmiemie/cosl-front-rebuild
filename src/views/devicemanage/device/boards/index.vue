@@ -10,6 +10,7 @@ import QrcodeVue from "qrcode.vue"
 import { type GetBoardData } from "@/api/board/types/board"
 import { getInstrumentDataApi } from "@/api/instrument"
 import { UploadFilled } from "@element-plus/icons-vue"
+import { getQRcodeImgApi } from "@/api/qrcode"
 
 defineOptions({
   // 命名当前组件
@@ -215,7 +216,32 @@ const closeDialogs = () => {
   dialogVisible.value = false
 }
 const getSelection = () => {
-  console.log("print", selectedRows.value)
+  getQRcodeImgApi({ data: selectedRows.value }).then((res) => {
+    if (res.code === 0) {
+      const imageData = res.data
+      const printWindow = window.open("", "_blank")
+      printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
+
+      for (const key in imageData) {
+        if (Object.prototype.hasOwnProperty.call(imageData, key)) {
+          const img = new Image()
+          img.src = imageData[key]
+          img.alt = "QR Code"
+          printWindow.document.body.appendChild(img)
+          printWindow.document.body.appendChild(document.createElement("br"))
+        }
+      }
+
+      printWindow.document.write("</body></html>")
+      printWindow.document.close()
+      printWindow.onload = function () {
+        printWindow.print()
+        printWindow.close()
+      }
+    } else {
+      console.error("Error fetching QR codes", res)
+    }
+  })
 }
 const goBack = () => {
   Drawer.value = false
@@ -402,24 +428,24 @@ onMounted(() => {
             @selection-change="handleSelectionChange"
           >
             <template #statusFunc="{ row }">
-              <el-tag v-if="row.status[0] === 0"> 待测试 </el-tag>
-              <el-tag v-if="row.status[0] === 1" type="success"> 检测正常 </el-tag>
-              <el-tag v-if="row.status[0] === 2" type="danger"> 检测异常 </el-tag>
+              <el-tag v-if="row['status'][0] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row['status'][0] === 1" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row['status'][0] === 2" type="danger"> 检测异常 </el-tag>
             </template>
             <template #statusEyes="{ row }">
-              <el-tag v-if="row.status[0] === 0"> 待测试 </el-tag>
-              <el-tag v-if="row.status[0] === 1" type="success"> 检测正常 </el-tag>
-              <el-tag v-if="row.status[0] === 2" type="danger"> 检测异常 </el-tag>
+              <el-tag v-if="row['status'][0] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row['status'][0] === 1" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row['status'][0] === 2" type="danger"> 检测异常 </el-tag>
             </template>
             <template #statusXray="{ row }">
-              <el-tag v-if="row.status[0] === 0"> 待测试 </el-tag>
-              <el-tag v-if="row.status[0] === 1" type="success"> 检测正常 </el-tag>
-              <el-tag v-if="row.status[0] === 2" type="danger"> 检测异常 </el-tag>
+              <el-tag v-if="row['status'][0] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row['status'][0] === 1" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row['status'][0] === 2" type="danger"> 检测异常 </el-tag>
             </template>
             <template #statusHalt="{ row }">
-              <el-tag v-if="row.status[0] === 0"> 待测试 </el-tag>
-              <el-tag v-if="row.status[0] === 1" type="success"> 检测正常 </el-tag>
-              <el-tag v-if="row.status[0] === 2" type="danger"> 检测异常 </el-tag>
+              <el-tag v-if="row['status'][0] === 0"> 待测试 </el-tag>
+              <el-tag v-if="row['status'][0] === 1" type="success"> 检测正常 </el-tag>
+              <el-tag v-if="row['status'][0] === 2" type="danger"> 检测异常 </el-tag>
             </template>
             <template #link="{ row }">
               <el-link type="primary" class="el-link" @click="handleLink(row, '二维码')"> 二维码 </el-link>
