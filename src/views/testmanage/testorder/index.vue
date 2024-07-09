@@ -121,7 +121,7 @@ const handleLink = (data: any, i: string) => {
     detailform.boardModel = data.boardmodel_name
     detailform.testType = data.process_type
     detailform.processId = data.process_id
-    detailform.processVersion = data.process_version
+    detailform.processVersion = data.testprocess_version
     drawer.value = true
   } else if (i === "导出工单") {
     const link = document.createElement("a")
@@ -507,7 +507,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
               </span>
               <span style="margin: 0 20px">
                 电路板序列号
-                <el-input v-model="detailform.boardSerial" disabled style="width: 150px" />
+                <el-input v-model="detailform.boardSerial" disabled style="width: 300px" />
               </span>
             </el-card>
           </el-col>

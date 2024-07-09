@@ -210,7 +210,7 @@ const handleLinkDetail = (data: any, i: string) => {
     testStore.board_model_id = ""
     router.push("/testmanage/addprocess")
   } else if (i === "删除") {
-    ElMessageBox.confirm("确认提交工艺吗？", "提交确认", {
+    ElMessageBox.confirm("确认删除工艺吗？", "删除确认", {
       confirmButtonText: "确认",
       cancelButtonText: "取消",
       type: "warning"
@@ -218,6 +218,7 @@ const handleLinkDetail = (data: any, i: string) => {
       deleteTestProcessApi(data.ID).then((res) => {
         getDetailTableData()
         getTableData()
+        ElMessage.success("删除成功")
         console.log(res)
       })
     })
