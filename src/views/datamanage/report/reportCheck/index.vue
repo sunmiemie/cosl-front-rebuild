@@ -65,32 +65,21 @@ const generateErrorList = (obj, path = []) => {
   return paths
 }
 
-const extractProperties = (obj, properties, pathIds = []) => {
-  if (obj === null || typeof obj !== "object") {
-    return obj
-  }
-
-  const newObj = Array.isArray(obj) ? [] : {}
-
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      if (properties.includes(key)) {
+const filterAttributes = (obj, attributes) => {
+  if (Array.isArray(obj)) {
+    return obj.map((item) => filterAttributes(item, attributes))
+  } else if (obj !== null && typeof obj === "object") {
+    const newObj = {}
+    for (const key in obj) {
+      if (attributes.includes(key)) {
         newObj[key] = obj[key]
-        // 保留路径上的所有 id 属性
-        pathIds.forEach((id, index) => {
-          newObj[`id`] = id
-        })
       } else if (typeof obj[key] === "object") {
-        const currentPathIds = Object.prototype.hasOwnProperty.call(obj, "id") ? [...pathIds, obj["id"]] : [...pathIds]
-        const nestedObj = extractProperties(obj[key], properties, currentPathIds)
-        if (Object.keys(nestedObj).length > 0) {
-          newObj[key] = nestedObj
-        }
+        newObj[key] = filterAttributes(obj[key], attributes)
       }
     }
+    return newObj
   }
-
-  return newObj
+  return obj
 }
 onMounted(() => {
   anyObj.type = route.query.type
@@ -105,7 +94,7 @@ onMounted(() => {
     hasError.value = hasProperty(res.data, "errorList")
     hasQuestion.value = hasProperty(res.data, "questionList")
     console.log(generateErrorList(res.data), generateQuestionList(res.data))
-    console.log(extractProperties(res.data, ["errorList"]), extractProperties(res.data, ["questionList"]))
+    console.log(filterAttributes(res.data, ["errorList"]), filterAttributes(res.data, ["questionList"]))
     console.log(hasError.value, hasQuestion.value)
     reportJson.value = res.data
   })
