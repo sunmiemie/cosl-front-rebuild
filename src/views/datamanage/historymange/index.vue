@@ -1,13 +1,13 @@
 <script lang="ts" setup>
-import { reactive, ref, watch, type Ref } from "vue"
-import { useRoute, useRouter } from "vue-router"
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
-import { ElButton, ElDrawer } from "element-plus"
-import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
+import { reactive, ref, watch } from "vue"
+import { type FormInstance } from "element-plus"
+import { ElButton } from "element-plus"
+import { Refresh, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import {fileDownoload, reportDownoload} from "@/api/file/index"
+import { reportDownoload } from "@/api/file"
 import { getReportDataApi } from "@/api/report"
+import { getTestTypeDataApi } from "@/api/testtype"
 
 defineOptions({
   // 命名当前组件
@@ -15,11 +15,7 @@ defineOptions({
 })
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-const router = useRouter()
-const route = useRoute()
-//#region 增
-const dialogVisibleEdit = ref<boolean>(false)
-// 测试审核工艺
+
 const DialogCheck = ref<boolean>(false)
 
 interface TestCheckType {
@@ -37,26 +33,33 @@ const TestCheck = ref<TestCheckType>({
 const onSubmit = () => {
   DialogCheck.value = false
 }
-//#region 改
-const currentUpdateId = ref<any>(undefined)
 
 const headers1 = ref([
   { prop: "id", label: "报告编号", align: "center" },
   { prop: "type", label: "报告类型", align: "center" },
+  { prop: "boardSerial", label: "电路板序列号", align: "center" },
   { prop: "user", label: "测试人 ", align: "center" },
   { prop: "date", label: "生成时间", align: "center" },
   { prop: "status", label: "报告状态", type: "tag", align: "center" },
   { prop: "link", label: "操作 ", type: "link" }
 ])
 const TableData = ref<any>([])
-
+const testTypeList = ref<any>([])
+const getTestTypeData = () => {
+  getTestTypeDataApi({
+    currentPage: 1,
+    size: 9999999
+  }).then((res) => {
+    testTypeList.value = res.data.list
+  })
+}
 const searchFormRef = ref<FormInstance | null>(null)
 // 查询
-const searchData = reactive<any>({
+const searchData = reactive({
   id: "",
   user: "",
   type: "",
-  date: ""
+  serial: ""
 })
 const defineLink = (status: string) => {
   switch (status) {
@@ -74,7 +77,7 @@ const getTableData = () => {
     id: searchData.id || undefined,
     user: searchData.user || undefined,
     type: searchData.type || undefined,
-    date: searchData.date || undefined
+    serial: searchData.serial || undefined
   }).then((res) => {
     TableData.value = res.data.list
     paginationData.total = res.data.total
@@ -111,14 +114,15 @@ const download = (file: any, fileType: string, fileName: string) => {
 }
 
 const handleSearch = () => {
-  //paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
+  paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
 }
 
 /**
  * 重置查询条件
  */
 const resetSearch = () => {
-  // 重置工艺ID
+  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+  paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
 }
 //#endregion
 
@@ -133,19 +137,22 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         <el-card v-loading="loading" shadow="never" class="search-wrapper">
           <el-form ref="searchFormRef" :inline="true" :model="searchData">
             <el-form-item label="报告编号">
-              <el-input v-model="searchData.reportNumber" placeholder="请输入" />
+              <el-input v-model="searchData.id" placeholder="请输入" />
             </el-form-item>
             <el-form-item label="测试人">
-              <el-input v-model="searchData.reportAuthor" placeholder="请输入" />
+              <el-input v-model="searchData.user" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item label="电路板序列号">
+              <el-input v-model="searchData.serial" placeholder="请输入" />
             </el-form-item>
             <el-form-item label="报告类型">
-              <el-select v-model="searchData.reportType" placeholder="请选择">
-                <el-option label="功能性测试" value="功能性测试" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="生成时间">
-              <el-select v-model="searchData.reportTime" placeholder="请选择">
-                <el-option label="2025年1月3日" value="2025年1月3日" />
+              <el-select
+                v-model="searchData.type"
+                placeholder="请选择"
+                style="width: 200px"
+                @visible-change="getTestTypeData"
+              >
+                <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
               </el-select>
             </el-form-item>
             <el-form-item>
@@ -155,16 +162,24 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </el-form>
         </el-card>
         <el-card v-loading="loading" shadow="never">
+          <div class="toolbar-wrapper">
+            <div />
+            <div>
+              <el-tooltip content="刷新当前页">
+                <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
+              </el-tooltip>
+            </div>
+          </div>
           <div class="table-wrapper">
             <TableComponent :tableData="TableData" :column-data="headers1" stripe>
               <template #status="{ row }">
-                <el-tag v-if="row.status === '0'" type="warning"> 测试待审核 </el-tag>
-                <el-tag v-if="row.status === '1'" type="danger"> 测试正常 </el-tag>
-                <el-tag v-if="row.status === '2'" type="danger"> 测试异常 </el-tag>
+                <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
+                <el-tag v-if="row['status'] === '1'" type="danger"> 测试正常 </el-tag>
+                <el-tag v-if="row['status'] === '2'" type="danger"> 测试异常 </el-tag>
               </template>
 
               <template #link="{ row }">
-                <el-link v-for="i in row.link" type="primary" class="el-link" @click="handleLink(row, i)">{{
+                <el-link v-for="i in row['link']" type="primary" class="el-link" @click="handleLink(row, i)" :key="i">{{
                   i
                 }}</el-link>
               </template>

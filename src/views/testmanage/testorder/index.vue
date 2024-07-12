@@ -138,8 +138,6 @@ const goBack = () => {
 }
 
 const handleSearch = async () => {
-  console.log(searchData)
-  // 查询Table表格数据
   // 深拷贝
   const params = JSON.parse(JSON.stringify(searchData))
   // 拼接时间参数
