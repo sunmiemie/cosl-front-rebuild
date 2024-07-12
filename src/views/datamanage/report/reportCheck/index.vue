@@ -65,22 +65,15 @@ const generateErrorList = (obj, path = []) => {
   return paths
 }
 
-const filterAttributes = (obj, attributes) => {
-  if (Array.isArray(obj)) {
-    return obj.map((item) => filterAttributes(item, attributes))
-  } else if (obj !== null && typeof obj === "object") {
-    const newObj = {}
-    for (const key in obj) {
-      if (attributes.includes(key)) {
-        newObj[key] = obj[key]
-      } else if (typeof obj[key] === "object") {
-        newObj[key] = filterAttributes(obj[key], attributes)
-      }
+const getNestedValue = (obj, path) => {
+  return path.reduce((acc, key) => {
+    if (acc && acc[key] !== undefined) {
+      return acc[key]
     }
-    return newObj
-  }
-  return obj
+    return undefined
+  }, obj)
 }
+
 onMounted(() => {
   anyObj.type = route.query.type
   anyObj.id = route.query.id
@@ -93,8 +86,12 @@ onMounted(() => {
     loading.value = false
     hasError.value = hasProperty(res.data, "errorList")
     hasQuestion.value = hasProperty(res.data, "questionList")
-    console.log(generateErrorList(res.data), generateQuestionList(res.data))
-    console.log(filterAttributes(res.data, ["errorList"]), filterAttributes(res.data, ["questionList"]))
+    generateErrorList(res.data).forEach((item) => {
+      console.log(getNestedValue(res.data, item))
+    })
+    generateQuestionList(res.data).forEach((item) => {
+      console.log(getNestedValue(res.data, item))
+    })
     console.log(hasError.value, hasQuestion.value)
     reportJson.value = res.data
   })
@@ -131,7 +128,7 @@ onMounted(() => {
       <el-text v-if="hasError" size="large" style="color: red; margin-right: 20px">有缺陷</el-text>
       <el-text v-if="hasQuestion" size="large" style="color: orange">有疑问</el-text>
       <div style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px">
-        <report-preview v-if="loaded" v-model:preview-list="reportJson" style="width: 100vw" />
+        <report-preview v-if="loaded" v-model:preview-list="reportJson" mode="check" style="width: 100vw" />
       </div>
       <div v-if="!hasQuestion">
         <el-button icon="Check" size="large" type="success" @click="">审核通过</el-button>
