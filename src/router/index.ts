@@ -317,6 +317,16 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       },
       {
+        path: "checkReport",
+        component: () => import("@/views/datamanage//historymange/reportPre/index.vue"),
+        name: "reportView",
+        meta: {
+          title: "报告预览",
+          keepAlive: true,
+          hidden: true
+        }
+      },
+      {
         path: "datastore",
         component: () => import("@/views/datamanage/datastore/index.vue"),
         name: "DataStore",
