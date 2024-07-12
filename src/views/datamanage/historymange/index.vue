@@ -158,8 +158,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <div class="table-wrapper">
             <TableComponent :tableData="TableData" :column-data="headers1" stripe>
               <template #status="{ row }">
-                <el-tag v-if="row.status === '0'" type="success"> 测试正常 </el-tag>
-                <el-tag v-if="row.status === '1'" type="danger"> 测试异常 </el-tag>
+                <el-tag v-if="row.status === '0'" type="warning"> 测试待审核 </el-tag>
+                <el-tag v-if="row.status === '1'" type="danger"> 测试正常 </el-tag>
+                <el-tag v-if="row.status === '2'" type="danger"> 测试异常 </el-tag>
               </template>
 
               <template #link="{ row }">
