@@ -10,7 +10,7 @@ const props = defineProps(["previewList", "mode"])
           <template #title>
             <el-text style="margin-left: 10px; font-size: 20px">2D留存图</el-text>
           </template>
-          <el-image :src="props.previewList.detail.twoD" fit="contain" style="width: 100%"/>
+          <el-image :src="props.previewList.detail.twoD" fit="contain" style="width: 100%" />
         </el-collapse-item>
         <el-collapse-item v-if="props.previewList.detail.plane['leftPass'] != undefined">
           <template #title>
@@ -23,11 +23,11 @@ const props = defineProps(["previewList", "mode"])
               { title: '对面弓曲度', pass: props.previewList.detail.plane['rightPass'] }
             ]"
           >
-            <el-table-column label="检测项" prop="title"/>
+            <el-table-column label="检测项" prop="title" />
             <el-table-column align="right" label="结果" prop="pass">
               <template #default="scope">
                 <el-text :type="scope.row.pass === 3 ? 'warning' : scope.row.pass === 1 ? 'success' : 'danger'"
-                >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
+                  >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
                 </el-text>
               </template>
             </el-table-column>
@@ -51,7 +51,7 @@ const props = defineProps(["previewList", "mode"])
               fit="contain"
               style="width: 40%; margin-right: 10px"
             />
-            <el-image :src="props.previewList.detail.plane.rightUrl" fit="contain" style="width: 40%"/>
+            <el-image :src="props.previewList.detail.plane.rightUrl" fit="contain" style="width: 40%" />
           </div>
 
           <el-text v-if="props.previewList.detail.plane.errorList != undefined">缺陷项</el-text>
@@ -61,7 +61,7 @@ const props = defineProps(["previewList", "mode"])
             border
             stripe
           >
-            <el-table-column label="检测项名称" prop="name" width="300"/>
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="缺陷描述">
               <template #default="scope">
                 <el-text>{{ scope.row.error.desc }}</el-text>
@@ -94,11 +94,11 @@ const props = defineProps(["previewList", "mode"])
                   </template>
                   <el-text>检测项</el-text>
                   <el-table :data="props.previewList.detail.threeD.eyes.total.stepList" border stripe>
-                    <el-table-column label="检测项" prop="name"/>
+                    <el-table-column label="检测项" prop="name" />
                     <el-table-column align="right" label="结果" prop="pass">
                       <template #default="scope">
                         <el-text :type="scope.row.pass == 3 ? 'warning' : scope.row.pass == 1 ? 'success' : 'danger'"
-                        >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                          >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                         </el-text>
                       </template>
                     </el-table-column>
@@ -122,7 +122,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="留存项" prop="name" width="300"/>
+                    <el-table-column label="留存项" prop="name" width="300" />
                     <el-table-column align="right" label="结果" prop="save">
                       <template #default="scope">
                         <el-image
@@ -154,7 +154,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="缺陷描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.error.desc }}</el-text>
@@ -178,7 +178,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="疑问描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.question.desc }}</el-text>
@@ -207,7 +207,7 @@ const props = defineProps(["previewList", "mode"])
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="item.general.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
@@ -228,7 +228,7 @@ const props = defineProps(["previewList", "mode"])
                       </el-table>
                       <el-text v-if="item.general.picList != 0">留存项</el-text>
                       <el-table v-if="item.general.picList != 0" :data="item.general.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <el-image
@@ -251,7 +251,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="item.general.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="item.general.errorList != undefined" :data="item.general.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -276,7 +276,7 @@ const props = defineProps(["previewList", "mode"])
                         border
                         stripe
                       >
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -300,7 +300,7 @@ const props = defineProps(["previewList", "mode"])
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="point.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
@@ -321,7 +321,7 @@ const props = defineProps(["previewList", "mode"])
                       </el-table>
                       <el-text v-if="point.picList.length != 0">留存项</el-text>
                       <el-table v-if="point.picList.length != 0" :data="point.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <el-image
@@ -344,7 +344,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="point.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="point.errorList != undefined" :data="point.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -364,7 +364,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="point.questionList != undefined">疑问项</el-text>
 
                       <el-table v-if="point.questionList != undefined" :data="point.questionList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -397,11 +397,11 @@ const props = defineProps(["previewList", "mode"])
                   </template>
                   <el-text>检测项</el-text>
                   <el-table :data="props.previewList.detail.threeD.eyesBak.total.stepList" border stripe>
-                    <el-table-column label="检测项" prop="name"/>
+                    <el-table-column label="检测项" prop="name" />
                     <el-table-column align="right" label="结果" prop="pass">
                       <template #default="scope">
                         <el-text :type="scope.row.pass === 3 ? 'warning' : scope.row.pass === 1 ? 'success' : 'danger'"
-                        >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
+                          >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
                         </el-text>
                       </template>
                     </el-table-column>
@@ -426,7 +426,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="留存项" prop="name" width="300"/>
+                    <el-table-column label="留存项" prop="name" width="300" />
                     <el-table-column align="right" label="结果" prop="save">
                       <template #default="scope">
                         <el-image
@@ -459,7 +459,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="缺陷描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.error.desc }}</el-text>
@@ -477,7 +477,7 @@ const props = defineProps(["previewList", "mode"])
                     </el-table-column>
                   </el-table>
                   <el-text v-if="props.previewList.detail.threeD.eyesBak.total.questionList !== undefined"
-                  >疑问项
+                    >疑问项
                   </el-text>
 
                   <el-table
@@ -486,7 +486,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="疑问描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.question.desc }}</el-text>
@@ -515,7 +515,7 @@ const props = defineProps(["previewList", "mode"])
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="item.general.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
@@ -537,7 +537,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="item.general.picList.length != 0">留存项</el-text>
 
                       <el-table v-if="item.general.picList.length != 0" :data="item.general.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <el-image
@@ -560,7 +560,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="item.general.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="item.general.errorList != undefined" :data="item.general.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -585,7 +585,7 @@ const props = defineProps(["previewList", "mode"])
                         border
                         stripe
                       >
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -609,7 +609,7 @@ const props = defineProps(["previewList", "mode"])
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="point.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
@@ -631,7 +631,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="point.picList.length != 0">留存项</el-text>
 
                       <el-table v-if="point.picList.length != 0" :data="point.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <el-image
@@ -654,7 +654,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="point.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="point.errorList != undefined" :data="point.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -674,7 +674,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="point.questionList != undefined">疑问项</el-text>
 
                       <el-table v-if="point.questionList != undefined" :data="point.questionList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -706,11 +706,11 @@ const props = defineProps(["previewList", "mode"])
           </template>
           <el-text>检测项</el-text>
           <el-table :data="props.previewList.detail.xray.total.stepList" border stripe>
-            <el-table-column label="检测项" prop="name"/>
+            <el-table-column label="检测项" prop="name" />
             <el-table-column align="right" label="结果" prop="pass">
               <template #default="scope">
                 <el-text :type="scope.row.pass == 3 ? 'warning' : scope.row.pass == 1 ? 'success' : 'danger'"
-                >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                  >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                 </el-text>
               </template>
             </el-table-column>
@@ -736,7 +736,7 @@ const props = defineProps(["previewList", "mode"])
             border
             stripe
           >
-            <el-table-column label="留存项" prop="name" width="300"/>
+            <el-table-column label="留存项" prop="name" width="300" />
             <el-table-column align="right" label="结果" prop="save">
               <template #default="scope">
                 <el-image
@@ -769,7 +769,7 @@ const props = defineProps(["previewList", "mode"])
             border
             stripe
           >
-            <el-table-column label="检测项名称" prop="name" width="300"/>
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="缺陷描述">
               <template #default="scope">
                 <el-text>{{ scope.row.error.desc }}</el-text>
@@ -794,7 +794,7 @@ const props = defineProps(["previewList", "mode"])
             border
             stripe
           >
-            <el-table-column label="检测项名称" prop="name" width="300"/>
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="疑问描述">
               <template #default="scope">
                 <el-text>{{ scope.row.question.desc }}</el-text>
@@ -823,7 +823,7 @@ const props = defineProps(["previewList", "mode"])
               </template>
               <el-text>检测项</el-text>
               <el-table :data="item.general.stepList" border stripe>
-                <el-table-column label="检测项" prop="name"/>
+                <el-table-column label="检测项" prop="name" />
                 <el-table-column align="right" label="结果" prop="pass">
                   <template #default="scope">
                     <el-text :type="scope.row.pass == 3 ? 'warning' : scope.row.pass == 1 ? 'success' : 'danger'">
@@ -842,7 +842,7 @@ const props = defineProps(["previewList", "mode"])
               </el-table>
               <el-text v-if="item.general.picList != 0">留存项</el-text>
               <el-table v-if="item.general.picList != 0" :data="item.general.picList" border stripe>
-                <el-table-column label="留存项" prop="name" width="300"/>
+                <el-table-column label="留存项" prop="name" width="300" />
                 <el-table-column align="right" label="结果" prop="save">
                   <template #default="scope">
                     <el-image
@@ -865,7 +865,7 @@ const props = defineProps(["previewList", "mode"])
               <el-text v-if="item.general.errorList != undefined">缺陷项</el-text>
 
               <el-table v-if="item.general.errorList != undefined" :data="item.general.errorList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="缺陷描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.error.desc }}</el-text>
@@ -885,7 +885,7 @@ const props = defineProps(["previewList", "mode"])
               <el-text v-if="item.general.questionList != undefined">疑问项</el-text>
 
               <el-table v-if="item.general.questionList != undefined" :data="item.general.questionList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="疑问描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.question.desc }}</el-text>
@@ -909,7 +909,7 @@ const props = defineProps(["previewList", "mode"])
               </template>
               <el-text>检测项</el-text>
               <el-table :data="point.stepList" border stripe>
-                <el-table-column label="检测项" prop="name"/>
+                <el-table-column label="检测项" prop="name" />
                 <el-table-column align="right" label="结果" prop="pass">
                   <template #default="scope">
                     <el-text :type="scope.row.pass == 3 ? 'warning' : scope.row.pass == 1 ? 'success' : 'danger'">
@@ -929,7 +929,7 @@ const props = defineProps(["previewList", "mode"])
               <el-text v-if="point.picList.length != 0">留存项</el-text>
 
               <el-table v-if="point.picList.length != 0" :data="point.picList" border stripe>
-                <el-table-column label="留存项" prop="name" width="300"/>
+                <el-table-column label="留存项" prop="name" width="300" />
                 <el-table-column align="right" label="结果" prop="save">
                   <template #default="scope">
                     <el-image
@@ -952,7 +952,7 @@ const props = defineProps(["previewList", "mode"])
               <el-text v-if="point.errorList != undefined">缺陷项</el-text>
 
               <el-table v-if="point.errorList != undefined" :data="point.errorList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="缺陷描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.error.desc }}</el-text>
@@ -971,7 +971,7 @@ const props = defineProps(["previewList", "mode"])
               </el-table>
               <el-text v-if="point.questionList != undefined">疑问项</el-text>
               <el-table v-if="point.questionList != undefined" :data="point.questionList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="疑问描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.question.desc }}</el-text>
@@ -999,7 +999,7 @@ const props = defineProps(["previewList", "mode"])
           <template #title>
             <el-text style="margin-left: 10px; font-size: 20px">2D留存图</el-text>
           </template>
-          <el-image :src="props.previewList.detail.twoD" fit="contain" style="width: 100%"/>
+          <el-image :src="props.previewList.detail.twoD" fit="contain" style="width: 100%" />
         </el-collapse-item>
         <el-collapse-item v-if="props.previewList.detail.plane['leftPass'] != undefined">
           <template #title>
@@ -1012,11 +1012,11 @@ const props = defineProps(["previewList", "mode"])
               { title: '对面弓曲度', pass: props.previewList.detail.plane['rightPass'] }
             ]"
           >
-            <el-table-column label="检测项" prop="title"/>
+            <el-table-column label="检测项" prop="title" />
             <el-table-column align="right" label="结果" prop="pass">
               <template #default="scope">
                 <el-text :type="scope.row.pass === 3 ? 'warning' : scope.row.pass === 1 ? 'success' : 'danger'"
-                >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
+                  >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
                 </el-text>
               </template>
             </el-table-column>
@@ -1040,7 +1040,7 @@ const props = defineProps(["previewList", "mode"])
               fit="contain"
               style="width: 40%; margin-right: 10px"
             />
-            <el-image :src="props.previewList.detail.plane.rightUrl" fit="contain" style="width: 40%"/>
+            <el-image :src="props.previewList.detail.plane.rightUrl" fit="contain" style="width: 40%" />
           </div>
 
           <el-text v-if="props.previewList.detail.plane.errorList != undefined">缺陷项</el-text>
@@ -1050,7 +1050,7 @@ const props = defineProps(["previewList", "mode"])
             border
             stripe
           >
-            <el-table-column label="检测项名称" prop="name" width="300"/>
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="缺陷描述">
               <template #default="scope">
                 <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1083,11 +1083,11 @@ const props = defineProps(["previewList", "mode"])
                   </template>
                   <el-text>检测项</el-text>
                   <el-table :data="props.previewList.detail.threeD.eyes.total.stepList" border stripe>
-                    <el-table-column label="检测项" prop="name"/>
+                    <el-table-column label="检测项" prop="name" />
                     <el-table-column align="right" label="结果" prop="pass">
                       <template #default="scope">
                         <el-text :type="scope.row.pass == 3 ? 'warning' : scope.row.pass == 1 ? 'success' : 'danger'"
-                        >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                          >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                         </el-text>
                       </template>
                     </el-table-column>
@@ -1111,7 +1111,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="留存项" prop="name" width="300"/>
+                    <el-table-column label="留存项" prop="name" width="300" />
                     <el-table-column align="right" label="结果" prop="save">
                       <template #default="scope">
                         <el-image
@@ -1143,7 +1143,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="缺陷描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1167,7 +1167,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="疑问描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1196,7 +1196,7 @@ const props = defineProps(["previewList", "mode"])
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="item.general.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
@@ -1217,7 +1217,7 @@ const props = defineProps(["previewList", "mode"])
                       </el-table>
                       <el-text v-if="item.general.picList != 0">留存项</el-text>
                       <el-table v-if="item.general.picList != 0" :data="item.general.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <el-image
@@ -1240,7 +1240,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="item.general.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="item.general.errorList != undefined" :data="item.general.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1265,7 +1265,7 @@ const props = defineProps(["previewList", "mode"])
                         border
                         stripe
                       >
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1289,7 +1289,7 @@ const props = defineProps(["previewList", "mode"])
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="point.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
@@ -1310,7 +1310,7 @@ const props = defineProps(["previewList", "mode"])
                       </el-table>
                       <el-text v-if="point.picList.length != 0">留存项</el-text>
                       <el-table v-if="point.picList.length != 0" :data="point.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <el-image
@@ -1333,7 +1333,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="point.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="point.errorList != undefined" :data="point.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1353,7 +1353,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="point.questionList != undefined">疑问项</el-text>
 
                       <el-table v-if="point.questionList != undefined" :data="point.questionList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1386,11 +1386,11 @@ const props = defineProps(["previewList", "mode"])
                   </template>
                   <el-text>检测项</el-text>
                   <el-table :data="props.previewList.detail.threeD.eyesBak.total.stepList" border stripe>
-                    <el-table-column label="检测项" prop="name"/>
+                    <el-table-column label="检测项" prop="name" />
                     <el-table-column align="right" label="结果" prop="pass">
                       <template #default="scope">
                         <el-text :type="scope.row.pass === 3 ? 'warning' : scope.row.pass === 1 ? 'success' : 'danger'"
-                        >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
+                          >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
                         </el-text>
                       </template>
                     </el-table-column>
@@ -1415,7 +1415,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="留存项" prop="name" width="300"/>
+                    <el-table-column label="留存项" prop="name" width="300" />
                     <el-table-column align="right" label="结果" prop="save">
                       <template #default="scope">
                         <el-image
@@ -1448,7 +1448,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="缺陷描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1466,7 +1466,7 @@ const props = defineProps(["previewList", "mode"])
                     </el-table-column>
                   </el-table>
                   <el-text v-if="props.previewList.detail.threeD.eyesBak.total.questionList !== undefined"
-                  >疑问项
+                    >疑问项
                   </el-text>
 
                   <el-table
@@ -1475,7 +1475,7 @@ const props = defineProps(["previewList", "mode"])
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="疑问描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1504,7 +1504,7 @@ const props = defineProps(["previewList", "mode"])
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="item.general.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
@@ -1526,7 +1526,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="item.general.picList.length != 0">留存项</el-text>
 
                       <el-table v-if="item.general.picList.length != 0" :data="item.general.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <el-image
@@ -1549,7 +1549,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="item.general.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="item.general.errorList != undefined" :data="item.general.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1574,7 +1574,7 @@ const props = defineProps(["previewList", "mode"])
                         border
                         stripe
                       >
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1598,7 +1598,7 @@ const props = defineProps(["previewList", "mode"])
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="point.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
@@ -1620,7 +1620,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="point.picList.length != 0">留存项</el-text>
 
                       <el-table v-if="point.picList.length != 0" :data="point.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <el-image
@@ -1643,7 +1643,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="point.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="point.errorList != undefined" :data="point.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1663,7 +1663,7 @@ const props = defineProps(["previewList", "mode"])
                       <el-text v-if="point.questionList != undefined">疑问项</el-text>
 
                       <el-table v-if="point.questionList != undefined" :data="point.questionList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1695,11 +1695,11 @@ const props = defineProps(["previewList", "mode"])
           </template>
           <el-text>检测项</el-text>
           <el-table :data="props.previewList.detail.xray.total.stepList" border stripe>
-            <el-table-column label="检测项" prop="name"/>
+            <el-table-column label="检测项" prop="name" />
             <el-table-column align="right" label="结果" prop="pass">
               <template #default="scope">
                 <el-text :type="scope.row.pass == 3 ? 'warning' : scope.row.pass == 1 ? 'success' : 'danger'"
-                >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                  >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                 </el-text>
               </template>
             </el-table-column>
@@ -1725,7 +1725,7 @@ const props = defineProps(["previewList", "mode"])
             border
             stripe
           >
-            <el-table-column label="留存项" prop="name" width="300"/>
+            <el-table-column label="留存项" prop="name" width="300" />
             <el-table-column align="right" label="结果" prop="save">
               <template #default="scope">
                 <el-image
@@ -1758,7 +1758,7 @@ const props = defineProps(["previewList", "mode"])
             border
             stripe
           >
-            <el-table-column label="检测项名称" prop="name" width="300"/>
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="缺陷描述">
               <template #default="scope">
                 <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1783,7 +1783,7 @@ const props = defineProps(["previewList", "mode"])
             border
             stripe
           >
-            <el-table-column label="检测项名称" prop="name" width="300"/>
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="疑问描述">
               <template #default="scope">
                 <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1812,7 +1812,7 @@ const props = defineProps(["previewList", "mode"])
               </template>
               <el-text>检测项</el-text>
               <el-table :data="item.general.stepList" border stripe>
-                <el-table-column label="检测项" prop="name"/>
+                <el-table-column label="检测项" prop="name" />
                 <el-table-column align="right" label="结果" prop="pass">
                   <template #default="scope">
                     <el-text :type="scope.row.pass == 3 ? 'warning' : scope.row.pass == 1 ? 'success' : 'danger'">
@@ -1831,7 +1831,7 @@ const props = defineProps(["previewList", "mode"])
               </el-table>
               <el-text v-if="item.general.picList != 0">留存项</el-text>
               <el-table v-if="item.general.picList != 0" :data="item.general.picList" border stripe>
-                <el-table-column label="留存项" prop="name" width="300"/>
+                <el-table-column label="留存项" prop="name" width="300" />
                 <el-table-column align="right" label="结果" prop="save">
                   <template #default="scope">
                     <el-image
@@ -1854,7 +1854,7 @@ const props = defineProps(["previewList", "mode"])
               <el-text v-if="item.general.errorList != undefined">缺陷项</el-text>
 
               <el-table v-if="item.general.errorList != undefined" :data="item.general.errorList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="缺陷描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1874,7 +1874,7 @@ const props = defineProps(["previewList", "mode"])
               <el-text v-if="item.general.questionList != undefined">疑问项</el-text>
 
               <el-table v-if="item.general.questionList != undefined" :data="item.general.questionList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="疑问描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1898,7 +1898,7 @@ const props = defineProps(["previewList", "mode"])
               </template>
               <el-text>检测项</el-text>
               <el-table :data="point.stepList" border stripe>
-                <el-table-column label="检测项" prop="name"/>
+                <el-table-column label="检测项" prop="name" />
                 <el-table-column align="right" label="结果" prop="pass">
                   <template #default="scope">
                     <el-text :type="scope.row.pass == 3 ? 'warning' : scope.row.pass == 1 ? 'success' : 'danger'">
@@ -1918,7 +1918,7 @@ const props = defineProps(["previewList", "mode"])
               <el-text v-if="point.picList.length != 0">留存项</el-text>
 
               <el-table v-if="point.picList.length != 0" :data="point.picList" border stripe>
-                <el-table-column label="留存项" prop="name" width="300"/>
+                <el-table-column label="留存项" prop="name" width="300" />
                 <el-table-column align="right" label="结果" prop="save">
                   <template #default="scope">
                     <el-image
@@ -1941,7 +1941,7 @@ const props = defineProps(["previewList", "mode"])
               <el-text v-if="point.errorList != undefined">缺陷项</el-text>
 
               <el-table v-if="point.errorList != undefined" :data="point.errorList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="缺陷描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1960,7 +1960,7 @@ const props = defineProps(["previewList", "mode"])
               </el-table>
               <el-text v-if="point.questionList != undefined">疑问项</el-text>
               <el-table v-if="point.questionList != undefined" :data="point.questionList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="疑问描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.question.desc }}</el-text>
