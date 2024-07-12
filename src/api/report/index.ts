@@ -31,3 +31,11 @@ export function getReportCheckDataApi(params: {
     params
   })
 }
+
+export const checkReportDataApi = (params: any) => {
+  return request({
+    url: "data/report/check/operate",
+    method: "get",
+    params
+  })
+}

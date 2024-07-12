@@ -86,7 +86,6 @@ const getTableData = () => {
 }
 const handleLink = (data: any, i: any) => {
   if (i === "审核") {
-    console.log(data, i)
     router.push({ name: "checktestlist", query: data })
   }
 }

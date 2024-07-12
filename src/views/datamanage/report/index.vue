@@ -5,9 +5,9 @@ import { ElButton } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import { reportDownoload } from "@/api/file"
 import { getReportCheckDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
+import { useRouter } from "vue-router"
 
 defineOptions({
   // 命名当前组件
@@ -15,7 +15,7 @@ defineOptions({
 })
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-
+const router = useRouter()
 const DialogCheck = ref<boolean>(false)
 
 interface TestCheckType {
@@ -88,28 +88,11 @@ const getTableData = () => {
 }
 
 const handleLink = (data: any, i: string) => {
-  if (i == "导出") {
-    reportDownoload(data.report_filepath).then((res) => {
-      download(res, "application/octet-stream", data.report_filepath)
-    })
+  if (i == "审核") {
+    router.push({ name: "checkReport", query: data })
   } else {
     return
   }
-}
-const download = (file: any, fileType: string, fileName: string) => {
-  const blob = new Blob([file], {
-    type: fileType
-  })
-  const a = document.createElement("a")
-  const href = URL.createObjectURL(blob)
-  a.href = href
-  a.download = fileName
-  document.body.appendChild(a)
-  a.click()
-  // 下载完成移除a元素
-  document.body.removeChild(a)
-  // 释放blob对象
-  URL.revokeObjectURL(href)
 }
 
 const handleSearch = () => {
