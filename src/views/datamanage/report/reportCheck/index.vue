@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, ref } from "vue"
+import { onMounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { checkReportDataApi } from "@/api/report"
 import ReportPreview from "@/components/Check/ReportPreview.vue"
@@ -78,7 +78,8 @@ const getNestedValue = (obj, path) => {
     return undefined
   }, obj)
 }
-const errorPass = async (obj, index_) => {
+
+const errorPass = (obj) => {
   ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
     confirmButtonText: "确认",
     cancelButtonText: "取消",
@@ -86,12 +87,11 @@ const errorPass = async (obj, index_) => {
   }).then(() => {
     if (obj.type === "eyes") {
       if (obj.position === "total") {
-        errorList.value.splice(index_, 1)
         reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 1
         reportJson.value.json.threeD.eyes.total.errorList.forEach((item, index) => {
           if (item.id === obj.id) {
             if (reportJson.value.json.threeD.eyes.total.errorList.length === 1) {
-              reportJson.value.json.threeD.eyes.total.errorList = undefined
+              delete reportJson.value.json.threeD.eyes.total.errorList
             } else {
               reportJson.value.json.threeD.eyes.total.errorList.splice(index, 1)
             }
@@ -99,19 +99,17 @@ const errorPass = async (obj, index_) => {
         })
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          errorList.value.splice(index_, 1)
           reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
           reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
             if (item.id === obj.id) {
               if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.length === 1) {
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList = undefined
+                delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList
               } else {
                 reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.splice(index, 1)
               }
             }
           })
         } else if (obj.areaPosition === "detail") {
-          errorList.value.splice(index_, 1)
           reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 1
           reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach(
             (item, index) => {
@@ -119,7 +117,7 @@ const errorPass = async (obj, index_) => {
                 if (
                   reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.length === 1
                 ) {
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList = undefined
+                  delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
                 } else {
                   reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(
                     index,
@@ -133,12 +131,11 @@ const errorPass = async (obj, index_) => {
       }
     } else if (obj.type === "eyesBak") {
       if (obj.position === "total") {
-        errorList.value.splice(index_, 1)
         reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 1
         reportJson.value.json.threeD.eyesBak.total.errorList.forEach((item, index) => {
           if (item.id === obj.id) {
             if (reportJson.value.json.threeD.eyesBak.total.errorList.length === 1) {
-              reportJson.value.json.threeD.eyesBak.total.errorList = undefined
+              delete reportJson.value.json.threeD.eyesBak.total.errorList
             } else {
               reportJson.value.json.threeD.eyesBak.total.errorList.splice(index, 1)
             }
@@ -146,19 +143,17 @@ const errorPass = async (obj, index_) => {
         })
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          errorList.value.splice(index_, 1)
           reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
           reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
             if (item.id === obj.id) {
               if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.length === 1) {
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList = undefined
+                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList
               } else {
                 reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.splice(index, 1)
               }
             }
           })
         } else if (obj.areaPosition === "detail") {
-          errorList.value.splice(index_, 1)
           reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
             1
           reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach(
@@ -168,8 +163,7 @@ const errorPass = async (obj, index_) => {
                   reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
                     .length === 1
                 ) {
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList =
-                    undefined
+                  delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
                 } else {
                   reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(
                     index,
@@ -183,12 +177,11 @@ const errorPass = async (obj, index_) => {
       }
     } else if (obj.type === "xray") {
       if (obj.position === "total") {
-        errorList.value.splice(index_, 1)
         reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 1
         reportJson.value.json.xray.total.errorList.forEach((item, index) => {
           if (item.id === obj.id) {
             if (reportJson.value.json.xray.total.errorList.length === 1) {
-              reportJson.value.json.xray.total.errorList = undefined
+              delete reportJson.value.json.xray.total.errorList
             } else {
               reportJson.value.json.xray.total.errorList.splice(index, 1)
             }
@@ -196,24 +189,22 @@ const errorPass = async (obj, index_) => {
         })
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          errorList.value.splice(index_, 1)
           reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
           reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
             if (item.id === obj.id) {
               if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.length === 1) {
-                reportJson.value.json.xray.area[obj.areaId - 1].general.errorList = undefined
+                delete reportJson.value.json.xray.area[obj.areaId - 1].general.errorList
               } else {
                 reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.splice(index, 1)
               }
             }
           })
         } else if (obj.areaPosition === "detail") {
-          errorList.value.splice(index_, 1)
           reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 1
           reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach((item, index) => {
             if (item.id === obj.id) {
               if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.length === 1) {
-                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList = undefined
+                delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]
               } else {
                 reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(index, 1)
               }
@@ -224,245 +215,794 @@ const errorPass = async (obj, index_) => {
     }
   })
 }
-const errorQuestion = (obj, index) => {
-  console.log(obj)
+const errorQuestion = (obj) => {
+  ElMessageBox.confirm("确认设置为疑问吗？", "通过确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    if (obj.type === "eyes") {
+      if (obj.position === "total") {
+        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 3
+        if (reportJson.value.json.threeD.eyes.total.questionList === undefined) {
+          reportJson.value.json.threeD.eyes.total["questionList"] = []
+        }
+        reportJson.value.json.threeD.eyes.total.errorList.forEach((item, index) => {
+          if (item.id === obj.id) {
+            const { error: question, ...rest } = reportJson.value.json.threeD.eyes.total.errorList[index]
+            const newObj = { question, ...rest }
+            reportJson.value.json.threeD.eyes.total.questionList.push(newObj)
+            if (reportJson.value.json.threeD.eyes.total.errorList.length === 1) {
+              delete reportJson.value.json.threeD.eyes.total.errorList
+            } else {
+              reportJson.value.json.threeD.eyes.total.errorList.splice(index, 1)
+            }
+          }
+        })
+      } else if (obj.position === "area") {
+        if (obj.areaPosition === "general") {
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
+          if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList === undefined) {
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general["questionList"] = []
+          }
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              const { error: question, ...rest } =
+                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList[index]
+              const newObj = { question, ...rest }
+              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.push(newObj)
+              if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.length === 1) {
+                delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList
+              } else {
+                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.splice(index, 1)
+              }
+            }
+          })
+        } else if (obj.areaPosition === "detail") {
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 3
+          if (
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList === undefined
+          ) {
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1]["questionList"] = []
+          }
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach(
+            (item, index) => {
+              if (item.id === obj.id) {
+                const { error: question, ...rest } =
+                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList[index]
+                const newObj = { question, ...rest }
+                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.push(
+                  newObj
+                )
+                if (
+                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.length === 1
+                ) {
+                  delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
+                } else {
+                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(
+                    index,
+                    1
+                  )
+                }
+              }
+            }
+          )
+        }
+      }
+    } else if (obj.type === "eyesBak") {
+      if (obj.position === "total") {
+        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 3
+        if (reportJson.value.json.threeD.eyesBak.total.questionList === undefined) {
+          reportJson.value.json.threeD.eyesBak.total["questionList"] = []
+        }
+        reportJson.value.json.threeD.eyesBak.total.questionList.forEach((item, index) => {
+          if (item.id === obj.id) {
+            const { error: question, ...rest } = reportJson.value.json.threeD.eyesBak.total.errorList[index]
+            const newObj = { question, ...rest }
+            reportJson.value.json.threeD.eyesBak.total.questionList.push(newObj)
+            if (reportJson.value.json.threeD.eyesBak.total.errorList.length === 1) {
+              delete reportJson.value.json.threeD.eyesBak.total.errorList
+            } else {
+              reportJson.value.json.threeD.eyesBak.total.errorList.splice(index, 1)
+            }
+          }
+        })
+      } else if (obj.position === "area") {
+        if (obj.areaPosition === "general") {
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
+          if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList === undefined) {
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general["questionList"] = []
+          }
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              const { error: question, ...rest } =
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList[index]
+              const newObj = { question, ...rest }
+              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.push(newObj)
+              if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.length === 1) {
+                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList
+              } else {
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.splice(index, 1)
+              }
+            }
+          })
+        } else if (obj.areaPosition === "detail") {
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
+            3
+          if (
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList ===
+            undefined
+          ) {
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1]["questionList"] = []
+          }
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach(
+            (item, index) => {
+              if (item.id === obj.id) {
+                const { error: question, ...rest } =
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList[index]
+                const newObj = { question, ...rest }
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.push(
+                  newObj
+                )
+                if (
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
+                    .length === 1
+                ) {
+                  delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
+                } else {
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(
+                    index,
+                    1
+                  )
+                }
+              }
+            }
+          )
+        }
+      }
+    } else if (obj.type === "xray") {
+      if (obj.position === "total") {
+        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 3
+        if (reportJson.value.json.xray.total.questionList === undefined) {
+          reportJson.value.json.xray.total["questionList"] = []
+        }
+        reportJson.value.json.xray.total.errorList.forEach((item, index) => {
+          if (item.id === obj.id) {
+            const { error: question, ...rest } = reportJson.value.json.xray.total.errorList[index]
+            const newObj = { question, ...rest }
+            reportJson.value.json.xray.total.questionList.push(newObj)
+            if (reportJson.value.json.xray.total.errorList.length === 1) {
+              delete reportJson.value.json.xray.total.errorList
+            } else {
+              reportJson.value.json.xray.total.errorList.splice(index, 1)
+            }
+          }
+        })
+      } else if (obj.position === "area") {
+        if (obj.areaPosition === "general") {
+          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
+          if (reportJson.value.json.xray.area[obj.areaId - 1].general.questionList === undefined) {
+            reportJson.value.json.xray.area[obj.areaId - 1].general["questionList"] = []
+          }
+          reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              const { error: question, ...rest } =
+                reportJson.value.json.xray.area[obj.areaId - 1].general.errorList[index]
+              const newObj = { question, ...rest }
+              reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.push(newObj)
+              if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.length === 1) {
+                delete reportJson.value.json.xray.area[obj.areaId - 1].general.errorList
+              } else {
+                reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.splice(index, 1)
+              }
+            }
+          })
+        } else if (obj.areaPosition === "detail") {
+          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 3
+          if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList === undefined) {
+            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]["questionList"] = []
+          }
+          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              const { error: question, ...rest } =
+                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList[index]
+              const newObj = { question, ...rest }
+              reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.push(newObj)
+              if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.length === 1) {
+                delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
+              } else {
+                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(index, 1)
+              }
+            }
+          })
+        }
+      }
+    }
+  })
 }
-const questionPass = (obj, index) => {
-  console.log(obj)
+const questionPass = (obj) => {
+  ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    if (obj.type === "eyes") {
+      if (obj.position === "total") {
+        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 1
+        reportJson.value.json.threeD.eyes.total.questionList.forEach((item, index) => {
+          if (item.id === obj.id) {
+            if (reportJson.value.json.threeD.eyes.total.questionList.length === 1) {
+              delete reportJson.value.json.threeD.eyes.total.questionList
+            } else {
+              reportJson.value.json.threeD.eyes.total.questionList.splice(index, 1)
+            }
+          }
+        })
+      } else if (obj.position === "area") {
+        if (obj.areaPosition === "general") {
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.length === 1) {
+                delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList
+              } else {
+                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.splice(index, 1)
+              }
+            }
+          })
+        } else if (obj.areaPosition === "detail") {
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 1
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
+            (item, index) => {
+              if (item.id === obj.id) {
+                if (
+                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                    .length === 1
+                ) {
+                  delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                } else {
+                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(
+                    index,
+                    1
+                  )
+                }
+              }
+            }
+          )
+        }
+      }
+    } else if (obj.type === "eyesBak") {
+      if (obj.position === "total") {
+        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 1
+        reportJson.value.json.threeD.eyesBak.total.questionList.forEach((item, index) => {
+          if (item.id === obj.id) {
+            if (reportJson.value.json.threeD.eyesBak.total.questionList.length === 1) {
+              delete reportJson.value.json.threeD.eyesBak.total.questionList
+            } else {
+              reportJson.value.json.threeD.eyesBak.total.questionList.splice(index, 1)
+            }
+          }
+        })
+      } else if (obj.position === "area") {
+        if (obj.areaPosition === "general") {
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.length === 1) {
+                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList
+              } else {
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.splice(index, 1)
+              }
+            }
+          })
+        } else if (obj.areaPosition === "detail") {
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
+            1
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
+            (item, index) => {
+              if (item.id === obj.id) {
+                if (
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                    .length === 1
+                ) {
+                  delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                } else {
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[
+                    obj.detailId - 1
+                  ].questionList.splice(index, 1)
+                }
+              }
+            }
+          )
+        }
+      }
+    } else if (obj.type === "xray") {
+      if (obj.position === "total") {
+        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 1
+        reportJson.value.json.xray.total.questionList.forEach((item, index) => {
+          if (item.id === obj.id) {
+            if (reportJson.value.json.xray.total.questionList.length === 1) {
+              delete reportJson.value.json.xray.total.questionList
+            } else {
+              reportJson.value.json.xray.total.questionList.splice(index, 1)
+            }
+          }
+        })
+        hasError.value = hasProperty(reportJson.value, "errorList")
+        hasQuestion.value = hasProperty(reportJson.value, "questionList")
+      } else if (obj.position === "area") {
+        if (obj.areaPosition === "general") {
+          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
+          reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              if (reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.length === 1) {
+                delete reportJson.value.json.xray.area[obj.areaId - 1].general.questionList
+              } else {
+                reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.splice(index, 1)
+              }
+            }
+          })
+        } else if (obj.areaPosition === "detail") {
+          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 1
+          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
+            (item, index) => {
+              if (item.id === obj.id) {
+                if (
+                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.length === 1
+                ) {
+                  delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                } else {
+                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(index, 1)
+                }
+              }
+            }
+          )
+        }
+      }
+    }
+  })
 }
-const questionError = (obj, index) => {
-  console.log(obj)
+const questionError = (obj) => {
+  ElMessageBox.confirm("确认设置为缺陷吗？", "通过确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    if (obj.type === "eyes") {
+      if (obj.position === "total") {
+        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 3
+        if (reportJson.value.json.threeD.eyes.total.errorList === undefined) {
+          reportJson.value.json.threeD.eyes.total["errorList"] = []
+        }
+        reportJson.value.json.threeD.eyes.total.questionList.forEach((item, index) => {
+          if (item.id === obj.id) {
+            const { question: error, ...rest } = reportJson.value.json.threeD.eyes.total.questionList[index]
+            const newObj = { error, ...rest }
+            reportJson.value.json.threeD.eyes.total.errorList.push(newObj)
+            if (reportJson.value.json.threeD.eyes.total.questionList.length === 1) {
+              delete reportJson.value.json.threeD.eyes.total.questionList
+            } else {
+              reportJson.value.json.threeD.eyes.total.questionList.splice(index, 1)
+            }
+          }
+        })
+      } else if (obj.position === "area") {
+        if (obj.areaPosition === "general") {
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
+          if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList === undefined) {
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general["errorList"] = []
+          }
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              const { question: error, ...rest } =
+                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList[index]
+              const newObj = { error, ...rest }
+              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.push(newObj)
+              if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.length === 1) {
+                delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList
+              } else {
+                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.splice(index, 1)
+              }
+            }
+          })
+        } else if (obj.areaPosition === "detail") {
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 3
+          if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
+          }
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
+            (item, index) => {
+              if (item.id === obj.id) {
+                const { question: error, ...rest } =
+                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
+                const newObj = { error, ...rest }
+                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(newObj)
+                if (
+                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                    .length === 1
+                ) {
+                  delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                } else {
+                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(
+                    index,
+                    1
+                  )
+                }
+              }
+            }
+          )
+        }
+      }
+    } else if (obj.type === "eyesBak") {
+      if (obj.position === "total") {
+        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 3
+        if (reportJson.value.json.threeD.eyesBak.total.errorList === undefined) {
+          reportJson.value.json.threeD.eyesBak.total["errorList"] = []
+        }
+        reportJson.value.json.threeD.eyesBak.total.errorList.forEach((item, index) => {
+          if (item.id === obj.id) {
+            const { question: error, ...rest } = reportJson.value.json.threeD.eyesBak.total.questionList[index]
+            const newObj = { error, ...rest }
+            reportJson.value.json.threeD.eyesBak.total.errorList.push(newObj)
+            if (reportJson.value.json.threeD.eyesBak.total.questionList.length === 1) {
+              delete reportJson.value.json.threeD.eyesBak.total.questionList
+            } else {
+              reportJson.value.json.threeD.eyesBak.total.questionList.splice(index, 1)
+            }
+          }
+        })
+      } else if (obj.position === "area") {
+        if (obj.areaPosition === "general") {
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
+          if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList === undefined) {
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general["errorList"] = []
+          }
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              const { question: error, ...rest } =
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList[index]
+              const newObj = { error, ...rest }
+              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.push(newObj)
+              if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.length === 1) {
+                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList
+              } else {
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.splice(index, 1)
+              }
+            }
+          })
+        } else if (obj.areaPosition === "detail") {
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
+            3
+          if (
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined
+          ) {
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
+          }
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
+            (item, index) => {
+              if (item.id === obj.id) {
+                const { question: error, ...rest } =
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
+                const newObj = { error, ...rest }
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(
+                  newObj
+                )
+                if (
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                    .length === 1
+                ) {
+                  delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                } else {
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[
+                    obj.detailId - 1
+                  ].questionList.splice(index, 1)
+                }
+              }
+            }
+          )
+        }
+      }
+    } else if (obj.type === "xray") {
+      if (obj.position === "total") {
+        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 3
+        if (reportJson.value.json.xray.total.errorList === undefined) {
+          reportJson.value.json.xray.total["errorList"] = []
+        }
+        reportJson.value.json.xray.total.questionList.forEach((item, index) => {
+          if (item.id === obj.id) {
+            const { question: error, ...rest } = reportJson.value.json.xray.total.questionList[index]
+            const newObj = { error, ...rest }
+            reportJson.value.json.xray.total.errorList.push(newObj)
+            if (reportJson.value.json.xray.total.questionList.length === 1) {
+              delete reportJson.value.json.xray.total.questionList
+            } else {
+              reportJson.value.json.xray.total.questionList.splice(index, 1)
+            }
+          }
+        })
+      } else if (obj.position === "area") {
+        if (obj.areaPosition === "general") {
+          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
+          if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList === undefined) {
+            reportJson.value.json.xray.area[obj.areaId - 1].general["errorList"] = []
+          }
+          reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              const { question: error, ...rest } =
+                reportJson.value.json.xray.area[obj.areaId - 1].general.questionList[index]
+              const newObj = { error, ...rest }
+              reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.push(newObj)
+              if (reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.length === 1) {
+                delete reportJson.value.json.xray.area[obj.areaId - 1].general.questionList
+              } else {
+                reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.splice(index, 1)
+              }
+            }
+          })
+        } else if (obj.areaPosition === "detail") {
+          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 3
+          if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
+            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
+          }
+          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
+            (item, index) => {
+              if (item.id === obj.id) {
+                const { question: error, ...rest } =
+                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
+                const newObj = { error, ...rest }
+                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(newObj)
+                if (
+                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.length === 1
+                ) {
+                  delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                } else {
+                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(index, 1)
+                }
+              }
+            }
+          )
+        }
+      }
+    }
+  })
 }
+
+const getErrorQuestionList = () => {
+  errorList.value = []
+  questionList.value = []
+  generateErrorList(reportJson.value).forEach((item) => {
+    if (item.includes("eyes")) {
+      if (item.includes("total")) {
+        console.log(getNestedValue(reportJson.value, item))
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          errorList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            errorList.value.push({
+              type: "eyes",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            errorList.value.push({
+              type: "eyes",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+    if (item.includes("eyesBak")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          errorList.value.push({ type: "eyesBak", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            errorList.value.push({
+              type: "eyesBak",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            errorList.value.push({
+              type: "eyesBak",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+    if (item.includes("xray")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          errorList.value.push({ type: "xray", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            errorList.value.push({
+              type: "xray",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            errorList.value.push({
+              type: "xray",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+  })
+  generateQuestionList(reportJson.value).forEach((item) => {
+    if (item.includes("eyes")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          questionList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            questionList.value.push({
+              type: "eyes",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            questionList.value.push({
+              type: "eyes",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+    if (item.includes("eyesBak")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          questionList.value.push({ type: "eyesBak", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            questionList.value.push({
+              type: "eyesBak",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            questionList.value.push({
+              type: "eyesBak",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+    if (item.includes("xray")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          questionList.value.push({ type: "xray", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            questionList.value.push({
+              type: "xray",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            questionList.value.push({
+              type: "xray",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+  })
+  hasError.value = hasProperty(reportJson.value, "errorList")
+  hasQuestion.value = hasProperty(reportJson.value, "questionList")
+  if (errorList.value.length === 0) {
+    errorVisible.value = false
+  }
+  if (questionList.value.length === 0) {
+    questionVisible.value = false
+  }
+}
+
 onMounted(() => {
+  loading.value = true
   anyObj.type = route.query.type
   anyObj.id = route.query.id
   anyObj.name = route.query.name
   anyObj.user = route.query.user
   anyObj.date = route.query.date
-  console.log(route.query)
   checkReportDataApi({ id: route.query.id }).then((res) => {
     loaded.value = true
     loading.value = false
-    hasError.value = hasProperty(res.data, "errorList")
-    hasQuestion.value = hasProperty(res.data, "questionList")
-    generateErrorList(res.data).forEach((item) => {
-      if (item.includes("eyes")) {
-        if (item.includes("total")) {
-          getNestedValue(res.data, item).forEach((value) => {
-            errorList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
-          })
-        }
-        if (item.includes("area")) {
-          if (item.includes("general")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              errorList.value.push({
-                type: "eyes",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "general",
-                id: value.id,
-                content: value
-              })
-            })
-          }
-          if (item.includes("detail")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              errorList.value.push({
-                type: "eyes",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "detail",
-                detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-                id: value.id,
-                content: value
-              })
-            })
-          }
-        }
-      }
-      if (item.includes("eyesBak")) {
-        if (item.includes("total")) {
-          getNestedValue(res.data, item).forEach((value) => {
-            errorList.value.push({ type: "eyesBak", position: "total", id: value.id, content: value })
-          })
-        }
-        if (item.includes("area")) {
-          if (item.includes("general")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              errorList.value.push({
-                type: "eyesBak",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "general",
-                id: value.id,
-                content: value
-              })
-            })
-          }
-          if (item.includes("detail")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              errorList.value.push({
-                type: "eyesBak",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "detail",
-                detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-                id: value.id,
-                content: value
-              })
-            })
-          }
-        }
-      }
-      if (item.includes("xray")) {
-        if (item.includes("total")) {
-          getNestedValue(res.data, item).forEach((value) => {
-            errorList.value.push({ type: "xray", position: "total", id: value.id, content: value })
-          })
-        }
-        if (item.includes("area")) {
-          if (item.includes("general")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              errorList.value.push({
-                type: "xray",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "general",
-                id: value.id,
-                content: value
-              })
-            })
-          }
-          if (item.includes("detail")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              errorList.value.push({
-                type: "xray",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "detail",
-                detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-                id: value.id,
-                content: value
-              })
-            })
-          }
-        }
-      }
-    })
-    generateQuestionList(res.data).forEach((item) => {
-      if (item.includes("eyes")) {
-        if (item.includes("total")) {
-          getNestedValue(res.data, item).forEach((value) => {
-            questionList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
-          })
-        }
-        if (item.includes("area")) {
-          if (item.includes("general")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              questionList.value.push({
-                type: "eyes",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "general",
-                id: value.id,
-                content: value
-              })
-            })
-          }
-          if (item.includes("detail")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              questionList.value.push({
-                type: "eyes",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "detail",
-                detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-                id: value.id,
-                content: value
-              })
-            })
-          }
-        }
-      }
-      if (item.includes("eyesBak")) {
-        if (item.includes("total")) {
-          getNestedValue(res.data, item).forEach((value) => {
-            questionList.value.push({ type: "eyesBak", position: "total", id: value.id, content: value })
-          })
-        }
-        if (item.includes("area")) {
-          if (item.includes("general")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              questionList.value.push({
-                type: "eyesBak",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "general",
-                id: value.id,
-                content: value
-              })
-            })
-          }
-          if (item.includes("detail")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              questionList.value.push({
-                type: "eyesBak",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "detail",
-                detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-                id: value.id,
-                content: value
-              })
-            })
-          }
-        }
-      }
-      if (item.includes("xray")) {
-        if (item.includes("total")) {
-          getNestedValue(res.data, item).forEach((value) => {
-            questionList.value.push({ type: "xray", position: "total", id: value.id, content: value })
-          })
-        }
-        if (item.includes("area")) {
-          if (item.includes("general")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              questionList.value.push({
-                type: "xray",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "general",
-                id: value.id,
-                content: value
-              })
-            })
-          }
-          if (item.includes("detail")) {
-            getNestedValue(res.data, item).forEach((value) => {
-              questionList.value.push({
-                type: "xray",
-                position: "area",
-                areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-                areaPosition: "detail",
-                detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-                id: value.id,
-                content: value
-              })
-            })
-          }
-        }
-      }
-    })
-    console.log(errorList.value, questionList.value)
+    getErrorQuestionList()
     reportJson.value = res.data
   })
-  if (anyObj.type === "目检测试") {
-    loading.value = true
-  } else if (anyObj.type === "X-Ray测试") {
-    loading.value = true
-  } else if (anyObj.type === "功能性测试") {
-    loading.value = true
-  }
+  watch([() => reportJson.value], getErrorQuestionList, { immediate: true, deep: true })
 })
 </script>
 
@@ -546,13 +1086,20 @@ onMounted(() => {
         </el-table-column>
         <el-table-column align="center" label="留存图片">
           <template #default="scope">
-            <el-image v-for="img in scope.row.content.error.url" :key="img" :src="img" />
+            <div style="display: flex">
+              <el-text style="margin-right: 5px">共{{ scope.row.content.error.url.length }}张</el-text>
+              <el-image
+                :preview-teleported="true"
+                :preview-src-list="scope.row.content.error.url"
+                :src="scope.row.content.error.url[0]"
+              />
+            </div>
           </template>
         </el-table-column>
         <el-table-column align="center" fixed="right" label="操作">
           <template #default="scope">
-            <el-button type="success" @click="errorPass(scope.row, scope.$index)">通过</el-button>
-            <el-button type="warning" @click="errorQuestion(scope.row, scope.$index)">疑问</el-button>
+            <el-button type="success" @click="errorPass(scope.row)">通过</el-button>
+            <el-button type="warning" @click="errorQuestion(scope.row)">疑问</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -588,7 +1135,14 @@ onMounted(() => {
         </el-table-column>
         <el-table-column align="center" label="留存图片">
           <template #default="scope">
-            <el-image v-for="img in scope.row.content.question.url" :key="img" :src="img" />
+            <div style="display: flex">
+              <el-text style="margin-right: 5px">共{{ scope.row.content.question.url.length }}张</el-text>
+              <el-image
+                :preview-teleported="true"
+                :preview-src-list="scope.row.content.question.url"
+                :src="scope.row.content.question.url[0]"
+              />
+            </div>
           </template>
         </el-table-column>
         <el-table-column align="center" fixed="right" label="操作">
