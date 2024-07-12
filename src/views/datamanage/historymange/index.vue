@@ -8,6 +8,7 @@ import TableComponent from "@/components/Table/index.vue"
 import { reportDownoload } from "@/api/file"
 import { getReportDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
+import { useRouter } from "vue-router"
 
 defineOptions({
   // 命名当前组件
@@ -15,7 +16,7 @@ defineOptions({
 })
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-
+const router = useRouter()
 const DialogCheck = ref<boolean>(false)
 
 interface TestCheckType {
@@ -94,7 +95,7 @@ const handleLink = (data: any, i: string) => {
       download(res, "application/octet-stream", data.report_filepath)
     })
   } else {
-    return
+    router.push({ name: "reportView", query: data })
   }
 }
 const download = (file: any, fileType: string, fileName: string) => {
