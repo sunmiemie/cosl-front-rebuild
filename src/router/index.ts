@@ -136,6 +136,15 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       },
       {
+        path: "Questionlist",
+        component: () => import("@/views/testmanage/Questionlist/index.vue"),
+        name: "Questionlist",
+        meta: {
+          title: "疑问工单列表",
+          keepAlive: true
+        }
+      },
+      {
         path: "testmonitor",
         component: () => import("@/views/testmanage/testmonitor/index.vue"),
         name: "TestMonitor",
