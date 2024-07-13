@@ -40,6 +40,7 @@ const headers1 = ref([
   { prop: "type", label: "报告类型", align: "center" },
   { prop: "boardSerial", label: "电路板序列号", align: "center" },
   { prop: "user", label: "测试人 ", align: "center" },
+  { prop: "testunit_id", label: "关联工单号 ", align: "center" },
   { prop: "date", label: "生成时间", align: "center" },
   { prop: "status", label: "报告状态", type: "tag", align: "center" },
   { prop: "link", label: "操作 ", type: "link" }
@@ -72,6 +73,8 @@ const defineLink = (status: string) => {
       return { 1: "查看", 2: "导出" }
     case "3":
       return { 1: "查看", 2: "导出" }
+    case "4":
+      return { 1: "查看" }
   }
 }
 const getTableData = () => {
@@ -182,6 +185,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                 <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>
                 <el-tag v-if="row['status'] === '2'" type="success"> 测试正常 </el-tag>
                 <el-tag v-if="row['status'] === '3'" type="danger"> 测试异常 </el-tag>
+                <el-tag v-if="row['status'] === '4'" type="warning"> 疑问待处理 </el-tag>
               </template>
 
               <template #link="{ row }">

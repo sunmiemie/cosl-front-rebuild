@@ -1,17 +1,21 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { checkReportDataApi } from "@/api/report"
+import { checkReportDataApi, checkReportFeedbackApi, checkReportPassApi, generateQuestionUnitApi } from "@/api/report"
+import { useUserStore } from "@/store/modules/user"
 import ReportPreview from "@/components/Check/ReportPreview.vue"
 import { ElMessageBox } from "element-plus"
-import { checkReportPassApi , checkReportFeedbackApi } from "@/api/report"
 
+const userStore = useUserStore()
 const reportJson = ref({})
 const hasError = ref(false)
+const feedbackList = ref([])
+const feedbackReason = ref("")
 const feedbackVisible = ref(false)
 const reportFixed = ref(false)
 const errorVisible = ref(false)
 const questionVisible = ref(false)
+const questionDialogVisible = ref(false)
 const hasQuestion = ref(false)
 const loading = ref(false)
 const loaded = ref(false)
@@ -1115,6 +1119,12 @@ const getErrorQuestionList = () => {
   }
   console.log(stepList.value)
 }
+
+const jsonToFile = (data) => {
+  const jsonString = JSON.stringify(data)
+  return new Blob([jsonString], { type: "application/json" })
+}
+
 const checkPass = () => {
   loading.value = true
   const jsonString = JSON.stringify(reportJson.value)
@@ -1127,7 +1137,11 @@ const checkPass = () => {
   for (const key in data) {
     formData.append(key, data[key])
   }
-  formData.append("file", blob, "data.json")
+  if (reportFixed.value === true) {
+    formData.append("file", blob, "data.json")
+  } else {
+    formData.append("file", undefined)
+  }
   checkReportPassApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
@@ -1135,6 +1149,59 @@ const checkPass = () => {
     }
   })
 }
+const checkFeedback = () => {
+  loading.value = true
+  const blob_report = jsonToFile(reportJson.value)
+  const blob_feedback = jsonToFile(feedbackList.value)
+  const data = {
+    id: anyObj.id,
+    status: 1,
+    reason: feedbackReason.value
+  }
+  const formData = new FormData()
+  for (const key in data) {
+    formData.append(key, data[key])
+  }
+  if (reportFixed.value === true) {
+    formData.append("file_report", blob_report, "data_report.json")
+  } else {
+    formData.append("file_report", undefined)
+  }
+  formData.append("file_feedback", blob_feedback, "data_feedback.json")
+  checkReportFeedbackApi(formData).then((res) => {
+    if (res.msg === "success") {
+      loading.value = false
+      router.push("/datamanage/reportCheckList")
+    }
+  })
+}
+const generateQuestionUnit = () => {
+  loading.value = true
+  const blob_report = jsonToFile(reportJson.value)
+  const blob_question = jsonToFile(questionList.value)
+  const data = {
+    id: anyObj.id,
+    userId: userStore.userid,
+    status: 4
+  }
+  const formData = new FormData()
+  for (const key in data) {
+    formData.append(key, data[key])
+  }
+  if (reportFixed.value === true) {
+    formData.append("file_report", blob_report, "data_report.json")
+  } else {
+    formData.append("file_report", undefined)
+  }
+  formData.append("file_question", blob_question, "data_question.json")
+  generateQuestionUnitApi(formData).then((res) => {
+    if (res.msg === "success") {
+      loading.value = false
+      router.push("/datamanage/reportCheckList")
+    }
+  })
+}
+
 const handlePass = () => {
   ElMessageBox.confirm("确认通过审核吗？", "确认审核", {
     confirmButtonText: "确认",
@@ -1155,7 +1222,46 @@ const handlePass = () => {
   })
 }
 const handleFeedback = () => {
-
+  ElMessageBox.confirm("确认打回吗？", "确认审核", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    if (reportFixed.value === true) {
+      ElMessageBox.confirm("当前报告已被更改,确认以修改后状态打回吗？", "确认提交", {
+        confirmButtonText: "确认",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(() => {
+        checkFeedback()
+      })
+    } else {
+      checkFeedback()
+    }
+  })
+}
+const handleQuestion = () => {
+  ElMessageBox.confirm("确认生成疑问工单吗？", "确认生成", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    if (reportFixed.value === true) {
+      ElMessageBox.confirm("当前报告已被更改,确认以修改后状态生成疑问工单吗？", "确认提交", {
+        confirmButtonText: "确认",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(() => {
+        generateQuestionUnit()
+      })
+    } else {
+      generateQuestionUnit()
+    }
+  })
+}
+const handleSelectionChange = (value) => {
+  feedbackList.value = stepList.value.filter((item) => value.includes(item))
+  console.log(feedbackList.value)
 }
 const reGetReport = () => {
   loading.value = true
@@ -1213,7 +1319,7 @@ onMounted(() => {
             style="font-size: 18px; margin-right: 20px"
             type="danger"
             @click="errorVisible = true"
-          >存在缺陷
+            >存在缺陷
           </el-link>
           <el-link
             v-if="hasQuestion"
@@ -1222,7 +1328,7 @@ onMounted(() => {
             style="font-size: 18px"
             type="warning"
             @click="questionVisible = true"
-          >存在疑问
+            >存在疑问
           </el-link>
         </div>
         <el-button icon="Refresh" v-if="reportFixed" @click="reGetReport">重置所有更改</el-button>
@@ -1235,7 +1341,7 @@ onMounted(() => {
         <el-button icon="Close" size="large" type="danger" @click="feedbackVisible = true">审核未通过</el-button>
       </div>
       <div v-if="hasQuestion">
-        <el-button size="large" type="warning">? 生成疑问工单</el-button>
+        <el-button size="large" type="warning" @click="questionDialogVisible = true">? 生成疑问工单</el-button>
       </div>
     </el-card>
     <el-dialog v-model="errorVisible" title="缺陷操作" align-center width="80%">
@@ -1337,7 +1443,7 @@ onMounted(() => {
       </el-table>
     </el-dialog>
     <el-dialog v-model="feedbackVisible" title="请选择打回项" width="80%" align-center>
-      <el-table :data="stepList" height="400px">
+      <el-table :data="stepList" height="400px" @selection-change="handleSelectionChange">
         <el-table-column type="selection" />
         <el-table-column label="测试类型" width="150">
           <template #default="scope">
@@ -1371,9 +1477,61 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
-      <el-input type="textarea" :autosize="{ minRows: 6, maxRows: 6 }" style="margin-top: 10px" />
+      <el-input
+        v-model="feedbackReason"
+        type="textarea"
+        :autosize="{ minRows: 6, maxRows: 6 }"
+        style="margin-top: 10px"
+      />
       <template #footer>
         <el-button type="danger" @click="handleFeedback">打回</el-button>
+      </template>
+    </el-dialog>
+    <el-dialog v-model="questionDialogVisible" title="生成确认" width="80%" align-center>
+      <el-table :data="questionList">
+        <el-table-column label="测试类型">
+          <template #default="scope">
+            <el-text>
+              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
+            </el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="疑问位置">
+          <template #default="scope">
+            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
+            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
+            <el-text v-if="scope.row.areaPosition !== undefined">
+              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
+            </el-text>
+            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="检测项">
+          <template #default="scope">
+            <el-text> {{ scope.row.content.name }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="疑问描述">
+          <template #default="scope">
+            <el-text> {{ scope.row.content.question.desc }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="留存图片">
+          <template #default="scope">
+            <div style="display: flex">
+              <el-text style="margin-right: 5px">共{{ scope.row.content.question.url.length }}张</el-text>
+              <el-image
+                :preview-teleported="true"
+                :preview-src-list="scope.row.content.question.url"
+                :src="scope.row.content.question.url[0]"
+              />
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="questionDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleQuestion">确认</el-button>
       </template>
     </el-dialog>
   </div>

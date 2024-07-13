@@ -80,9 +80,17 @@ const defineLink = (status: any) => {
     case "2":
       return { 1: "详情" }
     case "3":
-      return { 1: "详情", 2: "查看报告" }
+      return { 1: "详情" }
     case "4":
+      return { 1: "详情" }
+    case "5":
+      return { 1: "详情", 2: "查看报告" }
+    case "6":
       return { 1: "详情", 2: "查看报告", 3: "查看故障" }
+    case "7":
+      return { 1: "详情" }
+    case "8":
+      return { 1: "详情" }
   }
 }
 const getTableData = () => {
@@ -148,8 +156,7 @@ const handleSearch = async () => {
   const tableResult = await getTestMangeTable(params)
   // 赋值
   TableData.value = tableResult.TableData
-  // 判断是否为第一页，是则重新渲染，否则置一
-  // paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
+  getTableData()
 }
 const resetSearch = () => {
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
@@ -242,7 +249,7 @@ const submitAdd = () => {
   })
 }
 // 测试状态
-const TestStatus = reactive<any>([
+const TestStatus = reactive([
   {
     status: 0,
     mes: "已创建"
@@ -261,15 +268,23 @@ const TestStatus = reactive<any>([
   },
   {
     status: 4,
-    mes: "测试正常"
+    mes: "待重做"
   },
   {
     status: 5,
-    mes: "测试异常"
+    mes: "测试正常"
   },
   {
     status: 6,
+    mes: "测试异常"
+  },
+  {
+    status: 7,
     mes: "测试暂存"
+  },
+  {
+    status: 8,
+    mes: "疑问待处理"
   }
 ])
 
@@ -448,9 +463,11 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
             <el-tag v-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
             <el-tag v-if="row['testunit_status'] === '2'"> 测试中</el-tag>
             <el-tag v-if="row['testunit_status'] === '3'" type="warning"> 测试待审核</el-tag>
-            <el-tag v-if="row['testunit_status'] === '4'" type="success"> 测试正常</el-tag>
-            <el-tag v-if="row['testunit_status'] === '5'" type="danger"> 测试异常</el-tag>
-            <el-tag v-if="row['testunit_status'] === '6'" type="warning"> 测试暂存</el-tag>
+            <el-tag v-if="row['testunit_status'] === '4'" type="danger"> 待重做</el-tag>
+            <el-tag v-if="row['testunit_status'] === '5'" type="success"> 测试正常</el-tag>
+            <el-tag v-if="row['testunit_status'] === '6'" type="danger"> 测试异常</el-tag>
+            <el-tag v-if="row['testunit_status'] === '7'" type="warning"> 测试暂存</el-tag>
+            <el-tag v-if="row['testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
           </template>
           <template #link="{ row }">
             <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">{{

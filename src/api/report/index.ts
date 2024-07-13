@@ -57,3 +57,12 @@ export const checkReportFeedbackApi = (data: any) => {
     data
   })
 }
+
+export const generateQuestionUnitApi = (data: any) => {
+  return request({
+    url: "test/questionunit/add/",
+    headers: { "Content-Type": "multipart/form-data" },
+    method: "post",
+    data
+  })
+}
