@@ -4,9 +4,12 @@ import { useRoute, useRouter } from "vue-router"
 import { checkReportDataApi } from "@/api/report"
 import ReportPreview from "@/components/Check/ReportPreview.vue"
 import { ElMessageBox } from "element-plus"
+import { checkReportPassApi , checkReportFeedbackApi } from "@/api/report"
 
 const reportJson = ref({})
 const hasError = ref(false)
+const feedbackVisible = ref(false)
+const reportFixed = ref(false)
 const errorVisible = ref(false)
 const questionVisible = ref(false)
 const hasQuestion = ref(false)
@@ -16,6 +19,7 @@ const route = useRoute()
 const router = useRouter()
 const errorList = ref([])
 const questionList = ref([])
+const stepList = ref([])
 const anyObj = reactive({
   id: "",
   type: "",
@@ -69,7 +73,21 @@ const generateErrorList = (obj, path = []) => {
   }
   return paths
 }
-
+const generateStepList = (obj, path = []) => {
+  let paths = []
+  if (obj === null || typeof obj !== "object") {
+    return paths
+  }
+  if (Object.prototype.hasOwnProperty.call(obj, "stepList")) {
+    paths.push([...path, "stepList"])
+  }
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key) && typeof obj[key] === "object") {
+      paths = paths.concat(generateStepList(obj[key], [...path, key]))
+    }
+  }
+  return paths
+}
 const getNestedValue = (obj, path) => {
   return path.reduce((acc, key) => {
     if (acc && acc[key] !== undefined) {
@@ -85,6 +103,7 @@ const errorPass = (obj) => {
     cancelButtonText: "取消",
     type: "warning"
   }).then(() => {
+    reportFixed.value = true
     if (obj.type === "eyes") {
       if (obj.position === "total") {
         reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 1
@@ -221,6 +240,7 @@ const errorQuestion = (obj) => {
     cancelButtonText: "取消",
     type: "warning"
   }).then(() => {
+    reportFixed.value = true
     if (obj.type === "eyes") {
       if (obj.position === "total") {
         reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 3
@@ -426,6 +446,7 @@ const questionPass = (obj) => {
     cancelButtonText: "取消",
     type: "warning"
   }).then(() => {
+    reportFixed.value = true
     if (obj.type === "eyes") {
       if (obj.position === "total") {
         reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 1
@@ -568,6 +589,7 @@ const questionError = (obj) => {
     cancelButtonText: "取消",
     type: "warning"
   }).then(() => {
+    reportFixed.value = true
     if (obj.type === "eyes") {
       if (obj.position === "total") {
         reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 3
@@ -770,10 +792,10 @@ const questionError = (obj) => {
 const getErrorQuestionList = () => {
   errorList.value = []
   questionList.value = []
+  stepList.value = []
   generateErrorList(reportJson.value).forEach((item) => {
     if (item.includes("eyes")) {
       if (item.includes("total")) {
-        console.log(getNestedValue(reportJson.value, item))
         getNestedValue(reportJson.value, item).forEach((value) => {
           errorList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
         })
@@ -979,6 +1001,110 @@ const getErrorQuestionList = () => {
       }
     }
   })
+  generateStepList(reportJson.value).forEach((item) => {
+    if (item.includes("eyes")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          stepList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            stepList.value.push({
+              type: "eyes",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            stepList.value.push({
+              type: "eyes",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+    if (item.includes("eyesBak")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          stepList.value.push({ type: "eyesBak", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            stepList.value.push({
+              type: "eyesBak",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            stepList.value.push({
+              type: "eyesBak",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+    if (item.includes("xray")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          stepList.value.push({ type: "xray", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            stepList.value.push({
+              type: "xray",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            stepList.value.push({
+              type: "xray",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+  })
   hasError.value = hasProperty(reportJson.value, "errorList")
   hasQuestion.value = hasProperty(reportJson.value, "questionList")
   if (errorList.value.length === 0) {
@@ -987,8 +1113,60 @@ const getErrorQuestionList = () => {
   if (questionList.value.length === 0) {
     questionVisible.value = false
   }
+  console.log(stepList.value)
 }
+const checkPass = () => {
+  loading.value = true
+  const jsonString = JSON.stringify(reportJson.value)
+  const blob = new Blob([jsonString], { type: "application/json" })
+  const data = {
+    id: anyObj.id,
+    status: hasError.value === false ? 2 : 3
+  }
+  const formData = new FormData()
+  for (const key in data) {
+    formData.append(key, data[key])
+  }
+  formData.append("file", blob, "data.json")
+  checkReportPassApi(formData).then((res) => {
+    if (res.msg === "success") {
+      loading.value = false
+      router.push("/datamanage/reportCheckList")
+    }
+  })
+}
+const handlePass = () => {
+  ElMessageBox.confirm("确认通过审核吗？", "确认审核", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    if (reportFixed.value === true) {
+      ElMessageBox.confirm("当前报告已被更改,确认以修改后状态通过审核吗？", "确认提交", {
+        confirmButtonText: "确认",
+        cancelButtonText: "取消",
+        type: "warning"
+      }).then(() => {
+        checkPass()
+      })
+    } else {
+      checkPass()
+    }
+  })
+}
+const handleFeedback = () => {
 
+}
+const reGetReport = () => {
+  loading.value = true
+  reportFixed.value = false
+  checkReportDataApi({ id: route.query.id }).then((res) => {
+    loaded.value = true
+    loading.value = false
+    getErrorQuestionList()
+    reportJson.value = res.data
+  })
+}
 onMounted(() => {
   loading.value = true
   anyObj.type = route.query.type
@@ -1025,37 +1203,42 @@ onMounted(() => {
           <el-input v-model="anyObj.date" disabled />
         </el-form-item>
       </el-form>
-      <el-text v-if="!hasQuestion && !hasError" size="large" style="color: green">测试正常</el-text>
-      <el-link
-        v-if="hasError"
-        :underline="false"
-        size="large"
-        style="font-size: 18px; margin-right: 20px"
-        type="danger"
-        @click="errorVisible = true"
-        >存在缺陷
-      </el-link>
-      <el-link
-        v-if="hasQuestion"
-        :underline="false"
-        size="large"
-        style="font-size: 18px"
-        type="warning"
-        @click="questionVisible = true"
-        >存在疑问
-      </el-link>
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div>
+          <el-text v-if="!hasQuestion && !hasError" size="large" style="color: green">测试正常</el-text>
+          <el-link
+            v-if="hasError"
+            :underline="false"
+            size="large"
+            style="font-size: 18px; margin-right: 20px"
+            type="danger"
+            @click="errorVisible = true"
+          >存在缺陷
+          </el-link>
+          <el-link
+            v-if="hasQuestion"
+            :underline="false"
+            size="large"
+            style="font-size: 18px"
+            type="warning"
+            @click="questionVisible = true"
+          >存在疑问
+          </el-link>
+        </div>
+        <el-button icon="Refresh" v-if="reportFixed" @click="reGetReport">重置所有更改</el-button>
+      </div>
       <div style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px">
         <report-preview v-if="loaded" v-model:preview-list="reportJson" mode="check" style="width: 100vw" />
       </div>
       <div v-if="!hasQuestion">
-        <el-button icon="Check" size="large" type="success" @click="">审核通过</el-button>
-        <el-button icon="Close" size="large" type="danger" @click="">审核未通过</el-button>
+        <el-button icon="Check" size="large" type="success" @click="handlePass">审核通过</el-button>
+        <el-button icon="Close" size="large" type="danger" @click="feedbackVisible = true">审核未通过</el-button>
       </div>
       <div v-if="hasQuestion">
-        <el-button size="large" type="warning" @click="">? 生成疑问工单</el-button>
+        <el-button size="large" type="warning">? 生成疑问工单</el-button>
       </div>
     </el-card>
-    <el-dialog v-model="errorVisible" title="缺陷操作" width="80%">
+    <el-dialog v-model="errorVisible" title="缺陷操作" align-center width="80%">
       <el-table :data="errorList">
         <el-table-column label="测试类型">
           <template #default="scope">
@@ -1104,7 +1287,7 @@ onMounted(() => {
         </el-table-column>
       </el-table>
     </el-dialog>
-    <el-dialog v-model="questionVisible" title="疑问操作" width="80%">
+    <el-dialog v-model="questionVisible" title="疑问操作" width="80%" align-center>
       <el-table :data="questionList">
         <el-table-column label="测试类型">
           <template #default="scope">
@@ -1152,6 +1335,46 @@ onMounted(() => {
           </template>
         </el-table-column>
       </el-table>
+    </el-dialog>
+    <el-dialog v-model="feedbackVisible" title="请选择打回项" width="80%" align-center>
+      <el-table :data="stepList" height="400px">
+        <el-table-column type="selection" />
+        <el-table-column label="测试类型" width="150">
+          <template #default="scope">
+            <el-text>
+              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
+            </el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="检测位置">
+          <template #default="scope">
+            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
+            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
+            <el-text v-if="scope.row.areaPosition !== undefined">
+              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
+            </el-text>
+            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="检测项名称">
+          <template #default="scope">
+            <el-text> {{ scope.row.content.name }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="测试结果" fixed="right" align="right">
+          <template #default="scope">
+            <el-text
+              :type="scope.row.content.pass === 1 ? 'success' : scope.row.content.pass === 3 ? 'warning' : 'danger'"
+            >
+              {{ scope.row.content.pass === 1 ? "通过" : scope.row.content.pass === 3 ? "疑问" : "未通过" }}</el-text
+            >
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-input type="textarea" :autosize="{ minRows: 6, maxRows: 6 }" style="margin-top: 10px" />
+      <template #footer>
+        <el-button type="danger" @click="handleFeedback">打回</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>

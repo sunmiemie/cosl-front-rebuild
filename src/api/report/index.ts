@@ -39,3 +39,21 @@ export const checkReportDataApi = (params: any) => {
     params
   })
 }
+
+export const checkReportPassApi = (data: any) => {
+  return request({
+    url: "data/report/check/pass",
+    headers: { "Content-Type": "multipart/form-data" },
+    method: "post",
+    data
+  })
+}
+
+export const checkReportFeedbackApi = (data: any) => {
+  return request({
+    url: "data/report/check/feedback",
+    headers: { "Content-Type": "multipart/form-data" },
+    method: "post",
+    data
+  })
+}

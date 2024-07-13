@@ -65,8 +65,12 @@ const searchData = reactive({
 const defineLink = (status: string) => {
   switch (status) {
     case "0":
-      return { 1: "查看", 2: "导出" }
+      return { 1: "查看" }
     case "1":
+      return { 1: "查看" }
+    case "2":
+      return { 1: "查看", 2: "导出" }
+    case "3":
       return { 1: "查看", 2: "导出" }
   }
 }
@@ -175,8 +179,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             <TableComponent :tableData="TableData" :column-data="headers1" stripe>
               <template #status="{ row }">
                 <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
-                <el-tag v-if="row['status'] === '1'" type="danger"> 测试正常 </el-tag>
-                <el-tag v-if="row['status'] === '2'" type="danger"> 测试异常 </el-tag>
+                <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>
+                <el-tag v-if="row['status'] === '2'" type="success"> 测试正常 </el-tag>
+                <el-tag v-if="row['status'] === '3'" type="danger"> 测试异常 </el-tag>
               </template>
 
               <template #link="{ row }">
