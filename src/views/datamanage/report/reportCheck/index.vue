@@ -1436,8 +1436,8 @@ onMounted(() => {
         </el-table-column>
         <el-table-column align="center" fixed="right" label="操作">
           <template #default="scope">
-            <el-button type="success" @click="questionPass(scope.row, scope.$index)">通过</el-button>
-            <el-button type="danger" @click="questionError(scope.row, scope.$index)">缺陷</el-button>
+            <el-button type="success" @click="questionPass(scope.row)">通过</el-button>
+            <el-button type="danger" @click="questionError(scope.row)">缺陷</el-button>
           </template>
         </el-table-column>
       </el-table>
