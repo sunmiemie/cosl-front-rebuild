@@ -596,7 +596,7 @@ const questionError = (obj) => {
     reportFixed.value = true
     if (obj.type === "eyes") {
       if (obj.position === "total") {
-        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 3
+        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 2
         if (reportJson.value.json.threeD.eyes.total.errorList === undefined) {
           reportJson.value.json.threeD.eyes.total["errorList"] = []
         }
@@ -614,7 +614,7 @@ const questionError = (obj) => {
         })
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
           if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList === undefined) {
             reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general["errorList"] = []
           }
@@ -632,7 +632,7 @@ const questionError = (obj) => {
             }
           })
         } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 3
+          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
           if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
             reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
           }
@@ -661,7 +661,7 @@ const questionError = (obj) => {
       }
     } else if (obj.type === "eyesBak") {
       if (obj.position === "total") {
-        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 3
+        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 2
         if (reportJson.value.json.threeD.eyesBak.total.errorList === undefined) {
           reportJson.value.json.threeD.eyesBak.total["errorList"] = []
         }
@@ -679,7 +679,7 @@ const questionError = (obj) => {
         })
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
           if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList === undefined) {
             reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general["errorList"] = []
           }
@@ -698,7 +698,7 @@ const questionError = (obj) => {
           })
         } else if (obj.areaPosition === "detail") {
           reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
-            3
+            2
           if (
             reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined
           ) {
@@ -730,7 +730,7 @@ const questionError = (obj) => {
       }
     } else if (obj.type === "xray") {
       if (obj.position === "total") {
-        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 3
+        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 2
         if (reportJson.value.json.xray.total.errorList === undefined) {
           reportJson.value.json.xray.total["errorList"] = []
         }
@@ -748,7 +748,7 @@ const questionError = (obj) => {
         })
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
+          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
           if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList === undefined) {
             reportJson.value.json.xray.area[obj.areaId - 1].general["errorList"] = []
           }
@@ -766,7 +766,7 @@ const questionError = (obj) => {
             }
           })
         } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 3
+          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
           if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
             reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
           }
