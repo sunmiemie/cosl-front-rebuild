@@ -80,6 +80,15 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       },
       {
+        path: "Questionlist",
+        component: () => import("@/views/testmanage/Questionlist/index.vue"),
+        name: "Questionlist",
+        meta: {
+          title: "疑问工单列表",
+          keepAlive: true
+        }
+      },
+      {
         path: "testprocess",
         component: () => import("@/views/testmanage/process/index.vue"),
         name: "TestProcess",
@@ -136,21 +145,13 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       },
       {
-        path: "Questionlist",
-        component: () => import("@/views/testmanage/Questionlist/index.vue"),
-        name: "Questionlist",
-        meta: {
-          title: "疑问工单列表",
-          keepAlive: true
-        }
-      },
-      {
         path: "testmonitor",
         component: () => import("@/views/testmanage/testmonitor/index.vue"),
         name: "TestMonitor",
         meta: {
           title: "测试进度监控",
-          keepAlive: true
+          keepAlive: true,
+          hidden: true
         }
       }
     ]
@@ -197,7 +198,8 @@ export const constantRoutes: RouteRecordRaw[] = [
             name: "PSI",
             meta: {
               title: "主机管理",
-              keepAlive: true
+              keepAlive: true,
+              hidden: true
             }
           },
           {
@@ -206,7 +208,8 @@ export const constantRoutes: RouteRecordRaw[] = [
             name: "Equipments",
             meta: {
               title: "其他设备管理",
-              keepAlive: true
+              keepAlive: true,
+              hidden: true
             }
           }
         ]
@@ -244,7 +247,8 @@ export const constantRoutes: RouteRecordRaw[] = [
             name: "PSIModel",
             meta: {
               title: "主机型号管理",
-              keepAlive: true
+              keepAlive: true,
+              hidden: true
             }
           },
           {
@@ -253,7 +257,8 @@ export const constantRoutes: RouteRecordRaw[] = [
             name: "EquipmentType",
             meta: {
               title: "其他设备类型管理",
-              keepAlive: true
+              keepAlive: true,
+              hidden: true
             }
           }
         ]
@@ -264,7 +269,8 @@ export const constantRoutes: RouteRecordRaw[] = [
         name: "DeviceFault",
         meta: {
           title: "设备故障管理",
-          keepAlive: true
+          keepAlive: true,
+          hidden: true
         }
       },
       {
@@ -341,7 +347,8 @@ export const constantRoutes: RouteRecordRaw[] = [
         name: "DataStore",
         meta: {
           title: "数据归档与回溯",
-          keepAlive: true
+          keepAlive: true,
+          hidden: true
         }
       }
     ]
@@ -354,7 +361,8 @@ export const constantRoutes: RouteRecordRaw[] = [
     meta: {
       title: "日常管理",
       elIcon: "Warning",
-      alwaysShow: true
+      alwaysShow: true,
+      hidden: true
     },
     children: [
       {
@@ -394,7 +402,8 @@ export const dynamicRoutes: RouteRecordRaw[] = [
       title: "权限",
       svgIcon: "lock",
       roles: ["admin", "editor"], // 可以在根路由中设置角色
-      alwaysShow: true // 将始终显示根菜单
+      alwaysShow: true, // 将始终显示根菜单
+      hidden: true
     },
     children: [
       {

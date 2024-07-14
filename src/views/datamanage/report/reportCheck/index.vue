@@ -665,7 +665,7 @@ const questionError = (obj) => {
         if (reportJson.value.json.threeD.eyesBak.total.errorList === undefined) {
           reportJson.value.json.threeD.eyesBak.total["errorList"] = []
         }
-        reportJson.value.json.threeD.eyesBak.total.errorList.forEach((item, index) => {
+        reportJson.value.json.threeD.eyesBak.total.questionList.forEach((item, index) => {
           if (item.id === obj.id) {
             const { question: error, ...rest } = reportJson.value.json.threeD.eyesBak.total.questionList[index]
             const newObj = { error, ...rest }

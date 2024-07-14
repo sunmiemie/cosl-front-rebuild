@@ -44,6 +44,7 @@ const handleCreate = () => {
   createBatchDataApi(param)
     .then(() => {
       ElMessage.success("新增成功")
+      fileList.file = []
       getTableData()
     })
     .finally(() => {

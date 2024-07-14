@@ -78,6 +78,7 @@ const handleLink = (data: any, i: string) => {
     questionOperateDataApi({ id: data["questionunit_id"] })
       .then((res) => {
         questionList.value = res.data
+        console.log(questionList.value)
       })
       .finally(() => {
         questionLoading.value = false
@@ -286,7 +287,7 @@ const questionError = (obj) => {
       }
       reportJson.value.json.threeD.eyes.total.questionList.forEach((item, index) => {
         if (item.id === obj.id) {
-          const { question: error, ...rest } = reportJson.value.json.threeD.eyes.total.questionList[index]
+          const { question: error, ...rest } = obj.content
           const newObj = { error, ...rest }
           reportJson.value.json.threeD.eyes.total.errorList.push(newObj)
           if (reportJson.value.json.threeD.eyes.total.questionList.length === 1) {
@@ -304,8 +305,7 @@ const questionError = (obj) => {
         }
         reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
           if (item.id === obj.id) {
-            const { question: error, ...rest } =
-              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList[index]
+            const { question: error, ...rest } = obj.content
             const newObj = { error, ...rest }
             reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.push(newObj)
             if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.length === 1) {
@@ -323,8 +323,7 @@ const questionError = (obj) => {
         reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
           (item, index) => {
             if (item.id === obj.id) {
-              const { question: error, ...rest } =
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
+              const { question: error, ...rest } = obj.content
               const newObj = { error, ...rest }
               reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(newObj)
               if (
@@ -349,9 +348,9 @@ const questionError = (obj) => {
       if (reportJson.value.json.threeD.eyesBak.total.errorList === undefined) {
         reportJson.value.json.threeD.eyesBak.total["errorList"] = []
       }
-      reportJson.value.json.threeD.eyesBak.total.errorList.forEach((item, index) => {
+      reportJson.value.json.threeD.eyesBak.total.questionList.forEach((item, index) => {
         if (item.id === obj.id) {
-          const { question: error, ...rest } = reportJson.value.json.threeD.eyesBak.total.questionList[index]
+          const { question: error, ...rest } = obj.content
           const newObj = { error, ...rest }
           reportJson.value.json.threeD.eyesBak.total.errorList.push(newObj)
           if (reportJson.value.json.threeD.eyesBak.total.questionList.length === 1) {
@@ -369,8 +368,7 @@ const questionError = (obj) => {
         }
         reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
           if (item.id === obj.id) {
-            const { question: error, ...rest } =
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList[index]
+            const { question: error, ...rest } = obj.content
             const newObj = { error, ...rest }
             reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.push(newObj)
             if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.length === 1) {
@@ -390,8 +388,7 @@ const questionError = (obj) => {
         reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
           (item, index) => {
             if (item.id === obj.id) {
-              const { question: error, ...rest } =
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
+              const { question: error, ...rest } = obj.content
               const newObj = { error, ...rest }
               reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(newObj)
               if (
@@ -418,7 +415,7 @@ const questionError = (obj) => {
       }
       reportJson.value.json.xray.total.questionList.forEach((item, index) => {
         if (item.id === obj.id) {
-          const { question: error, ...rest } = reportJson.value.json.xray.total.questionList[index]
+          const { question: error, ...rest } = obj.content
           const newObj = { error, ...rest }
           reportJson.value.json.xray.total.errorList.push(newObj)
           if (reportJson.value.json.xray.total.questionList.length === 1) {
@@ -436,8 +433,7 @@ const questionError = (obj) => {
         }
         reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
           if (item.id === obj.id) {
-            const { question: error, ...rest } =
-              reportJson.value.json.xray.area[obj.areaId - 1].general.questionList[index]
+            const { question: error, ...rest } = obj.content
             const newObj = { error, ...rest }
             reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.push(newObj)
             if (reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.length === 1) {
@@ -454,8 +450,7 @@ const questionError = (obj) => {
         }
         reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach((item, index) => {
           if (item.id === obj.id) {
-            const { question: error, ...rest } =
-              reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
+            const { question: error, ...rest } = obj.content
             const newObj = { error, ...rest }
             reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(newObj)
             if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.length === 1) {
@@ -490,12 +485,11 @@ const handleOperate = () => {
           questionError(item)
         }
       })
-      const hasError = hasProperty(reportJson.value, "errorList")
       const jsonString = JSON.stringify(reportJson.value)
       const blob = new Blob([jsonString], { type: "application/json" })
       const data = {
         id: currentReportId.value,
-        status: !hasError ? 2 : 3,
+        status: !hasProperty(reportJson.value, "errorList") ? 2 : 3,
         mode: "question"
       }
       const formData = new FormData()
@@ -511,6 +505,7 @@ const handleOperate = () => {
           }
         })
         .finally(() => {
+          getTableData()
           updateLoading.value = false
         })
     })
@@ -613,7 +608,7 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
         </el-table-column>
         <el-table-column align="center" label="留存图片" width="550">
           <template #default="scope">
-            <div style="display: flex">
+            <div style="display: flex" v-if="scope.row['pass'] !== true">
               <el-text style="margin-right: 5px; width: 15px">共{{ scope.row.content.question.url.length }}张</el-text>
               <el-link style="margin-left: 5px; width: 10px" :underline="false" @click="uploadNew(scope.$index)"
                 >上传新图片</el-link
@@ -659,6 +654,7 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
                 </div>
               </div>
             </div>
+            <el-text v-else>设置通过无需留存图片</el-text>
           </template>
         </el-table-column>
         <el-table-column align="center" fixed="right" label="操作" width="150">
