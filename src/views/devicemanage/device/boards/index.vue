@@ -169,8 +169,8 @@ const getTableData = () => {
 }
 
 const handleNodeClick = (data: any) => {
-  searchData.boardModel = data.id
   if (data.children === undefined) {
+    searchData.boardModel = data.id
     getTableData()
   }
 }
