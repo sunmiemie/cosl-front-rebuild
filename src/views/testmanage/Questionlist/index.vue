@@ -6,7 +6,7 @@ import TableComponent from "@/components/Table/index.vue"
 import { questionUnitDataApi, questionOperateDataApi } from "@/api/questionunit"
 import { checkReportDataApi, checkReportPassApi, getSingleReportDataApi } from "@/api/report"
 import { useRouter } from "vue-router"
-import {useUserStore} from "@/store/modules/user"
+import { useUserStore } from "@/store/modules/user"
 
 const router = useRouter()
 defineOptions({

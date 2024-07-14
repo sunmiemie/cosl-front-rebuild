@@ -3,6 +3,7 @@ import { reactive, ref, watch, type Ref } from "vue"
 import { ElScrollbar, ElTable, ElTree, type FormInstance } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
+import { useRouter } from "vue-router"
 import {
   getTestMangePath,
   getbordsinfo,
@@ -14,12 +15,18 @@ import {
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
 import { useUserStore } from "@/store/modules/user"
+import {checkReportDataApi, getSingleReportDataApi} from "@/api/report"
 
 defineOptions({
   // 命名当前组件
   name: "ElementPlus"
 })
+const router = useRouter()
 const userStore = useUserStore()
+const reportJson = ref<any>([])
+const errorList = ref<any>([])
+const errorVisible = ref<boolean>(false)
+const errorLoading = ref<boolean>(false)
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const currentRow = ref<any>()
@@ -86,7 +93,7 @@ const defineLink = (status: any) => {
     case "5":
       return { 1: "详情", 2: "查看报告" }
     case "6":
-      return { 1: "详情", 2: "查看报告", 3: "查看故障" }
+      return { 1: "详情", 2: "查看报告", 3: "查看缺陷" }
     case "7":
       return { 1: "详情" }
     case "8":
@@ -107,6 +114,29 @@ let PublicFormInfo = reactive({
   user_name: "",
   testunit_starttime: ""
 })
+const generateErrorList = (obj, path = []) => {
+  let paths = []
+  if (obj === null || typeof obj !== "object") {
+    return paths
+  }
+  if (Object.prototype.hasOwnProperty.call(obj, "errorList")) {
+    paths.push([...path, "errorList"])
+  }
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key) && typeof obj[key] === "object") {
+      paths = paths.concat(generateErrorList(obj[key], [...path, key]))
+    }
+  }
+  return paths
+}
+const getNestedValue = (obj, path) => {
+  return path.reduce((acc, key) => {
+    if (acc && acc[key] !== undefined) {
+      return acc[key]
+    }
+    return undefined
+  }, obj)
+}
 const PublicOrDelete = ref<string>("发布")
 const drawer: Ref<boolean> = ref(false)
 // link操作逻辑
@@ -138,6 +168,125 @@ const handleLink = (data: any, i: string) => {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+  } else if (i === "查看报告") {
+    getSingleReportDataApi({ unitId: data["testunit_id"] }).then((res) => {
+      router.push({ name: "reportView", query: res.data })
+    })
+  } else if (i === "查看缺陷") {
+    errorVisible.value = true
+    errorLoading.value = true
+    getSingleReportDataApi({ unitId: data["testunit_id"] }).then((res) => {
+      const report_id = res.data["id"]
+      checkReportDataApi({ id: report_id }).then((res) => {
+        reportJson.value = res.data
+        errorList.value = []
+        generateErrorList(reportJson.value).forEach((item) => {
+          if (item.includes("eyes")) {
+            if (item.includes("total")) {
+              getNestedValue(reportJson.value, item).forEach((value) => {
+                errorList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
+              })
+            }
+            if (item.includes("area")) {
+              if (item.includes("general")) {
+                getNestedValue(reportJson.value, item).forEach((value) => {
+                  errorList.value.push({
+                    type: "eyes",
+                    position: "area",
+                    areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+                    areaPosition: "general",
+                    id: value.id,
+                    content: value
+                  })
+                })
+              }
+              if (item.includes("detail")) {
+                getNestedValue(reportJson.value, item).forEach((value) => {
+                  errorList.value.push({
+                    type: "eyes",
+                    position: "area",
+                    areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+                    areaPosition: "detail",
+                    detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+                    id: value.id,
+                    content: value
+                  })
+                })
+              }
+            }
+          }
+          if (item.includes("eyesBak")) {
+            if (item.includes("total")) {
+              getNestedValue(reportJson.value, item).forEach((value) => {
+                errorList.value.push({ type: "eyesBak", position: "total", id: value.id, content: value })
+              })
+            }
+            if (item.includes("area")) {
+              if (item.includes("general")) {
+                getNestedValue(reportJson.value, item).forEach((value) => {
+                  errorList.value.push({
+                    type: "eyesBak",
+                    position: "area",
+                    areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+                    areaPosition: "general",
+                    id: value.id,
+                    content: value
+                  })
+                })
+              }
+              if (item.includes("detail")) {
+                getNestedValue(reportJson.value, item).forEach((value) => {
+                  errorList.value.push({
+                    type: "eyesBak",
+                    position: "area",
+                    areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+                    areaPosition: "detail",
+                    detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+                    id: value.id,
+                    content: value
+                  })
+                })
+              }
+            }
+          }
+          if (item.includes("xray")) {
+            if (item.includes("total")) {
+              getNestedValue(reportJson.value, item).forEach((value) => {
+                errorList.value.push({ type: "xray", position: "total", id: value.id, content: value })
+              })
+            }
+            if (item.includes("area")) {
+              if (item.includes("general")) {
+                getNestedValue(reportJson.value, item).forEach((value) => {
+                  errorList.value.push({
+                    type: "xray",
+                    position: "area",
+                    areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+                    areaPosition: "general",
+                    id: value.id,
+                    content: value
+                  })
+                })
+              }
+              if (item.includes("detail")) {
+                getNestedValue(reportJson.value, item).forEach((value) => {
+                  errorList.value.push({
+                    type: "xray",
+                    position: "area",
+                    areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+                    areaPosition: "detail",
+                    detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+                    id: value.id,
+                    content: value
+                  })
+                })
+              }
+            }
+          }
+        })
+        errorLoading.value = false
+      })
+    })
   }
 }
 // 关闭详情
@@ -689,6 +838,49 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         @click="confirm(PublicOrDelete)"
         >确认{{ PublicOrDelete }}
       </el-button>
+    </el-dialog>
+    <el-dialog v-model="errorVisible" title="查看缺陷" align-center width="80%">
+      <el-table :data="errorList" height="700" v-loading="errorLoading">
+        <el-table-column label="测试类型">
+          <template #default="scope">
+            <el-text>
+              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
+            </el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="缺陷位置">
+          <template #default="scope">
+            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
+            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
+            <el-text v-if="scope.row.areaPosition !== undefined">
+              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
+            </el-text>
+            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="检测项">
+          <template #default="scope">
+            <el-text> {{ scope.row.content.name }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="缺陷描述">
+          <template #default="scope">
+            <el-text> {{ scope.row.content.error.desc }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="留存图片">
+          <template #default="scope">
+            <div style="display: flex">
+              <el-text style="margin-right: 5px">共{{ scope.row.content.error.url.length }}张</el-text>
+              <el-image
+                :preview-teleported="true"
+                :preview-src-list="scope.row.content.error.url"
+                :src="scope.row.content.error.url[0]"
+              />
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
     </el-dialog>
   </div>
 </template>
