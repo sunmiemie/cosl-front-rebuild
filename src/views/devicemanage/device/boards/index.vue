@@ -61,12 +61,12 @@ const currentUpdateId = ref<undefined | string>(undefined)
 const headers = ref([
   { prop: "id", label: "电路板ID", align: "center", width: "120", fixed: "left" },
   { prop: "name", label: "电路板型号", align: "center", width: "150" },
-  { prop: "seria", label: "电路板序列号", align: "center", width: "250" },
+  { prop: "seria", label: "电路板序列号", align: "center" },
   { prop: "startTime", label: "入库时间", align: "center", width: "150" },
-  { prop: "statusFunc", label: "功能性测试", type: "tag", align: "center", width: "120" },
-  { prop: "statusEyes", label: "目检测试", type: "tag", align: "center", width: "120" },
-  { prop: "statusXray", label: "X-Ray测试", type: "tag", align: "center", width: "120" },
-  { prop: "statusHalt", label: "可靠性测试", type: "tag", align: "center", width: "120" },
+  //{ prop: "statusFunc", label: "功能性测试", type: "tag", align: "center", width: "120" },
+  //{ prop: "statusEyes", label: "目检测试", type: "tag", align: "center", width: "120" },
+  //{ prop: "statusXray", label: "X-Ray测试", type: "tag", align: "center", width: "120" },
+  //{ prop: "statusHalt", label: "可靠性测试", type: "tag", align: "center", width: "120" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
 

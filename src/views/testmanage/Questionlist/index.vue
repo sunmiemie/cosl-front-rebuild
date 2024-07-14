@@ -4,8 +4,10 @@ import { ElMessage, ElMessageBox } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { questionUnitDataApi, questionOperateDataApi } from "@/api/questionunit"
-import { checkReportDataApi, checkReportPassApi } from "@/api/report"
+import { checkReportDataApi, checkReportPassApi, getSingleReportDataApi } from "@/api/report"
+import { useRouter } from "vue-router"
 
+const router = useRouter()
 defineOptions({
   // 命名当前组件
   name: "ElementPlus"
@@ -83,6 +85,10 @@ const handleLink = (data: any, i: string) => {
       .finally(() => {
         questionLoading.value = false
       })
+  } else if (i === "查看报告") {
+    getSingleReportDataApi({ id: data["report_id"] }).then((res) => {
+      router.push({ name: "reportView", query: res.data })
+    })
   }
 }
 const handleSearch = () => {

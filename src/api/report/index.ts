@@ -16,6 +16,13 @@ export function getReportDataApi(params: {
     params
   })
 }
+export function getSingleReportDataApi(params: any) {
+  return request<TestType.GetReportResponseData>({
+    url: "data/report/single",
+    method: "get",
+    params
+  })
+}
 
 export function getReportCheckDataApi(params: {
   size: number
