@@ -14,6 +14,7 @@ defineOptions({
 })
 const loading = ref<boolean>(false)
 const updateLoading = ref<boolean>(false)
+const detailDrawer = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const currentReportId = ref<number>()
 // 显示
@@ -71,16 +72,22 @@ const getTableData = () => {
 }
 const handleLink = (data: any, i: string) => {
   if (i === "详情") {
-    /* empty */
+    detailDrawer.value = true
+    questionLoading.value = true
+    questionOperateDataApi({ id: data["questionunit_id"] })
+      .then((res) => {
+        questionList.value = res.data
+      })
+      .finally(() => {
+        questionLoading.value = false
+      })
   } else if (i === "直接处理") {
     operatorDialog.value = true
     questionLoading.value = true
     currentReportId.value = data["report_id"]
-    console.log(currentReportId.value)
     questionOperateDataApi({ id: data["questionunit_id"] })
       .then((res) => {
         questionList.value = res.data
-        console.log(questionList.value)
       })
       .finally(() => {
         questionLoading.value = false
@@ -583,6 +590,47 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
         />
       </div>
     </el-card>
+    <el-drawer v-model="detailDrawer" title="疑问详情" size="60%" @close="questionList = []">
+      <el-table v-loading="questionLoading" :data="questionList">
+        <el-table-column label="测试类型">
+          <template #default="scope">
+            <el-text>
+              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
+            </el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="疑问位置">
+          <template #default="scope">
+            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
+            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
+            <el-text v-if="scope.row.areaPosition !== undefined">
+              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
+            </el-text>
+            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="检测项">
+          <template #default="scope">
+            <el-text> {{ scope.row.content.name }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="疑问描述">
+          <template #default="scope">
+            <el-text> {{ scope.row.content.question.desc }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="留存图片">
+          <template #default="scope">
+            <el-text style="margin-right: 5px; width: 15px">共{{ scope.row.content.question.url.length }}张</el-text>
+            <el-image
+              :src="scope.row.content.question.url[0]"
+              :preview-src-list="scope.row.content.question.url"
+              fit="contain"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-drawer>
     <el-dialog v-model="operatorDialog" width="80%" title="直接处理" @close="questionList = []">
       <el-table v-loading="questionLoading" :data="questionList">
         <el-table-column label="测试类型" width="120">
