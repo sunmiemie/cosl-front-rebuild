@@ -6,12 +6,14 @@ import TableComponent from "@/components/Table/index.vue"
 import { questionUnitDataApi, questionOperateDataApi } from "@/api/questionunit"
 import { checkReportDataApi, checkReportPassApi, getSingleReportDataApi } from "@/api/report"
 import { useRouter } from "vue-router"
+import {useUserStore} from "@/store/modules/user"
 
 const router = useRouter()
 defineOptions({
   // 命名当前组件
   name: "ElementPlus"
 })
+const userStore = useUserStore()
 const loading = ref<boolean>(false)
 const updateLoading = ref<boolean>(false)
 const detailDrawer = ref<boolean>(false)
@@ -503,6 +505,7 @@ const handleOperate = () => {
       const data = {
         id: currentReportId.value,
         status: !hasProperty(reportJson.value, "errorList") ? 2 : 3,
+        userId: userStore.userid,
         mode: "question"
       }
       const formData = new FormData()

@@ -162,8 +162,7 @@ const resetSearch = () => {
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
   getMangeData()
 }
-//#endregion
-// 确认新增传递给后端的参数
+
 const detailform = reactive({
   unitId: "",
   unitName: "",

@@ -98,27 +98,16 @@ const getTableData = () => {
 
 const handleLink = (data: any, i: string) => {
   if (i == "导出") {
-    reportDownoload(data.report_filepath).then((res) => {
-      download(res, "application/octet-stream", data.report_filepath)
-    })
+    console.log(data)
+    const link = document.createElement("a")
+    link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${data.report_filepath}.pdf?id=${data.id}`
+    link.setAttribute("download", data.report_filepath + ".pdf")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   } else {
     router.push({ name: "reportView", query: data })
   }
-}
-const download = (file: any, fileType: string, fileName: string) => {
-  const blob = new Blob([file], {
-    type: fileType
-  })
-  const a = document.createElement("a")
-  const href = URL.createObjectURL(blob)
-  a.href = href
-  a.download = fileName
-  document.body.appendChild(a)
-  a.click()
-  // 下载完成移除a元素
-  document.body.removeChild(a)
-  // 释放blob对象
-  URL.revokeObjectURL(href)
 }
 
 const handleSearch = () => {
