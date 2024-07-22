@@ -2,7 +2,7 @@ import { request } from "@/utils/service"
 import type * as TestType from "./types/testtype"
 
 export function createTestTypeDataApi(data: TestType.CreateTestTypeRequestData) {
-  console.log(data)
+  // console.log(data)
   return request({
     url: "test/testtype/add",
     method: "post",

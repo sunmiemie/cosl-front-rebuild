@@ -34,7 +34,7 @@ const handleCreate = () => {
   } else {
     updateTestTypeDataApi({
       name: formData.name,
-      id: formData.id
+      id: currentUpdateId.value
     })
       .then(() => {
         ElMessage.success("修改成功")

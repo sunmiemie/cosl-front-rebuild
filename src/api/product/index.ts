@@ -1,7 +1,7 @@
 import { request } from "@/utils/service"
 
 // 仪器管理
-
+// 产品管理
 export function createProductDataApi(data: any) {
   return request({
     url: "equipment/instrumenttype/add",
