@@ -30,6 +30,7 @@ function createService() {
       if (responseType === "blob" || responseType === "arraybuffer") return apiData
       // 这个 code 是和后端约定的业务 code
       const code = apiData.code
+      const errormessage = apiData.errormessage
       // 如果没有 code, 代表这不是项目后端开发的 api
       if (code === undefined) {
         ElMessage.error("非本系统的接口")
@@ -51,6 +52,7 @@ function createService() {
     (error) => {
       // status 是 HTTP 状态码
       const status = get(error, "response.status")
+      const errormessage = get(error, "response.data.errormessage")
       switch (status) {
         case 400:
           error.message = "请求错误"
@@ -87,9 +89,10 @@ function createService() {
           error.message = "HTTP 版本不受支持"
           break
         default:
+          ElMessage.error(errormessage)
           break
       }
-      ElMessage.error(error.message)
+      // ElMessage.error(error.message)
       return Promise.reject(error)
     }
   )

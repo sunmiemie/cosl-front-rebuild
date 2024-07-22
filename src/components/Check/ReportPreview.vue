@@ -10,7 +10,10 @@ const props = defineProps(["previewList", "mode"])
           <template #title>
             <el-text style="margin-left: 10px; font-size: 20px">2D留存图</el-text>
           </template>
+          <el-text>正面留存</el-text>
           <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%" />
+          <el-text>背面留存</el-text>
+          <el-image :src="props.previewList.json.twoDBak" fit="contain" style="width: 100%" />
         </el-collapse-item>
         <el-collapse-item v-if="props.previewList.json.plane['leftPass'] != undefined">
           <template #title>
