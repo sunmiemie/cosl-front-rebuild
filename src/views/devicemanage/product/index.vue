@@ -1,3 +1,5 @@
+<!--产品管理-->
+
 <template>
   <div class="app-container">
     <el-card v-loading="loading" shadow="never" class="search-wrapper">
@@ -70,7 +72,7 @@
 import { ref, reactive, watch, type Ref } from "vue"
 import TableComponent from "@/components/Table/index.vue"
 import { Search, Refresh, CirclePlus, RefreshRight } from "@element-plus/icons-vue"
-import { createProductDataApi, updateProductDataApi, getProductDataApi } from "@/api/product/index"
+import { createProductDataApi, updateProductDataApi, getProductDataApi } from "@/api/product"
 import { ElMessage, type FormRules } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 const loading = ref<boolean>(false)

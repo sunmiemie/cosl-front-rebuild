@@ -1,10 +1,6 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
-import {
-  createEquipmentTypeDataApi,
-  getEquipmentTypeDataApi,
-  updateEquipmentTypeDataApi
-} from "@/api/otherModelType/index"
+import { createEquipmentTypeDataApi, getEquipmentTypeDataApi, updateEquipmentTypeDataApi } from "@/api/otherModelType"
 // import { type GetTableData } from "@/api/table/types/table"
 import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
@@ -180,10 +176,10 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       width="30%"
     >
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" label-position="left">
-        <el-form-item prop="name" label="设备ID">
+        <el-form-item prop="name" label="设备名称">
           <el-input v-model="formData.name" placeholder="请输入" />
         </el-form-item>
-        <el-form-item prop="pdes" label="设备名称">
+        <el-form-item prop="pdes" label="设备描述">
           <el-input v-model="formData.des" placeholder="请输入" />
         </el-form-item>
       </el-form>

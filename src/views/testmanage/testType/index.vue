@@ -1,3 +1,5 @@
+<!--测试类型列表-->
+
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { getTestTypeDataApi, createTestTypeDataApi, updateTestTypeDataApi } from "@/api/testtype"
@@ -51,12 +53,14 @@ const resetForm = () => {
   formData.name = ""
 }
 const currentUpdateId = ref<undefined | string>(undefined)
+
 const headers = ref([
   { prop: "number", label: "类型ID", align: "center" },
   { prop: "name", label: "测试类型", align: "center" },
   { prop: "processCount", label: "所属流程数量", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "center" }
 ])
+
 const TableData = ref<any[]>([])
 const searchFormRef = ref<FormInstance | null>(null)
 const searchData = reactive({
