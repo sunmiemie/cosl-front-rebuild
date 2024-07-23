@@ -1,8 +1,10 @@
+<!--主机管理-->
+
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { createHostModelDataApi, getHostModelDataApi, updateHostModelDataApi } from "@/api/psi"
-import { getAnnualinspection } from "@/api/Annualinspection/index"
-import { fileDownoload } from "@/api/file/index"
+import { getAnnualinspection } from "@/api/Annualinspection"
+import { fileDownoload } from "@/api/file"
 import { getPsiModelDataApi } from "@/api/psimodel"
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
 import { CirclePlus, Printer, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
@@ -60,7 +62,6 @@ const handleCreate = () => {
             dialogVisible.value = false
           })
       } else {
-        console.log("fail")
         updateHostModelDataApi({
           id: formData.psimodelId,
           psiModel: formData.psiModel,
@@ -185,7 +186,7 @@ const getSelection = () => {
   console.log("print", selectedRows.value)
 }
 const handleLink = (data: any, i: any) => {
-  if (i == "编辑") {
+  if (i === "编辑") {
     console.log(data)
     currentUpdateId.value = data.psi_id
     dialogVisible.value = true

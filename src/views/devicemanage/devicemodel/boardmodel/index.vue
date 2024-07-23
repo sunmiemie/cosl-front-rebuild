@@ -1,3 +1,5 @@
+<!--电路板型号管理-->
+
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { createBoardModelDataApi, getBoardModelDataApi, updateBoardModelDataApi } from "@/api/boardmodel"
@@ -79,6 +81,7 @@ const resetForm = () => {
   formData.type = ""
 }
 const currentUpdateId = ref<undefined | string>(undefined)
+
 const headers = ref([
   { prop: "id", label: "电路板物料号", align: "center" },
   { prop: "name", label: "电路板物料名称", align: "center" },
@@ -86,6 +89,7 @@ const headers = ref([
   { prop: "type", label: "关联仪器", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
+
 const TableData = ref<GetBoardModelData[]>([])
 const searchFormRef = ref<FormInstance | null>(null)
 const searchData = reactive({
@@ -102,7 +106,6 @@ const getTableData = async () => {
     name: searchData.name || undefined
   })
     .then((res) => {
-      console.log(res)
       paginationData.total = res.data.total
       TableData.value = []
       // 检查后端返回的数据状态
@@ -131,14 +134,12 @@ const getTableData = async () => {
       loading.value = false
     })
   const result = await getInstrumentDataApi({})
-  console.log(result)
 
   DetailList.value = result.data.list
 }
 const selectedRows = ref([])
 
 const handleSelectionChange = (val: any) => {
-  console.log("index", val)
   selectedRows.value = val
 }
 // 编辑

@@ -1,3 +1,5 @@
+<!--夹具型号管理-->
+
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { createFixtureModelDataApi, getFixtureModelDataApi, updateFixtureModelDataApi } from "@/api/fixturemodel"
@@ -78,6 +80,7 @@ const resetForm = () => {
 
 //#region 改
 const currentUpdateId = ref<undefined | string>(undefined)
+
 const headers = ref([
   { prop: "id", label: "夹具型号ID", align: "center" },
   { prop: "name", label: "夹具型号名称", align: "center" },
@@ -85,6 +88,7 @@ const headers = ref([
   { prop: "typeName", label: "夹具类型", type: "center" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
+
 const TableData = ref<GetFixtureModelData[]>([])
 const searchFormRef = ref<FormInstance | null>(null)
 const searchData = reactive({

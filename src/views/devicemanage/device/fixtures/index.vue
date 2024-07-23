@@ -1,3 +1,5 @@
+<!--夹具管理-->
+
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { createFixtureDataApi, getFixtureDataApi, updateFixtureDataApi } from "@/api/fixture"
@@ -256,7 +258,7 @@ const handleCheck = () => {
   form.append("date", checkData.updateDate)
   form.append("type", "1")
   getAnnualinspection(form)
-    .then((res) => {
+    .then(() => {
       ElMessage.success("更新成功")
       getTableData()
     })

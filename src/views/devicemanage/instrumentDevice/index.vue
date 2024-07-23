@@ -1,3 +1,5 @@
+<!--仪器管理-->
+
 <template>
   <div class="app-container">
     <el-card v-loading="loading" shadow="never" class="search-wrapper">
@@ -73,9 +75,9 @@
 import { ref, reactive, watch, type Ref } from "vue"
 import TableComponent from "@/components/Table/index.vue"
 import { Search, Refresh, CirclePlus, RefreshRight } from "@element-plus/icons-vue"
-import { getInstrumentDataApi, createInstrumentDataApi, updateInstrumentDataApi } from "@/api/instrument/index"
+import { getInstrumentDataApi, createInstrumentDataApi, updateInstrumentDataApi } from "@/api/instrument"
 import { usePagination } from "@/hooks/usePagination"
-import { getProductDataApi } from "@/api/product/index"
+import { getProductDataApi } from "@/api/product"
 import { ElMessage } from "element-plus"
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
