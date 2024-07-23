@@ -13,6 +13,7 @@ import TableComponent from "@/components/Table/index.vue"
 import { GetPsiData } from "@/api/psi/types/psi"
 import QrcodeVue from "qrcode.vue"
 import { UploadFilled } from "@element-plus/icons-vue"
+import { getQRcodeImgApi } from "@/api/qrcode"
 
 defineOptions({
   // 命名当前组件
@@ -189,9 +190,43 @@ const handleSelectionChange = (val: any) => {
   console.log("index", val)
   selectedRows.value = val
 }
+
+// 打印二维码
 const getSelection = () => {
-  console.log("print", selectedRows.value)
+  console.log(selectedRows.value)
+  getQRcodeImgApi({
+    data: selectedRows.value,
+    headerKey: "psi_name",
+    seriaKey: "psi_serialnumber",
+    startTimeKey: "psi_date"
+  }).then((res) => {
+    if (res.code === 0) {
+      const imageData = res.data
+      const printWindow = window.open("", "_blank")
+      printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
+
+      for (const key in imageData) {
+        if (Object.prototype.hasOwnProperty.call(imageData, key)) {
+          const img = new Image()
+          img.src = imageData[key]
+          img.alt = "QR Code"
+          printWindow.document.body.appendChild(img)
+          printWindow.document.body.appendChild(document.createElement("br"))
+        }
+      }
+
+      printWindow.document.write("</body></html>")
+      printWindow.document.close()
+      printWindow.onload = function () {
+        printWindow.print()
+        printWindow.close()
+      }
+    } else {
+      console.error("Error fetching QR codes", res)
+    }
+  })
 }
+
 const handleLink = (data: any, i: any) => {
   if (i === "编辑") {
     console.log(data)
