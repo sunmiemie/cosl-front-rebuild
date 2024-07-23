@@ -198,8 +198,8 @@ export const constantRoutes: RouteRecordRaw[] = [
             name: "PSI",
             meta: {
               title: "主机管理",
-              keepAlive: true,
-              hidden: true
+              keepAlive: true
+              // hidden: true
             }
           },
           {
@@ -208,8 +208,8 @@ export const constantRoutes: RouteRecordRaw[] = [
             name: "Equipments",
             meta: {
               title: "其他设备管理",
-              keepAlive: true,
-              hidden: true
+              keepAlive: true
+              // hidden: true
             }
           }
         ]
@@ -247,8 +247,8 @@ export const constantRoutes: RouteRecordRaw[] = [
             name: "PSIModel",
             meta: {
               title: "主机型号管理",
-              keepAlive: true,
-              hidden: true
+              keepAlive: true
+              // hidden: true
             }
           },
           {
@@ -256,9 +256,10 @@ export const constantRoutes: RouteRecordRaw[] = [
             component: () => import("@/views/devicemanage/devicemodel/equipmenttype/index.vue"),
             name: "EquipmentType",
             meta: {
-              title: "其他设备类型管理",
-              keepAlive: true,
-              hidden: true
+              // title: "其他设备类型管理",
+              title: "其他设备型号管理",
+              keepAlive: true
+              // hidden: true
             }
           }
         ]

@@ -1,13 +1,15 @@
+<!--其他设备管理-->
+
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { createOtherDataApi, getOtherModelDataApi, updateOtherModelDataApi } from "@/api/othermodel"
-import { getAnnualinspection } from "@/api/Annualinspection/index"
+import { getAnnualinspection } from "@/api/Annualinspection"
 import { getEquipmentTypeDataApi } from "@/api/otherModelType"
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search, Printer, UploadFilled } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import { fileDownoload } from "@/api/file/index"
+import { fileDownoload } from "@/api/file"
 import QrcodeVue from "qrcode.vue"
 defineOptions({
   // 命名当前组件
@@ -34,7 +36,8 @@ const formData = reactive({
 })
 const formRules: FormRules = reactive({
   name: [{ required: true, trigger: "blur", message: "请输入设备名" }],
-  model: [{ required: true, trigger: "blur", message: "请选择型号" }],
+  // model: [{ required: true, trigger: "blur", message: "请选择型号" }],
+  type: [{ required: true, trigger: "blur", message: "请选择型号" }],
   seria: [{ required: true, trigger: "blur", message: "请输入序列号" }]
 })
 const addData = reactive<any>({
@@ -48,8 +51,8 @@ const handleCreate = () => {
   formRef.value?.validate((valid: boolean, fields) => {
     if (valid) {
       if (currentUpdateId.value === undefined) {
-        delete addData.id
-        createOtherDataApi(addData)
+        // delete addData.id
+        createOtherDataApi(formData)
           .then(() => {
             ElMessage.success("新增成功")
             getTableData()
@@ -60,9 +63,12 @@ const handleCreate = () => {
           })
       } else {
         updateOtherModelDataApi({
-          seria: addData.seria,
-          name: addData.name,
-          type: addData.type,
+          // seria: addData.seria,
+          seria: formData.seria,
+          // name: addData.name,
+          name: formData.name,
+          // type: addData.type,
+          type: formData.type,
           id: addData.id
         })
           .then(() => {
@@ -157,9 +163,10 @@ const handleLink = (data: any, i: string) => {
     console.log(data)
     dialogVisible.value = true
     currentUpdateId.value = data.equipment_id
-    addData.type = data.equipmenttype_id
-    addData.seria = data.equipment_serialnumber
-    addData.name = data.equipment_name
+
+    formData.type = data.equipmenttype_id
+    formData.seria = data.equipment_serialnumber
+    formData.name = data.equipment_name
     addData.id = currentUpdateId.value
   }
   if (i === "二维码") {
@@ -363,15 +370,18 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input disabled v-model="currentUpdateId" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="name" label="设备名称">
-          <el-input v-model="addData.name" placeholder="请输入" />
+          <!-- <el-input v-model="addData.name" placeholder="请输入" /> -->
+          <el-input v-model="formData.name" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="model" label="设备型号">
-          <el-select v-model="addData.type" placeholder="请选择">
+          <!-- <el-select v-model="addData.type" placeholder="请选择"> -->
+          <el-select v-model="formData.type" placeholder="请选择">
             <el-option v-for="item in TypeList" :label="item.name" :value="item.id" :key="item.id" />
           </el-select>
         </el-form-item>
         <el-form-item prop="seria" label="设备序列号">
-          <el-input v-model="addData.seria" placeholder="请输入" />
+          <!-- <el-input v-model="addData.seria" placeholder="请输入" /> -->
+          <el-input v-model="formData.seria" placeholder="请输入" />
         </el-form-item>
       </el-form>
       <template #footer>
