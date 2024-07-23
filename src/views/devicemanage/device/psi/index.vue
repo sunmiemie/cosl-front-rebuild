@@ -30,6 +30,7 @@ const checkRef = ref<FormInstance | null>(null)
 const fileList = reactive<any>({
   file: []
 })
+
 const getCurrentDate = () => {
   const date = new Date()
   const year = date.getFullYear()
@@ -37,13 +38,18 @@ const getCurrentDate = () => {
   const day = date.getDate().toString().padStart(2, "0") // 日期补零
   return `${year}-${month}-${day}`
 }
+
 const formData = reactive<any>({
+  // 主机名称
   psiName: "",
+  // 序列号
   psiSeria: "",
+  // 入库时间
   psiDate: getCurrentDate(),
-  psiModel: "",
-  psimodelId: ""
+  // 主机型号
+  psiModel: ""
 })
+
 const checkData = reactive<any>({
   updateDate: ""
 })
@@ -52,7 +58,7 @@ const handleCreate = () => {
   formRef.value?.validate((valid: boolean) => {
     if (valid) {
       if (currentUpdateId.value === undefined) {
-        delete formData.psimodelId
+        // delete formData.psimodelId
         createHostModelDataApi(formData)
           .then(() => {
             ElMessage.success("新增成功")
@@ -63,7 +69,7 @@ const handleCreate = () => {
           })
       } else {
         updateHostModelDataApi({
-          id: formData.psimodelId,
+          id: currentUpdateId.value,
           psiModel: formData.psiModel,
           psiSeria: formData.psiSeria,
           psiName: formData.psiName
@@ -113,6 +119,7 @@ const handleCheck = () => {
     })
 }
 const currentUpdateId = ref<any>(undefined)
+
 const headers = ref([
   { prop: "psi_id", label: "主机ID", align: "center" },
   { prop: "psi_name", label: "主机名称", align: "center" },
@@ -123,6 +130,7 @@ const headers = ref([
   { prop: "link", label: "操作", type: "link", fixed: "right" },
   { prop: "download", label: "下载", type: "btn", align: "center" }
 ])
+
 //表单校验
 const formRules: FormRules = reactive<any>({
   psiName: [{ required: true, trigger: "blur", message: "请选择名称" }],
@@ -162,7 +170,6 @@ const getTableData = async () => {
       paginationData.total = res.data.total
       TableData.value = res.data.list
       for (let i = 0; i < TableData.value.length; i++) {
-        console.log(TableData.value[i])
         TableData.value[i].link = defineLink(TableData.value[i].psi_status)
       }
     })
@@ -190,10 +197,8 @@ const handleLink = (data: any, i: any) => {
     console.log(data)
     currentUpdateId.value = data.psi_id
     dialogVisible.value = true
-    formData.psimodelId = data.psi_id
-    formData.psiName = data.psimodel_name
+    formData.psiName = data.psi_name
     formData.psiSeria = data.psi_serialnumber
-    formData.psiDate = data.psi_date
     formData.psiModel = data.psimodel_id
     getTableData()
   }

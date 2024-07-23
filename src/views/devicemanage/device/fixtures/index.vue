@@ -112,21 +112,14 @@ const TableData = ref<GetFixtureData[]>([])
 // 夹具型号
 const ModelData = ref<GetFixtureModelData[]>([])
 const searchFormRef = ref<FormInstance | null>(null)
+
 // 夹具状态
 const ModelStatus = ref([
-  {
-    name: "正常",
-    status: 0
-  },
-  {
-    name: "临检",
-    status: 1
-  },
-  {
-    name: "故障",
-    status: 2
-  }
+  { name: "正常", status: 0 },
+  { name: "临检", status: 1 },
+  { name: "故障", status: 2 }
 ])
+
 const searchData = reactive({
   seria: "", //序列号
   model: "", //状态
