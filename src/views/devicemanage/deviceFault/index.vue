@@ -95,14 +95,10 @@ const searchData = reactive({
 })
 const defineLink = (status: string) => {
   switch (status) {
-    case "0":
-      return { 1: "受理" }
-    case "1":
-      return { 1: "处理" }
-    case "2":
-      return { 1: "详情" }
-    case "3":
-      return { 1: "详情" }
+    case "0": return { 1: "受理" }
+    case "1": return { 1: "处理" }
+    case "2": return { 1: "详情" }
+    case "3": return { 1: "详情" }
   }
 }
 const getTableData = () => {

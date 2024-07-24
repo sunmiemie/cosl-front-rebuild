@@ -173,7 +173,7 @@ const handleSelectionChange = (val: any) => {
 
 // 打印二维码
 const getSelection = () => {
-  console.log(selectedRows.value)
+  // console.log(selectedRows.value)
   getQRcodeImgApi({ data: selectedRows.value, headerKey: "model", seriaKey: "seria", startTimeKey: "startTime" }).then(
     (res) => {
       if (res.code === 0) {

@@ -15,7 +15,7 @@ import {
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
 import { useUserStore } from "@/store/modules/user"
-import {checkReportDataApi, getSingleReportDataApi} from "@/api/report"
+import { checkReportDataApi, getSingleReportDataApi } from "@/api/report"
 
 defineOptions({
   // 命名当前组件
@@ -398,42 +398,15 @@ const submitAdd = () => {
 }
 // 测试状态
 const TestStatus = reactive([
-  {
-    status: 0,
-    mes: "已创建"
-  },
-  {
-    status: 1,
-    mes: "待领取"
-  },
-  {
-    status: 2,
-    mes: "测试中"
-  },
-  {
-    status: 3,
-    mes: "待审核"
-  },
-  {
-    status: 4,
-    mes: "待重做"
-  },
-  {
-    status: 5,
-    mes: "测试正常"
-  },
-  {
-    status: 6,
-    mes: "测试异常"
-  },
-  {
-    status: 7,
-    mes: "测试暂存"
-  },
-  {
-    status: 8,
-    mes: "疑问待处理"
-  }
+  { status: 0, mes: "已创建" },
+  { status: 1, mes: "待领取" },
+  { status: 2, mes: "测试中" },
+  { status: 3, mes: "待审核" },
+  { status: 4, mes: "待重做" },
+  { status: 5, mes: "测试正常" },
+  { status: 6, mes: "测试异常" },
+  { status: 7, mes: "测试暂存" },
+  { status: 8, mes: "疑问待处理" }
 ])
 
 // 确认发布或删除

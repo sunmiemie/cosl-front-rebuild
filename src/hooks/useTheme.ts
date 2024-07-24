@@ -14,18 +14,9 @@ interface ThemeList {
 
 /** 主题列表 */
 const themeList: ThemeList[] = [
-  {
-    title: "默认",
-    name: DEFAULT_THEME_NAME
-  },
-  {
-    title: "黑暗",
-    name: "dark"
-  },
-  {
-    title: "深蓝",
-    name: "dark-blue"
-  }
+  { title: "默认", name: DEFAULT_THEME_NAME },
+  { title: "黑暗", name: "dark" },
+  { title: "深蓝", name: "dark-blue" }
 ]
 
 /** 正在应用的主题名称 */
