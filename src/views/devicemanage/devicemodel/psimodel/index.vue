@@ -187,16 +187,16 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       width="30%"
     >
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" label-position="left">
-        <el-form-item label="主机ID" v-if="currentUpdateId !== undefined">
+        <el-form-item label="型号ID" v-if="currentUpdateId !== undefined">
           <el-input disabled v-model="formData.id" />
         </el-form-item>
-        <el-form-item prop="name" label="主机名称:">
+        <el-form-item prop="name" label="型号名称:">
           <el-input v-model="formData.name" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="supplier" label="供应商名称:">
           <el-input v-model="formData.supplier" placeholder="请输入" />
         </el-form-item>
-        <el-form-item prop="des" label="主机描述:">
+        <el-form-item prop="des" label="型号描述:">
           <el-input v-model="formData.des" type="textarea" placeholder="请输入" />
         </el-form-item>
       </el-form>

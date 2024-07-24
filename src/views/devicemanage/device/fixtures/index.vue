@@ -14,6 +14,7 @@ import { type GetFixtureData } from "@/api/fixture/types/fixture"
 import QrcodeVue from "qrcode.vue"
 import { GetFixtureModelData } from "@/api/fixturemodel/types/fixturemodel"
 import { format } from "date-fns"
+import { getQRcodeImgApi } from "@/api/qrcode"
 
 defineOptions({
   // 命名当前组件
@@ -112,21 +113,14 @@ const TableData = ref<GetFixtureData[]>([])
 // 夹具型号
 const ModelData = ref<GetFixtureModelData[]>([])
 const searchFormRef = ref<FormInstance | null>(null)
+
 // 夹具状态
 const ModelStatus = ref([
-  {
-    name: "正常",
-    status: 0
-  },
-  {
-    name: "临检",
-    status: 1
-  },
-  {
-    name: "故障",
-    status: 2
-  }
+  { name: "正常", status: 0 },
+  { name: "临检", status: 1 },
+  { name: "故障", status: 2 }
 ])
+
 const searchData = reactive({
   seria: "", //序列号
   model: "", //状态
@@ -176,9 +170,40 @@ const selectedRows = ref([])
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
 }
+
+// 打印二维码
 const getSelection = () => {
-  console.log("print", selectedRows.value)
+  console.log(selectedRows.value)
+  getQRcodeImgApi({ data: selectedRows.value, headerKey: "model", seriaKey: "seria", startTimeKey: "startTime" }).then(
+    (res) => {
+      if (res.code === 0) {
+        const imageData = res.data
+        const printWindow = window.open("", "_blank")
+        printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
+
+        for (const key in imageData) {
+          if (Object.prototype.hasOwnProperty.call(imageData, key)) {
+            const img = new Image()
+            img.src = imageData[key]
+            img.alt = "QR Code"
+            printWindow.document.body.appendChild(img)
+            printWindow.document.body.appendChild(document.createElement("br"))
+          }
+        }
+
+        printWindow.document.write("</body></html>")
+        printWindow.document.close()
+        printWindow.onload = function () {
+          printWindow.print()
+          printWindow.close()
+        }
+      } else {
+        console.error("Error fetching QR codes", res)
+      }
+    }
+  )
 }
+
 const currentModel = ref()
 const handleLink = (data: any, i: string) => {
   if (i == "二维码") {
