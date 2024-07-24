@@ -1,3 +1,5 @@
+<!--电路板管理-->
+
 <script lang="ts" setup>
 import { onMounted, reactive, ref, watch } from "vue"
 import { getBoardDataApi } from "@/api/board"
@@ -27,7 +29,7 @@ const dialogVisible = ref<boolean>(false)
 const qrcodeVisible = ref<boolean>(false)
 const qrcodeValue = ref<string>("")
 const dialogDetail = ref<boolean>(false)
-const SearchStatusData = ref([
+ref([
   { id: "0", name: "待测试" },
   { id: "1", name: "测试正常" },
   { id: "2", name: "测试异常" }
@@ -70,6 +72,7 @@ const headers = ref([
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
 
+// 批次
 const batchHeaders = ref([
   { prop: "id", label: "批次号", align: "center" },
   { prop: "name", label: "批次名称", align: "center" },
@@ -174,11 +177,14 @@ const handleNodeClick = (data: any) => {
     getTableData()
   }
 }
+
 const selectedRows = ref([])
+
 const handleSelectionChange = (val: any) => {
   console.log("index", val)
   selectedRows.value = val
 }
+
 const beforeUpload = (file: any) => {
   const isExcel =
     file.type === "application/vnd.ms-excel" ||
@@ -216,34 +222,40 @@ const closeDialogs = () => {
   dialogDetail.value = false
   dialogVisible.value = false
 }
+
+// 打印二维码
 const getSelection = () => {
-  getQRcodeImgApi({ data: selectedRows.value }).then((res) => {
-    if (res.code === 0) {
-      const imageData = res.data
-      const printWindow = window.open("", "_blank")
-      printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
+  console.log(selectedRows.value)
+  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "startTime" }).then(
+    (res) => {
+      if (res.code === 0) {
+        const imageData = res.data
+        const printWindow = window.open("", "_blank")
+        printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
 
-      for (const key in imageData) {
-        if (Object.prototype.hasOwnProperty.call(imageData, key)) {
-          const img = new Image()
-          img.src = imageData[key]
-          img.alt = "QR Code"
-          printWindow.document.body.appendChild(img)
-          printWindow.document.body.appendChild(document.createElement("br"))
+        for (const key in imageData) {
+          if (Object.prototype.hasOwnProperty.call(imageData, key)) {
+            const img = new Image()
+            img.src = imageData[key]
+            img.alt = "QR Code"
+            printWindow.document.body.appendChild(img)
+            printWindow.document.body.appendChild(document.createElement("br"))
+          }
         }
-      }
 
-      printWindow.document.write("</body></html>")
-      printWindow.document.close()
-      printWindow.onload = function () {
-        printWindow.print()
-        printWindow.close()
+        printWindow.document.write("</body></html>")
+        printWindow.document.close()
+        printWindow.onload = function () {
+          printWindow.print()
+          printWindow.close()
+        }
+      } else {
+        console.error("Error fetching QR codes", res)
       }
-    } else {
-      console.error("Error fetching QR codes", res)
     }
-  })
+  )
 }
+
 const goBack = () => {
   Drawer.value = false
 }

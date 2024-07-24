@@ -13,6 +13,7 @@ import TableComponent from "@/components/Table/index.vue"
 import { GetPsiData } from "@/api/psi/types/psi"
 import QrcodeVue from "qrcode.vue"
 import { UploadFilled } from "@element-plus/icons-vue"
+import { getQRcodeImgApi } from "@/api/qrcode"
 
 defineOptions({
   // 命名当前组件
@@ -30,6 +31,7 @@ const checkRef = ref<FormInstance | null>(null)
 const fileList = reactive<any>({
   file: []
 })
+
 const getCurrentDate = () => {
   const date = new Date()
   const year = date.getFullYear()
@@ -37,13 +39,18 @@ const getCurrentDate = () => {
   const day = date.getDate().toString().padStart(2, "0") // 日期补零
   return `${year}-${month}-${day}`
 }
+
 const formData = reactive<any>({
+  // 主机名称
   psiName: "",
+  // 序列号
   psiSeria: "",
+  // 入库时间
   psiDate: getCurrentDate(),
-  psiModel: "",
-  psimodelId: ""
+  // 主机型号
+  psiModel: ""
 })
+
 const checkData = reactive<any>({
   updateDate: ""
 })
@@ -52,7 +59,7 @@ const handleCreate = () => {
   formRef.value?.validate((valid: boolean) => {
     if (valid) {
       if (currentUpdateId.value === undefined) {
-        delete formData.psimodelId
+        // delete formData.psimodelId
         createHostModelDataApi(formData)
           .then(() => {
             ElMessage.success("新增成功")
@@ -63,7 +70,7 @@ const handleCreate = () => {
           })
       } else {
         updateHostModelDataApi({
-          id: formData.psimodelId,
+          id: currentUpdateId.value,
           psiModel: formData.psiModel,
           psiSeria: formData.psiSeria,
           psiName: formData.psiName
@@ -113,6 +120,7 @@ const handleCheck = () => {
     })
 }
 const currentUpdateId = ref<any>(undefined)
+
 const headers = ref([
   { prop: "psi_id", label: "主机ID", align: "center" },
   { prop: "psi_name", label: "主机名称", align: "center" },
@@ -123,6 +131,7 @@ const headers = ref([
   { prop: "link", label: "操作", type: "link", fixed: "right" },
   { prop: "download", label: "下载", type: "btn", align: "center" }
 ])
+
 //表单校验
 const formRules: FormRules = reactive<any>({
   psiName: [{ required: true, trigger: "blur", message: "请选择名称" }],
@@ -162,7 +171,6 @@ const getTableData = async () => {
       paginationData.total = res.data.total
       TableData.value = res.data.list
       for (let i = 0; i < TableData.value.length; i++) {
-        console.log(TableData.value[i])
         TableData.value[i].link = defineLink(TableData.value[i].psi_status)
       }
     })
@@ -182,18 +190,50 @@ const handleSelectionChange = (val: any) => {
   console.log("index", val)
   selectedRows.value = val
 }
+
+// 打印二维码
 const getSelection = () => {
-  console.log("print", selectedRows.value)
+  console.log(selectedRows.value)
+  getQRcodeImgApi({
+    data: selectedRows.value,
+    headerKey: "psi_name",
+    seriaKey: "psi_serialnumber",
+    startTimeKey: "psi_date"
+  }).then((res) => {
+    if (res.code === 0) {
+      const imageData = res.data
+      const printWindow = window.open("", "_blank")
+      printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
+
+      for (const key in imageData) {
+        if (Object.prototype.hasOwnProperty.call(imageData, key)) {
+          const img = new Image()
+          img.src = imageData[key]
+          img.alt = "QR Code"
+          printWindow.document.body.appendChild(img)
+          printWindow.document.body.appendChild(document.createElement("br"))
+        }
+      }
+
+      printWindow.document.write("</body></html>")
+      printWindow.document.close()
+      printWindow.onload = function () {
+        printWindow.print()
+        printWindow.close()
+      }
+    } else {
+      console.error("Error fetching QR codes", res)
+    }
+  })
 }
+
 const handleLink = (data: any, i: any) => {
   if (i === "编辑") {
     console.log(data)
     currentUpdateId.value = data.psi_id
     dialogVisible.value = true
-    formData.psimodelId = data.psi_id
-    formData.psiName = data.psimodel_name
+    formData.psiName = data.psi_name
     formData.psiSeria = data.psi_serialnumber
-    formData.psiDate = data.psi_date
     formData.psiModel = data.psimodel_id
     getTableData()
   }
