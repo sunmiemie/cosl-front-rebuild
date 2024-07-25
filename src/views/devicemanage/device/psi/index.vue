@@ -41,14 +41,10 @@ const getCurrentDate = () => {
 }
 
 const formData = reactive<any>({
-  // 主机名称
-  psiName: "",
-  // 序列号
-  psiSeria: "",
-  // 入库时间
-  psiDate: getCurrentDate(),
-  // 主机型号
-  psiModel: ""
+  psiName: "", // 主机名称
+  psiSeria: "", // 序列号
+  psiDate: getCurrentDate(), // 入库时间
+  psiModel: "" // 主机型号
 })
 
 const checkData = reactive<any>({
@@ -193,7 +189,7 @@ const handleSelectionChange = (val: any) => {
 
 // 打印二维码
 const getSelection = () => {
-  console.log(selectedRows.value)
+  // console.log(selectedRows.value)
   getQRcodeImgApi({
     data: selectedRows.value,
     headerKey: "psi_name",

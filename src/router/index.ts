@@ -334,7 +334,7 @@ export const constantRoutes: RouteRecordRaw[] = [
       },
       {
         path: "checkReport",
-        component: () => import("@/views/datamanage//historymange/reportPre/index.vue"),
+        component: () => import("@/views/datamanage/historymange/reportPre/index.vue"),
         name: "reportView",
         meta: {
           title: "报告预览",
@@ -351,7 +351,16 @@ export const constantRoutes: RouteRecordRaw[] = [
           keepAlive: true,
           hidden: true
         }
-      }
+      },
+      {
+        path: "checkItemLibList",
+        component: () => import("@/views/datamanage/datastore/checkItemLib/index.vue"),
+        name: "checkItemLibList",
+        meta: {
+          title: "检测项库列表",
+          keepAlive: true
+        }
+      },
     ]
   },
   {

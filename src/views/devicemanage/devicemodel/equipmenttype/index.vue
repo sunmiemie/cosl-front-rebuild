@@ -1,7 +1,8 @@
+<!--其他设备型号管理-->
+
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { createEquipmentTypeDataApi, getEquipmentTypeDataApi, updateEquipmentTypeDataApi } from "@/api/otherModelType"
-// import { type GetTableData } from "@/api/table/types/table"
 import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
