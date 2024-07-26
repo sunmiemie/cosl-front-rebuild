@@ -13,7 +13,6 @@ import TableComponent from "@/components/Table/index.vue"
 import { type GetFixtureData } from "@/api/fixture/types/fixture"
 import QrcodeVue from "qrcode.vue"
 import { GetFixtureModelData } from "@/api/fixturemodel/types/fixturemodel"
-import { format } from "date-fns"
 import { getQRcodeImgApi } from "@/api/qrcode"
 
 defineOptions({
@@ -51,7 +50,7 @@ const handleCreate = () => {
   formRef.value?.validate((valid: boolean) => {
     if (valid) {
       if (currentUpdateId.value === undefined) {
-        formData.startTime = format(new Date(), "yyyy-MM-dd")
+        // formData.startTime = format(new Date(), "yyyy-MM-dd")
         delete formData.name
         delete formData.startTime
         createFixtureDataApi(formData)
