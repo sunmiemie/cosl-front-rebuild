@@ -125,13 +125,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       <div class="table-wrapper">
         <TableComponent :tableData="TableData" :column-data="headers" stripe>
           <template #link="{ row }">
-            <el-link
-              :disabled="row.number === 1 || row.number === 2 || row.number === 3"
-              type="primary"
-              class="el-link"
-              @click="handleLink(row)"
-              >编辑</el-link
-            >
+            <el-link :disabled="row.number <= 5" type="primary" class="el-link" @click="handleLink(row)">编辑</el-link>
           </template>
         </TableComponent>
       </div>
