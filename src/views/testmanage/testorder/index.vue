@@ -1,3 +1,5 @@
+<!--测试工单列表-->
+
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref } from "vue"
 import { ElScrollbar, ElTable, ElTree, type FormInstance } from "element-plus"
@@ -446,6 +448,7 @@ const clickNode = async (data: NodeData & any, node: any) => {
   if (node.data.children) {
     return
   }
+
   // 点击叶子节点，设置批次ID和型号
   currentRow.value = undefined
   selectedRows.value = []
@@ -500,6 +503,7 @@ const filterNode = (value: string, data: Tree) => {
   if (!value) return true
   return data.label.includes(value)
 }
+// 新增测试
 const addTest = async () => {
   await getTreeData()
   dialogVisible.value = true

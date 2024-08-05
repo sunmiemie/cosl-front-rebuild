@@ -8,8 +8,8 @@
         >当前修改工艺ID：{{ testStore.test_process_id }}</el-button
       >
       <div style="display: flex; margin-top: 20px">
-        <el-card v-for="(item ,index) in feedBackList" :key="item" style="width: 250px; margin-right: 10px">
-          <el-text>第{{index + 1}}次审核意见:</el-text>
+        <el-card v-for="(item, index) in feedBackList" :key="item" style="width: 250px; margin-right: 10px">
+          <el-text>第{{ index + 1 }}次审核意见:</el-text>
           <br />
           <el-text>{{ item }}</el-text>
         </el-card>
@@ -19,7 +19,7 @@
       <el-row class="mb-4">
         <div class="selectTypeBtn">
           <el-button
-            v-show="(testStore.test_process_id === '') || (testType.name === testTypeShow)"
+            v-show="testStore.test_process_id === '' || testType.name === testTypeShow"
             :disabled="testType.name === testTypeShow"
             v-for="testType in testTypeList"
             :key="testType.number"
@@ -112,7 +112,7 @@
         </el-row>
         <template #footer>
           <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id === ''">
-            <el-button>取消</el-button>
+            <el-button @click="router.push('/testmanage/testprocess')">取消</el-button>
             <el-button style="margin-left: 10px" type="primary" @click="handleAddFuncProcess">确认新增</el-button>
           </div>
           <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id !== ''">
@@ -161,7 +161,7 @@
         </el-row>
         <template #footer>
           <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id === ''">
-            <el-button>取消</el-button>
+            <el-button @click="router.push('/testmanage/testprocess')">取消</el-button>
             <el-button style="margin-left: 10px" type="primary" @click="handleAddEyesProcess">确认新增</el-button>
           </div>
           <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id !== ''">
@@ -210,7 +210,7 @@
         </el-row>
         <template #footer>
           <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id === ''">
-            <el-button>取消</el-button>
+            <el-button @click="router.push('/testmanage/testprocess')">取消</el-button>
             <el-button style="margin-left: 10px" type="primary" @click="handleAddXrayProcess">确认新增</el-button>
           </div>
           <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id !== ''">
@@ -366,7 +366,7 @@
         </el-row>
         <template #footer>
           <div style="display: flex; justify-content: flex-end">
-            <el-button>取消</el-button>
+            <el-button @click="router.push('/testmanage/testprocess')">取消</el-button>
             <el-button style="margin-left: 10px" type="primary" @click="">确认新增</el-button>
           </div>
         </template>
@@ -413,7 +413,15 @@ import { getTestTypeDataApi } from "@/api/testtype"
 import { getFixtureModelDataApi } from "@/api/fixturemodel"
 import { getEquipmentTypeDataApi } from "@/api/otherModelType"
 import { getPsiModelDataApi } from "@/api/psimodel"
-import { uploadfuncttest, uploadeyestest, uploadxraytest, getProcessById,updatexraytest, updateeyestest, updatefuncttest } from "@/api/addprocess"
+import {
+  uploadfuncttest,
+  uploadeyestest,
+  uploadxraytest,
+  getProcessById,
+  updatexraytest,
+  updateeyestest,
+  updatefuncttest
+} from "@/api/addprocess"
 import { useTestStore } from "@/store/modules/test"
 import { useUserStore } from "@/store/modules/user"
 
@@ -490,7 +498,15 @@ const getTestTypeData = () => {
     currentPage: 1,
     size: 999999
   }).then((res) => {
-    testTypeList.value = res.data.list
+    // 将“弓曲度测试”视为“目检测试”，移除“2D留存”和“3D检测”
+    testTypeList.value = res.data.list.filter((item) => {
+      if (item.name === "弓曲度测试") {
+        item.name = "目检测试"
+        return true
+      } else if (item.name === "2D留存" || item.name === "3D检测") return false
+
+      return true
+    })
   })
 }
 const getFixtureModelData = () => {
@@ -826,7 +842,7 @@ const feedBackList = ref<any>([])
 onMounted(() => {
   if (testStore.test_process_id !== "") {
     form.curTypeId = testStore.test_process_id
-    getProcessById({id: testStore.test_process_id}).then((res) => {
+    getProcessById({ id: testStore.test_process_id }).then((res) => {
       console.log(res.data)
       form.curType = res.data.testType
       form.version = res.data.version
