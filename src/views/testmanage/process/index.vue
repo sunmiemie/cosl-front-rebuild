@@ -155,10 +155,10 @@ const handleLink = (data: any, i: string) => {
       testType.value = 2
       break
     case "X-Ray测试":
-      testType.value = 3
+      testType.value = 5
       break
     case "可靠性测试":
-      testType.value = 4
+      testType.value = 6
       break
     default:
       console.warn("添加其他测试类型")

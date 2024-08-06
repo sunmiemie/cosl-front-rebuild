@@ -21,7 +21,7 @@ defineOptions({
 })
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-//#region 增
+
 const dialogVisible = ref<boolean>(false)
 const qrcodeVisible = ref<boolean>(false)
 const qrcodeValue = ref<string>("")
@@ -32,7 +32,7 @@ const checkRef = ref<FormInstance | null>(null)
 const fileList = reactive<any>({
   file: []
 })
-const formData = reactive<any>({
+const formData = reactive({
   name: "",
   model: "", // 型号
   seria: "", // 序列号
@@ -86,14 +86,8 @@ const resetForm = () => {
   formData.model = ""
   formData.seria = ""
 }
-//#endregion
 
-//#endregion
-
-//#region 改
 const currentUpdateId = ref<any>(undefined)
-
-//#endregion
 
 const headers = ref([
   { prop: "id", label: "夹具ID", align: "center" },
@@ -370,12 +364,12 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           @selection-change="handleSelectionChange"
         >
           <template #status="{ row }">
-            <el-tag v-if="row.status === 0" type="success"> 正常 </el-tag>
-            <el-tag v-if="row.status === 1" type="warning"> 临检 </el-tag>
-            <el-tag v-if="row.status === 2" type="danger"> 故障 </el-tag>
+            <el-tag v-if="row['status'] === 0" type="success"> 正常 </el-tag>
+            <el-tag v-if="row['status'] === 1" type="warning"> 临检 </el-tag>
+            <el-tag v-if="row['status'] === 2" type="danger"> 故障 </el-tag>
           </template>
           <template #link="{ row }">
-            <el-link v-for="i in row.link" :key="i" type="primary" class="el-link" @click="handleLink(row, i)">{{
+            <el-link v-for="i in row['link']" :key="i" type="primary" class="el-link" @click="handleLink(row, i)">{{
               i
             }}</el-link>
           </template>
@@ -385,7 +379,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
               <template #reference>
                 <el-button style="margin-right: 16px" type="text">查看文件</el-button>
               </template>
-              <el-table :data="row.fixture_checkpath">
+              <el-table :data="row['fixture_checkpath']">
                 <el-table-column width="150" property="name" label="文件名" />
                 <el-table-column property="address" label="操作">
                   <template #default="scope">

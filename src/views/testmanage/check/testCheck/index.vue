@@ -214,6 +214,7 @@ onMounted(() => {
     loading.value = true
     checkEyesDataApi({ id: route.query.testprocess_id }).then((res) => {
       processJson.value = res.data.json
+      console.log(processJson.value)
       loading.value = false
     })
   } else if (anyObj.type === "X-Ray测试") {
