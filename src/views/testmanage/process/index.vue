@@ -1,3 +1,5 @@
+<!--测试工艺列表-->
+
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref } from "vue"
 import { useRouter } from "vue-router"
@@ -75,14 +77,14 @@ interface ProcessDataDetailType {
 }
 
 const headers1 = ref([
-  { prop: "type", label: "测试类型", align: "center" },
+  { prop: "type", label: "测试工艺", align: "center" },
   { prop: "activateId", label: "当前激活工艺ID", align: "center" },
   { prop: "version", label: "当前激活工艺版本 ", type: "select", align: "center" },
   { prop: "link", label: "操作 ", type: "link" }
 ])
 const TableData = ref<any>([])
 const headers2 = ref([
-  { prop: "type", label: "测试类型 ", align: "center" },
+  { prop: "type", label: "测试工艺 ", align: "center" },
   { prop: "ID", label: "工艺ID", align: "center" },
   { prop: "version", label: "工艺版本 ", align: "center" },
   { prop: "status", label: "工艺状态", type: "tag", align: "center" },
@@ -116,6 +118,7 @@ const defineLink = (status: any) => {
 const TreeData = ref<any>([])
 const getTreeData = () => {
   treeLoading.value = true
+  // 仪器
   getInstrumentDataApi({
     currentPage: 1,
     size: 999999,
@@ -280,6 +283,7 @@ watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSi
   immediate: false
 })
 </script>
+
 <template>
   <div class="app-container">
     <el-row :gutter="20">
