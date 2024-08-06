@@ -1,3 +1,5 @@
+<!--新增流程-->
+
 <template>
   <div class="app-container">
     <el-affix :offset="90">
@@ -432,6 +434,7 @@ defineOptions({
 const testStore = useTestStore()
 const userStore = useUserStore()
 const router = useRouter()
+// 展示的测试类型，默认展示“功能性测试”
 const testTypeShow = ref<any>("功能性测试")
 const innerRef = ref<HTMLDivElement>()
 const stepInnerRef = ref<HTMLDivElement>()
@@ -498,7 +501,13 @@ const getTestTypeData = () => {
     currentPage: 1,
     size: 999999
   }).then((res) => {
+    // const list = res.data.list
+    // const list1 = list.filter(item => item.name === "弓曲度测试" || item.name === "2D留存" || item.name === "3D检测")
+    // testTypeList.value = res.data.list
+    // console.log(res.data.list)
+
     // 将“弓曲度测试”视为“目检测试”，移除“2D留存”和“3D检测”
+    // TODO: fix this hard code
     testTypeList.value = res.data.list.filter((item) => {
       if (item.name === "弓曲度测试") {
         item.name = "目检测试"
