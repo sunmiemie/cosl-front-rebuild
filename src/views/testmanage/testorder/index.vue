@@ -36,10 +36,12 @@ const showFlags = ref<any>(true)
 const showProcess = ref<any>(true)
 const testFlags = ref<any>(true)
 const dialogVisible = ref<boolean>(false)
+const tempDialogVisible = ref<boolean>(false)
 const PublicVisible = ref<boolean>(false)
 const testTypeList = ref<any>([])
 const processList = ref<any>([])
 const showProcessList = ref<any>([])
+const boardInfoLoading = ref(false)
 interface TableDataType {
   testunit_id?: number
   testunit_name?: string
@@ -65,8 +67,9 @@ const headers = ref([
 ])
 const selectedRows = ref<any>([])
 const addHeaders = ref([
-  { prop: "id", label: "电路板ID", align: "center" },
-  { prop: "serial_num", label: "电路板序列号", align: "center" }
+  { prop: "id", label: "电路板ID", align: "center", width: "150px" },
+  { prop: "serial_num", label: "电路板序列号", align: "center", width: "200px" },
+  { prop: "available", label: "可选测试", align: "center", type: "btn" }
 ])
 const TableData = ref<Array<TableDataType>>([])
 
@@ -390,8 +393,6 @@ const SelectTestType = async (type: any) => {
 const submitAdd = () => {
   createTestUnitApi({
     boardList: selectedRows.value,
-    testTypeId: selectedType.id,
-    processId: selectedType.processId,
     userId: userStore.userid
   }).then(() => {
     getMangeData()
@@ -448,8 +449,8 @@ const clickNode = async (data: NodeData & any, node: any) => {
   if (node.data.children) {
     return
   }
-
   // 点击叶子节点，设置批次ID和型号
+  boardInfoLoading.value = true
   currentRow.value = undefined
   selectedRows.value = []
   Batch.value = data.id
@@ -458,11 +459,19 @@ const clickNode = async (data: NodeData & any, node: any) => {
   CircuitBoardModelId.value = node.parent.data.id
   showFlags.value = false
   showProcess.value = true
+  const result = await getbordsinfo({
+    batchId: Batch.value,
+    boardModelId: CircuitBoardModelId.value
+  })
+  boardTableData.value = result.data
+  boardInfoLoading.value = false
+  console.log(result.data)
   getTestTypeData()
   getTestProcessList({
     boardModel_id: node.parent.data.id
   }).then((res) => {
     processList.value = res.data
+    console.log(processList.value)
   })
   console.log(currentRow.value, selectedRows.value)
 }
@@ -508,9 +517,14 @@ const addTest = async () => {
   await getTreeData()
   dialogVisible.value = true
 }
+const addTempTest = async () => {
+  await getTreeData()
+  tempDialogVisible.value = true
+}
 async function getTreeData() {
   const result = await getTestMangePath()
   treeData.value = result.Pathdata
+  console.log(treeData.value)
 }
 async function getMangeData() {
   loading.value = true
@@ -573,7 +587,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button icon="CirclePlus" type="primary" @click="addTest">新增测试</el-button>
+          <el-button icon="CirclePlus" type="primary" @click="addTest">新增生产测试工单</el-button>
+          <el-button icon="CirclePlus" type="warning" @click="addTempTest">新增临时测试工单</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -674,8 +689,116 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         </el-card>
       </el-footer>
     </el-drawer>
-    <!-- 新增 -->
-    <el-dialog v-model="dialogVisible" width="85%" @close="closeDiaLog" title="新增测试工单" align-center>
+    <!-- 新增生产测试 -->
+    <el-dialog
+      v-model="dialogVisible"
+      width="85%"
+      @close="closeDiaLog"
+      title="新增生产测试工单"
+      align-center
+      :close-on-click-modal="false"
+    >
+      <div>
+        <el-row :gutter="20">
+          <el-col :span="5">
+            <el-card shadow="never" style="height: 100%">
+              <template #header>
+                <el-input v-model="filterText" placeholder="搜索" />
+              </template>
+              <el-tree
+                ref="treeRef"
+                :data="treeData"
+                :filter-node-method="filterNode"
+                :props="defaultProps"
+                default-expand-all
+                @node-click="clickNode"
+              />
+            </el-card>
+          </el-col>
+          <el-col :span="19">
+            <el-card shadow="never">
+              <div v-if="showFlags">请先在左侧选择批次</div>
+              <div v-else>
+                <div class="info-header">
+                  <el-text size="large">1.确认测试类型</el-text>
+                  <el-card shadow="never" style="margin-top: 10px">
+                    <el-space :size="10" spacer="|">
+                      <el-text size="large">电路板型号:{{ CircuitBoardModel }}</el-text>
+                      <el-text>批次ID:{{ Batch }}</el-text>
+                      <el-text size="large">{{ CircuitBatch }}</el-text>
+                    </el-space>
+                  </el-card>
+                </div>
+                <div style="margin-top: 10px">
+                  <el-text size="large">2.确认被测电路板</el-text>
+                  <el-card
+                    v-if="showProcess"
+                    shadow="never"
+                    style="margin-top: 10px; margin-bottom: 10px"
+                    v-loading="boardInfoLoading"
+                  >
+                    <el-scrollbar height="60vh">
+                      <div class="table-wrapper">
+                        <TableComponent
+                          :column-data="addHeaders"
+                          :table-data="boardTableData"
+                          selection
+                          stripe
+                          @selection-change="handleSelectionChange"
+                        >
+                          <template #available="{ row }">
+                            <div style="display: flex; align-items: center; justify-content: center">
+                              <el-checkbox
+                                :indeterminate="row['isInd']"
+                                v-model="row['checkAll']"
+                                @change="
+                                  row['selectedTest'] = row['checkAll'] ? row['available'] : [];
+                                  row['isInd'] = false
+                                "
+                                >全选</el-checkbox
+                              >
+                              <el-divider direction="vertical" />
+                              <el-checkbox-group v-model="row['selectedTest']">
+                                <el-checkbox
+                                  v-for="item in row['available']"
+                                  :value="item"
+                                  :label="item.name"
+                                  :key="item.id"
+                                  @change="
+                                    row['checkAll'] = row['selectedTest'].length === row['available'].length;
+                                    row['isInd'] =
+                                      row['selectedTest'].length > 0 &&
+                                      row['selectedTest'].length < row['available'].length
+                                  "
+                                />
+                              </el-checkbox-group>
+                            </div>
+                          </template>
+                        </TableComponent>
+                      </div>
+                    </el-scrollbar>
+                  </el-card>
+                </div>
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+      </div>
+      <template #footer>
+        <el-button icon="Check" type="primary" @click="submitAdd" :disabled="selectedRows.length === 0"
+          >确认新增</el-button
+        >
+      </template>
+    </el-dialog>
+    <!-- 新增临时测试 -->
+    <el-dialog
+      v-model="tempDialogVisible"
+      width="85%"
+      @close="closeDiaLog"
+      title="新增临时测试工单"
+      align-center
+      :close-on-click-modal="false"
+    >
       <div>
         <el-row :gutter="20">
           <el-col :span="5">
