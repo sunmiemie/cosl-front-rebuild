@@ -6,7 +6,7 @@ import type * as CheckItem from "./types/check-item"
 /** 查 */
 export function getFirstLevelDirectoryApi(params: CheckItem.GetFirstLevelDirectoryRequestData) {
   return request<CheckItem.GetFirstLevelDirectoryResponseData>({
-    url: "data/first-level-directory/list",
+    url: "data/check-item-first-level-directory/list",
     method: "get",
     params
   })
@@ -14,7 +14,7 @@ export function getFirstLevelDirectoryApi(params: CheckItem.GetFirstLevelDirecto
 
 export function createFirstLevelDirectoryApi(data: CheckItem.CreateFirstLevelDirectoryRequestData) {
   return request({
-    url: "data/first-level-directory/add",
+    url: "data/check-item-first-level-directory/add",
     method: "post",
     data
   })
@@ -24,7 +24,7 @@ export function createFirstLevelDirectoryApi(data: CheckItem.CreateFirstLevelDir
 
 export function createSecondLevelDirectoryApi(data: CheckItem.CreateSecondLevelDirectoryRequestData) {
   return request({
-    url: "data/second-level-directory/add",
+    url: "data/check-item-second-level-directory/add",
     method: "post",
     data
   })
@@ -35,7 +35,7 @@ export function createSecondLevelDirectoryApi(data: CheckItem.CreateSecondLevelD
 /** 查 */
 export function getDirectoryApi(params: CheckItem.GetDirectoryRequestData) {
   return request<CheckItem.GetDirectoryResponseData>({
-    url: "data/directory/list",
+    url: "data/check-item-directory/list",
     method: "get",
     params
   })

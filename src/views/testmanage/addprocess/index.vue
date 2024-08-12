@@ -507,7 +507,6 @@ const getTestTypeData = () => {
     // console.log(res.data.list)
 
     // 将“弓曲度测试”视为“目检测试”，移除“2D留存”和“3D检测”
-    // TODO: fix this hard code
     testTypeList.value = res.data.list.filter((item) => {
       if (item.name === "弓曲度测试") {
         item.name = "目检测试"
