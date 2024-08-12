@@ -361,6 +361,15 @@ export const constantRoutes: RouteRecordRaw[] = [
           keepAlive: true
         }
       },
+      {
+        path: "defectItemLibList",
+        component: () => import("@/views/datamanage/datastore/defectItemLib/index.vue"),
+        name: "defectItemLibList",
+        meta: {
+          title: "缺陷项库列表",
+          keepAlive: true
+        }
+      }
     ]
   },
   {
