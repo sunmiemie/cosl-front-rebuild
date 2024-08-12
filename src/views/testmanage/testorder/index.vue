@@ -799,102 +799,10 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       align-center
       :close-on-click-modal="false"
     >
-      <div>
-        <el-row :gutter="20">
-          <el-col :span="5">
-            <el-card shadow="never" style="height: 100%">
-              <template #header>
-                <el-input v-model="filterText" placeholder="搜索" />
-              </template>
-              <el-tree
-                ref="treeRef"
-                :data="treeData"
-                :filter-node-method="filterNode"
-                :props="defaultProps"
-                default-expand-all
-                @node-click="clickNode"
-              />
-            </el-card>
-          </el-col>
-          <el-col :span="19">
-            <el-card shadow="never">
-              <div v-if="showFlags">请先在左侧选择被测电路板</div>
-              <div v-else>
-                <div class="info-header">
-                  <el-text size="large">1.确认测试类型</el-text>
-                  <el-card shadow="never" style="margin-top: 10px">
-                    <el-space :size="10" spacer="|">
-                      <el-text size="large">电路板型号:{{ CircuitBoardModel }}</el-text>
-                      <el-text>批次ID:{{ Batch }}</el-text>
-                      <el-text size="large">{{ CircuitBatch }}</el-text>
-                    </el-space>
-                  </el-card>
-                  <div style="margin-top: 10px">
-                    <el-button
-                      v-show="item.processCount !== 0"
-                      v-for="item in testTypeList"
-                      class="test-type"
-                      @click="SelectTestType(item)"
-                      :key="item"
-                      >{{ item.name }}
-                    </el-button>
-                  </div>
-                  <el-card shadow="never" style="margin-top: 10px; margin-bottom: 10px">
-                    <div v-if="showProcess" style="display: flex; justify-content: center">请先选择测试类型</div>
-                    <div v-else-if="!showProcess" style="display: flex; flex-direction: column">
-                      <div style="margin-bottom: 10px">
-                        <el-space :size="10" spacer="|">
-                          <el-text size="large">所选测试:{{ selectedType.name }}</el-text>
-                          <el-text>所选工艺ID:{{ selectedType.processId }}</el-text>
-                          <el-text>所选工艺版本:{{ selectedType.processVersion }}</el-text>
-                        </el-space>
-                      </div>
-                      <div>
-                        <el-scrollbar height="220px">
-                          <el-table
-                            ref="singleTableRef"
-                            :data="showProcessList"
-                            highlight-current-row
-                            @current-change="handleSingleSelectChange"
-                          >
-                            <el-table-column prop="id" label="工艺ID" />
-                            <el-table-column prop="version" label="工艺版本" />
-                          </el-table>
-                        </el-scrollbar>
-                      </div>
-                    </div>
-                  </el-card>
-                </div>
-                <div>
-                  <el-text size="large">2.确认被测电路板</el-text>
-                  <el-card v-if="showProcess" shadow="never" style="margin-top: 10px; margin-bottom: 10px">
-                    <div style="display: flex; justify-content: center">请先选择测试类型</div>
-                  </el-card>
-                  <el-card v-if="!showProcess" shadow="never" style="margin-top: 10px; margin-bottom: 10px">
-                    <el-scrollbar height="220px">
-                      <div class="table-wrapper">
-                        <TableComponent
-                          :column-data="addHeaders"
-                          :table-data="boardTableData"
-                          selection
-                          stripe
-                          @selection-change="handleSelectionChange"
-                        />
-                      </div>
-                    </el-scrollbar>
-                  </el-card>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
-      </div>
       <template #footer>
         <el-button
           icon="Check"
           type="primary"
-          @click="submitAdd"
-          :disabled="currentRow === undefined || currentRow === null || selectedRows.length === 0"
           >确认新增</el-button
         >
       </template>
