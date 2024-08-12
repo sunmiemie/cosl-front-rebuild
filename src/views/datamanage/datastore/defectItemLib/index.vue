@@ -15,7 +15,7 @@ import {
   updateDefectItemApi
 } from "@/api/defect-item"
 import { CirclePlus } from "@element-plus/icons-vue"
-import { FirstLevelDirectory, CheckItem } from "@/api/check-item/types/check-item"
+import { FirstLevelDirectory, DefectItem } from "@/api/defect-item/types/defect-item"
 
 defineOptions({
   // 命名当前组件
@@ -103,7 +103,7 @@ const resetForm = () => {
   formData.problem_desc = ""
   getTableData()
 }
-const tableData = ref<CheckItem[]>([])
+const tableData = ref<DefectItem[]>([])
 const handleCreate = () => {
   formRef.value?.validate((valid: boolean, fields) => {
     if (valid) {

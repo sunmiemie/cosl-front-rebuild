@@ -369,6 +369,15 @@ export const constantRoutes: RouteRecordRaw[] = [
           title: "缺陷项库列表",
           keepAlive: true
         }
+      },
+      {
+        path: "questionItemLibList",
+        component: () => import("@/views/datamanage/datastore/questionItemLib/index.vue"),
+        name: "questionItemLibList",
+        meta: {
+          title: "疑问项库列表",
+          keepAlive: true
+        }
       }
     ]
   },
