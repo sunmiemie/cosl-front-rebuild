@@ -252,7 +252,7 @@ onMounted(() => {
         <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
           <template #header>
             <el-button style="width: 100%" type="primary" icon="circle-plus" @click="directoryDialogVisible = true"
-            >新建检测类型
+              >新建检测类型
             </el-button>
           </template>
           <el-tree
