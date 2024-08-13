@@ -260,7 +260,6 @@ onMounted(() => {
             :data="TreeData"
             :props="defaultProps"
             node-key="id"
-            <!-- 默认展开 key 值是 1 的一级目录 -->
             :default-expanded-keys="[1]"
             accordion
             :filter-node-method="filterNode"
