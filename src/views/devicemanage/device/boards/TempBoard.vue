@@ -80,6 +80,7 @@ import { Search, Refresh, CirclePlus, RefreshRight } from "@element-plus/icons-v
 import { usePagination } from "@/hooks/usePagination"
 import { ElMessage } from "element-plus"
 import { createTempBoardApi, getTempBoardDataApi, updateTempBoardDataApi } from "@/api/temp-board"
+
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const dialogVisible = ref<boolean>(false)
@@ -165,6 +166,11 @@ const getTableData = () => {
       Loading.value = false
     })
 }
+
+// 显式暴露方法供父组件调用
+defineExpose({
+  getTableData
+})
 
 // link操作
 const handleLink = (data: any, i: any) => {
