@@ -126,6 +126,12 @@ const getTreeData = () => {
       treeLoading.value = false
     })
 }
+
+// 显式暴露方法供父组件调用
+defineExpose({
+  getTreeData
+})
+
 const getDetailTableData = () => {
   detailLoading.value = true
   getBoardDataApi({
