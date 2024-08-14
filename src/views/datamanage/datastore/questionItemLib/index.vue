@@ -33,7 +33,7 @@ const dialogVisible = ref<boolean>(false)
 const headers = ref<any>([
   { prop: "id", label: "疑问项ID", align: "center" },
   { prop: "name", label: "疑问项名称", align: "center" },
-  { prop: "problem_desc", label: "疑问描述", align: "center" },
+  { prop: "question_desc", label: "疑问描述", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
 
@@ -80,6 +80,7 @@ const getTableData = () => {
     .then((res) => {
       paginationData.total = res.data.total
       tableData.value = res.data.list
+      // console.log(tableData.value)
     })
     .catch(() => {
       tableData.value = []
@@ -207,7 +208,7 @@ const clear = () => {
 const createSecondLevelDirectory = () => {
   directoryFormRef.value?.validate((valid: boolean) => {
     if (valid) {
-      console.log(directoryFormData)
+      // console.log(directoryFormData)
       createSecondLevelDirectoryApi({
         name: directoryFormData.secondLevelDirectoryName,
         firstLevelDirectoryId: directoryFormData.firstLevelDirectoryId
