@@ -1,18 +1,18 @@
-<!--电路板管理-->
+<!--生产电路板-->
 
 <script lang="ts" setup>
 import { onMounted, reactive, ref, watch } from "vue"
-import { getBoardDataApi } from "@/api/board"
-import { createBatchDataApi, getBatchDataApi } from "@/api/batch"
-import { type GetBatchData } from "@/api/batch/types/batch"
 import { ElMessage, ElMessageBox, ElTree, type FormInstance } from "element-plus"
+import { UploadFilled } from "@element-plus/icons-vue"
 import { usePagination, useDetailPagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import QrcodeVue from "qrcode.vue"
-import { type GetBoardData } from "@/api/board/types/board"
-import { getInstrumentDataApi } from "@/api/instrument"
-import { UploadFilled } from "@element-plus/icons-vue"
 import { getQRcodeImgApi } from "@/api/qrcode"
+import { getBoardDataApi } from "@/api/board"
+import { type GetBoardData } from "@/api/board/types/board"
+import { createBatchDataApi, getBatchDataApi } from "@/api/batch"
+import { type GetBatchData } from "@/api/batch/types/batch"
+import { getInstrumentDataApi } from "@/api/instrument"
 
 defineOptions({
   // 命名当前组件
@@ -29,11 +29,11 @@ const dialogVisible = ref<boolean>(false)
 const qrcodeVisible = ref<boolean>(false)
 const qrcodeValue = ref<string>("")
 const dialogDetail = ref<boolean>(false)
-ref([
-  { id: "0", name: "待测试" },
-  { id: "1", name: "测试正常" },
-  { id: "2", name: "测试异常" }
-])
+// ref([
+//   { id: "0", name: "待测试" },
+//   { id: "1", name: "测试正常" },
+//   { id: "2", name: "测试异常" }
+// ])
 const formData = reactive<any>({
   file: []
 })
@@ -143,7 +143,7 @@ const getDetailTableData = () => {
     seria: DetailsearchData.seria || undefined
   })
     .then((res) => {
-      console.log(res)
+      // console.log(res)
       paginationDetailData.total = res.data.total
       BoardData.value = res.data.list
     })
@@ -187,7 +187,7 @@ const handleNodeClick = (data: any) => {
 const selectedRows = ref([])
 
 const handleSelectionChange = (val: any) => {
-  console.log("index", val)
+  // console.log("index", val)
   selectedRows.value = val
 }
 
@@ -212,6 +212,7 @@ const beforeUpload = (file: any) => {
     })
   return isExcel && isLt2M
 }
+
 // 文件数超出提示
 const exceedFile = () => {
   ElMessage.warning("最多只能上传一个文件！")
@@ -224,6 +225,7 @@ const handleError = () => {
 const handleSuccess = () => {
   ElMessage.success("导入数据成功！")
 }
+
 const closeDialogs = () => {
   dialogDetail.value = false
   dialogVisible.value = false
@@ -231,7 +233,7 @@ const closeDialogs = () => {
 
 // 打印二维码
 const getSelection = () => {
-  console.log(selectedRows.value)
+  // console.log(selectedRows.value)
   getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "startTime" }).then(
     (res) => {
       if (res.code === 0) {
@@ -268,7 +270,7 @@ const goBack = () => {
 const handleLink = (data: any, i: string) => {
   if (i == "二维码") {
     qrcodeValue.value = data.seria
-    console.log(data.seria)
+    // console.log(data.seria)
     qrcodeVisible.value = true
   }
   if (i == "批次详情") {
@@ -519,6 +521,7 @@ onMounted(() => {
       <el-button type="primary" @click="handleCreate">确认</el-button>
     </template>
   </el-dialog>
+
   <el-dialog v-model="qrcodeVisible" width="340px">
     <qrcode-vue :value="qrcodeValue" :size="300" />
   </el-dialog>

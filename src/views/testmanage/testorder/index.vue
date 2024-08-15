@@ -107,7 +107,7 @@ const defineLink = (status: any) => {
 }
 const getTableData = () => {
   for (let i = 0; i < TableData.value.length; i++) {
-    console.log(TableData.value[i])
+    // console.log(TableData.value[i])
     TableData.value[i].link = defineLink(TableData.value[i].testunit_status)
   }
 }
@@ -386,7 +386,7 @@ const SelectTestType = async (type: any) => {
       })
     )
   }
-  console.log(currentRow.value)
+  // console.log(currentRow.value)
 }
 
 // 确认新增
@@ -422,7 +422,7 @@ const confirm = async (value: string) => {
   } else {
     deleteTestUnitApi(PublicFormInfo["testunit_id"]).then((res) => {
       getMangeData()
-      console.log(res)
+      // console.log(res)
     })
   }
   PublicVisible.value = false
@@ -471,9 +471,9 @@ const clickNode = async (data: NodeData & any, node: any) => {
     boardModel_id: node.parent.data.id
   }).then((res) => {
     processList.value = res.data
-    console.log(processList.value)
+    // console.log(processList.value)
   })
-  console.log(currentRow.value, selectedRows.value)
+  // console.log(currentRow.value, selectedRows.value)
 }
 const handleSingleSelectChange = (val: any) => {
   currentRow.value = val
@@ -524,7 +524,7 @@ const addTempTest = async () => {
 async function getTreeData() {
   const result = await getTestMangePath()
   treeData.value = result.Pathdata
-  console.log(treeData.value)
+  // console.log(treeData.value)
 }
 async function getMangeData() {
   loading.value = true

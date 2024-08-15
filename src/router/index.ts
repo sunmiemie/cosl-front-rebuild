@@ -305,6 +305,15 @@ export const constantRoutes: RouteRecordRaw[] = [
     },
     children: [
       {
+        path: "supplierManagement",
+        component: () => import("@/views/datamanage/datastore/supplierManagement/index.vue"),
+        name: "supplierManagement",
+        meta: {
+          title: "供应商管理",
+          keepAlive: true
+        }
+      },
+      {
         path: "report",
         component: () => import("@/views/datamanage/historymange/index.vue"),
         name: "Report",
@@ -333,7 +342,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       },
       {
-        path: "checkReport",
+        path: "reportView",
         component: () => import("@/views/datamanage/historymange/reportPre/index.vue"),
         name: "reportView",
         meta: {

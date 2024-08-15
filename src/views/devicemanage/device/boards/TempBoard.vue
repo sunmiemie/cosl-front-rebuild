@@ -33,7 +33,7 @@
       </div>
     </div>
     <div class="table-wrapper">
-      <TableComponent :columnData="headers" :tableData="TableData" v-loading="Loading">
+      <TableComponent :columnData="headers" :tableData="TableData" :style="'height: 400px'" v-loading="Loading">
         <template #link="{ row }">
           <el-link type="primary" class="el-link" @click="handleLink(row, '编辑')">编辑</el-link>
         </template>
