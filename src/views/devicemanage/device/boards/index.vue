@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-card style="height: 80vh">
+    <el-card style="height: 81vh">
       <el-tabs v-model="activeName" type="card" class="demo-tabs" @tab-click="handleTabClick">
         <el-tab-pane label="生产电路板" name="first">
           <Board ref="boardComponent" />

@@ -11,7 +11,7 @@ const toggleSelection = () => {
 }
 //勾选checkbox事件
 const handleSelectionChange = (val) => {
-  // console.log("val", val)
+  console.log("val", val)
   multipleSelection.value = val
   checkNumber.value = multipleSelection.value.length
 }
@@ -31,8 +31,7 @@ export default {
     refValue: undefined,
     selection: Boolean,
     border: Boolean,
-    stripe: Boolean,
-    style: ""
+    stripe: Boolean
   }
 }
 </script>
@@ -49,7 +48,6 @@ export default {
       }
     "
     @selection-change="handleSelectionChange"
-    :style="style"
   >
     <!-- columnData属性列 -->
     <el-table-column v-if="selection" type="selection" width="30" align="center" :fixed="'left'" />
@@ -141,3 +139,5 @@ export default {
     </template>
   </el-table>
 </template>
+
+<style scoped></style>

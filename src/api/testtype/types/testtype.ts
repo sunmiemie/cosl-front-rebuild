@@ -7,7 +7,13 @@ export interface UpdateTestTypeRequestData {
   name: string
 }
 
-interface GetTestTypeData {
+export interface GetTestTypeRequestData {
+  currentPage: number
+  size: number
+  name?: string
+}
+
+export interface GetTestTypeData {
   number: string
   name: string
   processCount: string
