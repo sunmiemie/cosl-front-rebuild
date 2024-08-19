@@ -21,10 +21,10 @@
         <el-button
           type="primary"
           :icon="CirclePlus"
-          style="width: 100%; margin-bottom: 10px"
           @click="dialogVisible = true"
-          >新增临时电路板
+        >批量导入
         </el-button>
+        <el-button type="warning" :icon="CirclePlus" @click="manualDialogVisible = true">手动添加</el-button>
       </div>
       <div>
         <el-tooltip content="刷新当前页">
@@ -52,8 +52,89 @@
       @current-change="handleCurrentChange"
     />
   </el-card>
+
+  <!-- 批量导入 -->
   <el-dialog
     v-model="dialogVisible"
+    width="30%"
+  >
+    <el-upload
+      class="upload-demo"
+      drag
+      accept=".xls,.xlsx"
+      headers="Content-Type':'multipart/form-data"
+      action=""
+      v-model:file-list="fileList.file"
+      multiple
+      style="width: 100%"
+      :on-exceed="exceedFile"
+      :on-error="handleError"
+      :on-success="handleSuccess"
+      :before-upload="beforeUpload"
+      :show-file-list="true"
+      :auto-upload="false"
+      :limit="1"
+    >
+      <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+      <div class="el-upload__text">拖拽文件至此 或 <em>点击选择文件上传</em></div>
+      <template #tip>
+        <div class="el-upload__tip">Tip：请上传xlsx后缀的表格文件</div>
+      </template>
+    </el-upload>
+    <template #footer>
+      <el-button @click="dialogVisible = false; fileList.file = []">取消</el-button>
+      <el-button type="primary" @click="generatePreview">确认</el-button>
+    </template>
+  </el-dialog>
+
+  <!-- 预览 -->
+  <el-dialog v-model="previewDialogVisible" width="1100" top="10vh">
+    <el-row>
+      <el-col :span="24">
+        <h3 class="table-title">临时电路板预览数据</h3>
+      </el-col>
+    </el-row>
+    <el-table class="preview-table" :data="preview.tempBoardData" max-height="250">
+      <el-table-column property="序号" label="序号" width="100" />
+      <el-table-column property="所属产品" label="所属产品" width="150" />
+      <el-table-column property="测试品名称" label="测试品名称" width="150" />
+      <el-table-column property="物料号" label="物料号" width="150" />
+      <el-table-column property="规格型号" label="规格型号" width="150" />
+      <el-table-column property="SN号" label="SN 号" width="150" />
+      <el-table-column property="所属单位" label="所属单位" width="150" />
+    </el-table>
+
+    <el-row>
+      <el-col :span="24">
+        <h3 class="table-title">临时工单预览数据</h3>
+      </el-col>
+    </el-row>
+    <el-table class="preview-table" :data="preview.testUnitData" max-height="250">
+      <el-table-column property="序号" label="序号" width="100" />
+      <el-table-column property="创建人" label="创建人" width="150" />
+      <el-table-column property="测试品名称" label="测试品名称" width="150" />
+      <el-table-column property="测试类型" label="测试类型" width="150" />
+      <el-table-column property="测试内容" label="测试内容" width="150" />
+      <el-table-column property="测试类别" label="测试类别" width="200" />
+      <el-table-column property="委托人" label="委托人" width="150" />
+    </el-table>
+
+    <el-row>
+      <el-col :span="24">
+        <h3 class="table-title">确认导入吗？</h3>
+      </el-col>
+    </el-row>
+    <template #footer>
+      <div class="dialog-footer dialog-footer-center">
+        <el-button @click="previewDialogVisible = false; fileList.file = []">取消</el-button>
+        <el-button type="primary" @click="bulkImport"> 确认 </el-button>
+      </div>
+    </template>
+  </el-dialog>
+
+  <!-- 手动添加 -->
+  <el-dialog
+    v-model="manualDialogVisible"
     width="30%"
     @close="closedTempBoard"
     :title="currentUpdateId === undefined ? '新增临时电路板' : '编辑临时电路板'"
@@ -76,14 +157,110 @@
 <script setup lang="ts">
 import { ref, reactive, watch, type Ref } from "vue"
 import TableComponent from "@/components/Table/index.vue"
-import { Search, Refresh, CirclePlus, RefreshRight } from "@element-plus/icons-vue"
+import {Search, Refresh, CirclePlus, RefreshRight, UploadFilled} from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
-import { ElMessage } from "element-plus"
+import {ElMessage, ElMessageBox} from "element-plus"
 import { createTempBoardApi, getTempBoardDataApi, updateTempBoardDataApi } from "@/api/temp-board"
+import {createTempBatchDataApi, previewTempBatchDataApi} from "@/api/temp-batch";
+import {useUserStore} from "@/store/modules/user";
+
+const username = useUserStore().username
 
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+// 手动添加
+const manualDialogVisible = ref<boolean>(false)
+
+// 批量导入
 const dialogVisible = ref<boolean>(false)
+// 上传的文件
+const fileList = reactive<any>({
+  file: []
+})
+// 文件数超出提示
+const exceedFile = () => {
+  ElMessage.warning("最多只能上传一个文件！")
+}
+// 上传错误提示
+const handleError = () => {
+  ElMessage.error("导入数据失败，请您重新上传！")
+}
+//上传成功提示
+const handleSuccess = () => {
+  ElMessage.success("导入数据成功！")
+}
+const beforeUpload = (file: any) => {
+  const isExcel =
+    file.type === "application/vnd.ms-excel" ||
+    file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+  const isLt2M = file.size / 1024 / 1024 < 20
+
+  if (!isExcel)
+    ElMessageBox({
+      title: "温馨提示",
+      message: "上传文件只能是 xls / xlsx 格式！",
+      type: "warning"
+    })
+  if (!isLt2M)
+    ElMessageBox({
+      title: "温馨提示",
+      message: "上传文件大小不能超过 20MB!",
+      type: "warning"
+    })
+  return isExcel && isLt2M
+}
+
+const previewDialogVisible = ref<boolean>(false)
+const preview = reactive<any>({
+  tempBoardData: [],
+  testUnitData: []
+})
+
+let snList;
+
+const generatePreview = () => {
+  const param = new FormData()
+  param.append("fileData", fileList.file[0].raw)
+  param.append("username", username)
+
+  previewTempBatchDataApi(param)
+    .then((data) => {
+      // fileList.file = []
+      // console.log(data.preview_temp_boards)
+      preview.tempBoardData = data.preview_temp_boards
+      preview.testUnitData = data.preview_dev_testunit
+      snList = data.sn_list
+    })
+    .catch((err) => {
+      ElMessage.error(err.data.errormessage)
+    })
+    .finally(() => {
+      dialogVisible.value = false
+      previewDialogVisible.value = true
+    })
+}
+// 批量导入
+const bulkImport = () => {
+  const param = new FormData()
+  param.append("fileData", fileList.file[0].raw)
+  param.append("username", username)
+  param.append("snList", snList)
+  createTempBatchDataApi(param)
+    .then(() => {
+      ElMessage.success("新增成功")
+      fileList.file = []
+      getTableData()
+    })
+    .catch((err) => {
+      ElMessage.error(err.data.errormessage)
+      // console.log(err)
+    })
+    .finally(() => {
+      previewDialogVisible.value = false
+    })
+}
+
 const currentUpdateId = ref<any>()
 const Loading: Ref<boolean> = ref<any>(false)
 
@@ -100,7 +277,7 @@ const handleCreate = () => {
         getTableData()
       })
       .finally(() => {
-        dialogVisible.value = false
+        manualDialogVisible.value = false
         Object.keys(formData).forEach((key: any) => (formData[key] = ""))
       })
   } else {
@@ -114,7 +291,7 @@ const handleCreate = () => {
         getTableData()
       })
       .finally(() => {
-        dialogVisible.value = false
+        manualDialogVisible.value = false
         Object.keys(formData).forEach((key: any) => (formData[key] = ""))
       })
   }
@@ -145,7 +322,7 @@ const headers = ref<any>([
 const TableData = ref<any>([])
 
 const closedTempBoard = () => {
-  dialogVisible.value = false
+  manualDialogVisible.value = false
   currentUpdateId.value = undefined
   Object.keys(formData).forEach((key: any) => (formData[key] = ""))
 }
@@ -178,7 +355,7 @@ const handleLink = (data: any, i: any) => {
     /* empty */
   } else {
     currentUpdateId.value = data.id
-    dialogVisible.value = true
+    manualDialogVisible.value = true
     formData.id = data.id
     formData.name = data.label
     formData.type = data.productId
@@ -211,5 +388,15 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 .pager-wrapper {
   display: flex;
   justify-content: flex-end;
+}
+
+.dialog-footer-center {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.preview-table {
+  margin-bottom: 10px;
 }
 </style>
