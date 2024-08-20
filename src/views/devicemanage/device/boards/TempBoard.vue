@@ -18,12 +18,7 @@
   <el-card shadow="never">
     <div class="toolbar-wrapper">
       <div>
-        <el-button
-          type="primary"
-          :icon="CirclePlus"
-          @click="dialogVisible = true"
-        >批量导入
-        </el-button>
+        <el-button type="primary" :icon="CirclePlus" @click="dialogVisible = true">批量导入 </el-button>
         <el-button type="warning" :icon="CirclePlus" @click="manualDialogVisible = true">手动添加</el-button>
       </div>
       <div>
@@ -54,10 +49,7 @@
   </el-card>
 
   <!-- 批量导入 -->
-  <el-dialog
-    v-model="dialogVisible"
-    width="30%"
-  >
+  <el-dialog v-model="dialogVisible" width="30%">
     <el-upload
       class="upload-demo"
       drag
@@ -81,21 +73,21 @@
         <div class="el-upload__tip">Tip：请上传xlsx后缀的表格文件</div>
       </template>
     </el-upload>
+
     <template #footer>
       <el-button @click="dialogVisible = false; fileList.file = []">取消</el-button>
-      <el-button type="primary" @click="generatePreview">确认</el-button>
+      <el-button type="primary" @click="generatePreview">生成预览</el-button>
     </template>
   </el-dialog>
 
   <!-- 预览 -->
-  <el-dialog v-model="previewDialogVisible" width="1100" top="10vh">
+  <el-dialog v-model="previewDialogVisible" width="1000" top="10vh">
     <el-row>
       <el-col :span="24">
         <h3 class="table-title">临时电路板预览数据</h3>
       </el-col>
     </el-row>
     <el-table class="preview-table" :data="preview.tempBoardData" max-height="250">
-      <el-table-column property="序号" label="序号" width="100" />
       <el-table-column property="所属产品" label="所属产品" width="150" />
       <el-table-column property="测试品名称" label="测试品名称" width="150" />
       <el-table-column property="物料号" label="物料号" width="150" />
@@ -110,18 +102,19 @@
       </el-col>
     </el-row>
     <el-table class="preview-table" :data="preview.testUnitData" max-height="250">
-      <el-table-column property="序号" label="序号" width="100" />
-      <el-table-column property="创建人" label="创建人" width="150" />
       <el-table-column property="测试品名称" label="测试品名称" width="150" />
       <el-table-column property="测试类型" label="测试类型" width="150" />
-      <el-table-column property="测试内容" label="测试内容" width="150" />
       <el-table-column property="测试类别" label="测试类别" width="200" />
+      <el-table-column property="测试内容" label="测试内容" width="150" />
+      <el-table-column property="创建人" label="创建人" width="120" />
       <el-table-column property="委托人" label="委托人" width="150" />
     </el-table>
 
     <el-row>
       <el-col :span="24">
-        <h3 class="table-title">确认导入吗？</h3>
+        <h3 class="table-title">
+          即将添加 {{ preview.tempBoardData.length }} 块电路板、{{ preview.testUnitData.length }} 个工单，确认添加吗？
+        </h3>
       </el-col>
     </el-row>
     <template #footer>
@@ -157,12 +150,12 @@
 <script setup lang="ts">
 import { ref, reactive, watch, type Ref } from "vue"
 import TableComponent from "@/components/Table/index.vue"
-import {Search, Refresh, CirclePlus, RefreshRight, UploadFilled} from "@element-plus/icons-vue"
+import { Search, Refresh, CirclePlus, RefreshRight, UploadFilled } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
-import {ElMessage, ElMessageBox} from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
 import { createTempBoardApi, getTempBoardDataApi, updateTempBoardDataApi } from "@/api/temp-board"
-import {createTempBatchDataApi, previewTempBatchDataApi} from "@/api/temp-batch";
-import {useUserStore} from "@/store/modules/user";
+import { createTempBatchDataApi, previewTempBatchDataApi } from "@/api/temp-batch"
+import { useUserStore } from "@/store/modules/user"
 
 const username = useUserStore().username
 
@@ -217,7 +210,7 @@ const preview = reactive<any>({
   testUnitData: []
 })
 
-let snList;
+let snList
 
 const generatePreview = () => {
   const param = new FormData()
@@ -231,13 +224,14 @@ const generatePreview = () => {
       preview.tempBoardData = data.preview_temp_boards
       preview.testUnitData = data.preview_dev_testunit
       snList = data.sn_list
+      previewDialogVisible.value = true
     })
     .catch((err) => {
+      fileList.file = []
       ElMessage.error(err.data.errormessage)
     })
     .finally(() => {
       dialogVisible.value = false
-      previewDialogVisible.value = true
     })
 }
 // 批量导入
@@ -253,8 +247,8 @@ const bulkImport = () => {
       getTableData()
     })
     .catch((err) => {
+      fileList.file = []
       ElMessage.error(err.data.errormessage)
-      // console.log(err)
     })
     .finally(() => {
       previewDialogVisible.value = false
