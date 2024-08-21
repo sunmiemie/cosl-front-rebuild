@@ -24,3 +24,17 @@ export function getTempBoardDataApi(params: TempBoard.GetTempBoardRequestData) {
     params
   })
 }
+
+/** 查 */
+export function getBatchTempBoardDataApi(params: {
+  size: number
+  currentPage: number
+  seria: string | undefined
+  batch: string | undefined
+}) {
+  return request<TempBoard.GetTempBoardResponseData>({
+    url: "equipment/batch-temp-board/list",
+    method: "get",
+    params
+  })
+}

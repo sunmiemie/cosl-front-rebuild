@@ -107,7 +107,6 @@ const defineLink = (status: any) => {
 }
 const getTableData = () => {
   for (let i = 0; i < TableData.value.length; i++) {
-    console.log(TableData.value[i])
     TableData.value[i].link = defineLink(TableData.value[i].testunit_status)
   }
 }
@@ -331,7 +330,6 @@ const detailform = reactive({
 })
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
-  console.log(selectedRows.value)
 }
 const singleTableRef = ref<InstanceType<typeof ElTable>>()
 
@@ -386,7 +384,6 @@ const SelectTestType = async (type: any) => {
       })
     )
   }
-  console.log(currentRow.value)
 }
 
 // 确认新增
@@ -416,13 +413,11 @@ const TestStatus = reactive([
 const confirm = async (value: string) => {
   if (value === "发布") {
     publicTestUnitApi({ id: PublicFormInfo["testunit_id"] }).then((res) => {
-      console.log(res)
       getMangeData()
     })
   } else {
     deleteTestUnitApi(PublicFormInfo["testunit_id"]).then((res) => {
       getMangeData()
-      console.log(res)
     })
   }
   PublicVisible.value = false
@@ -524,7 +519,6 @@ const addTempTest = async () => {
 async function getTreeData() {
   const result = await getTestMangePath()
   treeData.value = result.Pathdata
-  console.log(treeData.value)
 }
 async function getMangeData() {
   loading.value = true
@@ -588,7 +582,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       <div class="toolbar-wrapper">
         <div>
           <el-button icon="CirclePlus" type="primary" @click="addTest">新增生产测试工单</el-button>
-          <el-button icon="CirclePlus" type="warning" @click="addTempTest">新增临时测试工单</el-button>
+          <!-- <el-button icon="CirclePlus" type="warning" @click="addTempTest">新增临时测试工单</el-button> -->
         </div>
         <div>
           <el-tooltip content="刷新当前页">

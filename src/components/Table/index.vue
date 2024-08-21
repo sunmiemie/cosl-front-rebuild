@@ -31,7 +31,11 @@ export default {
     refValue: undefined,
     selection: Boolean,
     border: Boolean,
-    stripe: Boolean
+    stripe: Boolean,
+    style: {
+      type: String,
+      default: ""
+    }
   }
 }
 </script>
@@ -42,6 +46,7 @@ export default {
     :data="tableData"
     :border="border"
     :stripe="stripe"
+    :style="style"
     :row-key="
       (row) => {
         return row.id
@@ -139,5 +144,3 @@ export default {
     </template>
   </el-table>
 </template>
-
-<style scoped></style>

@@ -28,7 +28,7 @@ const handleTabClick = (tab: TabsPaneContext) => {
   if (tab.props.name === "first" && boardComponent.value) {
     boardComponent.value.getTreeData()
   } else if (tab.props.name === "second" && tempBoardComponent.value) {
-    tempBoardComponent.value.getTableData()
+    tempBoardComponent.value.getTreeData()
   }
 }
 </script>

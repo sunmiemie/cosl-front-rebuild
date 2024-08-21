@@ -1,4 +1,5 @@
 import { request } from "@/utils/service"
+import type * as TempBatch from "./types/temp-batch"
 
 export function createTempBatchDataApi(data: any) {
   return request({
@@ -15,5 +16,14 @@ export function previewTempBatchDataApi(data: any) {
     method: "post",
     headers: { "Content-Type": "multipart/form-data" },
     data
+  })
+}
+
+/** 查 */
+export function getTempBatchDataApi(params: TempBatch.GetTempBatchRequestData) {
+  return request<TempBatch.GetTempBatchResponseData>({
+    url: "equipment/temp-batch/list",
+    method: "get",
+    params
   })
 }
