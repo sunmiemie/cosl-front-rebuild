@@ -2,18 +2,18 @@
 
 <script lang="ts" setup>
 import { onMounted, reactive, ref, watch } from "vue"
-import { ElMessage, ElMessageBox, ElTree, type FormInstance } from "element-plus"
+import { ElMessage, ElMessageBox, ElTree, type FormInstance, type FormRules } from "element-plus"
 import { usePagination, useDetailPagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import QrcodeVue from "qrcode.vue"
 import { getTempBatchInstrumentDataApi } from "@/api/instrument"
 import { CirclePlus, UploadFilled } from "@element-plus/icons-vue"
 import { getQRcodeImgApi } from "@/api/qrcode"
-import { createTempBatchDataApi, getTempBatchDataApi, previewTempBatchDataApi } from "@/api/temp-batch";
-import { createTempBoardApi, getBatchTempBoardDataApi, updateTempBoardDataApi } from "@/api/temp-board";
-import { GetTempBoardData } from "@/api/temp-board/types/temp-board";
-import { GetTempBatchData } from "@/api/temp-batch/types/temp-batch";
-import { useUserStore } from "@/store/modules/user";
+import { createTempBatchDataApi, getTempBatchDataApi, previewTempBatchDataApi } from "@/api/temp-batch"
+import { createTempBoardApi, getBatchTempBoardDataApi, updateTempBoardDataApi } from "@/api/temp-board"
+import { GetTempBoardData } from "@/api/temp-board/types/temp-board"
+import { GetTempBatchData } from "@/api/temp-batch/types/temp-batch"
+import { useUserStore } from "@/store/modules/user"
 
 defineOptions({
   // 命名当前组件
@@ -38,7 +38,19 @@ const qrcodeVisible = ref<boolean>(false)
 const qrcodeValue = ref<string>("")
 
 const formData = reactive<any>({
-  file: []
+  instrument: "",
+  boardName: "",
+  modelNumber: "",
+  model: "",
+  supplier: "",
+  batchId: "",
+  serialNumber: "",
+  belong: ""
+})
+const formRules: FormRules = reactive({
+  instrument: [{ required: true, trigger: "blur", message: "请输入所属产品" }],
+  boardName: [{ required: true, trigger: "blur", message: "请输入测试品名称" }],
+  supplier: [{ required: true, trigger: "blur", message: "请输入供应商名称" }]
 })
 // 上传的文件
 const fileList = reactive<any>({
@@ -47,8 +59,11 @@ const fileList = reactive<any>({
 const handleCreate = () => {
   if (currentUpdateId.value === undefined) {
     createTempBoardApi({ ...formData })
-      .then(() => {
+      .then((data) => {
         ElMessage.success("新增成功")
+        getTreeData()
+        searchData.id = data.id
+        searchData.name = data.name
         getTableData()
       })
       .finally(() => {
@@ -158,7 +173,6 @@ const getDetailTableData = () => {
     })
     .finally(() => {
       detailLoading.value = false
-      // loading.value = false
     })
 }
 
@@ -371,6 +385,24 @@ const filterNode = (value: string, data: any) => {
   if (!value) return true
   return data.label.includes(value)
 }
+
+const instrumentList = ref<any>([])
+const getInstrumentData = () => {
+  getTempBatchInstrumentDataApi({}).then((res) => {
+    instrumentList.value = res.data.list
+  })
+}
+
+const cancelUpload = () => {
+  dialogVisible.value = false
+  fileList.file = []
+}
+
+const cancelInsert = () => {
+  previewDialogVisible.value = false
+  fileList.file = []
+}
+
 //#endregion
 onMounted(() => {
   watch([() => paginationData.currentPage, () => paginationData.pageSize], getTreeData, { immediate: true })
@@ -427,7 +459,7 @@ onMounted(() => {
       </el-card>
     </el-col>
 
-    <el-col v-if="searchData.id === ''" :span="19">
+    <el-col v-if="searchData.id === '' && searchData.name === ''" :span="19">
       <el-card shadow="never" style="height: 100%">
         <el-empty description="请选择产品" />
       </el-card>
@@ -578,7 +610,7 @@ onMounted(() => {
       </el-upload>
 
       <template #footer>
-        <el-button @click="dialogVisible = false; fileList.file = []">取消</el-button>
+        <el-button @click="cancelUpload">取消</el-button>
         <el-button type="primary" :disabled="!fileList.file.length" @click="generatePreview">生成预览</el-button>
       </template>
     </el-card>
@@ -624,7 +656,7 @@ onMounted(() => {
       </el-row>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="previewDialogVisible = false; fileList.file = []">取消</el-button>
+          <el-button @click="cancelInsert">取消</el-button>
           <el-button type="primary" @click="bulkImport"> 确认 </el-button>
         </div>
       </template>
@@ -638,12 +670,32 @@ onMounted(() => {
     @close="closedTempBoard"
     :title="currentUpdateId === undefined ? '新增临时电路板' : '编辑临时电路板'"
   >
-    <el-form :model="formData">
-      <el-form-item label="序列号" label-width="100">
+    <el-form :model="formData" :rules="formRules" label-width="100">
+      <el-form-item prop="instrument" label="所属产品">
+        <el-select v-model="formData.instrument" filterable placeholder="请选择" @visible-change="getInstrumentData">
+          <el-option v-for="item in instrumentList" :label="item.name" :value="item.name" :key="item.name" />
+        </el-select>
+      </el-form-item>
+      <el-form-item prop="boardName" label="测试品名称">
+        <el-input v-model="formData.boardName" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item prop="supplier" label="供应商名称">
+        <el-input v-model="formData.supplier" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item label="物料号">
+        <el-input v-model="formData.modelNumber" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item label="规格型号">
+        <el-input v-model="formData.model" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item label="批次号">
+        <el-input v-model="formData.batchId" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item label="SN 号">
         <el-input v-model="formData.serialNumber" placeholder="请输入" />
       </el-form-item>
-      <el-form-item label="描述" label-width="100">
-        <el-input v-model="formData.description" placeholder="请输入" />
+      <el-form-item label="所属单位">
+        <el-input v-model="formData.belong" placeholder="请输入" />
       </el-form-item>
     </el-form>
     <template #footer>
