@@ -279,6 +279,7 @@ const bulkImport = () => {
     .then(() => {
       ElMessage.success("新增成功")
       fileList.file = []
+      getTreeData()
       getTableData()
     })
     .catch((err) => {

@@ -3,7 +3,7 @@
     <el-card style="height: 81vh">
       <el-tabs v-model="activeName" type="card" class="demo-tabs" @tab-click="handleTabClick">
         <el-tab-pane label="生产电路板" name="first">
-          <Board ref="boardComponent" />
+          <ProdBoard ref="prodBoardComponent" />
         </el-tab-pane>
         <el-tab-pane label="临时电路板" name="second">
           <TempBoard ref="tempBoardComponent" />
@@ -14,19 +14,19 @@
 </template>
 
 <script setup lang="ts">
-import Board from "./Board.vue"
-import TempBoard from "./TempBoard.vue"
+import ProdBoard from "./components/ProdBoard.vue"
+import TempBoard from "./components/TempBoard.vue"
 import { ref } from "vue"
 import { TabsPaneContext } from "element-plus"
 
 const activeName = ref<any>("first")
 
-const boardComponent = ref<InstanceType<typeof Board> | null>(null)
+const prodBoardComponent = ref<InstanceType<typeof ProdBoard> | null>(null)
 const tempBoardComponent = ref<InstanceType<typeof TempBoard> | null>(null)
 
 const handleTabClick = (tab: TabsPaneContext) => {
-  if (tab.props.name === "first" && boardComponent.value) {
-    boardComponent.value.getTreeData()
+  if (tab.props.name === "first" && prodBoardComponent.value) {
+    prodBoardComponent.value.getTreeData()
   } else if (tab.props.name === "second" && tempBoardComponent.value) {
     tempBoardComponent.value.getTreeData()
   }

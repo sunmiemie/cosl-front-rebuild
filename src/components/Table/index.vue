@@ -3,7 +3,7 @@ import { getCurrentInstance, ref, toRefs } from "vue"
 //checkbox点击事件
 const instance = getCurrentInstance()
 const multipleSelection = ref([])
-const checkNumber = ref(null)
+const checkNumber = ref(0)
 //取消勾选事件
 const toggleSelection = () => {
   const ultipleTabInstance = toRefs(instance.refs.table)
@@ -11,7 +11,7 @@ const toggleSelection = () => {
 }
 //勾选checkbox事件
 const handleSelectionChange = (val) => {
-  console.log("val", val)
+  // console.log("val", val)
   multipleSelection.value = val
   checkNumber.value = multipleSelection.value.length
 }
