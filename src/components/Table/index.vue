@@ -11,7 +11,6 @@ const toggleSelection = () => {
 }
 //勾选checkbox事件
 const handleSelectionChange = (val) => {
-  // console.log("val", val)
   multipleSelection.value = val
   checkNumber.value = multipleSelection.value.length
 }

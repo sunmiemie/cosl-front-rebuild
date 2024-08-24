@@ -19,10 +19,6 @@ import { getTestProcessList } from "@/api/addprocess"
 import { useUserStore } from "@/store/modules/user"
 import { checkReportDataApi, getSingleReportDataApi } from "@/api/report"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
 const router = useRouter()
 const userStore = useUserStore()
 const reportJson = ref<any>([])
@@ -36,7 +32,6 @@ const showFlags = ref<any>(true)
 const showProcess = ref<any>(true)
 const testFlags = ref<any>(true)
 const dialogVisible = ref<boolean>(false)
-const tempDialogVisible = ref<boolean>(false)
 const PublicVisible = ref<boolean>(false)
 const testTypeList = ref<any>([])
 const processList = ref<any>([])
@@ -346,45 +341,6 @@ const selectedType = reactive({
   processId: "",
   processVersion: ""
 })
-//选择测试工艺
-const SelectTestType = async (type: any) => {
-  const result = await getbordsinfo({
-    batchId: Batch.value,
-    boardModelId: CircuitBoardModelId.value,
-    testTypeId: type.number
-  })
-  await Promise.all((boardTableData.value = result.data))
-  showProcessList.value = []
-  selectedType.processId = ""
-  selectedType.processVersion = ""
-  selectedType.id = type.number
-  selectedType.name = type.name
-  if (showProcess.value === false) {
-    await setCurrent()
-  }
-  showProcess.value = false
-  const process = processList.value.find((item: any) => {
-    return item.type === type.name
-  })
-  if (process !== undefined && process !== null) {
-    await Promise.all(
-      process.versionList.map(async (item: any) => {
-        if (item.status === 3) {
-          showProcessList.value.push(item)
-        }
-      })
-    )
-    await Promise.all(
-      showProcessList.value.map(async (item: any) => {
-        if (item.activate === 1) {
-          await setCurrent(item)
-          selectedType.processId = item.id
-          selectedType.processVersion = item.version
-        }
-      })
-    )
-  }
-}
 
 // 确认新增
 const submitAdd = () => {
@@ -460,23 +416,14 @@ const clickNode = async (data: NodeData & any, node: any) => {
   })
   boardTableData.value = result.data
   boardInfoLoading.value = false
-  // console.log(result.data)
   getTestTypeData()
   getTestProcessList({
     boardModel_id: node.parent.data.id
   }).then((res) => {
     processList.value = res.data
-    // console.log(processList.value)
   })
-  // console.log(currentRow.value, selectedRows.value)
 }
-const handleSingleSelectChange = (val: any) => {
-  currentRow.value = val
-  if (val !== undefined && val !== null) {
-    selectedType.processId = val.id
-    selectedType.processVersion = val.version
-  }
-}
+
 const getTestTypeData = () => {
   getTestTypeDataApi({
     currentPage: 1,
@@ -512,10 +459,7 @@ const addTest = async () => {
   await getTreeData()
   dialogVisible.value = true
 }
-const addTempTest = async () => {
-  await getTreeData()
-  tempDialogVisible.value = true
-}
+
 async function getTreeData() {
   const result = await getTestMangePath()
   treeData.value = result.Pathdata
@@ -565,7 +509,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
             <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
           </el-select>
         </el-form-item>
-        <!-- 时间选择器 -->
         <el-form-item label="创建时间范围">
           <el-date-picker
             v-model="searchData['Daterange'] as any"
@@ -587,7 +530,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       <div class="toolbar-wrapper">
         <div>
           <el-button icon="CirclePlus" type="primary" @click="addTest">新增生产测试工单</el-button>
-          <!-- <el-button icon="CirclePlus" type="warning" @click="addTempTest">新增临时测试工单</el-button> -->
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -609,9 +551,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
             <el-tag v-if="row['testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
           </template>
           <template #link="{ row }">
-            <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">{{
-              i
-            }}</el-link>
+            <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">
+              {{ i }}
+            </el-link>
           </template>
         </TableComponent>
       </div>
@@ -790,47 +732,29 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         >
       </template>
     </el-dialog>
-    <!-- 新增临时测试 -->
-    <el-dialog
-      v-model="tempDialogVisible"
-      width="85%"
-      @close="closeDiaLog"
-      title="新增临时测试工单"
-      align-center
-      :close-on-click-modal="false"
-    >
-      <template #footer>
-        <el-button icon="Check" type="primary">确认新增</el-button>
-      </template>
-    </el-dialog>
+
     <!-- 发布 删除 -->
     <el-dialog v-model="PublicVisible" :show-close="true" width="44%">
       <template #header>
         <div class="my-header">
           <h2>{{ PublicOrDelete }}测试工单</h2>
-          <!-- <button @click="close">X</button> -->
         </div>
       </template>
       <el-form :inline="true" :model="PublicFormInfo">
         <el-form-item label="工单号">
-          <!-- <el-input type="text" disabled="false"> -->
           <el-input v-model="PublicFormInfo['testunit_id']" disabled type="text" />
         </el-form-item>
         <el-form-item label="测试名称">
-          <!-- <el-input type="text" disabled="false"> -->
           <el-input v-model="PublicFormInfo['testunit_name']" disabled type="text" style="width: 350px" />
         </el-form-item>
         <br />
         <el-form-item label="测试类型">
-          <!-- <el-input type="text" disabled="false"> -->
           <el-input v-model="PublicFormInfo['process_type']" disabled type="text" />
         </el-form-item>
         <el-form-item label="创建人">
-          <!-- <el-input type="text" disabled="false"> -->
           <el-input v-model="PublicFormInfo['user_name']" disabled style="width: 100px" type="text" />
         </el-form-item>
         <el-form-item label="创建日期">
-          <!-- <el-input type="text" disabled="false"> -->
           <el-input v-model="PublicFormInfo['testunit_starttime']" disabled style="width: 180px" type="text" />
         </el-form-item>
       </el-form>
@@ -901,12 +825,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 .drawer-main {
   margin-top: 40px;
   height: auto;
-  // background-color: aqua;
 }
 
 .drawer-footer {
-  // margin-top: 20px;
-  // width: 200px;
   height: 200px;
 
   .drawer-jiaju {
@@ -924,7 +845,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     width: 50vw;
     height: 7vh;
     margin-top: 20px;
-    // margin-top: 20px;
     background-color: #fafafa;
     display: flex;
     justify-content: space-around;

@@ -15,11 +15,6 @@ import { GetTempBoardData } from "@/api/temp-board/types/temp-board"
 import { GetTempBatchData } from "@/api/temp-batch/types/temp-batch"
 import { useUserStore } from "@/store/modules/user"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
-
 const username = useUserStore().username
 
 const loading = ref<boolean>(false)
@@ -304,10 +299,6 @@ const handleError = () => {
 const handleSuccess = () => {
   ElMessage.success("导入数据成功！")
 }
-// const closeDialogs = () => {
-//   dialogDetail.value = false
-//   dialogVisible.value = false
-// }
 
 const closedTempBoard = () => {
   manualDialogVisible.value = false
@@ -317,8 +308,8 @@ const closedTempBoard = () => {
 
 // 打印二维码
 const getSelection = () => {
-  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "startTime" }).then(
-    (res) => {
+  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "startTime" })
+    .then((res) => {
       if (res.code === 0) {
         const imageData = res.data
         const printWindow = window.open("", "_blank")
@@ -408,12 +399,8 @@ const cancelInsert = () => {
 onMounted(() => {
   watch([() => paginationData.currentPage, () => paginationData.pageSize], getTreeData, { immediate: true })
   /** 监听分页参数的变化 */
-  watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, {
-    immediate: false
-  })
-  watch([() => paginationDetailData.currentPage], getDetailTableData, {
-    immediate: false
-  })
+  watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: false })
+  watch([() => paginationDetailData.currentPage], getDetailTableData, { immediate: false })
 })
 </script>
 

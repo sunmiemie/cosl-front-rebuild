@@ -2,21 +2,12 @@
 
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref } from "vue"
-import {
-  ElMessage,
-  ElScrollbar,
-  ElTable,
-  ElTree,
-  type FormInstance,
-  type FormRules,
-  TabsPaneContext
-} from "element-plus"
+import { ElMessage, ElTable, ElTree, type FormInstance, type FormRules, TabsPaneContext } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { useRouter } from "vue-router"
 import {
   getTestMangePath,
-  getbordsinfo,
   publicTestUnitApi,
   deleteTestUnitApi,
   getTempTestMangeTable,
@@ -27,10 +18,6 @@ import { getTestTypeDataApi } from "@/api/testtype"
 import { useUserStore } from "@/store/modules/user"
 import { checkReportDataApi, getSingleReportDataApi } from "@/api/report"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
 const router = useRouter()
 const userStore = useUserStore()
 const reportJson = ref<any>([])
@@ -47,7 +34,6 @@ const dialogVisible = ref<boolean>(false)
 const tempDialogVisible = ref<boolean>(false)
 const PublicVisible = ref<boolean>(false)
 const testTypeList = ref<any>([])
-const showProcessList = ref<any>([])
 const boardInfoLoading = ref(false)
 
 interface TableDataType {
@@ -311,13 +297,13 @@ const handleSearch = async () => {
   const params = JSON.parse(JSON.stringify(searchData))
   // 拼接时间参数
   if (params.Daterange !== "") {
-    // console.log(params.Daterange)
     params.Daterange = params.Daterange.join("-")
   }
   // 调用接口
   const tableResult = await getTempTestMangeTable(params)
   // 赋值
   TableData.value = tableResult.TableData
+  // console.log(tableResult.TableData)
   paginationData.total = tableResult.total // Store the table data
   getTableData()
 }
@@ -340,61 +326,6 @@ const detailform = reactive({
 })
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
-  // console.log("下午", selectedRows.value)
-}
-const singleTableRef = ref<InstanceType<typeof ElTable>>()
-
-const setCurrent = (row?: any) => {
-  singleTableRef.value!.setCurrentRow(row)
-  if (row !== undefined && row !== null) {
-    selectedType.processId = row.id
-    selectedType.processVersion = row.version
-  }
-}
-const selectedType = reactive({
-  id: "",
-  name: "",
-  processId: "",
-  processVersion: ""
-})
-//选择测试工艺
-const SelectTestType = async (type: any) => {
-  const result = await getbordsinfo({
-    batchId: Batch.value,
-    boardModelId: CircuitBoardModelId.value,
-    testTypeId: type.number
-  })
-  await Promise.all((boardTableData.value = result.data))
-  showProcessList.value = []
-  selectedType.processId = ""
-  selectedType.processVersion = ""
-  selectedType.id = type.number
-  selectedType.name = type.name
-  if (showProcess.value === false) {
-    await setCurrent()
-  }
-  showProcess.value = false
-  const process = processList.value.find((item: any) => {
-    return item.type === type.name
-  })
-  if (process !== undefined && process !== null) {
-    await Promise.all(
-      process.versionList.map(async (item: any) => {
-        if (item.status === 3) {
-          showProcessList.value.push(item)
-        }
-      })
-    )
-    await Promise.all(
-      showProcessList.value.map(async (item: any) => {
-        if (item.activate === 1) {
-          await setCurrent(item)
-          selectedType.processId = item.id
-          selectedType.processVersion = item.version
-        }
-      })
-    )
-  }
 }
 
 const orderInfo = reactive<any>({
@@ -496,36 +427,18 @@ const clickNode = async (data: NodeData & any, node: any) => {
   if (activeName.value === "first") {
     result = await getboardsinfoForTempOrder({
       batchId: Batch.value,
-      // boardModelId: CircuitBoardModelId.value
       tempBatch: false
     })
   } else {
     result = await getboardsinfoForTempOrder({
       batchId: Batch.value,
-      // boardModelId: CircuitBoardModelId.value
       tempBatch: true
     })
   }
 
   boardTableData.value = result.data
-  // console.log(boardTableData.value)
   boardInfoLoading.value = false
-  // console.log(result.data)
   getTestTypeData()
-  // getTestProcessList({
-  //   boardModel_id: node.parent.data.id
-  // }).then((res) => {
-  //   processList.value = res.data
-  //   // console.log(processList.value)
-  // })
-  // console.log(currentRow.value, selectedRows.value)
-}
-const handleSingleSelectChange = (val: any) => {
-  currentRow.value = val
-  if (val !== undefined && val !== null) {
-    selectedType.processId = val.id
-    selectedType.processVersion = val.version
-  }
 }
 const getTestTypeData = () => {
   getTestTypeDataApi({
@@ -559,11 +472,6 @@ const filterNode = (value: string, data: Tree) => {
   if (!value) return true
   return data.label.includes(value)
 }
-// 新增测试
-const addTest = async () => {
-  await getTreeData()
-  dialogVisible.value = true
-}
 const addTempTest = async () => {
   await getTreeData()
   tempDialogVisible.value = true
@@ -578,7 +486,6 @@ async function getTreeData() {
     treeData.value = result.Pathdata
   } catch (error) {
     console.error("Failed to fetch tree data:", error)
-    // 错误处理
   } finally {
     treeLoading.value = false // 请求结束，停止加载
   }
@@ -591,7 +498,6 @@ async function getTempTreeData() {
     tempTreeData.value = result.Pathdata
   } catch (error) {
     console.error("Failed to fetch tree data:", error)
-    // 错误处理
   } finally {
     tempTreeLoading.value = false // 请求结束，停止加载
   }
@@ -660,7 +566,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
             <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
           </el-select>
         </el-form-item>
-        <!-- 时间选择器 -->
         <el-form-item label="创建时间范围">
           <el-date-picker
             v-model="searchData['Daterange'] as any"
@@ -682,7 +587,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <!-- <el-button icon="CirclePlus" type="primary" @click="addTest">新增生产测试工单</el-button> -->
           <el-button icon="CirclePlus" type="primary" @click="addTempTest">新增临时测试工单</el-button>
         </div>
         <div>
@@ -786,122 +690,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         </el-card>
       </el-footer>
     </el-drawer>
-
-    <!-- 新增生产测试 -->
-    <el-dialog
-      v-model="dialogVisible"
-      width="85%"
-      @close="closeDiaLog"
-      title="新增生产测试工单"
-      align-center
-      :close-on-click-modal="false"
-    >
-      <div>
-        <el-row :gutter="20">
-          <el-col :span="5">
-            <el-card shadow="never" style="height: 100%">
-              <template #header>
-                <el-input v-model="filterText" placeholder="搜索" />
-              </template>
-              <el-tree
-                ref="treeRef"
-                :data="treeData"
-                :filter-node-method="filterNode"
-                :props="defaultProps"
-                default-expand-all
-                @node-click="clickNode"
-              />
-            </el-card>
-          </el-col>
-          <el-col :span="19">
-            <el-card shadow="never">
-              <div v-if="showFlags">请先在左侧选择批次</div>
-              <div v-else>
-                <div class="info-header">
-                  <el-text size="large">1.确认测试类型</el-text>
-                  <el-card shadow="never" style="margin-top: 10px">
-                    <el-space :size="10" spacer="|">
-                      <el-text size="large">电路板型号:{{ CircuitBoardModel }}</el-text>
-                      <el-text>批次ID:{{ Batch }}</el-text>
-                      <el-text size="large">{{ CircuitBatch }}</el-text>
-                    </el-space>
-                  </el-card>
-                </div>
-                <div style="margin-top: 10px">
-                  <el-text size="large">2.确认被测电路板</el-text>
-                  <el-card
-                    v-if="showProcess"
-                    shadow="never"
-                    style="margin-top: 10px; margin-bottom: 10px"
-                    v-loading="boardInfoLoading"
-                  >
-                    <el-scrollbar height="60vh">
-                      <div class="table-wrapper">
-                        <TableComponent
-                          :column-data="addHeaders"
-                          :table-data="boardTableData"
-                          selection
-                          stripe
-                          @selection-change="handleSelectionChange"
-                        >
-                          <template #available="{ row }">
-                            <div style="display: flex; align-items: center; justify-content: center">
-                              <el-checkbox
-                                :indeterminate="row['isInd']"
-                                v-model="row['checkAll']"
-                                @change="
-                                  row['selectedTest'] = row['checkAll'] ? row['available'] : [];
-                                  row['isInd'] = false
-                                "
-                                >全选</el-checkbox
-                              >
-                              <el-divider direction="vertical" />
-                              <el-checkbox-group v-model="row['selectedTest']">
-                                <el-checkbox
-                                  v-for="item in row['available']"
-                                  :value="item"
-                                  :label="item.name"
-                                  :key="item.id"
-                                  @change="
-                                    row['checkAll'] = row['selectedTest'].length === row['available'].length;
-                                    row['isInd'] =
-                                      row['selectedTest'].length > 0 &&
-                                      row['selectedTest'].length < row['available'].length
-                                  "
-                                />
-                              </el-checkbox-group>
-                            </div>
-                          </template>
-                        </TableComponent>
-                      </div>
-                    </el-scrollbar>
-                  </el-card>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
-      </div>
-      <template #footer>
-        <el-button icon="Check" type="primary" @click="submitAdd" :disabled="selectedRows.length === 0"
-          >确认新增</el-button
-        >
-      </template>
-    </el-dialog>
-
-    <!-- 新增临时测试 -->
-    <!-- <el-dialog-->
-    <!--   v-model="tempDialogVisible"-->
-    <!--   width="85%"-->
-    <!--   @close="closeDiaLog"-->
-    <!--   title="新增临时测试工单"-->
-    <!--   align-center-->
-    <!--   :close-on-click-modal="false"-->
-    <!-- >-->
-    <!--   <template #footer>-->
-    <!--     <el-button icon="Check" type="primary">确认新增</el-button>-->
-    <!--   </template>-->
-    <!-- </el-dialog>-->
 
     <!-- 新增临时测试 -->
     <el-dialog v-model="tempDialogVisible" width="85%" @close="closeDiaLog" align-center :close-on-click-modal="false">
@@ -1009,9 +797,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
           </el-row>
         </el-tab-pane>
         <el-tab-pane label="临时电路板" name="second">
-          <!-- 设置列之间的间距 -->
           <el-row :gutter="20">
-            <!-- 设置列占据的宽度 -->
             <el-col :span="6">
               <el-card shadow="never" style="height: 100%" v-loading="tempTreeLoading">
                 <template #header>
@@ -1111,14 +897,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
           </el-row>
         </el-tab-pane>
       </el-tabs>
-
-
-
-<!--      <template #footer>-->
-<!--        <el-button icon="Check" type="primary" @click="submitAdd" :disabled="selectedRows.length === 0"-->
-<!--          >确认新增</el-button-->
-<!--        >-->
-<!--      </template>-->
     </el-dialog>
 
     <!-- 发布 删除 -->
@@ -1158,7 +936,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         size="large"
         style="position: relative; left: 50%; transform: translateX(-50%); width: 170px"
         @click="confirm(PublicOrDelete)"
-      >确认{{ PublicOrDelete }}
+        >确认{{ PublicOrDelete }}
       </el-button>
     </el-dialog>
     <el-dialog v-model="errorVisible" title="查看缺陷" align-center width="80%">
@@ -1219,12 +997,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 .drawer-main {
   margin-top: 40px;
   height: auto;
-  // background-color: aqua;
 }
 
 .drawer-footer {
-  // margin-top: 20px;
-  // width: 200px;
   height: 200px;
 
   .drawer-jiaju {
@@ -1242,7 +1017,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     width: 50vw;
     height: 7vh;
     margin-top: 20px;
-    // margin-top: 20px;
     background-color: #fafafa;
     display: flex;
     justify-content: space-around;

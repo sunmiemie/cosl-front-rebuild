@@ -14,11 +14,6 @@ import { getInstrumentDataApi } from "@/api/instrument"
 import { UploadFilled } from "@element-plus/icons-vue"
 import { getQRcodeImgApi } from "@/api/qrcode"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
-
 const loading = ref<boolean>(false)
 const detailLoading = ref<boolean>(false)
 const treeLoading = ref<boolean>(false)
@@ -301,9 +296,7 @@ onMounted(() => {
   watch(
     [() => paginationDetailData.currentPage, () => paginationDetailData.pageSize, () => modelId],
     getDetailTableData,
-    {
-      immediate: false
-    }
+    { immediate: false }
   )
 })
 </script>
