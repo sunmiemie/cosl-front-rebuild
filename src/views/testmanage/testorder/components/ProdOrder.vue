@@ -35,8 +35,8 @@ const dialogVisible = ref<boolean>(false)
 const PublicVisible = ref<boolean>(false)
 const testTypeList = ref<any>([])
 const processList = ref<any>([])
-const showProcessList = ref<any>([])
 const boardInfoLoading = ref(false)
+
 interface TableDataType {
   testunit_id?: number
   testunit_name?: string
@@ -58,7 +58,7 @@ const headers = ref([
   { prop: "process_id", label: "使用工艺ID", align: "center" },
   { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
   { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
-  { prop: "link", label: "操作", type: "link", width: 200 }
+  { prop: "link", label: "操作", type: "link" }
 ])
 const selectedRows = ref<any>([])
 const addHeaders = ref([
@@ -77,6 +77,10 @@ const searchData = reactive({
   TestStatus: "",
   Daterange: ""
 })
+
+const clearSearchData = () => {
+  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+}
 
 const defineLink = (status: any) => {
   switch (status) {
@@ -304,10 +308,11 @@ const handleSearch = async () => {
   const tableResult = await getTestMangeTable(params)
   // 赋值
   TableData.value = tableResult.TableData
+  paginationData.total = tableResult.total
   getTableData()
 }
 const resetSearch = () => {
-  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+  clearSearchData()
   getMangeData()
 }
 
@@ -326,21 +331,6 @@ const detailform = reactive({
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
 }
-const singleTableRef = ref<InstanceType<typeof ElTable>>()
-
-const setCurrent = (row?: any) => {
-  singleTableRef.value!.setCurrentRow(row)
-  if (row !== undefined && row !== null) {
-    selectedType.processId = row.id
-    selectedType.processVersion = row.version
-  }
-}
-const selectedType = reactive({
-  id: "",
-  name: "",
-  processId: "",
-  processVersion: ""
-})
 
 // 确认新增
 const submitAdd = () => {
@@ -466,9 +456,15 @@ async function getTreeData() {
 }
 async function getMangeData() {
   loading.value = true
-  const currentpage = paginationData.currentPage
-  const size = paginationData.pageSize
-  const tableResult = await getTestMangeTable({ currentPage: currentpage, pageSize: size })
+  const tableResult = await getTestMangeTable({
+    currentPage: paginationData.currentPage,
+    pageSize: paginationData.pageSize,
+    number: searchData.number,
+    TestName: searchData.TestName,
+    TestType: searchData.TestType,
+    TestStatus: searchData.TestStatus,
+    Daterange: searchData.Daterange
+  })
   TableData.value = tableResult.TableData
   loading.value = false
   paginationData.total = tableResult.total // Store the table data
@@ -477,7 +473,7 @@ async function getMangeData() {
 
 // 显式暴露方法供父组件调用
 defineExpose({
-  getMangeData
+  resetSearch
 })
 
 /** 监听分页参数的变化 */
@@ -485,332 +481,327 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 </script>
 
 <template>
-  <div class="app-container">
-    <el-card v-loading="loading" class="search-wrapper" shadow="never">
-      <el-form ref="searchFormRef" :inline="true" :model="searchData">
-        <el-form-item label="工单号">
-          <el-input v-model="searchData.number" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="测试名">
-          <el-input v-model="searchData.TestName" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="测试类型">
-          <el-select
-            v-model="searchData.TestType"
-            placeholder="请选择"
-            style="width: 150px"
-            @visible-change="getTestTypeData"
-          >
-            <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="测试状态">
-          <el-select v-model="searchData.TestStatus" placeholder="请选择" style="width: 150px">
-            <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="创建时间范围">
-          <el-date-picker
-            v-model="searchData['Daterange'] as any"
-            end-placeholder="结束日期"
-            range-separator="至"
-            start-placeholder="开始日期"
-            type="daterange"
-            value-format="YYYY/MM/DD"
-          />
-        </el-form-item>
-
-        <el-form-item>
-          <el-button icon="Search" type="primary" @click="handleSearch">查询</el-button>
-          <el-button icon="Refresh" @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-    <el-card v-loading="loading" shadow="never">
-      <div class="toolbar-wrapper">
-        <div>
-          <el-button icon="CirclePlus" type="primary" @click="addTest">新增生产测试工单</el-button>
-        </div>
-        <div>
-          <el-tooltip content="刷新当前页">
-            <el-button circle icon="RefreshRight" type="primary" @click="getMangeData" />
-          </el-tooltip>
-        </div>
-      </div>
-      <div class="table-wrapper">
-        <TableComponent :column-data="headers" :tableData="TableData" stripe :style="'height: 350px'">
-          <template #testunit_status="{ row }">
-            <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
-            <el-tag v-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
-            <el-tag v-if="row['testunit_status'] === '2'"> 测试中</el-tag>
-            <el-tag v-if="row['testunit_status'] === '3'" type="warning"> 测试待审核</el-tag>
-            <el-tag v-if="row['testunit_status'] === '4'" type="danger"> 待重做</el-tag>
-            <el-tag v-if="row['testunit_status'] === '5'" type="success"> 测试正常</el-tag>
-            <el-tag v-if="row['testunit_status'] === '6'" type="danger"> 测试异常</el-tag>
-            <el-tag v-if="row['testunit_status'] === '7'" type="warning"> 测试暂存</el-tag>
-            <el-tag v-if="row['testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
-          </template>
-          <template #link="{ row }">
-            <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">
-              {{ i }}
-            </el-link>
-          </template>
-        </TableComponent>
-      </div>
-      <div class="pager-wrapper">
-        <el-pagination
-          :currentPage="paginationData.currentPage"
-          :layout="paginationData.layout"
-          :page-size="paginationData.pageSize"
-          :page-sizes="paginationData.pageSizes"
-          :total="paginationData.total"
-          background
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-        />
-      </div>
-    </el-card>
-    <!-- 详情 -->
-    <el-drawer v-model="drawer" :append-to-body="true" :with-header="false" size="1000">
-      <header class="drawer-head">
-        <el-page-header @back="goBack">
-          <template #content>
-            <span class="text-large font-600 mr-3">测试工单详情</span>
-          </template>
-        </el-page-header>
-      </header>
-      <el-header style="margin: 20px 0 20px 0">
-        <el-text size="large">测试基本信息</el-text>
-        <el-form :inline="true" :model="detailform" class="demo-form-inline" label-position="top" style="margin: 10px">
-          <el-form-item label="工单号" style="width: 13%">
-            <el-input v-model="detailform.unitId" disabled />
-          </el-form-item>
-          <el-form-item label="测试名称" style="width: 380px">
-            <el-input v-model="detailform.unitName" disabled />
-          </el-form-item>
-          <el-form-item label="创建人" style="width: 14%">
-            <el-input v-model="detailform.user" disabled />
-          </el-form-item>
-          <el-form-item label="创建日期" style="width: 16%">
-            <el-input v-model="detailform.startTime" disabled />
-          </el-form-item>
-        </el-form>
-      </el-header>
-      <el-main class="drawer-main">
-        <el-text size="large" style="margin-top: 20px">被测电路板信息</el-text>
-        <el-row>
-          <el-col :span="24">
-            <el-card class="info-box" shadow="never" style="margin: 20px 0">
-              <el-text size="large" style="margin-right: 20px">{{ detailform.boardModel }}</el-text>
-              <span style="margin: 0 20px"
-                >电路板ID:
-                <el-input v-model="detailform.boardId" disabled style="width: 150px" />
-              </span>
-              <span style="margin: 0 20px">
-                电路板序列号
-                <el-input v-model="detailform.boardSerial" disabled style="width: 300px" />
-              </span>
-            </el-card>
-          </el-col>
-        </el-row>
-      </el-main>
-      <el-footer class="drawer-footer">
-        <el-text size="large">所选测试工艺信息</el-text>
-        <br />
-        <el-button type="primary" style="margin-top: 10px">{{ detailform.testType }}</el-button>
-        <el-card class="info-box" shadow="never" style="margin: 20px 0">
-          <span style="margin: 0 20px"
-            >使用工艺ID:
-            <el-input v-model="detailform.processId" disabled style="width: 150px" />
-          </span>
-          <span style="margin: 0 20px">
-            使用工艺版本:
-            <el-input v-model="detailform.processVersion" disabled style="width: 150px" />
-          </span>
-        </el-card>
-      </el-footer>
-    </el-drawer>
-
-    <!-- 新增生产测试 -->
-    <el-dialog
-      v-model="dialogVisible"
-      width="85%"
-      @close="closeDiaLog"
-      title="新增生产测试工单"
-      align-center
-      :close-on-click-modal="false"
-    >
-      <div>
-        <el-row :gutter="20">
-          <el-col :span="5">
-            <el-card shadow="never" style="height: 100%">
-              <template #header>
-                <el-input v-model="filterText" placeholder="搜索" />
-              </template>
-              <el-tree
-                ref="treeRef"
-                :data="treeData"
-                :filter-node-method="filterNode"
-                :props="defaultProps"
-                default-expand-all
-                @node-click="clickNode"
-              />
-            </el-card>
-          </el-col>
-          <el-col :span="19">
-            <el-card shadow="never">
-              <div v-if="showFlags">请先在左侧选择批次</div>
-              <div v-else>
-                <div class="info-header">
-                  <el-text size="large">1.确认测试类型</el-text>
-                  <el-card shadow="never" style="margin-top: 10px">
-                    <el-space :size="10" spacer="|">
-                      <el-text size="large">电路板型号:{{ CircuitBoardModel }}</el-text>
-                      <el-text>批次ID:{{ Batch }}</el-text>
-                      <el-text size="large">{{ CircuitBatch }}</el-text>
-                    </el-space>
-                  </el-card>
-                </div>
-                <div style="margin-top: 10px">
-                  <el-text size="large">2.确认被测电路板</el-text>
-                  <el-card
-                    v-if="showProcess"
-                    shadow="never"
-                    style="margin-top: 10px; margin-bottom: 10px"
-                    v-loading="boardInfoLoading"
-                  >
-                    <el-scrollbar height="60vh">
-                      <div class="table-wrapper">
-                        <TableComponent
-                          :column-data="addHeaders"
-                          :table-data="boardTableData"
-                          selection
-                          stripe
-                          @selection-change="handleSelectionChange"
-                        >
-                          <template #available="{ row }">
-                            <div style="display: flex; align-items: center; justify-content: center">
-                              <el-checkbox
-                                :indeterminate="row['isInd']"
-                                v-model="row['checkAll']"
-                                @change="
-                                  row['selectedTest'] = row['checkAll'] ? row['available'] : [];
-                                  row['isInd'] = false
-                                "
-                                >全选</el-checkbox
-                              >
-                              <el-divider direction="vertical" />
-                              <el-checkbox-group v-model="row['selectedTest']">
-                                <el-checkbox
-                                  v-for="item in row['available']"
-                                  :value="item"
-                                  :label="item.name"
-                                  :key="item.id"
-                                  @change="
-                                    row['checkAll'] = row['selectedTest'].length === row['available'].length;
-                                    row['isInd'] =
-                                      row['selectedTest'].length > 0 &&
-                                      row['selectedTest'].length < row['available'].length
-                                  "
-                                />
-                              </el-checkbox-group>
-                            </div>
-                          </template>
-                        </TableComponent>
-                      </div>
-                    </el-scrollbar>
-                  </el-card>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
-      </div>
-      <template #footer>
-        <el-button icon="Check" type="primary" @click="submitAdd" :disabled="selectedRows.length === 0"
-          >确认新增</el-button
+  <el-card class="search-wrapper" shadow="never">
+    <el-form ref="searchFormRef" :inline="true" :model="searchData">
+      <el-form-item label="工单号">
+        <el-input v-model="searchData.number" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item label="测试名">
+        <el-input v-model="searchData.TestName" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item label="测试类型">
+        <el-select
+          v-model="searchData.TestType"
+          placeholder="请选择"
+          style="width: 150px"
+          @visible-change="getTestTypeData"
         >
-      </template>
-    </el-dialog>
-
-    <!-- 发布 删除 -->
-    <el-dialog v-model="PublicVisible" :show-close="true" width="44%">
-      <template #header>
-        <div class="my-header">
-          <h2>{{ PublicOrDelete }}测试工单</h2>
-        </div>
-      </template>
-      <el-form :inline="true" :model="PublicFormInfo">
-        <el-form-item label="工单号">
-          <el-input v-model="PublicFormInfo['testunit_id']" disabled type="text" />
+          <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="测试状态">
+        <el-select v-model="searchData.TestStatus" placeholder="请选择" style="width: 150px">
+          <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="创建时间范围">
+        <el-date-picker
+          v-model="searchData['Daterange'] as any"
+          end-placeholder="结束日期"
+          range-separator="至"
+          start-placeholder="开始日期"
+          type="daterange"
+          value-format="YYYY/MM/DD"
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button icon="Search" type="primary" @click="handleSearch">查询</el-button>
+        <el-button icon="Refresh" @click="resetSearch">重置</el-button>
+      </el-form-item>
+    </el-form>
+  </el-card>
+  <el-card v-loading="loading" shadow="never">
+    <div class="toolbar-wrapper">
+      <div>
+        <el-button icon="CirclePlus" type="primary" @click="addTest">新增生产测试工单</el-button>
+      </div>
+      <div>
+        <el-tooltip content="刷新当前页">
+          <el-button circle icon="RefreshRight" type="primary" @click="getMangeData" />
+        </el-tooltip>
+      </div>
+    </div>
+    <div class="table-wrapper">
+      <TableComponent :column-data="headers" :tableData="TableData" stripe :style="'height: 370px'">
+        <template #testunit_status="{ row }">
+          <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
+          <el-tag v-else-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
+          <el-tag v-else-if="row['testunit_status'] === '2'"> 测试中</el-tag>
+          <el-tag v-else-if="row['testunit_status'] === '3'" type="warning"> 测试待审核</el-tag>
+          <el-tag v-else-if="row['testunit_status'] === '4'" type="danger"> 待重做</el-tag>
+          <el-tag v-else-if="row['testunit_status'] === '5'" type="success"> 测试正常</el-tag>
+          <el-tag v-else-if="row['testunit_status'] === '6'" type="danger"> 测试异常</el-tag>
+          <el-tag v-else-if="row['testunit_status'] === '7'" type="warning"> 测试暂存</el-tag>
+          <el-tag v-else-if="row['testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
+        </template>
+        <template #link="{ row }">
+          <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">
+            {{ i }}
+          </el-link>
+        </template>
+      </TableComponent>
+    </div>
+    <div class="pager-wrapper">
+      <el-pagination
+        :currentPage="paginationData.currentPage"
+        :layout="paginationData.layout"
+        :page-size="paginationData.pageSize"
+        :page-sizes="paginationData.pageSizes"
+        :total="paginationData.total"
+        background
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
+    </div>
+  </el-card>
+  <!-- 详情 -->
+  <el-drawer v-model="drawer" :append-to-body="true" :with-header="false" size="1000">
+    <header class="drawer-head">
+      <el-page-header @back="goBack">
+        <template #content>
+          <span class="text-large font-600 mr-3">测试工单详情</span>
+        </template>
+      </el-page-header>
+    </header>
+    <el-header style="margin: 20px 0 20px 0">
+      <el-text size="large">测试基本信息</el-text>
+      <el-form :inline="true" :model="detailform" class="demo-form-inline" label-position="top" style="margin: 10px">
+        <el-form-item label="工单号" style="width: 13%">
+          <el-input v-model="detailform.unitId" disabled />
         </el-form-item>
-        <el-form-item label="测试名称">
-          <el-input v-model="PublicFormInfo['testunit_name']" disabled type="text" style="width: 350px" />
+        <el-form-item label="测试名称" style="width: 380px">
+          <el-input v-model="detailform.unitName" disabled />
         </el-form-item>
-        <br />
-        <el-form-item label="测试类型">
-          <el-input v-model="PublicFormInfo['process_type']" disabled type="text" />
+        <el-form-item label="创建人" style="width: 14%">
+          <el-input v-model="detailform.user" disabled />
         </el-form-item>
-        <el-form-item label="创建人">
-          <el-input v-model="PublicFormInfo['user_name']" disabled style="width: 100px" type="text" />
-        </el-form-item>
-        <el-form-item label="创建日期">
-          <el-input v-model="PublicFormInfo['testunit_starttime']" disabled style="width: 180px" type="text" />
+        <el-form-item label="创建日期" style="width: 16%">
+          <el-input v-model="detailform.startTime" disabled />
         </el-form-item>
       </el-form>
-      <el-button
-        :type="PublicOrDelete === '发布' ? 'primary' : 'danger'"
-        icon="Check"
-        size="large"
-        style="position: relative; left: 50%; transform: translateX(-50%); width: 170px"
-        @click="confirm(PublicOrDelete)"
-        >确认{{ PublicOrDelete }}
-      </el-button>
-    </el-dialog>
-    <el-dialog v-model="errorVisible" title="查看缺陷" align-center width="80%">
-      <el-table :data="errorList" height="700" v-loading="errorLoading">
-        <el-table-column label="测试类型">
-          <template #default="scope">
-            <el-text>
-              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
-            </el-text>
-          </template>
-        </el-table-column>
-        <el-table-column label="缺陷位置">
-          <template #default="scope">
-            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
-            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
-            <el-text v-if="scope.row.areaPosition !== undefined">
-              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
-            </el-text>
-            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
-          </template>
-        </el-table-column>
-        <el-table-column label="检测项">
-          <template #default="scope">
-            <el-text> {{ scope.row.content.name }}</el-text>
-          </template>
-        </el-table-column>
-        <el-table-column label="缺陷描述">
-          <template #default="scope">
-            <el-text> {{ scope.row.content.error.desc }}</el-text>
-          </template>
-        </el-table-column>
-        <el-table-column align="center" label="留存图片">
-          <template #default="scope">
-            <div style="display: flex">
-              <el-text style="margin-right: 5px">共{{ scope.row.content.error.url.length }}张</el-text>
-              <el-image
-                :preview-teleported="true"
-                :preview-src-list="scope.row.content.error.url"
-                :src="scope.row.content.error.url[0]"
-              />
+    </el-header>
+    <el-main class="drawer-main">
+      <el-text size="large" style="margin-top: 20px">被测电路板信息</el-text>
+      <el-row>
+        <el-col :span="24">
+          <el-card class="info-box" shadow="never" style="margin: 20px 0">
+            <el-text size="large" style="margin-right: 20px">{{ detailform.boardModel }}</el-text>
+            <span style="margin: 0 20px"
+              >电路板ID:
+              <el-input v-model="detailform.boardId" disabled style="width: 150px" />
+            </span>
+            <span style="margin: 0 20px">
+              电路板序列号
+              <el-input v-model="detailform.boardSerial" disabled style="width: 300px" />
+            </span>
+          </el-card>
+        </el-col>
+      </el-row>
+    </el-main>
+    <el-footer class="drawer-footer">
+      <el-text size="large">所选测试工艺信息</el-text>
+      <br />
+      <el-button type="primary" style="margin-top: 10px">{{ detailform.testType }}</el-button>
+      <el-card class="info-box" shadow="never" style="margin: 20px 0">
+        <span style="margin: 0 20px"
+          >使用工艺ID:
+          <el-input v-model="detailform.processId" disabled style="width: 150px" />
+        </span>
+        <span style="margin: 0 20px">
+          使用工艺版本:
+          <el-input v-model="detailform.processVersion" disabled style="width: 150px" />
+        </span>
+      </el-card>
+    </el-footer>
+  </el-drawer>
+
+  <!-- 新增生产测试 -->
+  <el-dialog
+    v-model="dialogVisible"
+    width="85%"
+    @close="closeDiaLog"
+    title="新增生产测试工单"
+    align-center
+    :close-on-click-modal="false"
+  >
+    <div>
+      <el-row :gutter="20">
+        <el-col :span="5">
+          <el-card shadow="never" style="height: 100%">
+            <template #header>
+              <el-input v-model="filterText" placeholder="搜索" />
+            </template>
+            <el-tree
+              ref="treeRef"
+              :data="treeData"
+              :filter-node-method="filterNode"
+              :props="defaultProps"
+              default-expand-all
+              @node-click="clickNode"
+            />
+          </el-card>
+        </el-col>
+        <el-col :span="19">
+          <el-card shadow="never">
+            <div v-if="showFlags">请先在左侧选择批次</div>
+            <div v-else>
+              <div class="info-header">
+                <el-card shadow="never" style="margin-top: 10px">
+                  <el-space :size="10" spacer="|">
+                    <el-text>电路板型号：{{ CircuitBoardModel }}</el-text>
+                    <el-text>批次号：{{ Batch }}</el-text>
+                    <el-text>批次名称：{{ CircuitBatch }}</el-text>
+                  </el-space>
+                </el-card>
+              </div>
+              <div style="margin-top: 10px">
+                <el-card
+                  v-if="showProcess"
+                  shadow="never"
+                  style="margin-top: 10px; margin-bottom: 10px"
+                  v-loading="boardInfoLoading"
+                >
+                  <el-scrollbar height="60vh">
+                    <div class="table-wrapper">
+                      <TableComponent
+                        :column-data="addHeaders"
+                        :table-data="boardTableData"
+                        selection
+                        stripe
+                        @selection-change="handleSelectionChange"
+                      >
+                        <template #available="{ row }">
+                          <div style="display: flex; align-items: center; justify-content: center">
+                            <el-checkbox
+                              :indeterminate="row['isInd']"
+                              v-model="row['checkAll']"
+                              @change="
+                                row['selectedTest'] = row['checkAll'] ? row['available'] : [];
+                                row['isInd'] = false
+                              "
+                              >全选</el-checkbox
+                            >
+                            <el-divider direction="vertical" />
+                            <el-checkbox-group v-model="row['selectedTest']">
+                              <el-checkbox
+                                v-for="item in row['available']"
+                                :value="item"
+                                :label="item.name"
+                                :key="item.id"
+                                @change="
+                                  row['checkAll'] = row['selectedTest'].length === row['available'].length;
+                                  row['isInd'] =
+                                    row['selectedTest'].length > 0 &&
+                                    row['selectedTest'].length < row['available'].length
+                                "
+                              />
+                            </el-checkbox-group>
+                          </div>
+                        </template>
+                      </TableComponent>
+                    </div>
+                  </el-scrollbar>
+                </el-card>
+              </div>
             </div>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-dialog>
-  </div>
+          </el-card>
+        </el-col>
+      </el-row>
+    </div>
+    <template #footer>
+      <el-button icon="Check" type="primary" @click="submitAdd" :disabled="selectedRows.length === 0">
+        确认新增
+      </el-button>
+    </template>
+  </el-dialog>
+
+  <!-- 发布 删除 -->
+  <el-dialog v-model="PublicVisible" :show-close="true" width="44%">
+    <template #header>
+      <div class="my-header">
+        <h2>{{ PublicOrDelete }}测试工单</h2>
+      </div>
+    </template>
+    <el-form :inline="true" :model="PublicFormInfo">
+      <el-form-item label="工单号">
+        <el-input v-model="PublicFormInfo['testunit_id']" disabled type="text" />
+      </el-form-item>
+      <el-form-item label="测试名称">
+        <el-input v-model="PublicFormInfo['testunit_name']" disabled type="text" style="width: 350px" />
+      </el-form-item>
+      <br />
+      <el-form-item label="测试类型">
+        <el-input v-model="PublicFormInfo['process_type']" disabled type="text" />
+      </el-form-item>
+      <el-form-item label="创建人">
+        <el-input v-model="PublicFormInfo['user_name']" disabled style="width: 100px" type="text" />
+      </el-form-item>
+      <el-form-item label="创建日期">
+        <el-input v-model="PublicFormInfo['testunit_starttime']" disabled style="width: 180px" type="text" />
+      </el-form-item>
+    </el-form>
+    <el-button
+      :type="PublicOrDelete === '发布' ? 'primary' : 'danger'"
+      icon="Check"
+      size="large"
+      style="position: relative; left: 50%; transform: translateX(-50%); width: 170px"
+      @click="confirm(PublicOrDelete)"
+      >确认{{ PublicOrDelete }}
+    </el-button>
+  </el-dialog>
+  <el-dialog v-model="errorVisible" title="查看缺陷" align-center width="80%">
+    <el-table :data="errorList" height="700" v-loading="errorLoading">
+      <el-table-column label="测试类型">
+        <template #default="scope">
+          <el-text>
+            {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
+          </el-text>
+        </template>
+      </el-table-column>
+      <el-table-column label="缺陷位置">
+        <template #default="scope">
+          <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
+          <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
+          <el-text v-if="scope.row.areaPosition !== undefined">
+            -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
+          </el-text>
+          <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
+        </template>
+      </el-table-column>
+      <el-table-column label="检测项">
+        <template #default="scope">
+          <el-text> {{ scope.row.content.name }}</el-text>
+        </template>
+      </el-table-column>
+      <el-table-column label="缺陷描述">
+        <template #default="scope">
+          <el-text> {{ scope.row.content.error.desc }}</el-text>
+        </template>
+      </el-table-column>
+      <el-table-column align="center" label="留存图片">
+        <template #default="scope">
+          <div style="display: flex">
+            <el-text style="margin-right: 5px">共{{ scope.row.content.error.url.length }}张</el-text>
+            <el-image
+              :preview-teleported="true"
+              :preview-src-list="scope.row.content.error.url"
+              :src="scope.row.content.error.url[0]"
+            />
+          </div>
+        </template>
+      </el-table-column>
+    </el-table>
+  </el-dialog>
 </template>
 
 <style lang="scss" scoped>

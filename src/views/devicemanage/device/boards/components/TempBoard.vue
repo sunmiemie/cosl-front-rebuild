@@ -397,7 +397,6 @@ const cancelInsert = () => {
 
 //#endregion
 onMounted(() => {
-  watch([() => paginationData.currentPage, () => paginationData.pageSize], getTreeData, { immediate: true })
   /** 监听分页参数的变化 */
   watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: false })
   watch([() => paginationDetailData.currentPage], getDetailTableData, { immediate: false })

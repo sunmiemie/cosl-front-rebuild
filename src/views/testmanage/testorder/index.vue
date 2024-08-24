@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <el-card style="height: 81vh">
+    <el-card>
       <el-tabs v-model="activeName" type="card" class="demo-tabs" @tab-click="handleTabClick">
         <el-tab-pane label="生产测试工单" name="first">
           <ProdOrder ref="prodOrderComponent" />
@@ -26,9 +26,9 @@ const tempOrderComponent = ref<InstanceType<typeof TempOrder> | null>(null)
 
 const handleTabClick = (tab: TabsPaneContext) => {
   if (tab.props.name === "first" && prodOrderComponent.value) {
-    prodOrderComponent.value.getMangeData()
+    prodOrderComponent.value.resetSearch()
   } else if (tab.props.name === "second" && tempOrderComponent.value) {
-    tempOrderComponent.value.getMangeData()
+    tempOrderComponent.value.resetSearch()
   }
 }
 </script>

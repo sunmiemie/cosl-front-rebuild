@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import TableComponent from '@/components/Table/index.vue';
 import { reactive, ref } from 'vue';
-import * as echarts from 'echarts'
-import { onMounted } from 'vue';
 import CommpontentEcharts from '@/components/Echarts/echarts.vue'
+
 const headers = ref([
   { prop: "equipment", label: "设备", align: "center" },
   { prop: "testunit_name", label: "测试名称", align: "center" },
@@ -104,14 +103,10 @@ let option1 = reactive({
     }
   ]
 })
-
-
-
 </script>
 
 <template>
   <div class="app-container">
-    <!-- <el-empty description="Editor 权限可见" /> -->
     <el-row :gutter="15" class="box4" >
       <el-col :span="6">
         <div class="top-box">
@@ -181,12 +176,12 @@ let option1 = reactive({
         </el-card>
       </el-col>
     </el-row>
-    <el-row :gutter="15" >
+    <el-row :gutter="15">
       <el-col :span="14">
         <el-card class="Footer-box" shadow="never">
           <el-text type="info" size="large">测试进度监控</el-text>
 
-          <table-component :tableData="tableData" :columnData="headers" style="margin-top: 20px;" border>
+          <table-component :tableData="tableData" :columnData="headers" style="margin-top: 20px" border>
             <template #progress="{ row }">
               <el-progress :text-inside="true" :stroke-width="26" :percentage="row.progress" />
             </template>
@@ -194,20 +189,12 @@ let option1 = reactive({
         </el-card>
       </el-col>
       <el-col :span="10">
-
-        <el-card class="Footer-box" shadow="never">
-
-        </el-card>
+        <el-card class="Footer-box" shadow="never" />
       </el-col>
     </el-row>
   </div>
 </template>
 <style lang="scss" scoped>
-// .app-scrollbar .app-container-grow[data-v-ec866e20] {
-//   overflow: hidden;
-// }
-
-
 .everydaytest {
   margin-top: 10px;
 
@@ -222,11 +209,6 @@ let option1 = reactive({
     display: flex;
     align-items: center;
     margin-top: 10px;
-
-    .everydaytest-tag {
-      // margin-right: 10px;
-    }
-
   }
 }
 
@@ -241,10 +223,7 @@ let option1 = reactive({
     width: 99%;
     position: relative;
 
-    // display: flex;
     .top-text {
-      // display: inline;
-      // margin: 30px;
       position: absolute;
       left: 10%;
       top: 20%;
@@ -272,7 +251,6 @@ let option1 = reactive({
         }
       }
     }
-
   }
 }
 
@@ -287,7 +265,7 @@ let option1 = reactive({
 }
 
 .Footer-box2 {
-  height: 280px
+  height: 280px;
 }
 
 .Footer-box {
@@ -306,7 +284,6 @@ let option1 = reactive({
   }
 
   .Footer-box1 {
-    // width: 100%;
     width: 80%;
     height: 250px;
   }

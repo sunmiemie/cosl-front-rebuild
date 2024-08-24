@@ -6,10 +6,7 @@ import { getTestTypeDataApi, createTestTypeDataApi, updateTestTypeDataApi } from
 import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
+
 // 显示与隐藏
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()

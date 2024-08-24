@@ -7,11 +7,6 @@ import { checkListDataApi } from "@/api/check"
 import { getTestTypeDataApi } from "@/api/testtype"
 import TableComponent from "@/components/Table/index.vue"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
-
 const testTypeList = ref<any>([])
 const CheckDialog = ref<boolean>(false)
 const loading = ref<boolean>(false)
