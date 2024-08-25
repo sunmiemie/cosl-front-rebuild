@@ -304,6 +304,8 @@ const handleSearch = async () => {
   if (params.Daterange !== "") {
     params.Daterange = params.Daterange.join("-")
   }
+  params.currentPage = paginationData.currentPage
+  params.pageSize = paginationData.pageSize
   // 调用接口
   const tableResult = await getTempTestMangeTable(params)
   // 赋值
@@ -509,15 +511,15 @@ async function getTempTreeData() {
 
 async function getMangeData() {
   loading.value = true
-  const tableResult = await getTempTestMangeTable({
-    currentPage: paginationData.currentPage,
-    pageSize: paginationData.pageSize,
-    number: searchData.number,
-    TestName: searchData.TestName,
-    TestType: searchData.TestType,
-    TestStatus: searchData.TestStatus,
-    Daterange: searchData.Daterange
-  })
+  const params = JSON.parse(JSON.stringify(searchData))
+  // 拼接时间参数
+  if (params.Daterange !== "") {
+    params.Daterange = params.Daterange.join("-")
+  }
+  params.currentPage = paginationData.currentPage
+  params.pageSize = paginationData.pageSize
+  // 调用接口
+  const tableResult = await getTempTestMangeTable(params)
   TableData.value = tableResult.TableData
   loading.value = false
   paginationData.total = tableResult.total // Store the table data

@@ -12,7 +12,7 @@ import {
   getTestMangeTable,
   createTestUnitApi,
   publicTestUnitApi,
-  deleteTestUnitApi
+  deleteTestUnitApi, getTempTestMangeTable
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
@@ -304,6 +304,8 @@ const handleSearch = async () => {
   if (params.Daterange !== "") {
     params.Daterange = params.Daterange.join("-")
   }
+  params.currentPage = paginationData.currentPage
+  params.pageSize = paginationData.pageSize
   // 调用接口
   const tableResult = await getTestMangeTable(params)
   // 赋值
@@ -456,15 +458,15 @@ async function getTreeData() {
 }
 async function getMangeData() {
   loading.value = true
-  const tableResult = await getTestMangeTable({
-    currentPage: paginationData.currentPage,
-    pageSize: paginationData.pageSize,
-    number: searchData.number,
-    TestName: searchData.TestName,
-    TestType: searchData.TestType,
-    TestStatus: searchData.TestStatus,
-    Daterange: searchData.Daterange
-  })
+  const params = JSON.parse(JSON.stringify(searchData))
+  // 拼接时间参数
+  if (params.Daterange !== "") {
+    params.Daterange = params.Daterange.join("-")
+  }
+  params.currentPage = paginationData.currentPage
+  params.pageSize = paginationData.pageSize
+  // 调用接口
+  const tableResult = await getTestMangeTable(params)
   TableData.value = tableResult.TableData
   loading.value = false
   paginationData.total = tableResult.total // Store the table data
