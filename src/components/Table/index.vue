@@ -17,12 +17,14 @@ const handleSelectionChange = (val) => {
 
 export default {
   name: "TableComponent",
-  methods: { handleSelectionChange, toggleSelection,
+  methods: {
+    handleSelectionChange,
+    toggleSelection,
     clearSelection() {
       if (this.$refs.table) {
-        this.$refs.table.clearSelection();
+        this.$refs.table.clearSelection()
       }
-    },
+    }
   },
   props: {
     columnData: {

@@ -64,7 +64,7 @@ const headers = ref([
 const selectedRows = ref<any>([])
 const addHeaders = ref([
   { prop: "id", label: "电路板ID", align: "center", width: "150px" },
-  { prop: "serial_num", label: "电路板序列号", align: "center", width: "200px" },
+  { prop: "serial_num", label: "电路板序列号", align: "center", width: "200px" }
 ])
 const TableData = ref<Array<TableDataType>>([])
 
@@ -369,15 +369,15 @@ const submitAdd = () => {
       console.error("添加失败", err)
     })
 }
-const tableRef = ref<InstanceType<typeof TableComponent> | null>(null);
-const tempTableRef = ref<InstanceType<typeof TableComponent> | null>(null);
+const tableRef = ref<InstanceType<typeof TableComponent> | null>(null)
+const tempTableRef = ref<InstanceType<typeof TableComponent> | null>(null)
 const clearTableSelection = () => {
   if (activeName.value === "first" && tableRef.value) {
-    tableRef.value.clearSelection();
+    tableRef.value.clearSelection()
   } else if (activeName.value === "second" && tempTableRef.value) {
-    tempTableRef.value.clearSelection();
+    tempTableRef.value.clearSelection()
   }
-};
+}
 // 测试状态
 const TestStatus = reactive([
   { status: 0, mes: "已创建" },
@@ -551,7 +551,7 @@ const handleTabClick = (tab: TabsPaneContext) => {
 }
 
 const formRules: FormRules = reactive({
-  testType: [{ required: true, trigger: "blur", message: "请选择测试类型" }],
+  testType: [{ required: true, trigger: "blur", message: "请选择测试类型" }]
 })
 
 /** 监听分页参数的变化 */
