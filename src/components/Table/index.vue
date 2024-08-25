@@ -17,7 +17,13 @@ const handleSelectionChange = (val) => {
 
 export default {
   name: "TableComponent",
-  methods: { handleSelectionChange, toggleSelection },
+  methods: { handleSelectionChange, toggleSelection,
+    clearSelection() {
+      if (this.$refs.table) {
+        this.$refs.table.clearSelection();
+      }
+    },
+  },
   props: {
     columnData: {
       type: Array,
@@ -27,7 +33,7 @@ export default {
       type: Array,
       required: true
     },
-    refValue: undefined,
+    refValue: String,
     selection: Boolean,
     border: Boolean,
     stripe: Boolean,
@@ -41,7 +47,7 @@ export default {
 
 <template>
   <el-table
-    :ref="refValue"
+    ref="table"
     :data="tableData"
     :border="border"
     :stripe="stripe"

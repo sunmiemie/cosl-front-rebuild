@@ -362,14 +362,22 @@ const submitAdd = () => {
       getMangeData()
       dialogVisible.value = false
       clearOrderInfo()
-      // tableComponent.value.clearSelection()
-      // selectedRows.value = []
+      clearTableSelection()
     })
     .catch((err) => {
       ElMessage.error("添加失败")
       console.error("添加失败", err)
     })
 }
+const tableRef = ref<InstanceType<typeof TableComponent> | null>(null);
+const tempTableRef = ref<InstanceType<typeof TableComponent> | null>(null);
+const clearTableSelection = () => {
+  if (activeName.value === "first" && tableRef.value) {
+    tableRef.value.clearSelection();
+  } else if (activeName.value === "second" && tempTableRef.value) {
+    tempTableRef.value.clearSelection();
+  }
+};
 // 测试状态
 const TestStatus = reactive([
   { status: 0, mes: "已创建" },
@@ -746,6 +754,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                       >
                         <div class="table-wrapper">
                           <TableComponent
+                            ref="tableRef"
                             :column-data="addHeaders"
                             :table-data="boardTableData"
                             selection
@@ -848,6 +857,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                       >
                         <div class="table-wrapper">
                           <TableComponent
+                            ref="tempTableRef"
                             :column-data="addHeaders"
                             :table-data="boardTableData"
                             selection
