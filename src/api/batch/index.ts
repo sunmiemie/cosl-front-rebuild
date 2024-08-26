@@ -1,6 +1,5 @@
 import { request } from "@/utils/service"
 import type * as Batch from "./types/batch"
-import { UnwrapNestedRefs } from "vue";
 
 export function createBatchDataApi(data: any) {
   return request({

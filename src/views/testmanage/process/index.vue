@@ -19,18 +19,12 @@ import {
 } from "@/api/addprocess"
 
 const testStore = useTestStore()
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
 
 const loading = ref<boolean>(false)
-const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+const { paginationData } = usePagination()
 const { paginationDetailData, handleDetailCurrentChange, handleDetailSizeChange } = useDetailPagination()
 const router = useRouter()
 const treeLoading = ref<boolean>(false)
-const dialogVisible = ref<boolean>(false)
-const dialogVisibleEdit = ref<boolean>(false)
 const DialogCheck = ref<boolean>(false)
 const treeRef = ref<InstanceType<typeof ElTree>>()
 const filterText = ref<any>("")
@@ -65,7 +59,6 @@ const onSubmit = () => {
   DialogCheck.value = false
 }
 //#region 改
-const currentUpdateId = ref<undefined | string>(undefined)
 
 interface ProcessDataDetailType {
   ID: string

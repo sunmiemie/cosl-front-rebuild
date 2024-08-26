@@ -114,7 +114,6 @@ const inspectionData: any = ref({
 
 <template>
   <div class="app-container">
-    <!-- <el-empty description="Editor 权限可见" /> -->
     <el-row :gutter="15" class="box4">
       <el-col :span="6">
         <el-card shadow="hover" class="top-box">
@@ -219,10 +218,7 @@ const inspectionData: any = ref({
     width: 99%;
     position: relative;
 
-    // display: flex;
     .top-text {
-      // display: inline;
-      // margin: 30px;
       position: absolute;
       left: 10%;
       top: 20%;
@@ -283,7 +279,6 @@ const inspectionData: any = ref({
   }
 
   .Footer-box1 {
-    // width: 100%;
     width: 80%;
     height: 250px;
   }

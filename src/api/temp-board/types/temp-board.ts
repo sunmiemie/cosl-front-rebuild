@@ -16,7 +16,7 @@ export type GetTempBoardResponseData = ApiResponseData<{
 }>
 
 export interface GetTempBoardData {
+  model: any
   id: string
-  serialNumber: string
-  description: string
+  seria: string
 }

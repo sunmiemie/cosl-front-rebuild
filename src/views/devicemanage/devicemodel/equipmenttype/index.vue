@@ -7,10 +7,7 @@ import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
+
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 

@@ -12,6 +12,13 @@ export const getTestMangePath = (): Promise<TestMange.getTestMangePathType> => {
   })
 }
 
+export const getTempTestMangePath = (): Promise<TestMange.getTestMangePathType> => {
+  return request<TestMange.getTestMangePathType>({
+    url: "/test/temp-testpath",
+    method: "get"
+  })
+}
+
 // 根据批次id获取电路板信息(id,序列号)
 export const getbordsinfo = (params: any) => {
   return request<TestMange.getBordsInfoType>({
@@ -20,6 +27,15 @@ export const getbordsinfo = (params: any) => {
     params
   })
 }
+
+export const getboardsinfoForTempOrder = (params: any) => {
+  return request<TestMange.getBordsInfoType>({
+    url: "/test/unitboardlist-for-temp-order",
+    method: "get",
+    params
+  })
+}
+
 export const downloadOrderJson = (fileid: any) => {
   return request({
     url: `/test/testunit/download/${fileid}`,
@@ -30,6 +46,13 @@ export const downloadOrderJson = (fileid: any) => {
 export const createTestUnitApi = (data: any) => {
   return request({
     url: "/test/testunit/add/",
+    method: "post",
+    data
+  })
+}
+export const createDevTestUnitApi = (data: any) => {
+  return request({
+    url: "/test/dev-testunit/add/",
     method: "post",
     data
   })
@@ -73,6 +96,30 @@ export const getTestMangeTable = ({
   })
 }
 
+export const getTempTestMangeTable = ({
+  number,
+  TestName,
+  TestType,
+  TestStatus,
+  Daterange,
+  currentPage,
+  pageSize
+}: TestMange.inpTestMangeTableDataType): Promise<TestMange.getTestMangeTableType> => {
+  return request<TestMange.getTestMangeTableType>({
+    url: "/test/getTempTableData",
+    method: "get",
+    params: {
+      number,
+      TestName,
+      TestType,
+      TestStatus,
+      Daterange,
+      currentPage,
+      pageSize
+    }
+  })
+}
+
 // 测试工艺接口
 
 /**
@@ -81,7 +128,6 @@ export const getTestMangeTable = ({
  */
 
 export const getProcessPath = () => {}
-
 
 // 获取缺陷单详情
 export const submitApi = (params: any) => {

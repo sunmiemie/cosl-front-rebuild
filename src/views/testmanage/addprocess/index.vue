@@ -427,10 +427,6 @@ import {
 import { useTestStore } from "@/store/modules/test"
 import { useUserStore } from "@/store/modules/user"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
 const testStore = useTestStore()
 const userStore = useUserStore()
 const router = useRouter()

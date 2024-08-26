@@ -2,18 +2,11 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { submitApi } from "@/api/testMangelist/index"
-// import { type GetTableData } from "@/api/table/types/table"
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
-import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
+import { ElMessage, type FormInstance } from "element-plus"
+import { Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import type { UploadProps } from "element-plus"
-import Vue from "vue"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
@@ -51,7 +44,6 @@ type TableDataType = {
   link?: any
 }
 
-//const tableData = ref<GetTableData[]>([])
 const headers = ref([
   { prop: "number", label: "故障工单号", align: "center" },
   { prop: "order", label: "关联测试工单", align: "center" },
