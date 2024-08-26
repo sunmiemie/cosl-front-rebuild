@@ -15,10 +15,6 @@ import QrcodeVue from "qrcode.vue"
 import { GetFixtureModelData } from "@/api/fixturemodel/types/fixturemodel"
 import { getQRcodeImgApi } from "@/api/qrcode"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
@@ -50,7 +46,6 @@ const handleCreate = () => {
   formRef.value?.validate((valid: boolean) => {
     if (valid) {
       if (currentUpdateId.value === undefined) {
-        // formData.startTime = format(new Date(), "yyyy-MM-dd")
         delete formData.name
         delete formData.startTime
         createFixtureDataApi(formData)
@@ -118,7 +113,6 @@ const searchData = reactive({
   seria: "", //序列号
   model: "", //状态
   status: "" //夹具型号
-  // name: ""
 })
 const defineLink = (status: number) => {
   switch (status) {
@@ -146,7 +140,6 @@ const getTableData = async () => {
       for (let i = 0; i < TableData.value.length; i++) {
         TableData.value[i].link = defineLink(TableData.value[i].status as any)
       }
-      console.log(TableData.value)
     })
     .catch(() => {
       TableData.value = []
@@ -166,7 +159,6 @@ const handleSelectionChange = (val: any) => {
 
 // 打印二维码
 const getSelection = () => {
-  // console.log(selectedRows.value)
   getQRcodeImgApi({ data: selectedRows.value, headerKey: "model", seriaKey: "seria", startTimeKey: "startTime" }).then(
     (res) => {
       if (res.code === 0) {
@@ -204,12 +196,9 @@ const handleLink = (data: any, i: string) => {
     qrcodeVisible.value = true
   }
   if (i == "编辑") {
-    console.log(data)
     currentUpdateId.value = data.id
     formData.seria = data.seria
     currentModel.value = data.model
-    console.log(data)
-    console.log(ModelData)
     formData.model = data.model_id
     dialogVisible.value = true
   }
@@ -309,7 +298,6 @@ interface infoType {
 const handleDownload = (info: infoType) => {
   const { name } = info
   fileDownoload(name).then((res) => {
-    console.log(res)
     download(res, "application/vnd.ms-excel", name)
   })
 }

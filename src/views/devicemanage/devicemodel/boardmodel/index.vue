@@ -9,10 +9,6 @@ import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { type GetBoardModelData } from "@/api/boardmodel/types/boardmodel"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 

@@ -12,10 +12,7 @@ import TableComponent from "@/components/Table/index.vue"
 import { fileDownoload } from "@/api/file"
 import QrcodeVue from "qrcode.vue"
 import { getQRcodeImgApi } from "@/api/qrcode"
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
+
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const qrcodeVisible = ref<boolean>(false)
@@ -37,7 +34,6 @@ const formData = reactive({
 })
 const formRules: FormRules = reactive({
   name: [{ required: true, trigger: "blur", message: "请输入设备名" }],
-  // model: [{ required: true, trigger: "blur", message: "请选择型号" }],
   type: [{ required: true, trigger: "blur", message: "请选择型号" }],
   seria: [{ required: true, trigger: "blur", message: "请输入序列号" }]
 })
@@ -52,7 +48,6 @@ const handleCreate = () => {
   formRef.value?.validate((valid: boolean, fields) => {
     if (valid) {
       if (currentUpdateId.value === undefined) {
-        // delete addData.id
         createOtherDataApi(formData)
           .then(() => {
             ElMessage.success("新增成功")
@@ -64,11 +59,8 @@ const handleCreate = () => {
           })
       } else {
         updateOtherModelDataApi({
-          // seria: addData.seria,
           seria: formData.seria,
-          // name: addData.name,
           name: formData.name,
-          // type: addData.type,
           type: formData.type,
           id: addData.id
         })
@@ -153,7 +145,6 @@ const addOtherEquiment = () => {
 
 const selectedRows = ref([])
 const handleSelectionChange = (val: any) => {
-  console.log("index", val)
   selectedRows.value = val
 }
 
@@ -195,7 +186,6 @@ const getSelection = () => {
 
 const handleLink = (data: any, i: string) => {
   if (i === "编辑") {
-    console.log(data)
     dialogVisible.value = true
     currentUpdateId.value = data.equipment_id
 
@@ -298,7 +288,6 @@ interface infoType {
 const handleDownload = (info: infoType) => {
   const { name } = info
   fileDownoload(name).then((res) => {
-    console.log(res)
     download(res, "application/vnd.ms-excel", name)
   })
 }

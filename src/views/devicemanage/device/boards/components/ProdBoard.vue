@@ -1,4 +1,4 @@
-<!--电路板管理-->
+<!--生产电路板-->
 
 <script lang="ts" setup>
 import { onMounted, reactive, ref, watch } from "vue"
@@ -14,11 +14,6 @@ import { getInstrumentDataApi } from "@/api/instrument"
 import { UploadFilled } from "@element-plus/icons-vue"
 import { getQRcodeImgApi } from "@/api/qrcode"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
-
 const loading = ref<boolean>(false)
 const detailLoading = ref<boolean>(false)
 const treeLoading = ref<boolean>(false)
@@ -29,11 +24,7 @@ const dialogVisible = ref<boolean>(false)
 const qrcodeVisible = ref<boolean>(false)
 const qrcodeValue = ref<string>("")
 const dialogDetail = ref<boolean>(false)
-ref([
-  { id: "0", name: "待测试" },
-  { id: "1", name: "测试正常" },
-  { id: "2", name: "测试异常" }
-])
+
 const formData = reactive<any>({
   file: []
 })
@@ -66,10 +57,6 @@ const headers = ref([
   { prop: "name", label: "电路板型号", align: "center", width: "150" },
   { prop: "seria", label: "电路板序列号", align: "center" },
   { prop: "startTime", label: "入库时间", align: "center", width: "150" },
-  //{ prop: "statusFunc", label: "功能性测试", type: "tag", align: "center", width: "120" },
-  //{ prop: "statusEyes", label: "目检测试", type: "tag", align: "center", width: "120" },
-  //{ prop: "statusXray", label: "X-Ray测试", type: "tag", align: "center", width: "120" },
-  //{ prop: "statusHalt", label: "可靠性测试", type: "tag", align: "center", width: "120" },
   { prop: "link", label: "操作", type: "link", align: "right" }
 ])
 
@@ -143,7 +130,6 @@ const getDetailTableData = () => {
     seria: DetailsearchData.seria || undefined
   })
     .then((res) => {
-      console.log(res)
       paginationDetailData.total = res.data.total
       BoardData.value = res.data.list
     })
@@ -187,7 +173,6 @@ const handleNodeClick = (data: any) => {
 const selectedRows = ref([])
 
 const handleSelectionChange = (val: any) => {
-  console.log("index", val)
   selectedRows.value = val
 }
 
@@ -231,9 +216,8 @@ const closeDialogs = () => {
 
 // 打印二维码
 const getSelection = () => {
-  console.log(selectedRows.value)
-  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "startTime" }).then(
-    (res) => {
+  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "startTime" })
+    .then((res) => {
       if (res.code === 0) {
         const imageData = res.data
         const printWindow = window.open("", "_blank")
@@ -268,7 +252,6 @@ const goBack = () => {
 const handleLink = (data: any, i: string) => {
   if (i == "二维码") {
     qrcodeValue.value = data.seria
-    console.log(data.seria)
     qrcodeVisible.value = true
   }
   if (i == "批次详情") {
@@ -313,15 +296,15 @@ onMounted(() => {
   watch(
     [() => paginationDetailData.currentPage, () => paginationDetailData.pageSize, () => modelId],
     getDetailTableData,
-    {
-      immediate: false
-    }
+    { immediate: false }
   )
 })
 </script>
 
 <template>
+  <!-- 设置列之间的间距 -->
   <el-row :gutter="20">
+    <!-- 设置列占据的宽度 -->
     <el-col :span="5">
       <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
         <template #header>
@@ -332,8 +315,10 @@ onMounted(() => {
             @click="dialogVisible = true"
             >新增批次
           </el-button>
+
           <el-input v-model="filterText" placeholder="搜索" />
         </template>
+
         <el-tree
           ref="treeRef"
           class="filter-tree"
@@ -347,6 +332,7 @@ onMounted(() => {
         />
       </el-card>
     </el-col>
+
     <el-col v-if="searchData.boardModel === ''" :span="19">
       <el-card shadow="never" style="height: 100%">
         <el-empty description="请选择电路板型号" />
@@ -405,7 +391,8 @@ onMounted(() => {
       </el-card>
     </el-col>
   </el-row>
-  <el-drawer v-model="Drawer" title="I am the title" :with-header="false" size="60%" @closed="DrawerClose">
+
+  <el-drawer v-model="Drawer" :with-header="false" size="60%" @closed="DrawerClose">
     <header class="drawer-head">
       <el-page-header @back="goBack">
         <template #content>
@@ -484,6 +471,7 @@ onMounted(() => {
       </div>
     </el-card>
   </el-drawer>
+
   <!-- 新增/编辑 -->
   <el-dialog
     v-model="dialogVisible"
@@ -519,6 +507,7 @@ onMounted(() => {
       <el-button type="primary" @click="handleCreate">确认</el-button>
     </template>
   </el-dialog>
+
   <el-dialog v-model="qrcodeVisible" width="340px">
     <qrcode-vue :value="qrcodeValue" :size="300" />
   </el-dialog>

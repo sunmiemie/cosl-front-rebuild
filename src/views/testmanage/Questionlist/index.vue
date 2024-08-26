@@ -9,10 +9,7 @@ import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
 
 const router = useRouter()
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
+
 const userStore = useUserStore()
 const loading = ref<boolean>(false)
 const updateLoading = ref<boolean>(false)
