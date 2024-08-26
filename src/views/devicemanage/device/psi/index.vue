@@ -15,10 +15,6 @@ import QrcodeVue from "qrcode.vue"
 import { UploadFilled } from "@element-plus/icons-vue"
 import { getQRcodeImgApi } from "@/api/qrcode"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 //#region 增
@@ -55,7 +51,6 @@ const handleCreate = () => {
   formRef.value?.validate((valid: boolean) => {
     if (valid) {
       if (currentUpdateId.value === undefined) {
-        // delete formData.psimodelId
         createHostModelDataApi(formData)
           .then(() => {
             ElMessage.success("新增成功")
@@ -189,7 +184,6 @@ const handleSelectionChange = (val: any) => {
 
 // 打印二维码
 const getSelection = () => {
-  // console.log(selectedRows.value)
   getQRcodeImgApi({
     data: selectedRows.value,
     headerKey: "psi_name",
@@ -313,7 +307,6 @@ interface infoType {
 const handleDownload = (info: infoType) => {
   const { name } = info
   fileDownoload(name).then((res) => {
-    console.log(res)
     download(res, "application/vnd.ms-excel", name)
   })
 }

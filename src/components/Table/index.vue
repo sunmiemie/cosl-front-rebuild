@@ -3,7 +3,7 @@ import { getCurrentInstance, ref, toRefs } from "vue"
 //checkbox点击事件
 const instance = getCurrentInstance()
 const multipleSelection = ref([])
-const checkNumber = ref(null)
+const checkNumber = ref(0)
 //取消勾选事件
 const toggleSelection = () => {
   const ultipleTabInstance = toRefs(instance.refs.table)
@@ -11,14 +11,21 @@ const toggleSelection = () => {
 }
 //勾选checkbox事件
 const handleSelectionChange = (val) => {
-  console.log("val", val)
   multipleSelection.value = val
   checkNumber.value = multipleSelection.value.length
 }
 
 export default {
   name: "TableComponent",
-  methods: { handleSelectionChange, toggleSelection },
+  methods: {
+    handleSelectionChange,
+    toggleSelection,
+    clearSelection() {
+      if (this.$refs.table) {
+        this.$refs.table.clearSelection()
+      }
+    }
+  },
   props: {
     columnData: {
       type: Array,
@@ -28,20 +35,25 @@ export default {
       type: Array,
       required: true
     },
-    refValue: undefined,
+    refValue: String,
     selection: Boolean,
     border: Boolean,
-    stripe: Boolean
+    stripe: Boolean,
+    style: {
+      type: String,
+      default: ""
+    }
   }
 }
 </script>
 
 <template>
   <el-table
-    :ref="refValue"
+    ref="table"
     :data="tableData"
     :border="border"
     :stripe="stripe"
+    :style="style"
     :row-key="
       (row) => {
         return row.id
@@ -139,5 +151,3 @@ export default {
     </template>
   </el-table>
 </template>
-
-<style scoped></style>

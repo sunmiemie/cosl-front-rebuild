@@ -37,3 +37,12 @@ export function getInstrumentDataApi(params: Instrument.GetInstrumentRequestData
     params
   })
 }
+
+/** 查 */
+export function getTempBatchInstrumentDataApi(params: Instrument.GetInstrumentRequestData) {
+  return request<Instrument.GetInstrumentResponseData>({
+    url: "equipment/temp-batch-instrument/list",
+    method: "get",
+    params
+  })
+}
