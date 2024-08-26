@@ -12,7 +12,7 @@ import {
   getTestMangeTable,
   createTestUnitApi,
   publicTestUnitApi,
-  deleteTestUnitApi, getTempTestMangeTable
+  deleteTestUnitApi
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"

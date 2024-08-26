@@ -31,7 +31,6 @@ const currentRow = ref<any>()
 const showFlags = ref<any>(true)
 const showProcess = ref<any>(true)
 const testFlags = ref<any>(true)
-const dialogVisible = ref<boolean>(false)
 const tempDialogVisible = ref<boolean>(false)
 const PublicVisible = ref<boolean>(false)
 const testTypeList = ref<any>([])
@@ -350,18 +349,20 @@ const clearOrderInfo = () => {
 
 // 确认新增
 const submitAdd = () => {
+  let addProdBoard = false
+  if (activeName.value === "first") addProdBoard = true
   createDevTestUnitApi({
+    addProdBoard,
     boardList: selectedRows.value,
     userId: userStore.userid,
     ...orderInfo
   })
     .then(() => {
+      tempDialogVisible.value = false
       ElMessage.success("添加成功")
       getMangeData()
-      dialogVisible.value = false
       clearOrderInfo()
       clearTableSelection()
-      tempDialogVisible.value = false
     })
     .catch((err) => {
       ElMessage.error(err.response.data.errorMessage)
