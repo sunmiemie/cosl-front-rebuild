@@ -275,7 +275,7 @@ const bulkImport = () => {
       ElMessage.success("新增成功")
       fileList.file = []
       getTreeData()
-      getTableData()
+      // getTableData()
     })
     .catch((err) => {
       fileList.file = []

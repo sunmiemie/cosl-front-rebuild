@@ -363,8 +363,8 @@ const submitAdd = () => {
       clearTableSelection()
     })
     .catch((err) => {
-      ElMessage.error("添加失败")
-      console.error("添加失败", err)
+      ElMessage.error(err.response.data.errorMessage)
+      console.error("添加失败", err.response.data.errorMessage)
     })
 }
 const tableRef = ref<InstanceType<typeof TableComponent> | null>(null)
