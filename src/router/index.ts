@@ -348,8 +348,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         name: "DataStore",
         meta: {
           title: "数据归档与回溯",
-          keepAlive: true,
-          hidden: true
+          keepAlive: true
         }
       },
       {
