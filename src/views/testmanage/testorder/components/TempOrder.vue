@@ -614,7 +614,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       </div>
     </div>
     <div class="table-wrapper">
-      <TableComponent :column-data="headers" :tableData="TableData" stripe :style="'height: 370px'">
+      <TableComponent :column-data="headers" :tableData="TableData" stripe>
         <template #dev_testunit_status="{ row }">
           <el-tag v-if="row['dev_testunit_status'] === '0'" type="success"> 已创建</el-tag>
           <el-tag v-else-if="row['dev_testunit_status'] === '1'" type="warning"> 待领取</el-tag>
@@ -762,7 +762,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                             :table-data="boardTableData"
                             selection
                             stripe
-                            :style="'height: 600px;'"
                             @selection-change="handleSelectionChange"
                           />
                         </div>
@@ -864,7 +863,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                             :table-data="boardTableData"
                             selection
                             stripe
-                            :style="'height: 600px'"
                             @selection-change="handleSelectionChange"
                           />
                         </div>

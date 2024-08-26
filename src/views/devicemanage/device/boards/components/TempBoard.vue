@@ -1,4 +1,4 @@
-<!-- 临时电路板管理 -->
+<!-- 临时电路板 -->
 
 <script lang="ts" setup>
 import { onMounted, reactive, ref, watch } from "vue"
@@ -483,7 +483,6 @@ onMounted(() => {
           <TableComponent
             :tableData="BatchData"
             :column-data="batchHeaders"
-            :style="'height: 400px'"
             stripe
             @selection-change="handleSelectionChange"
           >

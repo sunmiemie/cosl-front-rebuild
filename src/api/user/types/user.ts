@@ -5,5 +5,5 @@ export interface GetUserData {
 
 export type GetUserResponseData = ApiResponseData<{
   list: GetUserData[]
-  // total: number
+  total: number
 }>

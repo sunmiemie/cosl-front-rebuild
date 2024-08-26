@@ -20,6 +20,7 @@ export default {
   methods: {
     handleSelectionChange,
     toggleSelection,
+    // 不要删，需要用到这个函数，在父组件中取消选中表格的每一行
     clearSelection() {
       if (this.$refs.table) {
         this.$refs.table.clearSelection()
@@ -38,11 +39,7 @@ export default {
     refValue: String,
     selection: Boolean,
     border: Boolean,
-    stripe: Boolean,
-    style: {
-      type: String,
-      default: ""
-    }
+    stripe: Boolean
   }
 }
 </script>
@@ -53,7 +50,6 @@ export default {
     :data="tableData"
     :border="border"
     :stripe="stripe"
-    :style="style"
     :row-key="
       (row) => {
         return row.id
