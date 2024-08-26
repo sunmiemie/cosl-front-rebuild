@@ -361,6 +361,7 @@ const submitAdd = () => {
       dialogVisible.value = false
       clearOrderInfo()
       clearTableSelection()
+      tempDialogVisible.value = false
     })
     .catch((err) => {
       ElMessage.error(err.response.data.errorMessage)
@@ -799,6 +800,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                           <el-form-item prop="consignor" label="委托人">
                             <el-input v-model="orderInfo.consignor" placeholder="请输入" />
                           </el-form-item>
+                          <el-form-item>
+                            <el-button @click="clearOrderInfo">清空已输入内容</el-button>
+                          </el-form-item>
                         </el-form>
                       </el-card>
                     </el-col>
@@ -898,6 +902,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                           <el-form-item prop="consignor" label="委托人">
                             <el-input v-model="orderInfo.consignor" placeholder="请输入" />
                           </el-form-item>
+                          <el-form-item>
+                            <el-button @click="clearOrderInfo">清空已输入内容</el-button>
+                          </el-form-item>
                         </el-form>
                       </el-card>
                     </el-col>
@@ -910,7 +917,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       </el-tab-pane>
     </el-tabs>
     <template #footer>
-      <el-button @click="clearOrderInfo">清除已输入内容</el-button>
+      <el-button @click="tempDialogVisible = false">取消</el-button>
       <el-button type="primary" @click="submitAdd">添加工单</el-button>
     </template>
   </el-dialog>
