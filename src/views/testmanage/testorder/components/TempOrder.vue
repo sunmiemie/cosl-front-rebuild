@@ -63,8 +63,8 @@ const headers = ref([
 ])
 const selectedRows = ref<any>([])
 const addHeaders = ref([
-  { prop: "id", label: "电路板ID", align: "center", width: "150px" },
-  { prop: "serial_num", label: "电路板序列号", align: "center", width: "200px" }
+  { prop: "id", label: "电路板ID", align: "center" },
+  { prop: "serial_num", label: "电路板序列号", align: "center" }
 ])
 const TableData = ref<Array<TableDataType>>([])
 
@@ -348,8 +348,6 @@ const clearOrderInfo = () => {
   orderInfo.consignor = ""
 }
 
-// const tableComponent = ref<InstanceType<typeof TableComponent> | null>(null)
-
 // 确认新增
 const submitAdd = () => {
   createDevTestUnitApi({
@@ -551,7 +549,10 @@ const handleTabClick = (tab: TabsPaneContext) => {
 }
 
 const formRules: FormRules = reactive({
-  testType: [{ required: true, trigger: "blur", message: "请选择测试类型" }]
+  testType: [{ required: true, trigger: "blur", message: "请选择测试类型" }],
+  testUnitType: [{ required: true, trigger: "blur", message: "请输入测试类别" }],
+  testUnitDesc: [{ required: true, trigger: "blur", message: "请输入测试内容" }],
+  consignor: [{ required: true, trigger: "blur", message: "请输入委托人" }]
 })
 
 /** 监听分页参数的变化 */
@@ -714,7 +715,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         <el-row :gutter="20">
           <!-- 设置列占据的宽度 -->
           <el-col :span="6">
-            <el-card shadow="never" style="height: 100%" v-loading="treeLoading">
+            <el-card shadow="never" v-loading="treeLoading">
               <template #header>
                 <el-input v-model="filterText" placeholder="搜索" />
               </template>
@@ -735,7 +736,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 
               <div v-else>
                 <div class="info-header">
-                  <el-card shadow="never" style="margin-top: 10px">
+                  <el-card shadow="never">
                     <el-space :size="10" spacer="|">
                       <el-text>电路板型号：{{ CircuitBoardModel }}</el-text>
                       <el-text>批次号：{{ Batch }}</el-text>
@@ -743,7 +744,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                     </el-space>
                   </el-card>
                 </div>
-                <div style="margin-top: 10px">
+                <div>
                   <el-row :gutter="20">
                     <el-col :span="12">
                       <el-card
@@ -759,7 +760,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                             :table-data="boardTableData"
                             selection
                             stripe
-                            :style="'height: 600px'"
+                            :style="'height: 600px;'"
                             @selection-change="handleSelectionChange"
                           />
                         </div>
@@ -789,18 +790,14 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                               />
                             </el-select>
                           </el-form-item>
-                          <el-form-item prop="batchNumber" label="测试类别">
+                          <el-form-item prop="testUnitType" label="测试类别">
                             <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
                           </el-form-item>
-                          <el-form-item prop="name" label="测试内容">
+                          <el-form-item prop="testUnitDesc" label="测试内容">
                             <el-input v-model="orderInfo.testUnitDesc" placeholder="请输入" />
                           </el-form-item>
-                          <el-form-item prop="supplier" label="委托人">
+                          <el-form-item prop="consignor" label="委托人">
                             <el-input v-model="orderInfo.consignor" placeholder="请输入" />
-                          </el-form-item>
-                          <el-form-item>
-                            <el-button @click="clearOrderInfo">清除</el-button>
-                            <el-button type="primary" @click="submitAdd">添加工单</el-button>
                           </el-form-item>
                         </el-form>
                       </el-card>
@@ -815,11 +812,11 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       <el-tab-pane label="临时电路板" name="second">
         <el-row :gutter="20">
           <el-col :span="6">
-            <el-card shadow="never" style="height: 100%" v-loading="tempTreeLoading">
+            <el-card shadow="never" v-loading="tempTreeLoading">
               <template #header>
                 <el-input v-model="filterText" placeholder="搜索" />
               </template>
-              <el-scrollbar max-height="700px">
+              <el-scrollbar max-height="600px">
                 <el-tree
                   ref="treeRef"
                   :data="tempTreeData"
@@ -838,7 +835,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 
               <div v-else>
                 <div class="info-header">
-                  <el-card shadow="never" style="margin-top: 10px">
+                  <el-card shadow="never">
                     <el-space :size="10" spacer="|">
                       <el-text>{{ CircuitBoardModel }}</el-text>
                       <el-text>批次号：{{ Batch }}</el-text>
@@ -846,7 +843,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                     </el-space>
                   </el-card>
                 </div>
-                <div style="margin-top: 10px">
+                <div>
                   <el-row :gutter="20">
                     <el-col :span="12">
                       <el-card
@@ -892,18 +889,14 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                               />
                             </el-select>
                           </el-form-item>
-                          <el-form-item prop="batchNumber" label="测试类别">
+                          <el-form-item prop="testUnitType" label="测试类别">
                             <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
                           </el-form-item>
-                          <el-form-item prop="name" label="测试内容">
+                          <el-form-item prop="testUnitDesc" label="测试内容">
                             <el-input v-model="orderInfo.testUnitDesc" placeholder="请输入" />
                           </el-form-item>
-                          <el-form-item prop="supplier" label="委托人">
+                          <el-form-item prop="consignor" label="委托人">
                             <el-input v-model="orderInfo.consignor" placeholder="请输入" />
-                          </el-form-item>
-                          <el-form-item>
-                            <el-button @click="clearOrderInfo">清除</el-button>
-                            <el-button type="primary" @click="submitAdd">添加工单</el-button>
                           </el-form-item>
                         </el-form>
                       </el-card>
@@ -916,6 +909,10 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         </el-row>
       </el-tab-pane>
     </el-tabs>
+    <template #footer>
+      <el-button @click="clearOrderInfo">清除已输入内容</el-button>
+      <el-button type="primary" @click="submitAdd">添加工单</el-button>
+    </template>
   </el-dialog>
 
   <!-- 发布 删除 -->
