@@ -12,7 +12,7 @@ import {
   getTestMangeTable,
   createTestUnitApi,
   publicTestUnitApi,
-  deleteTestUnitApi, getTempTestMangeTable
+  deleteTestUnitApi
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
@@ -534,7 +534,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       </div>
     </div>
     <div class="table-wrapper">
-      <TableComponent :column-data="headers" :tableData="TableData" stripe :style="'height: 370px'">
+      <TableComponent :column-data="headers" :tableData="TableData" stripe>
         <template #testunit_status="{ row }">
           <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
           <el-tag v-else-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
