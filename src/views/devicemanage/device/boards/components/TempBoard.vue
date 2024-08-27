@@ -233,15 +233,15 @@ const beforeUpload = (file: any) => {
 const previewDialogVisible = ref<boolean>(false)
 const preview = reactive<any>({
   tempBoardData: [],
-  testUnitData: []
+  testUnitData: [],
+  batches: []
 })
-
-let snList
 
 const previewLoading = ref<boolean>(false)
 
 const generatePreview = () => {
   previewLoading.value = true
+
   const param = new FormData()
   param.append("fileData", fileList.file[0].raw)
   param.append("username", username)
@@ -250,7 +250,7 @@ const generatePreview = () => {
     .then((data) => {
       preview.tempBoardData = data.preview_temp_boards
       preview.testUnitData = data.preview_dev_testunit
-      snList = data.sn_list
+      preview.batches = data.batches_gen
       previewDialogVisible.value = true
     })
     .catch((err) => {
@@ -266,11 +266,12 @@ const generatePreview = () => {
 // 批量导入
 const bulkImport = () => {
   insertingData.value = true
-  const param = new FormData()
-  param.append("fileData", fileList.file[0].raw)
-  param.append("username", username)
-  param.append("snList", snList)
-  createTempBatchDataApi(param)
+  createTempBatchDataApi({
+    username: username,
+    tempBoardData: preview.tempBoardData,
+    testUnitData: preview.testUnitData,
+    batches: preview.batches
+  })
     .then(() => {
       ElMessage.success("新增成功")
       fileList.file = []
@@ -568,7 +569,7 @@ onMounted(() => {
     </el-card>
   </el-drawer>
 
-  <!-- 批量导入 -->
+  <!-- 批量导入对话框 -->
   <el-dialog v-model="dialogVisible" width="30%">
     <el-card v-loading="previewLoading" shadow="never">
       <el-upload
@@ -588,7 +589,9 @@ onMounted(() => {
         :auto-upload="false"
         :limit="1"
       >
-        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+        <el-icon class="el-icon--upload">
+          <upload-filled />
+        </el-icon>
         <div class="el-upload__text">拖拽文件至此 或 <em>点击选择文件上传</em></div>
         <template #tip>
           <div class="el-upload__tip">Tip：请上传xlsx后缀的表格文件</div>
@@ -610,7 +613,7 @@ onMounted(() => {
           <h3 class="table-title">临时电路板预览数据</h3>
         </el-col>
       </el-row>
-      <el-table :data="preview.tempBoardData" max-height="250">
+      <el-table :data="preview.tempBoardData" max-height="500">
         <el-table-column property="所属产品" label="所属产品" width="150" />
         <el-table-column property="测试品名称" label="测试品名称" width="150" />
         <el-table-column property="物料号" label="物料号" width="150" />
@@ -624,7 +627,7 @@ onMounted(() => {
           <h3 class="table-title">临时工单预览数据</h3>
         </el-col>
       </el-row>
-      <el-table :data="preview.testUnitData" max-height="250">
+      <el-table :data="preview.testUnitData" max-height="500">
         <el-table-column property="测试品名称" label="测试品名称" width="150" />
         <el-table-column property="测试类型" label="测试类型" width="150" />
         <el-table-column property="测试类别" label="测试类别" width="200" />
