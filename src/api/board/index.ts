@@ -2,7 +2,6 @@ import { request } from "@/utils/service"
 import type * as Board from "./types/board"
 
 export function createBoardDataApi(data: Board.CreateBoardRequestData) {
-  console.log(data)
   return request({
     url: "equipment/board/add",
     method: "post",

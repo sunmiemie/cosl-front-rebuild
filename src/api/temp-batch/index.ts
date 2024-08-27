@@ -5,7 +5,6 @@ export function createTempBatchDataApi(data: any) {
   return request({
     url: "equipment/temp-batch/add",
     method: "post",
-    headers: { "Content-Type": "multipart/form-data" },
     data
   })
 }
