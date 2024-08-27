@@ -31,7 +31,6 @@ const currentRow = ref<any>()
 const showFlags = ref<any>(true)
 const showProcess = ref<any>(true)
 const testFlags = ref<any>(true)
-const dialogVisible = ref<boolean>(false)
 const tempDialogVisible = ref<boolean>(false)
 const PublicVisible = ref<boolean>(false)
 const testTypeList = ref<any>([])
@@ -350,21 +349,24 @@ const clearOrderInfo = () => {
 
 // 确认新增
 const submitAdd = () => {
+  let addProdBoard = false
+  if (activeName.value === "first") addProdBoard = true
   createDevTestUnitApi({
+    addProdBoard,
     boardList: selectedRows.value,
     userId: userStore.userid,
     ...orderInfo
   })
     .then(() => {
+      tempDialogVisible.value = false
       ElMessage.success("添加成功")
       getMangeData()
-      dialogVisible.value = false
       clearOrderInfo()
       clearTableSelection()
     })
     .catch((err) => {
-      ElMessage.error("添加失败")
-      console.error("添加失败", err)
+      ElMessage.error(err.response.data.errorMessage)
+      console.error("添加失败", err.response.data.errorMessage)
     })
 }
 const tableRef = ref<InstanceType<typeof TableComponent> | null>(null)
@@ -612,7 +614,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       </div>
     </div>
     <div class="table-wrapper">
-      <TableComponent :column-data="headers" :tableData="TableData" stripe :style="'height: 370px'">
+      <TableComponent :column-data="headers" :tableData="TableData" stripe>
         <template #dev_testunit_status="{ row }">
           <el-tag v-if="row['dev_testunit_status'] === '0'" type="success"> 已创建</el-tag>
           <el-tag v-else-if="row['dev_testunit_status'] === '1'" type="warning"> 待领取</el-tag>
@@ -760,7 +762,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                             :table-data="boardTableData"
                             selection
                             stripe
-                            :style="'height: 600px;'"
                             @selection-change="handleSelectionChange"
                           />
                         </div>
@@ -798,6 +799,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                           </el-form-item>
                           <el-form-item prop="consignor" label="委托人">
                             <el-input v-model="orderInfo.consignor" placeholder="请输入" />
+                          </el-form-item>
+                          <el-form-item>
+                            <el-button @click="clearOrderInfo">清空已输入内容</el-button>
                           </el-form-item>
                         </el-form>
                       </el-card>
@@ -859,7 +863,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                             :table-data="boardTableData"
                             selection
                             stripe
-                            :style="'height: 600px'"
                             @selection-change="handleSelectionChange"
                           />
                         </div>
@@ -898,6 +901,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                           <el-form-item prop="consignor" label="委托人">
                             <el-input v-model="orderInfo.consignor" placeholder="请输入" />
                           </el-form-item>
+                          <el-form-item>
+                            <el-button @click="clearOrderInfo">清空已输入内容</el-button>
+                          </el-form-item>
                         </el-form>
                       </el-card>
                     </el-col>
@@ -910,7 +916,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       </el-tab-pane>
     </el-tabs>
     <template #footer>
-      <el-button @click="clearOrderInfo">清除已输入内容</el-button>
+      <el-button @click="tempDialogVisible = false">取消</el-button>
       <el-button type="primary" @click="submitAdd">添加工单</el-button>
     </template>
   </el-dialog>

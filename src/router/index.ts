@@ -305,6 +305,15 @@ export const constantRoutes: RouteRecordRaw[] = [
     },
     children: [
       {
+        path: "work-time",
+        component: () => import("@/views/datamanage/work-time/index.vue"),
+        name: "WorkTime",
+        meta: {
+          title: "工时管理",
+          keepAlive: true
+        }
+      },
+      {
         path: "report",
         component: () => import("@/views/datamanage/historymange/index.vue"),
         name: "Report",
