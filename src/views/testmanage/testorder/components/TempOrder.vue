@@ -8,12 +8,12 @@ import TableComponent from "@/components/Table/index.vue"
 import { useRouter } from "vue-router"
 import {
   getTestMangePath,
-  publicTestUnitApi,
-  deleteTestUnitApi,
   getTempTestMangeTable,
   getboardsinfoForTempOrder,
   createDevTestUnitApi,
-  getTempTestMangePath
+  getTempTestMangePath,
+  publishDevTestUnitApi,
+  deleteDevTestUnitApi
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useUserStore } from "@/store/modules/user"
@@ -55,9 +55,9 @@ const headers = ref([
   { prop: "dev_testunit_endtime", label: "结束时间", align: "center" },
   { prop: "process_type", label: "测试类型", align: "center" },
   { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" },
-  { prop: "dev_testunit_type", label: "测试类别", align: "center", width: "200" },
-  { prop: "dev_testunit_desc", label: "测试内容", align: "center" },
-  { prop: "dev_testunit_consignor", label: "委托人", align: "center" },
+  // { prop: "dev_testunit_type", label: "测试类别", align: "center", width: "200" },
+  // { prop: "dev_testunit_desc", label: "测试内容", align: "center" },
+  // { prop: "dev_testunit_consignor", label: "委托人", align: "center" },
   { prop: "link", label: "操作", type: "link" }
 ])
 const selectedRows = ref<any>([])
@@ -110,11 +110,11 @@ const getTableData = () => {
 }
 
 let PublicFormInfo = reactive({
-  testunit_id: "",
-  testunit_name: "",
+  dev_testunit_id: "",
+  dev_testunit_name: "",
   process_type: "",
   user_name: "",
-  testunit_starttime: ""
+  dev_testunit_starttime: ""
 })
 const generateErrorList = (obj, path = []) => {
   let paths = []
@@ -143,6 +143,7 @@ const PublicOrDelete = ref<string>("发布")
 const drawer: Ref<boolean> = ref(false)
 // link操作逻辑
 const handleLink = (data: any, i: string) => {
+  console.log(data)
   if (i === "发布") {
     PublicVisible.value = true
     PublicFormInfo = data
@@ -152,16 +153,20 @@ const handleLink = (data: any, i: string) => {
     PublicFormInfo = data
     PublicOrDelete.value = "删除"
   } else if (i === "详情") {
-    detailform.unitId = data.testunit_id
-    detailform.unitName = data.testunit_name
+    detailform.unitId = data.dev_testunit_id
+    detailform.unitName = data.dev_testunit_name
     detailform.user = data.user_name
-    detailform.startTime = data.testunit_starttime
-    detailform.boardId = data.board_id
-    detailform.boardSerial = data.board_serial
-    detailform.boardModel = data.boardmodel_name
+    detailform.startTime = data.dev_testunit_starttime
+    detailform.tempBoardId = data.temp_board_id
+    detailform.prodBoardId = data.prod_board_id
+    detailform.boardSerial = data.sn
+    detailform.boardModel = data.dev_boardmodel_name
     detailform.testType = data.process_type
     detailform.processId = data.process_id
     detailform.processVersion = data.testprocess_version
+    detailform.testunitType = data.dev_testunit_type
+    detailform.testunitDesc = data.dev_testunit_desc
+    detailform.testunitConsignor = data.dev_testunit_consignor
     drawer.value = true
   } else if (i === "导出工单") {
     const link = document.createElement("a")
@@ -323,11 +328,15 @@ const detailform = reactive({
   user: "",
   startTime: "",
   boardModel: "",
-  boardId: "",
+  tempBoardId: "",
+  prodBoardId: "",
   boardSerial: "",
   testType: "",
   processId: "",
-  processVersion: ""
+  processVersion: "",
+  testunitType: "",
+  testunitDesc: "",
+  testunitConsignor: ""
 })
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
@@ -394,11 +403,11 @@ const TestStatus = reactive([
 // 确认发布或删除
 const confirm = async (value: string) => {
   if (value === "发布") {
-    publicTestUnitApi({ id: PublicFormInfo["testunit_id"] }).then(() => {
+    publishDevTestUnitApi({ id: PublicFormInfo["dev_testunit_id"] }).then(() => {
       getMangeData()
     })
   } else {
-    deleteTestUnitApi(PublicFormInfo["testunit_id"]).then(() => {
+    deleteDevTestUnitApi(PublicFormInfo["dev_testunit_id"]).then(() => {
       getMangeData()
     })
   }
@@ -648,7 +657,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     </div>
   </el-card>
 
-  <!-- 详情 -->
+  <!-- 详情抽屉 -->
   <el-drawer v-model="drawer" :append-to-body="true" :with-header="false" size="1000">
     <header class="drawer-head">
       <el-page-header @back="goBack">
@@ -663,13 +672,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         <el-form-item label="工单号" style="width: 13%">
           <el-input v-model="detailform.unitId" disabled />
         </el-form-item>
-        <el-form-item label="测试名称" style="width: 380px">
+        <el-form-item label="测试名称" style="width: 360px">
           <el-input v-model="detailform.unitName" disabled />
         </el-form-item>
         <el-form-item label="创建人" style="width: 14%">
           <el-input v-model="detailform.user" disabled />
         </el-form-item>
-        <el-form-item label="创建日期" style="width: 16%">
+        <el-form-item label="创建时间" style="width: 160px">
           <el-input v-model="detailform.startTime" disabled />
         </el-form-item>
       </el-form>
@@ -682,7 +691,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
             <el-text size="large" style="margin-right: 20px">{{ detailform.boardModel }}</el-text>
             <span style="margin: 0 20px"
               >电路板ID:
-              <el-input v-model="detailform.boardId" disabled style="width: 150px" />
+              <el-input
+                v-if="detailform.tempBoardId !== null"
+                v-model="detailform.tempBoardId"
+                disabled
+                style="width: 150px"
+              />
+              <el-input v-else v-model="detailform.prodBoardId" disabled style="width: 150px" />
             </span>
             <span style="margin: 0 20px">
               电路板序列号
@@ -693,17 +708,23 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       </el-row>
     </el-main>
     <el-footer class="drawer-footer">
-      <el-text size="large">所选测试工艺信息</el-text>
-      <br />
-      <el-button type="primary" style="margin-top: 10px">{{ detailform.testType }}</el-button>
+      <el-text size="large">其它信息</el-text>
       <el-card class="info-box" shadow="never" style="margin: 20px 0">
+        <span style="margin: 0 20px 20px 20px; display: inline-block">
+          测试类型：
+          <el-input style="width: 200px" v-model="detailform.testType" disabled />
+        </span>
         <span style="margin: 0 20px"
-          >使用工艺ID:
-          <el-input v-model="detailform.processId" disabled style="width: 150px" />
+          >测试类别：
+          <el-input v-model="detailform.testunitType" disabled style="width: 150px" />
         </span>
         <span style="margin: 0 20px">
-          使用工艺版本:
-          <el-input v-model="detailform.processVersion" disabled style="width: 150px" />
+          测试内容：
+          <el-input v-model="detailform.testunitDesc" disabled style="width: 150px" />
+        </span>
+        <span style="margin: 0 20px">
+          委托人：
+          <el-input v-model="detailform.testunitConsignor" disabled style="width: 150px" />
         </span>
       </el-card>
     </el-footer>
@@ -921,7 +942,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     </template>
   </el-dialog>
 
-  <!-- 发布 删除 -->
+  <!-- 发布 删除 对话框 -->
   <el-dialog v-model="PublicVisible" :show-close="true" width="44%">
     <template #header>
       <div class="my-header">
@@ -930,10 +951,10 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     </template>
     <el-form :inline="true" :model="PublicFormInfo">
       <el-form-item label="工单号">
-        <el-input v-model="PublicFormInfo['testunit_id']" disabled type="text" />
+        <el-input v-model="PublicFormInfo['dev_testunit_id']" disabled type="text" />
       </el-form-item>
       <el-form-item label="测试名称">
-        <el-input v-model="PublicFormInfo['testunit_name']" disabled type="text" style="width: 350px" />
+        <el-input v-model="PublicFormInfo['dev_testunit_name']" disabled type="text" style="width: 350px" />
       </el-form-item>
       <br />
       <el-form-item label="测试类型">
@@ -943,7 +964,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         <el-input v-model="PublicFormInfo['user_name']" disabled style="width: 100px" type="text" />
       </el-form-item>
       <el-form-item label="创建日期">
-        <el-input v-model="PublicFormInfo['testunit_starttime']" disabled style="width: 180px" type="text" />
+        <el-input v-model="PublicFormInfo['dev_testunit_starttime']" disabled style="width: 180px" type="text" />
       </el-form-item>
     </el-form>
     <el-button
