@@ -141,6 +141,7 @@ const getNestedValue = (obj, path) => {
   }, obj)
 }
 const PublicOrDelete = ref<string>("发布")
+
 const drawer: Ref<boolean> = ref(false)
 // link操作逻辑
 const handleLink = (data: any, i: string) => {
@@ -360,11 +361,11 @@ const TestStatus = reactive([
 // 确认发布或删除
 const confirm = async (value: string) => {
   if (value === "发布") {
-    publicTestUnitApi({ id: PublicFormInfo["testunit_id"] }).then((res) => {
+    publicTestUnitApi({ id: PublicFormInfo["testunit_id"] }).then(() => {
       getMangeData()
     })
   } else {
-    deleteTestUnitApi(PublicFormInfo["testunit_id"]).then((res) => {
+    deleteTestUnitApi(PublicFormInfo["testunit_id"]).then(() => {
       getMangeData()
     })
   }

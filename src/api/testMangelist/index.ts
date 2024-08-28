@@ -64,10 +64,23 @@ export const publicTestUnitApi = (data: any) => {
     data
   })
 }
+export const publishDevTestUnitApi = (data: any) => {
+  return request({
+    url: "/test/dev-testunit/publish/",
+    method: "put",
+    data
+  })
+}
 // 删除测试工单
 export const deleteTestUnitApi = (id: string) => {
   return request({
     url: `/test/testunit/delete/${id}`,
+    method: "delete"
+  })
+}
+export const deleteDevTestUnitApi = (id: string) => {
+  return request({
+    url: `/test/dev-testunit/delete/${id}`,
     method: "delete"
   })
 }
