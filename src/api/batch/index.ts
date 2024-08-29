@@ -1,11 +1,19 @@
 import { request } from "@/utils/service"
 import type * as Batch from "./types/batch"
 
+export function previewBatchDataApi(data: any) {
+  return request({
+    url: "equipment/batch/preview",
+    method: "post",
+    headers: { "Content-Type": "multipart/form-data" },
+    data
+  })
+}
+
 export function createBatchDataApi(data: any) {
   return request({
     url: "equipment/batch/add",
     method: "post",
-    headers: { "Content-Type": "multipart/form-data" },
     data
   })
 }
