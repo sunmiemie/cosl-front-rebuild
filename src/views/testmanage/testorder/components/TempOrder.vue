@@ -55,9 +55,6 @@ const headers = ref([
   { prop: "dev_testunit_endtime", label: "结束时间", align: "center" },
   { prop: "process_type", label: "测试类型", align: "center" },
   { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" },
-  // { prop: "dev_testunit_type", label: "测试类别", align: "center", width: "200" },
-  // { prop: "dev_testunit_desc", label: "测试内容", align: "center" },
-  // { prop: "dev_testunit_consignor", label: "委托人", align: "center" },
   { prop: "link", label: "操作", type: "link" }
 ])
 const selectedRows = ref<any>([])
@@ -710,22 +707,20 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     <el-footer class="drawer-footer">
       <el-text size="large">其它信息</el-text>
       <el-card class="info-box" shadow="never" style="margin: 20px 0">
-        <span style="margin: 0 20px 20px 20px; display: inline-block">
-          测试类型：
-          <el-input style="width: 200px" v-model="detailform.testType" disabled />
-        </span>
-        <span style="margin: 0 20px"
-          >测试类别：
-          <el-input v-model="detailform.testunitType" disabled style="width: 150px" />
-        </span>
-        <span style="margin: 0 20px">
-          测试内容：
-          <el-input v-model="detailform.testunitDesc" disabled style="width: 150px" />
-        </span>
-        <span style="margin: 0 20px">
-          委托人：
-          <el-input v-model="detailform.testunitConsignor" disabled style="width: 150px" />
-        </span>
+        <el-form :model="detailform" label-position="left" label-width="auto">
+          <el-form-item label="委托人">
+            <el-input v-model="detailform.testunitConsignor" disabled />
+          </el-form-item>
+          <el-form-item label="测试类别">
+            <el-input v-model="detailform.testunitType" disabled />
+          </el-form-item>
+          <el-form-item label="测试内容">
+            <el-input type="textarea" v-model="detailform.testunitDesc" disabled />
+          </el-form-item>
+          <el-form-item label="测试类型">
+            <el-input v-model="detailform.testType" disabled />
+          </el-form-item>
+        </el-form>
       </el-card>
     </el-footer>
   </el-drawer>
