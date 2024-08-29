@@ -3,7 +3,7 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref, watch } from "vue"
 import { getBoardDataApi } from "@/api/board"
-import { createBatchDataApi, getBatchDataApi } from "@/api/batch"
+import { createBatchDataApi, getBatchDataApi, previewBatchDataApi } from "@/api/batch"
 import { type GetBatchData } from "@/api/batch/types/batch"
 import { ElMessage, ElMessageBox, ElTree, type FormInstance } from "element-plus"
 import { usePagination, useDetailPagination } from "@/hooks/usePagination"
@@ -31,19 +31,6 @@ const formData = reactive<any>({
 const fileList = reactive<any>({
   file: []
 })
-const handleCreate = () => {
-  const param = new FormData()
-  param.append("fileData", fileList.file[0].raw)
-  createBatchDataApi(param)
-    .then(() => {
-      ElMessage.success("新增成功")
-      fileList.file = []
-      getTableData()
-    })
-    .finally(() => {
-      dialogVisible.value = false
-    })
-}
 
 const resetForm = () => {
   currentUpdateId.value = undefined
@@ -286,6 +273,66 @@ const filterNode = (value: string, data: any) => {
   if (!value) return true
   return data.label.includes(value)
 }
+
+const previewLoading = ref<boolean>(false)
+const previewDialogVisible = ref<boolean>(false)
+const preview = reactive<any>({
+  boards: [],
+  batches: [],
+  boardModels: []
+})
+const generatePreview = () => {
+  previewLoading.value = true
+
+  const param = new FormData()
+  param.append("fileData", fileList.file[0].raw)
+
+  previewBatchDataApi(param)
+    .then((data) => {
+      // console.log(data)
+      preview.boards = data.preview_boards
+      preview.batches = data.batches
+      preview.boardModels = data.board_models
+      previewDialogVisible.value = true
+    })
+    .catch((err) => {
+      fileList.file = []
+      ElMessage.error(err.data.errormessage)
+    })
+    .finally(() => {
+      previewLoading.value = false
+      dialogVisible.value = false
+    })
+}
+const cancelInsert = () => {
+  previewDialogVisible.value = false
+  fileList.file = []
+}
+const insertingData = ref<boolean>(false)
+// 批量导入
+const bulkImport = () => {
+  insertingData.value = true
+  createBatchDataApi({
+    boards: preview.boards,
+    batches: preview.batches,
+    boardModels: preview.boardModels
+  })
+    .then(() => {
+      ElMessage.success("新增成功")
+      fileList.file = []
+      getTreeData()
+      if (searchData.id !== "") getTableData()
+    })
+    .catch((err) => {
+      fileList.file = []
+      ElMessage.error(err.data.errormessage)
+    })
+    .finally(() => {
+      insertingData.value = false
+      previewDialogVisible.value = false
+    })
+}
+
 //#endregion
 onMounted(() => {
   watch([() => paginationData.currentPage, () => paginationData.pageSize], getTreeData, { immediate: true })
@@ -472,7 +519,7 @@ onMounted(() => {
     </el-card>
   </el-drawer>
 
-  <!-- 新增/编辑 -->
+  <!-- 新增/编辑对话框 -->
   <el-dialog
     v-model="dialogVisible"
     :title="currentUpdateId === undefined ? '新增批次' : '编辑批次'"
@@ -504,8 +551,38 @@ onMounted(() => {
     </el-upload>
     <template #footer>
       <el-button @click="closeDialogs">取消</el-button>
-      <el-button type="primary" @click="handleCreate">确认</el-button>
+      <el-button type="primary" @click="generatePreview">预览</el-button>
     </template>
+  </el-dialog>
+
+  <!-- 预览 -->
+  <el-dialog v-model="previewDialogVisible" top="5vh">
+    <el-card shadow="never">
+      <el-row>
+        <el-col :span="24">
+          <h3 class="table-title">生产电路板预览数据</h3>
+        </el-col>
+      </el-row>
+      <el-table :data="preview.boards" max-height="500">
+        <el-table-column property="board_serialnumber" label="供应商 SN 号" />
+        <el-table-column property="contract_number" label="合同号" />
+        <el-table-column property="board_date" label="到货日期" />
+        <el-table-column property="boardmodel_id" label="物料号" />
+        <el-table-column property="batch_id" label="批次号" />
+      </el-table>
+
+      <el-row>
+        <el-col :span="24">
+          <h3 class="table-title">即将添加 {{ preview.boards.length }} 块电路板，确认添加吗？</h3>
+        </el-col>
+      </el-row>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="cancelInsert">取消</el-button>
+          <el-button type="primary" @click="bulkImport"> 确认 </el-button>
+        </div>
+      </template>
+    </el-card>
   </el-dialog>
 
   <el-dialog v-model="qrcodeVisible" width="340px">
