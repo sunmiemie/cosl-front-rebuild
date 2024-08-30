@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, reactive, ref } from "vue"
+import { computed, onMounted, reactive, ref } from "vue"
 import TableComponent from "@/components/Table/index.vue"
 import { GetUserData } from "@/api/user/types/user"
 import { usePagination } from "@/hooks/usePagination"
@@ -13,7 +13,7 @@ interface User {
 }
 
 const userTableHeaders = ref([
-  { prop: "id", label: "ID", align: "center" },
+  { prop: "id", label: "用户 ID", align: "center" },
   { prop: "username", label: "用户名", align: "center" }
 ])
 
@@ -23,6 +23,7 @@ const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
 const currentRow = ref()
+const username = computed(() => currentRow.value?.username || "")
 const handleCurrentRowChange = (val: User | undefined) => {
   currentRow.value = val
   getWorkTimeTableData()
@@ -62,7 +63,7 @@ const resetSearch = () => {
 
 const workTimeTableHeaders = ref([
   { prop: "date", label: "日期", align: "center" },
-  { prop: "seconds", label: "秒数", align: "center" }
+  { prop: "timeStr", label: "工时", align: "center" }
 ])
 const workTimeLoading = ref<boolean>(false)
 const workTimeTableData = ref<GetWorkTimeData[]>([])
@@ -72,6 +73,9 @@ const getWorkTimeTableData = async () => {
   getWorkTimeDataApi({ userId: currentRow.value?.id })
     .then((res) => {
       workTimeTableData.value = res.data.list
+      workTimeTableData.value.map((w) => {
+        w.timeStr = `${w.times.h}小时${w.times.m}分钟${w.times.s}秒`
+      })
     })
     .catch(() => {
       workTimeTableData.value = []
@@ -133,6 +137,14 @@ onMounted(getUserTableData)
               </el-tooltip>
             </div>
           </div>
+          <el-text
+            v-show="username !== ''"
+            class="mx-1"
+            size="large"
+            style="margin-bottom: 10px; display: inline-block"
+          >
+            用户名：{{ username }}
+          </el-text>
           <TableComponent :column-data="workTimeTableHeaders" :tableData="workTimeTableData" stripe />
         </el-card>
       </el-col>
