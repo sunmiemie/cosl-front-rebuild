@@ -342,7 +342,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       },
       {
-        path: "checkReport",
+        path: "reportView",
         component: () => import("@/views/datamanage/historymange/reportPre/index.vue"),
         name: "reportView",
         meta: {

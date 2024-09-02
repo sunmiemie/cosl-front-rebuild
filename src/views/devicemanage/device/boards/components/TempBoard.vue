@@ -61,6 +61,10 @@ const handleCreate = () => {
         searchData.name = data.name
         getTableData()
       })
+      .catch((err) => {
+        ElMessage.error(err.response.data.error)
+        console.error(err.response.data.error)
+      })
       .finally(() => {
         manualDialogVisible.value = false
         Object.keys(formData).forEach((key: any) => (formData[key] = ""))

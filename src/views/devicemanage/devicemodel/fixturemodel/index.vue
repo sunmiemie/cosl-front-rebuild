@@ -45,6 +45,7 @@ const handleCreate = () => {
           })
       } else {
         updateFixtureModelDataApi({
+          oldId: currentUpdateId.value,
           supplier: formData.supplier,
           name: formData.name,
           des: formData.des,
@@ -208,7 +209,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="formData.supplier" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="type" label="夹具类型:">
-          <el-select v-model="formData.type" placeholder="请选择" style="width: 240px">
+          <el-select v-model="formData.type" placeholder="请选择">
             <el-option value="0" label="功能性测试夹具" />
             <el-option value="1" label="XRay测试夹具" />
           </el-select>
