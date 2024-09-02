@@ -1,6 +1,6 @@
 <script setup>
 import { onMounted, reactive, ref } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { useRoute } from "vue-router"
 import { checkReportDataApi } from "@/api/report"
 import ReportPreview from "@/components/Check/ReportPreview.vue"
 
@@ -56,5 +56,3 @@ onMounted(() => {
     </el-card>
   </div>
 </template>
-
-<style lang="scss" scoped></style>

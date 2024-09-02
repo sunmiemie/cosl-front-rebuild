@@ -80,7 +80,7 @@ const currentUpdateId = ref<undefined | string>(undefined)
 
 const headers = ref([
   { prop: "id", label: "电路板物料号", align: "center" },
-  { prop: "name", label: "电路板物料名称", align: "center" },
+  { prop: "name", label: "电路板型号名称", align: "center" },
   { prop: "model", label: "规格型号", align: "center" },
   { prop: "type", label: "关联仪器", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "right" }
@@ -234,7 +234,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="formData.model" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="type" label="关联仪器">
-          <el-select v-model="formData.type" placeholder="请选择" style="width: 240px">
+          <el-select v-model="formData.type" placeholder="请选择">
             <el-option value="general" label="通用" />
             <el-option v-for="item in DetailList" :key="item.id" :label="item.label" :value="item.id" />
           </el-select>

@@ -5,15 +5,14 @@ import { ElButton } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import { reportDownoload } from "@/api/file"
 import { getReportDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useRouter } from "vue-router"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
+// defineOptions({
+//   // 命名当前组件
+//   name: "ElementPlus"
+// })
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
@@ -98,7 +97,6 @@ const getTableData = () => {
 
 const handleLink = (data: any, i: string) => {
   if (i == "导出") {
-    console.log(data)
     const link = document.createElement("a")
     link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${data.report_filepath}.pdf?id=${data.id}`
     link.setAttribute("download", data.report_filepath + ".pdf")
@@ -106,6 +104,7 @@ const handleLink = (data: any, i: string) => {
     link.click()
     document.body.removeChild(link)
   } else {
+    // console.log("report view", data)
     router.push({ name: "reportView", query: data })
   }
 }

@@ -7,23 +7,34 @@
             <el-input v-model="searchData.activeName" placeholder="请输入" />
           </el-form-item>
           <el-form-item label="数据状态">
-            <el-select v-model="searchData.TestStatus" placeholder="请选择">
+            <el-select v-model="searchData.TestStatus" placeholder="请选择" style="width: 150px">
               <el-option label="未归档" value="0" />
               <el-option label="已归档" value="1" />
             </el-select>
           </el-form-item>
           <el-form-item label="生成时间">
-            <el-select v-model="searchData.startTime" placeholder="请选择">
-              <el-option label="2023/01/05" value="2023/01/05" />
-            </el-select>
+            <el-date-picker
+              unlink-panels
+              v-model="searchData['Daterange'] as any"
+              end-placeholder="结束日期"
+              range-separator="至"
+              start-placeholder="开始日期"
+              type="daterange"
+              value-format="YYYY/MM/DD"
+            />
           </el-form-item>
+<!--          <el-form-item label="生成时间">-->
+<!--            <el-select v-model="searchData.startTime" placeholder="请选择" style="width: 150px">-->
+<!--              <el-option label="2023/01/05" value="2023/01/05" />-->
+<!--            </el-select>-->
+<!--          </el-form-item>-->
           <el-form-item>
             <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
             <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
           </el-form-item>
         </el-form>
         <el-tab-pane label="历史测试报告数据" name="first">
-          <TableComponent :tableData="TableData" :column-data="headers" stripe border="true">
+          <TableComponent :tableData="TableData" :column-data="headers" stripe border>
             <template #status="{ row }">
               <el-tag v-if="row.status === '0'" type="warning"> 未归档 </el-tag>
               <el-tag v-if="row.status === '1'" type="success"> 已归档 </el-tag>
@@ -32,6 +43,7 @@
             <template #link="{ row }">
               <el-link
                 v-for="i in row.link"
+                :key="i"
                 type="primary"
                 class="el-link"
                 style="margin-right: 10px"
@@ -42,7 +54,7 @@
           </TableComponent>
         </el-tab-pane>
         <el-tab-pane label="故障工单数据" name="second">Config</el-tab-pane>
-        <el-tab-pane label="日志数据" name="third">Role</el-tab-pane>
+<!--        <el-tab-pane label="日志数据" name="third">Role</el-tab-pane>-->
       </el-tabs>
     </el-card>
   </div>
@@ -97,7 +109,8 @@ const TableData = ref<any>([
 const searchData = reactive<any>({
   activeName: "",
   TestStatus: "",
-  startTime: ""
+  Daterange: ""
+  // startTime: ""
 })
 
 // 重置
@@ -113,7 +126,7 @@ const handleSearch = () => {}
 
 // link
 const handleLink = (data: any, i: any) => {
-  // console.log(i, data);
+  console.log(i, data)
 }
 
 getTableData()
