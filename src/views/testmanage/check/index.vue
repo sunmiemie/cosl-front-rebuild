@@ -71,6 +71,7 @@ const getTableData = () => {
   })
     .then((res: any) => {
       TableData.value = res.list
+      paginationData.total = res.total
     })
     .finally(() => {
       for (let i = 0; i < TableData.value.length; i++) {

@@ -5,6 +5,7 @@ import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
+import { checkPermission } from "@/utils/permission";
 
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
@@ -61,12 +62,18 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = ref([
+const headers = checkPermission(['admin']) ? ref([
   { prop: "psimodel_id", label: "主机型号ID", align: "center" },
   { prop: "psimodel_name", label: "主机型号名称", align: "center" },
   { prop: "supplier", label: "供应商", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "right" }
-])
+  { prop: "link", label: "操作", type: "link", align: "center" }
+]) :
+  ref([
+    { prop: "psimodel_id", label: "主机型号ID", align: "center" },
+    { prop: "psimodel_name", label: "主机型号名称", align: "center" },
+    { prop: "supplier", label: "供应商", align: "center" }
+  ]);
+
 const TableData = ref([])
 
 // const BoardModelData = ref<GetBoardModelData[]>([])
@@ -148,7 +155,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" :icon="CirclePlus" @click="addHost">新增主机型号</el-button>
+          <el-button v-permission="['admin']" type="primary" :icon="CirclePlus" @click="addHost">新增主机型号</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -158,7 +165,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       </div>
       <div class="table-wrapper">
         <TableComponent :tableData="TableData" :column-data="headers" stripe @selection-change="handleSelectionChange">
-          <template #link="{ row }">
+          <template v-if="checkPermission(['admin'])" #link="{ row }">
             <el-link type="primary" class="el-link" @click="handleLink(row)">编辑</el-link>
           </template>
         </TableComponent>

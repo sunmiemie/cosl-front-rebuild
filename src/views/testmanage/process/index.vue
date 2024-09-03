@@ -17,6 +17,7 @@ import {
   submitCheck,
   deleteTestProcessApi
 } from "@/api/addprocess"
+import { checkPermission } from "@/utils/permission";
 
 const testStore = useTestStore()
 
@@ -49,7 +50,7 @@ const addTest = () => {
 
 // 提交审核
 const onSubmit = () => {
-  console.log(TestCheck.value)
+  // console.log(TestCheck.value)
   submitCheck({ id: TestCheck.value.ID }).then((res: any) => {
     if (res.code === 0) {
       ElMessage.success("提交成功")
@@ -183,8 +184,8 @@ const getDetailTableData = () => {
 }
 //当前选中
 const CurrentVersion = (val: any, row: any) => {
-  console.log(val)
-  console.log(row)
+  // console.log(val)
+  // console.log(row)
   changeVersion({
     ID: row.activateId,
     version: val
@@ -215,7 +216,7 @@ const handleLinkDetail = (data: any, i: string) => {
         getDetailTableData()
         getTableData()
         ElMessage.success("删除成功")
-        console.log(res)
+        // console.log(res)
       })
     })
   } else if (i === "详情") {
@@ -305,7 +306,7 @@ watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSi
         <el-card v-else v-loading="loading" shadow="never">
           <div class="toolbar-wrapper">
             <div>
-              <el-button :icon="CirclePlus" type="primary" @click="addTest">新增流程</el-button>
+              <el-button v-if="checkPermission(['admin'])" :icon="CirclePlus" type="primary" @click="addTest">新增流程</el-button>
             </div>
             <div>
               <el-tooltip content="刷新当前页">

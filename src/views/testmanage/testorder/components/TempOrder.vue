@@ -18,6 +18,7 @@ import {
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useUserStore } from "@/store/modules/user"
 import { checkReportDataApi, getSingleReportDataApi } from "@/api/report"
+import { checkPermission } from "@/utils/permission";
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -47,7 +48,7 @@ interface TableDataType {
   link?: any
 }
 
-const headers = ref([
+const headers = checkPermission(['admin']) ? ref([
   { prop: "dev_testunit_id", label: "工单号", align: "center" },
   { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
   { prop: "user_name", label: "创建人", align: "center" },
@@ -56,7 +57,17 @@ const headers = ref([
   { prop: "process_type", label: "测试类型", align: "center" },
   { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" },
   { prop: "link", label: "操作", type: "link" }
-])
+]) :
+  ref([
+    { prop: "dev_testunit_id", label: "工单号", align: "center" },
+    { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
+    { prop: "user_name", label: "创建人", align: "center" },
+    { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
+    { prop: "dev_testunit_endtime", label: "结束时间", align: "center" },
+    { prop: "process_type", label: "测试类型", align: "center" },
+    { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" }
+  ]);
+
 const selectedRows = ref<any>([])
 const addHeaders = ref([
   { prop: "id", label: "电路板ID", align: "center" },
@@ -613,7 +624,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
   <el-card v-loading="loading" shadow="never">
     <div class="toolbar-wrapper">
       <div>
-        <el-button icon="CirclePlus" type="primary" @click="addTempTest">新增临时测试工单</el-button>
+        <el-button v-permission="['admin']" icon="CirclePlus" type="primary" @click="addTempTest">新增临时测试工单</el-button>
       </div>
       <div>
         <el-tooltip content="刷新当前页">
@@ -634,7 +645,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
           <el-tag v-else-if="row['dev_testunit_status'] === '7'" type="warning"> 测试暂存</el-tag>
           <el-tag v-else-if="row['dev_testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
         </template>
-        <template #link="{ row }">
+        <template v-if="checkPermission(['admin'])" #link="{ row }">
           <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">
             {{ i }}
           </el-link>

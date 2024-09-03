@@ -142,6 +142,9 @@ const updateUser = () => {
         .catch((err) => {
           ElMessage.error(err.response.data.message)
         })
+        .finally(() => {
+          updatingUser.value = false
+        })
     } else {
       console.error("表单校验不通过", fields)
     }
@@ -246,28 +249,30 @@ const updateUser = () => {
 
     <!-- 编辑用户信息 -->
     <el-dialog v-model="editUserDialogVisible" width="30%" title="编辑用户信息">
-      <el-form ref="editUserFormRef" :model="userInfoFormData" label-width="auto" :rules="userFormRules">
-        <el-form-item prop="username" label="用户名">
-          <el-input v-model="userInfoFormData.username" />
-        </el-form-item>
-        <el-form-item prop="role" label="角色">
-          <el-input v-model="userInfoFormData.role" />
-        </el-form-item>
-        <el-form-item label="介绍">
-          <el-input v-model="userInfoFormData.introduction" type="textarea" />
-        </el-form-item>
+      <el-card v-loading="updatingUser" shadow="never">
+        <el-form ref="editUserFormRef" :model="userInfoFormData" label-width="auto" :rules="userFormRules">
+          <el-form-item prop="username" label="用户名">
+            <el-input v-model="userInfoFormData.username" />
+          </el-form-item>
+          <el-form-item prop="role" label="角色">
+            <el-input v-model="userInfoFormData.role" />
+          </el-form-item>
+          <el-form-item label="介绍">
+            <el-input v-model="userInfoFormData.introduction" type="textarea" />
+          </el-form-item>
 
-        <el-button :type="changePassword ? 'primary' : 'default'" @click.prevent="toggleCheck" style="opacity: 0.8">
-          修改密码
-        </el-button>
-        <el-form-item v-show="changePassword" class="mt-2" label="密码">
-          <el-input v-model="userInfoFormData.password" type="password" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="handleCloseEditUserDialog">取消</el-button>
-        <el-button type="primary" @click="updateUser">确认</el-button>
-      </template>
+          <el-button :type="changePassword ? 'primary' : 'default'" @click.prevent="toggleCheck" style="opacity: 0.8">
+            修改密码
+          </el-button>
+          <el-form-item v-show="changePassword" class="mt-2" label="密码">
+            <el-input v-model="userInfoFormData.password" type="password" />
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button @click="handleCloseEditUserDialog">取消</el-button>
+          <el-button type="primary" @click="updateUser">确认</el-button>
+        </template>
+      </el-card>
     </el-dialog>
   </div>
 </template>
