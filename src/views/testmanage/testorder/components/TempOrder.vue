@@ -140,7 +140,7 @@ const PublicOrDelete = ref<string>("发布")
 const drawer: Ref<boolean> = ref(false)
 // link操作逻辑
 const handleLink = (data: any, i: string) => {
-  console.log(data)
+  // console.log(data)
   if (i === "发布") {
     PublicVisible.value = true
     PublicFormInfo = data
@@ -357,6 +357,7 @@ const clearOrderInfo = () => {
 const submitAdd = () => {
   let addProdBoard = false
   if (activeName.value === "first") addProdBoard = true
+
   createDevTestUnitApi({
     addProdBoard,
     boardList: selectedRows.value,
@@ -549,6 +550,7 @@ const activeName = ref<any>("first")
 
 const handleTabClick = (tab: TabsPaneContext) => {
   boardTableData.value = []
+  showFlags.value = true
   if (tab.props.name === "first") {
     getTreeData()
   } else if (tab.props.name === "second") {
@@ -811,7 +813,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                             <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
                           </el-form-item>
                           <el-form-item prop="testUnitDesc" label="测试内容">
-                            <el-input v-model="orderInfo.testUnitDesc" placeholder="请输入" />
+                            <el-input v-model="orderInfo.testUnitDesc" type="textarea" placeholder="请输入" />
                           </el-form-item>
                           <el-form-item prop="consignor" label="委托人">
                             <el-input v-model="orderInfo.consignor" placeholder="请输入" />
@@ -912,7 +914,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                             <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
                           </el-form-item>
                           <el-form-item prop="testUnitDesc" label="测试内容">
-                            <el-input v-model="orderInfo.testUnitDesc" placeholder="请输入" />
+                            <el-input v-model="orderInfo.testUnitDesc" type="textarea" placeholder="请输入" />
                           </el-form-item>
                           <el-form-item prop="consignor" label="委托人">
                             <el-input v-model="orderInfo.consignor" placeholder="请输入" />

@@ -674,7 +674,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                   style="margin-top: 10px; margin-bottom: 10px"
                   v-loading="boardInfoLoading"
                 >
-                  <el-scrollbar height="60vh">
+                  <el-scrollbar max-height="1000px">
                     <div class="table-wrapper">
                       <TableComponent
                         :column-data="addHeaders"
