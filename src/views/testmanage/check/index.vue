@@ -6,6 +6,7 @@ import { usePagination } from "@/hooks/usePagination"
 import { checkListDataApi } from "@/api/check"
 import { getTestTypeDataApi } from "@/api/testtype"
 import TableComponent from "@/components/Table/index.vue"
+import { useUserStore } from "@/store/modules/user"
 
 const testTypeList = ref<any>([])
 const CheckDialog = ref<boolean>(false)
@@ -13,6 +14,8 @@ const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
 //#region 增
+
+const userId = useUserStore().userid
 
 const CheckInfo = reactive({
   name: "",
@@ -67,7 +70,8 @@ const getTableData = () => {
   checkListDataApi({
     id: searchData.number,
     name: searchData.name,
-    type: searchData.type
+    type: searchData.type,
+    userId
   })
     .then((res: any) => {
       TableData.value = res.list

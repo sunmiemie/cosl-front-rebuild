@@ -8,6 +8,7 @@ import TableComponent from "@/components/Table/index.vue"
 import { getReportCheckDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useRouter } from "vue-router"
+import { useUserStore } from "@/store/modules/user"
 
 // defineOptions({
 //   // 命名当前组件
@@ -68,6 +69,8 @@ const defineLink = (status: string) => {
       return { 1: "审核" }
   }
 }
+
+const userId = useUserStore().userid
 const getTableData = () => {
   loading.value = true
   getReportCheckDataApi({
@@ -76,7 +79,8 @@ const getTableData = () => {
     id: searchData.id || undefined,
     user: searchData.user || undefined,
     type: searchData.type || undefined,
-    serial: searchData.serial || undefined
+    serial: searchData.serial || undefined,
+    userId
   }).then((res) => {
     TableData.value = res.data.list
     paginationData.total = res.data.total
