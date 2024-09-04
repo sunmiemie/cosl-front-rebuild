@@ -18,7 +18,7 @@ import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
 import { useUserStore } from "@/store/modules/user"
 import { checkReportDataApi, getSingleReportDataApi } from "@/api/report"
-import { checkPermission } from "@/utils/permission";
+import { checkPermission } from "@/utils/permission"
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -30,7 +30,6 @@ const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const currentRow = ref<any>()
 const showFlags = ref<any>(true)
-const showProcess = ref<any>(true)
 const testFlags = ref<any>(true)
 const dialogVisible = ref<boolean>(false)
 const PublicVisible = ref<boolean>(false)
@@ -49,18 +48,19 @@ interface TableDataType {
   link?: any
 }
 
-const headers = checkPermission(['admin']) ? ref([
-  { prop: "testunit_id", label: "工单号", align: "center" },
-  { prop: "testunit_name", label: "测试名称", align: "center" },
-  { prop: "user_name", label: "创建人", align: "center" },
-  { prop: "testunit_starttime", label: "创建时间", align: "center" },
-  { prop: "testunit_endtime", label: "结束时间", align: "center" },
-  { prop: "process_type", label: "测试类型", align: "center" },
-  { prop: "process_id", label: "使用工艺ID", align: "center" },
-  { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
-  { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
-  { prop: "link", label: "操作", type: "link" }
-]) :
+const headers = checkPermission(['admin']) ?
+  ref([
+    { prop: "testunit_id", label: "工单号", align: "center" },
+    { prop: "testunit_name", label: "测试名称", align: "center" },
+    { prop: "user_name", label: "创建人", align: "center" },
+    { prop: "testunit_starttime", label: "创建时间", align: "center" },
+    { prop: "testunit_endtime", label: "结束时间", align: "center" },
+    { prop: "process_type", label: "测试类型", align: "center" },
+    { prop: "process_id", label: "使用工艺ID", align: "center" },
+    { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
+    { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
+    { prop: "link", label: "操作", type: "link" }
+  ]) :
   ref([
     { prop: "testunit_id", label: "工单号", align: "center" },
     { prop: "testunit_name", label: "测试名称", align: "center" },
@@ -414,7 +414,6 @@ const clickNode = async (data: NodeData & any, node: any) => {
   CircuitBoardModel.value = node.parent.data.label
   CircuitBoardModelId.value = node.parent.data.id
   showFlags.value = false
-  showProcess.value = true
   const result = await getbordsinfo({
     batchId: Batch.value,
     boardModelId: CircuitBoardModelId.value
@@ -538,6 +537,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
   <el-card v-loading="loading" shadow="never">
     <div class="toolbar-wrapper">
       <div>
+        <!-- 这个按钮只对 admin 角色可见 -->
         <el-button v-permission="['admin']" icon="CirclePlus" type="primary" @click="addTest">新增生产测试工单</el-button>
       </div>
       <div>
@@ -559,6 +559,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
           <el-tag v-else-if="row['testunit_status'] === '7'" type="warning"> 测试暂存</el-tag>
           <el-tag v-else-if="row['testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
         </template>
+        <!-- 这一列只对 admin 角色可见 -->
         <template v-if="checkPermission(['admin'])" #link="{ row }">
           <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">
             {{ i }}
@@ -679,53 +680,53 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                   </el-space>
                 </el-card>
               </div>
-              <div style="margin-top: 10px">
+              <div style="margin-top: 10px" v-show="boardInfoLoading">
                 <el-card
-                  v-if="showProcess"
                   shadow="never"
-                  style="margin-top: 10px; margin-bottom: 10px"
+                  style="margin-top: 10px; margin-bottom: 10px; height: 200px"
                   v-loading="boardInfoLoading"
-                >
-                  <el-scrollbar max-height="1000px">
-                    <div class="table-wrapper">
-                      <TableComponent
-                        :column-data="addHeaders"
-                        :table-data="boardTableData"
-                        selection
-                        stripe
-                        @selection-change="handleSelectionChange"
-                      >
-                        <template #available="{ row }">
-                          <div style="display: flex; align-items: center; justify-content: center">
+                />
+              </div>
+              <div style="margin-top: 10px" v-show="!boardInfoLoading">
+                <el-card shadow="never" style="margin-top: 10px; margin-bottom: 10px">
+                  <div class="table-wrapper">
+                    <TableComponent
+                      :column-data="addHeaders"
+                      :table-data="boardTableData"
+                      selection
+                      stripe
+                      @selection-change="handleSelectionChange"
+                    >
+                      <template #available="{ row }">
+                        <div style="display: flex; align-items: center; justify-content: center">
+                          <el-checkbox
+                            :indeterminate="row['isInd']"
+                            v-model="row['checkAll']"
+                            @change="
+                              row['selectedTest'] = row['checkAll'] ? row['available'] : [];
+                              row['isInd'] = false
+                            "
+                            >全选</el-checkbox
+                          >
+                          <el-divider direction="vertical" />
+                          <el-checkbox-group v-model="row['selectedTest']">
                             <el-checkbox
-                              :indeterminate="row['isInd']"
-                              v-model="row['checkAll']"
+                              v-for="item in row['available']"
+                              :value="item"
+                              :label="item.name"
+                              :key="item.id"
                               @change="
-                                row['selectedTest'] = row['checkAll'] ? row['available'] : [];
-                                row['isInd'] = false
+                                row['checkAll'] = row['selectedTest'].length === row['available'].length;
+                                row['isInd'] =
+                                  row['selectedTest'].length > 0 &&
+                                  row['selectedTest'].length < row['available'].length
                               "
-                              >全选</el-checkbox
-                            >
-                            <el-divider direction="vertical" />
-                            <el-checkbox-group v-model="row['selectedTest']">
-                              <el-checkbox
-                                v-for="item in row['available']"
-                                :value="item"
-                                :label="item.name"
-                                :key="item.id"
-                                @change="
-                                  row['checkAll'] = row['selectedTest'].length === row['available'].length;
-                                  row['isInd'] =
-                                    row['selectedTest'].length > 0 &&
-                                    row['selectedTest'].length < row['available'].length
-                                "
-                              />
-                            </el-checkbox-group>
-                          </div>
-                        </template>
-                      </TableComponent>
-                    </div>
-                  </el-scrollbar>
+                            />
+                          </el-checkbox-group>
+                        </div>
+                      </template>
+                    </TableComponent>
+                  </div>
                 </el-card>
               </div>
             </div>
