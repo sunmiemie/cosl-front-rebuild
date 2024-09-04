@@ -15,6 +15,7 @@ export const useUserStore = defineStore("user", () => {
   const username = ref<string>("")
   const nickName = ref<string>("")
   const userid = ref<number>()
+
   const tagsViewStore = useTagsViewStore()
   const settingsStore = useSettingsStore()
 

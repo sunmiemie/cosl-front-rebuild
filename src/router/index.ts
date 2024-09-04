@@ -108,15 +108,6 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       },
       {
-        path: "check",
-        component: () => import("@/views/testmanage/check/index.vue"),
-        name: "Check",
-        meta: {
-          title: "审核列表",
-          keepAlive: true
-        }
-      },
-      {
         path: "checktestlist",
         component: () => import("@/views/testmanage/check/testCheck/index.vue"),
         name: "checktestlist",
@@ -312,15 +303,6 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       },
       {
-        path: "reportCheckList",
-        component: () => import("@/views/datamanage/report/index.vue"),
-        name: "reportCheckList",
-        meta: {
-          title: "报告审核列表",
-          keepAlive: true
-        }
-      },
-      {
         path: "checkReport",
         component: () => import("@/views/datamanage/report/reportCheck/index.vue"),
         name: "checkReport",
@@ -446,6 +428,24 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "WorkTime",
         meta: {
           title: "工时管理",
+          keepAlive: true
+        }
+      },
+      {
+        path: "check",
+        component: () => import("@/views/testmanage/check/index.vue"),
+        name: "Check",
+        meta: {
+          title: "审核列表",
+          keepAlive: true
+        }
+      },
+      {
+        path: "reportCheckList",
+        component: () => import("@/views/datamanage/report/index.vue"),
+        name: "reportCheckList",
+        meta: {
+          title: "报告审核列表",
           keepAlive: true
         }
       },
