@@ -8,3 +8,19 @@ export function getUserDataApi(params: { pageSize: number; currentPage: number; 
     params
   })
 }
+
+export function createUserDataApi(data: User.CreateUserRequestData) {
+  return request({
+    url: "data/user/add",
+    method: "post",
+    data
+  })
+}
+
+export function updateUserDataApi(data: User.UpdateUserRequestData) {
+  return request({
+    url: "data/user/update",
+    method: "post",
+    data
+  })
+}

@@ -19,7 +19,7 @@
     <el-card shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" :icon="CirclePlus" @click="addTest">新增仪器</el-button>
+          <el-button v-permission="['admin']" type="primary" :icon="CirclePlus" @click="addTest">新增仪器</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -29,7 +29,7 @@
       </div>
       <div class="table-wrapper">
         <TableComponent :columnData="headers" :tableData="TableData" v-loading="Loading">
-          <template #link="{ row }">
+          <template v-if="checkPermission(['admin'])" #link="{ row }">
             <el-link type="primary" class="el-link" @click="handleLink(row, '编辑')">编辑</el-link>
           </template>
         </TableComponent>
@@ -79,6 +79,7 @@ import { getInstrumentDataApi, createInstrumentDataApi, updateInstrumentDataApi 
 import { usePagination } from "@/hooks/usePagination"
 import { getProductDataApi } from "@/api/product"
 import { ElMessage } from "element-plus"
+import {checkPermission} from "@/utils/permission";
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const dialogVisible = ref<boolean>(false)
@@ -135,12 +136,17 @@ const resetSearch = () => {
   getTableData()
 }
 
-const headers = ref<any>([
+const headers = checkPermission(['admin']) ? ref<any>([
   { prop: "id", label: "仪器id", align: "center", fixed: "left" },
   { prop: "label", label: "仪器名称", align: "center" },
   { prop: "product", label: "关联产品", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "right" }
-])
+  { prop: "link", label: "操作", type: "link", align: "center" }
+]) :
+  ref<any>([
+    { prop: "id", label: "仪器id", align: "center", fixed: "left" },
+    { prop: "label", label: "仪器名称", align: "center" },
+    { prop: "product", label: "关联产品", align: "center" }
+  ]);
 
 const TableData = ref<any>([])
 

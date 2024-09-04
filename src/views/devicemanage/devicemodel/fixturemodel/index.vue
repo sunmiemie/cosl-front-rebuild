@@ -7,6 +7,7 @@ import { type GetFixtureModelData } from "@/api/fixturemodel/types/fixturemodel"
 import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
+import { checkPermission } from "@/utils/permission";
 
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
@@ -79,13 +80,19 @@ const resetForm = () => {
 //#region 改
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = ref([
+const headers = checkPermission(['admin']) ? ref([
   { prop: "id", label: "夹具型号ID", align: "center" },
   { prop: "name", label: "夹具型号名称", align: "center" },
   { prop: "supplier", label: "夹具供应商", type: "center" },
   { prop: "typeName", label: "夹具类型", type: "center" },
-  { prop: "link", label: "操作", type: "link", align: "right" }
-])
+  { prop: "link", label: "操作", type: "link", align: "center" }
+]) :
+  ref([
+    { prop: "id", label: "夹具型号ID", align: "center" },
+    { prop: "name", label: "夹具型号名称", align: "center" },
+    { prop: "supplier", label: "夹具供应商", type: "center" },
+    { prop: "typeName", label: "夹具类型", type: "center" }
+  ]);
 
 const TableData = ref<GetFixtureModelData[]>([])
 const searchFormRef = ref<FormInstance | null>(null)
@@ -163,7 +170,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" icon="CirclePlus" @click="addfixturetype">新增夹具型号</el-button>
+          <el-button v-permission="['admin']" type="primary" icon="CirclePlus" @click="addfixturetype">新增夹具型号</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -173,7 +180,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       </div>
       <div class="table-wrapper">
         <TableComponent :tableData="TableData" :column-data="headers" stripe @selection-change="handleSelectionChange">
-          <template #link="{ row }">
+          <template v-if="checkPermission(['admin'])" #link="{ row }">
             <el-link type="primary" class="el-link" @click="handleLink(row)">编辑</el-link>
           </template>
         </TableComponent>

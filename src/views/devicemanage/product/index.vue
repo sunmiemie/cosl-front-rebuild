@@ -4,7 +4,7 @@
   <div class="app-container">
     <el-card v-loading="loading" shadow="never" class="search-wrapper">
       <el-form ref="searchFormRef" :inline="true" :model="searchData">
-        <el-form-item label="产品id">
+        <el-form-item label="产品 ID">
           <el-input v-model="searchData.id" placeholder="请输入" />
         </el-form-item>
         <el-form-item label="产品名称">
@@ -19,7 +19,7 @@
     <el-card shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" :icon="CirclePlus" @click="addTest">新增产品</el-button>
+          <el-button v-permission="['admin']" type="primary" :icon="CirclePlus" @click="addTest">新增产品</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -46,7 +46,7 @@
       <div class="table-wrapper">
         <TableComponent :columnData="headers" :tableData="TableData" v-loading="Loading">
           <template #link="{ row }">
-            <el-link :disabled="row.id === 1" type="primary" class="el-link" @click="handleLink(row, '编辑')"
+            <el-link v-if="checkPermission(['admin'])" :disabled="row.id === 1" type="primary" class="el-link" @click="handleLink(row, '编辑')"
               >编辑
             </el-link>
           </template>
@@ -75,6 +75,7 @@ import { Search, Refresh, CirclePlus, RefreshRight } from "@element-plus/icons-v
 import { createProductDataApi, updateProductDataApi, getProductDataApi } from "@/api/product"
 import { ElMessage, type FormRules } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
+import {checkPermission} from "@/utils/permission";
 
 const loading = ref<boolean>(false)
 const dialogVisible = ref<boolean>(false)
@@ -134,11 +135,16 @@ const resetSearch = () => {
   getTableData()
 }
 
-const headers = ref<any>([
-  { prop: "id", label: "产品id", align: "center" },
+const headers = checkPermission(['admin']) ? ref<any>([
+  { prop: "id", label: "产品 ID", align: "center" },
   { prop: "name", label: "产品名称", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "right" }
-])
+  { prop: "link", label: "操作", type: "link", align: "center" }
+]) :
+  ref<any>([
+    { prop: "id", label: "产品 ID", align: "center" },
+    { prop: "name", label: "产品名称", align: "center" },
+  ]);
+
 
 const TableData = ref<any>([])
 /**

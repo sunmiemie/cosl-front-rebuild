@@ -209,7 +209,6 @@ export const constantRoutes: RouteRecordRaw[] = [
             meta: {
               title: "其他设备管理",
               keepAlive: true
-              // hidden: true
             }
           }
         ]
@@ -259,7 +258,6 @@ export const constantRoutes: RouteRecordRaw[] = [
               // title: "其他设备类型管理",
               title: "其他设备型号管理",
               keepAlive: true
-              // hidden: true
             }
           }
         ]
@@ -304,15 +302,6 @@ export const constantRoutes: RouteRecordRaw[] = [
       elIcon: "Document"
     },
     children: [
-      {
-        path: "work-time",
-        component: () => import("@/views/datamanage/work-time/index.vue"),
-        name: "WorkTime",
-        meta: {
-          title: "工时管理",
-          keepAlive: true
-        }
-      },
       {
         path: "report",
         component: () => import("@/views/datamanage/historymange/index.vue"),
@@ -435,20 +424,39 @@ export const dynamicRoutes: RouteRecordRaw[] = [
     redirect: "/permission/page",
     name: "Permission",
     meta: {
-      title: "权限",
+      title: "权限管理",
       svgIcon: "lock",
       roles: ["admin", "editor"], // 可以在根路由中设置角色
-      alwaysShow: true, // 将始终显示根菜单
-      hidden: true
+      alwaysShow: true // 将始终显示根菜单
+      // hidden: true
     },
     children: [
+      {
+        path: "user",
+        component: () => import("@/views/permission/user/index.vue"),
+        name: "UserManagement",
+        meta: {
+          title: "用户管理",
+          roles: ["admin"] // 或者在子导航中设置角色
+        }
+      },
+      {
+        path: "work-time",
+        component: () => import("@/views/datamanage/work-time/index.vue"),
+        name: "WorkTime",
+        meta: {
+          title: "工时管理",
+          keepAlive: true
+        }
+      },
       {
         path: "page",
         component: () => import("@/views/permission/page.vue"),
         name: "PagePermission",
         meta: {
           title: "页面级",
-          roles: ["admin"] // 或者在子导航中设置角色
+          roles: ["admin"], // 或者在子导航中设置角色
+          hidden: true
         }
       },
       {
@@ -456,7 +464,8 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/permission/directive.vue"),
         name: "DirectivePermission",
         meta: {
-          title: "按钮级" // 如果未设置角色，则表示：该页面不需要权限，但会继承根路由的角色
+          title: "按钮级", // 如果未设置角色，则表示：该页面不需要权限，但会继承根路由的角色
+          hidden: true
         }
       }
     ]

@@ -319,7 +319,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" :icon="CirclePlus" @click="addOtherEquiment">新增设备</el-button>
+          <el-button v-permission="['admin']" type="primary" :icon="CirclePlus" @click="addOtherEquiment">新增设备</el-button>
           <el-button v-if="selectedRows.length > 0" type="warning" :icon="Printer" @click="getSelection"
             >打印二维码</el-button
           >

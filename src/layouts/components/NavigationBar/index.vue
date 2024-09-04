@@ -53,7 +53,8 @@ const logout = () => {
       <el-dropdown class="right-menu-item">
         <div class="right-menu-avatar">
           <el-avatar :icon="UserFilled" :size="30" />
-          <span>{{ userStore.username }}</span>
+          <!-- 显示昵称，如果昵称为空，则显示用户名 -->
+          <span>{{ userStore.nickName || userStore.username }}</span>
         </div>
         <template #dropdown>
           <el-dropdown-menu>
@@ -91,7 +92,7 @@ const logout = () => {
   .sidebar {
     flex: 1;
     // 设置 min-width 是为了让 Sidebar 里的 el-menu 宽度自适应
-    min-width: 0px;
+    min-width: 0;
     :deep(.el-menu) {
       background-color: transparent;
     }
