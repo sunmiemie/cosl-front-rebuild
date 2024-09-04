@@ -7,4 +7,4 @@ export interface LoginRequestData {
 
 export type LoginResponseData = ApiResponseData<{ token: string }>
 
-export type UserInfoResponseData = ApiResponseData<{ id: number; username: string; roles: string[] }>
+export type UserInfoResponseData = ApiResponseData<{ id: number; username: string; roles: string[]; nickName: string }>
