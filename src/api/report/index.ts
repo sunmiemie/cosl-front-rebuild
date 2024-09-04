@@ -31,6 +31,7 @@ export function getReportCheckDataApi(params: {
   currentPage: number
   type: string | undefined
   user: string | undefined
+  userId?: number
 }) {
   return request<TestType.GetReportResponseData>({
     url: "data/report/check/list",

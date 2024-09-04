@@ -6,6 +6,7 @@ import { getTestTypeDataApi, createTestTypeDataApi, updateTestTypeDataApi } from
 import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
+import { checkPermission } from "@/utils/permission"
 
 // 显示与隐藏
 const loading = ref<boolean>(false)
@@ -51,12 +52,17 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = ref([
+const headers = checkPermission(['admin']) ? ref([
   { prop: "number", label: "类型ID", align: "center" },
   { prop: "name", label: "测试类型", align: "center" },
   { prop: "processCount", label: "所属流程数量", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "center" }
-])
+]) :
+  ref([
+    { prop: "number", label: "类型ID", align: "center" },
+    { prop: "name", label: "测试类型", align: "center" },
+    { prop: "processCount", label: "所属流程数量", align: "center" }
+  ]);
 
 const TableData = ref<any[]>([])
 const searchFormRef = ref<FormInstance | null>(null)
@@ -111,7 +117,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button icon="CirclePlus" type="primary" @click="dialogVisible = true">新增测试类型</el-button>
+          <el-button v-if="checkPermission(['admin'])" icon="CirclePlus" type="primary" @click="dialogVisible = true">新增测试类型</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -121,7 +127,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       </div>
       <div class="table-wrapper">
         <TableComponent :tableData="TableData" :column-data="headers" stripe>
-          <template #link="{ row }">
+          <template v-if="checkPermission(['admin'])" #link="{ row }">
             <el-link :disabled="row.number <= 5" type="primary" class="el-link" @click="handleLink(row)">编辑</el-link>
           </template>
         </TableComponent>

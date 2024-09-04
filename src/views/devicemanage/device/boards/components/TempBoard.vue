@@ -415,7 +415,7 @@ onMounted(() => {
     <el-col :span="5">
       <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
         <template #header>
-          <div>
+          <div v-permission="['admin']">
             <el-button
               style="width: 100%; margin-bottom: 10px"
               type="primary"
@@ -424,7 +424,7 @@ onMounted(() => {
               >批量导入</el-button
             >
           </div>
-          <div>
+          <div v-permission="['admin']">
             <el-button
               style="width: 100%; margin-bottom: 10px"
               type="warning"
