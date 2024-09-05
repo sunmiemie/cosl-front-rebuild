@@ -16,6 +16,20 @@ export function getReportDataApi(params: {
     params
   })
 }
+export function getTempReportDataApi(params: {
+  size: number
+  serial: string | undefined
+  id: string | undefined
+  currentPage: number
+  type: string | undefined
+  user: string | undefined
+}) {
+  return request<TestType.GetReportResponseData>({
+    url: "data/devreport/list",
+    method: "get",
+    params
+  })
+}
 export function getSingleReportDataApi(params: any) {
   return request<TestType.GetReportResponseData>({
     url: "data/report/single",
@@ -47,10 +61,26 @@ export const checkReportDataApi = (params: any) => {
     params
   })
 }
+export const checkTempReportDataApi = (params: any) => {
+  return request({
+    url: "data/devreport/check/operate",
+    method: "get",
+    params
+  })
+}
 
 export const checkReportPassApi = (data: any) => {
   return request({
     url: "data/report/check/pass",
+    headers: { "Content-Type": "multipart/form-data" },
+    method: "post",
+    data
+  })
+}
+
+export const checkTempReportPassApi = (data: any) => {
+  return request({
+    url: "data/devreport/check/pass",
     headers: { "Content-Type": "multipart/form-data" },
     method: "post",
     data

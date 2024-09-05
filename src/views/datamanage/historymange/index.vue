@@ -1,11 +1,11 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
-import { type FormInstance } from "element-plus"
+import { type FormInstance, TabsPaneContext } from "element-plus"
 import { ElButton } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import { getReportDataApi } from "@/api/report"
+import { getReportDataApi, getTempReportDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useRouter } from "vue-router"
 
@@ -14,6 +14,7 @@ import { useRouter } from "vue-router"
 //   name: "ElementPlus"
 // })
 const loading = ref<boolean>(false)
+const tempLoading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
 const DialogCheck = ref<boolean>(false)
@@ -44,7 +45,10 @@ const headers1 = ref([
   { prop: "status", label: "报告状态", type: "tag", align: "center" },
   { prop: "link", label: "操作 ", type: "link" }
 ])
+
 const TableData = ref<any>([])
+const tempTableData = ref<any>([])
+
 const testTypeList = ref<any>([])
 const getTestTypeData = () => {
   getTestTypeDataApi({
@@ -76,6 +80,7 @@ const defineLink = (status: string) => {
       return { 1: "查看" }
   }
 }
+
 const getTableData = () => {
   loading.value = true
   getReportDataApi({
@@ -94,6 +99,25 @@ const getTableData = () => {
     loading.value = false
   })
 }
+const getTempTableData = () => {
+  tempLoading.value = true
+  getTempReportDataApi({
+    currentPage: paginationData.currentPage,
+    size: paginationData.pageSize,
+    id: searchData.id || undefined,
+    user: searchData.user || undefined,
+    type: searchData.type || undefined,
+    serial: searchData.serial || undefined
+  }).then((res) => {
+    // console.log(res)
+    tempTableData.value = res.data.list
+    paginationData.total = res.data.total
+    for (let i = 0; i < tempTableData.value.length; i++) {
+      tempTableData.value[i].link = defineLink(tempTableData.value[i].status)
+    }
+    tempLoading.value = false
+  })
+}
 
 const handleLink = (data: any, i: string) => {
   if (i == "导出") {
@@ -106,6 +130,20 @@ const handleLink = (data: any, i: string) => {
   } else {
     // console.log("report view", data)
     router.push({ name: "reportView", query: data })
+  }
+}
+// devreport/check/operate
+const handleTempLink = (data: any, i: string) => {
+  if (i === "导出") {
+    const link = document.createElement("a")
+    link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${data.report_filepath}.pdf?id=${data.id}`
+    link.setAttribute("download", data.report_filepath + ".pdf")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  } else {
+    // console.log("report view", data)
+    router.push({ name: "tempReportView", query: data })
   }
 }
 
@@ -122,110 +160,224 @@ const resetSearch = () => {
 }
 //#endregion
 
+const activeName = ref<any>("first")
+
+const handleTabClick = (tab: TabsPaneContext) => {
+  if (tab.props.name === "first") {
+    getTableData()
+  } else if (tab.props.name === "second") {
+    getTempTableData()
+  }
+}
+
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: true })
 </script>
 
 <template>
   <div class="app-container">
-    <el-row>
-      <el-col :span="24">
-        <el-card v-loading="loading" shadow="never" class="search-wrapper">
-          <el-form ref="searchFormRef" :inline="true" :model="searchData">
-            <el-form-item label="报告编号">
-              <el-input v-model="searchData.id" placeholder="请输入" />
-            </el-form-item>
-            <el-form-item label="测试人">
-              <el-input v-model="searchData.user" placeholder="请输入" />
-            </el-form-item>
-            <el-form-item label="电路板序列号">
-              <el-input v-model="searchData.serial" placeholder="请输入" />
-            </el-form-item>
-            <el-form-item label="报告类型">
-              <el-select
-                v-model="searchData.type"
-                placeholder="请选择"
-                style="width: 200px"
-                @visible-change="getTestTypeData"
-              >
-                <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
-              </el-select>
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
-              <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
-            </el-form-item>
-          </el-form>
-        </el-card>
-        <el-card v-loading="loading" shadow="never">
-          <div class="toolbar-wrapper">
-            <div />
-            <div>
-              <el-tooltip content="刷新当前页">
-                <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
-              </el-tooltip>
-            </div>
-          </div>
-          <div class="table-wrapper">
-            <TableComponent :tableData="TableData" :column-data="headers1" stripe>
-              <template #status="{ row }">
-                <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
-                <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>
-                <el-tag v-if="row['status'] === '2'" type="success"> 测试正常 </el-tag>
-                <el-tag v-if="row['status'] === '3'" type="danger"> 测试异常 </el-tag>
-                <el-tag v-if="row['status'] === '4'" type="warning"> 疑问待处理 </el-tag>
-              </template>
+    <el-tabs v-model="activeName" type="card" class="demo-tabs" @tab-click="handleTabClick">
+      <el-tab-pane label="生产测试报告" name="first">
+        <el-row>
+          <el-col :span="24">
+            <el-card v-loading="loading" shadow="never" class="search-wrapper">
+              <el-form ref="searchFormRef" :inline="true" :model="searchData">
+                <el-form-item label="报告编号">
+                  <el-input v-model="searchData.id" placeholder="请输入" />
+                </el-form-item>
+                <el-form-item label="测试人">
+                  <el-input v-model="searchData.user" placeholder="请输入" />
+                </el-form-item>
+                <el-form-item label="电路板序列号">
+                  <el-input v-model="searchData.serial" placeholder="请输入" />
+                </el-form-item>
+                <el-form-item label="报告类型">
+                  <el-select
+                    v-model="searchData.type"
+                    placeholder="请选择"
+                    style="width: 200px"
+                    @visible-change="getTestTypeData"
+                  >
+                    <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
+                  <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+                </el-form-item>
+              </el-form>
+            </el-card>
+            <el-card v-loading="loading" shadow="never">
+              <div class="toolbar-wrapper">
+                <div />
+                <div>
+                  <el-tooltip content="刷新当前页">
+                    <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
+                  </el-tooltip>
+                </div>
+              </div>
+              <div class="table-wrapper">
+                <TableComponent :tableData="TableData" :column-data="headers1" stripe>
+                  <template #status="{ row }">
+                    <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
+                    <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>
+                    <el-tag v-if="row['status'] === '2'" type="success"> 测试正常 </el-tag>
+                    <el-tag v-if="row['status'] === '3'" type="danger"> 测试异常 </el-tag>
+                    <el-tag v-if="row['status'] === '4'" type="warning"> 疑问待处理 </el-tag>
+                  </template>
 
-              <template #link="{ row }">
-                <el-link v-for="i in row['link']" type="primary" class="el-link" @click="handleLink(row, i)" :key="i">{{
-                  i
-                }}</el-link>
-              </template>
-            </TableComponent>
-          </div>
+                  <template #link="{ row }">
+                    <el-link v-for="i in row['link']" type="primary" class="el-link" @click="handleLink(row, i)" :key="i">{{
+                        i
+                      }}</el-link>
+                  </template>
+                </TableComponent>
+              </div>
 
-          <div class="pager-wrapper">
-            <el-pagination
-              background
-              :layout="paginationData.layout"
-              :page-sizes="paginationData.pageSizes"
-              :total="paginationData.total"
-              :page-size="paginationData.pageSize"
-              :currentPage="paginationData.currentPage"
-              @size-change="handleSizeChange"
-              @current-change="handleCurrentChange"
-            />
-          </div>
+              <div class="pager-wrapper">
+                <el-pagination
+                  background
+                  :layout="paginationData.layout"
+                  :page-sizes="paginationData.pageSizes"
+                  :total="paginationData.total"
+                  :page-size="paginationData.pageSize"
+                  :currentPage="paginationData.currentPage"
+                  @size-change="handleSizeChange"
+                  @current-change="handleCurrentChange"
+                />
+              </div>
 
-          <el-dialog v-model="DialogCheck" :title="'提交测试工艺审核'" style="height: 45vh; width: 40vw">
-            <template #header>
-              <h2>提交测试工艺审核</h2>
-            </template>
-            <el-form
-              :inline="true"
-              :model="TestCheck"
-              class="demo-form-inline"
-              label-position="right"
-              style="position: relative"
-            >
-              <el-form-item label="工艺ID" style="width: 15vw">
-                <el-input v-model="TestCheck.ID" disabled />
-              </el-form-item>
-              <el-form-item label="工艺版本" style="width: 15vw">
-                <el-input v-model="TestCheck.version" disabled />
-              </el-form-item>
-              <el-form-item label="测试类型">
-                <el-input v-model="TestCheck.type" disabled />
-              </el-form-item>
+              <el-dialog v-model="DialogCheck" :title="'提交测试工艺审核'" style="height: 45vh; width: 40vw">
+                <template #header>
+                  <h2>提交测试工艺审核</h2>
+                </template>
+                <el-form
+                  :inline="true"
+                  :model="TestCheck"
+                  class="demo-form-inline"
+                  label-position="right"
+                  style="position: relative"
+                >
+                  <el-form-item label="工艺ID" style="width: 15vw">
+                    <el-input v-model="TestCheck.ID" disabled />
+                  </el-form-item>
+                  <el-form-item label="工艺版本" style="width: 15vw">
+                    <el-input v-model="TestCheck.version" disabled />
+                  </el-form-item>
+                  <el-form-item label="测试类型">
+                    <el-input v-model="TestCheck.type" disabled />
+                  </el-form-item>
 
-              <el-button type="primary" @click="onSubmit" icon="Check" style="position: absolute; top: 120px; left: 41%"
-                >确认提交</el-button
-              >
-            </el-form>
-          </el-dialog>
-        </el-card>
-      </el-col>
-    </el-row>
+                  <el-button type="primary" @click="onSubmit" icon="Check" style="position: absolute; top: 120px; left: 41%"
+                  >确认提交</el-button
+                  >
+                </el-form>
+              </el-dialog>
+            </el-card>
+          </el-col>
+        </el-row>
+      </el-tab-pane>
+      <el-tab-pane label="临时测试报告" name="second">
+        <el-row>
+          <el-col :span="24">
+            <el-card v-loading="loading" shadow="never" class="search-wrapper">
+              <el-form ref="searchFormRef" :inline="true" :model="searchData">
+                <el-form-item label="报告编号">
+                  <el-input v-model="searchData.id" placeholder="请输入" />
+                </el-form-item>
+                <el-form-item label="测试人">
+                  <el-input v-model="searchData.user" placeholder="请输入" />
+                </el-form-item>
+                <el-form-item label="电路板序列号">
+                  <el-input v-model="searchData.serial" placeholder="请输入" />
+                </el-form-item>
+                <el-form-item label="报告类型">
+                  <el-select
+                    v-model="searchData.type"
+                    placeholder="请选择"
+                    style="width: 200px"
+                    @visible-change="getTestTypeData"
+                  >
+                    <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
+                  </el-select>
+                </el-form-item>
+                <el-form-item>
+                  <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
+                  <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+                </el-form-item>
+              </el-form>
+            </el-card>
+            <el-card v-loading="loading" shadow="never">
+              <div class="toolbar-wrapper">
+                <div />
+                <div>
+                  <el-tooltip content="刷新当前页">
+                    <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
+                  </el-tooltip>
+                </div>
+              </div>
+              <div class="table-wrapper">
+                <TableComponent :tableData="tempTableData" :column-data="headers1" stripe>
+                  <template #status="{ row }">
+                    <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
+                    <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>
+                    <el-tag v-if="row['status'] === '2'" type="success"> 测试正常 </el-tag>
+                    <el-tag v-if="row['status'] === '3'" type="danger"> 测试异常 </el-tag>
+                    <el-tag v-if="row['status'] === '4'" type="warning"> 疑问待处理 </el-tag>
+                  </template>
+
+                  <template #link="{ row }">
+                    <el-link v-for="i in row['link']" type="primary" class="el-link" @click="handleTempLink(row, i)" :key="i">{{
+                        i
+                      }}</el-link>
+                  </template>
+                </TableComponent>
+              </div>
+
+              <div class="pager-wrapper">
+                <el-pagination
+                  background
+                  :layout="paginationData.layout"
+                  :page-sizes="paginationData.pageSizes"
+                  :total="paginationData.total"
+                  :page-size="paginationData.pageSize"
+                  :currentPage="paginationData.currentPage"
+                  @size-change="handleSizeChange"
+                  @current-change="handleCurrentChange"
+                />
+              </div>
+
+              <el-dialog v-model="DialogCheck" :title="'提交测试工艺审核'" style="height: 45vh; width: 40vw">
+                <template #header>
+                  <h2>提交测试工艺审核</h2>
+                </template>
+                <el-form
+                  :inline="true"
+                  :model="TestCheck"
+                  class="demo-form-inline"
+                  label-position="right"
+                  style="position: relative"
+                >
+                  <el-form-item label="工艺ID" style="width: 15vw">
+                    <el-input v-model="TestCheck.ID" disabled />
+                  </el-form-item>
+                  <el-form-item label="工艺版本" style="width: 15vw">
+                    <el-input v-model="TestCheck.version" disabled />
+                  </el-form-item>
+                  <el-form-item label="测试类型">
+                    <el-input v-model="TestCheck.type" disabled />
+                  </el-form-item>
+
+                  <el-button type="primary" @click="onSubmit" icon="Check" style="position: absolute; top: 120px; left: 41%"
+                  >确认提交</el-button
+                  >
+                </el-form>
+              </el-dialog>
+            </el-card>
+          </el-col>
+        </el-row>
+      </el-tab-pane>
+    </el-tabs>
   </div>
 </template>
 

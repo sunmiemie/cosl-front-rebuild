@@ -23,7 +23,9 @@ const route = useRoute()
 const router = useRouter()
 const errorList = ref([])
 const questionList = ref([])
+
 const stepList = ref([])
+
 const anyObj = reactive({
   id: "",
   type: "",
@@ -1005,6 +1007,7 @@ const getErrorQuestionList = () => {
       }
     }
   })
+  // TODO
   generateStepList(reportJson.value).forEach((item) => {
     if (item.includes("eyes")) {
       if (item.includes("total")) {
@@ -1117,7 +1120,7 @@ const getErrorQuestionList = () => {
   if (questionList.value.length === 0) {
     questionVisible.value = false
   }
-  console.log(stepList.value)
+  console.log("stepList", stepList.value)
 }
 
 const jsonToFile = (data) => {
@@ -1145,7 +1148,8 @@ const checkPass = () => {
   checkReportPassApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
-      router.push("/datamanage/reportCheckList")
+      // router.push("/datamanage/reportCheckList")
+      router.push({ name: "reportCheckList" })
     }
   })
 }
@@ -1208,7 +1212,7 @@ const handlePass = () => {
     cancelButtonText: "取消",
     type: "warning"
   }).then(() => {
-    if (reportFixed.value === true) {
+    if (reportFixed.value) {
       ElMessageBox.confirm("当前报告已被更改,确认以修改后状态通过审核吗？", "确认提交", {
         confirmButtonText: "确认",
         cancelButtonText: "取消",
@@ -1281,9 +1285,11 @@ onMounted(() => {
   anyObj.user = route.query.user
   anyObj.date = route.query.date
   checkReportDataApi({ id: route.query.id }).then((res) => {
+    console.log("生产测试报告", res)
     loaded.value = true
     loading.value = false
     getErrorQuestionList()
+    console.log("stepList", stepList.value)
     reportJson.value = res.data
   })
   watch([() => reportJson.value], getErrorQuestionList, { immediate: true, deep: true })
@@ -1309,6 +1315,7 @@ onMounted(() => {
           <el-input v-model="anyObj.date" disabled />
         </el-form-item>
       </el-form>
+
       <div style="display: flex; justify-content: space-between; align-items: center">
         <div>
           <el-text v-if="!hasQuestion && !hasError" size="large" style="color: green">测试正常</el-text>
