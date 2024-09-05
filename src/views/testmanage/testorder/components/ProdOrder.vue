@@ -2,7 +2,7 @@
 
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref } from "vue"
-import { ElScrollbar, ElTable, ElTree, type FormInstance } from "element-plus"
+import { ElTable, ElTree, type FormInstance } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { useRouter } from "vue-router"
@@ -72,6 +72,7 @@ const headers = checkPermission(['admin']) ?
     { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
     { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" }
   ]);
+
 const selectedRows = ref<any>([])
 const addHeaders = ref([
   { prop: "id", label: "电路板ID", align: "center", width: "150px" },

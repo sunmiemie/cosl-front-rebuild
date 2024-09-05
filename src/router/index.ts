@@ -62,92 +62,6 @@ export const constantRoutes: RouteRecordRaw[] = [
     ]
   },
   {
-    path: "/testmanage",
-    component: Layouts,
-    redirect: "/testmanage/testorder",
-    meta: {
-      title: "测试管理",
-      elIcon: "Checked"
-    },
-    children: [
-      {
-        path: "testorder",
-        component: () => import("@/views/testmanage/testorder/index.vue"),
-        name: "TestOrder",
-        meta: {
-          title: "测试工单列表",
-          keepAlive: true
-        }
-      },
-      {
-        path: "Questionlist",
-        component: () => import("@/views/testmanage/Questionlist/index.vue"),
-        name: "Questionlist",
-        meta: {
-          title: "疑问工单列表",
-          keepAlive: true
-        }
-      },
-      {
-        path: "testprocess",
-        component: () => import("@/views/testmanage/process/index.vue"),
-        name: "TestProcess",
-        meta: {
-          title: "测试工艺列表",
-          keepAlive: true
-        }
-      },
-      {
-        path: "addprocess",
-        component: () => import("@/views/testmanage/addprocess/index.vue"),
-        name: "AddProcess",
-        meta: {
-          title: "测试工艺",
-          keepAlive: true,
-          hidden: true
-        }
-      },
-      {
-        path: "checktestlist",
-        component: () => import("@/views/testmanage/check/testCheck/index.vue"),
-        name: "checktestlist",
-        meta: {
-          title: "工艺审核",
-          keepAlive: true,
-          hidden: true
-        }
-      },
-      {
-        path: "testTypelist",
-        component: () => import("@/views/testmanage/testType/index.vue"),
-        name: "TestType",
-        meta: {
-          title: "测试类型列表",
-          keepAlive: true
-        }
-      },
-      {
-        path: "Faultlist",
-        component: () => import("@/views/testmanage/FaultList/index.vue"),
-        name: "FaultList",
-        meta: {
-          title: "测试缺陷列表",
-          keepAlive: true
-        }
-      },
-      {
-        path: "testmonitor",
-        component: () => import("@/views/testmanage/testmonitor/index.vue"),
-        name: "TestMonitor",
-        meta: {
-          title: "测试进度监控",
-          keepAlive: true,
-          hidden: true
-        }
-      }
-    ]
-  },
-  {
     path: "/devicemanage",
     component: Layouts,
     redirect: "/devicemanage/device",
@@ -284,6 +198,142 @@ export const constantRoutes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: "/exceptionmanage",
+    component: Layouts,
+    redirect: "/exception/l-nitrogen",
+    name: "ExceptionManage",
+    meta: {
+      title: "日常管理",
+      elIcon: "Warning",
+      alwaysShow: true,
+      hidden: true
+    },
+    children: [
+      {
+        path: "l-everytest",
+        component: () => import("@/views/exceptionmanage/everydayTest/index.vue"),
+        name: "LEveryTest",
+        meta: {
+          elIcon: "Menu",
+          title: "每日巡检"
+        }
+      },
+      {
+        path: "l-nitrogen",
+        component: () => import("@/views/exceptionmanage/l-nitrogen/index.vue"),
+        name: "L-Nitrogen",
+        meta: {
+          elIcon: "Menu",
+          title: "液氮泄漏监测"
+        }
+      }
+    ]
+  }
+]
+
+/**
+ * 动态路由
+ * 用来放置有权限 (Roles 属性) 的路由
+ * 必须带有 Name 属性
+ */
+export const dynamicRoutes: RouteRecordRaw[] = [
+  {
+    path: "/testmanage",
+    component: Layouts,
+    redirect: "/testmanage/testorder",
+    meta: {
+      title: "测试管理",
+      elIcon: "Checked"
+    },
+    children: [
+      {
+        path: "testorder",
+        component: () => import("@/views/testmanage/testorder/index.vue"),
+        name: "TestOrder",
+        meta: {
+          title: "测试工单列表",
+          keepAlive: true
+        }
+      },
+      {
+        path: "Questionlist",
+        component: () => import("@/views/testmanage/Questionlist/index.vue"),
+        name: "Questionlist",
+        meta: {
+          title: "疑问工单列表",
+          keepAlive: true
+        }
+      },
+      {
+        path: "testprocess",
+        component: () => import("@/views/testmanage/process/index.vue"),
+        name: "TestProcess",
+        meta: {
+          title: "测试工艺列表",
+          roles: ["admin"],
+          keepAlive: true
+        }
+      },
+      {
+        path: "check",
+        component: () => import("@/views/testmanage/check/index.vue"),
+        name: "Check",
+        meta: {
+          title: "工艺审核列表",
+          keepAlive: true
+        }
+      },
+      {
+        path: "addprocess",
+        component: () => import("@/views/testmanage/addprocess/index.vue"),
+        name: "AddProcess",
+        meta: {
+          title: "测试工艺",
+          keepAlive: true,
+          hidden: true
+        }
+      },
+      {
+        path: "checktestlist",
+        component: () => import("@/views/testmanage/check/testCheck/index.vue"),
+        name: "checktestlist",
+        meta: {
+          title: "工艺审核",
+          keepAlive: true,
+          hidden: true
+        }
+      },
+      {
+        path: "testTypelist",
+        component: () => import("@/views/testmanage/testType/index.vue"),
+        name: "TestType",
+        meta: {
+          title: "测试类型列表",
+          keepAlive: true
+        }
+      },
+      {
+        path: "Faultlist",
+        component: () => import("@/views/testmanage/FaultList/index.vue"),
+        name: "FaultList",
+        meta: {
+          title: "测试缺陷列表",
+          keepAlive: true
+        }
+      },
+      {
+        path: "testmonitor",
+        component: () => import("@/views/testmanage/testmonitor/index.vue"),
+        name: "TestMonitor",
+        meta: {
+          title: "测试进度监控",
+          keepAlive: true,
+          hidden: true
+        }
+      }
+    ]
+  },
+  {
     path: "/datamanage",
     component: Layouts,
     redirect: "/datamanage/report",
@@ -294,11 +344,31 @@ export const constantRoutes: RouteRecordRaw[] = [
     },
     children: [
       {
+        path: "work-time",
+        component: () => import("@/views/datamanage/work-time/index.vue"),
+        name: "WorkTime",
+        meta: {
+          title: "工时管理",
+          roles: ["admin"],
+          keepAlive: true
+        }
+      },
+      {
         path: "report",
         component: () => import("@/views/datamanage/historymange/index.vue"),
         name: "Report",
         meta: {
           title: "测试报告管理",
+          keepAlive: true
+        }
+      },
+      {
+        path: "reportCheckList",
+        component: () => import("@/views/datamanage/report/index.vue"),
+        name: "reportCheckList",
+        meta: {
+          title: "报告审核列表",
+          roles: ["admin"],
           keepAlive: true
         }
       },
@@ -313,11 +383,31 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       },
       {
+        path: "checkTempReport",
+        component: () => import("@/views/datamanage/report/tempReportCheck/index.vue"),
+        name: "checkTempReport",
+        meta: {
+          title: "临时报告审核",
+          keepAlive: true,
+          hidden: true
+        }
+      },
+      {
         path: "reportView",
         component: () => import("@/views/datamanage/historymange/reportPre/index.vue"),
         name: "reportView",
         meta: {
           title: "报告预览",
+          keepAlive: true,
+          hidden: true
+        }
+      },
+      {
+        path: "tempReportView",
+        component: () => import("@/views/datamanage/historymange/tempReportPre/index.vue"),
+        name: "tempReportView",
+        meta: {
+          title: "临时报告预览",
           keepAlive: true,
           hidden: true
         }
@@ -361,46 +451,6 @@ export const constantRoutes: RouteRecordRaw[] = [
     ]
   },
   {
-    path: "/exceptionmanage",
-    component: Layouts,
-    redirect: "/exception/l-nitrogen",
-    name: "ExceptionManage",
-    meta: {
-      title: "日常管理",
-      elIcon: "Warning",
-      alwaysShow: true,
-      hidden: true
-    },
-    children: [
-      {
-        path: "l-everytest",
-        component: () => import("@/views/exceptionmanage/everydayTest/index.vue"),
-        name: "LEveryTest",
-        meta: {
-          elIcon: "Menu",
-          title: "每日巡检"
-        }
-      },
-      {
-        path: "l-nitrogen",
-        component: () => import("@/views/exceptionmanage/l-nitrogen/index.vue"),
-        name: "L-Nitrogen",
-        meta: {
-          elIcon: "Menu",
-          title: "液氮泄漏监测"
-        }
-      }
-    ]
-  }
-]
-
-/**
- * 动态路由
- * 用来放置有权限 (Roles 属性) 的路由
- * 必须带有 Name 属性
- */
-export const dynamicRoutes: RouteRecordRaw[] = [
-  {
     path: "/permission",
     component: Layouts,
     redirect: "/permission/page",
@@ -420,33 +470,6 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         meta: {
           title: "用户管理",
           roles: ["admin"] // 或者在子导航中设置角色
-        }
-      },
-      {
-        path: "work-time",
-        component: () => import("@/views/datamanage/work-time/index.vue"),
-        name: "WorkTime",
-        meta: {
-          title: "工时管理",
-          keepAlive: true
-        }
-      },
-      {
-        path: "check",
-        component: () => import("@/views/testmanage/check/index.vue"),
-        name: "Check",
-        meta: {
-          title: "审核列表",
-          keepAlive: true
-        }
-      },
-      {
-        path: "reportCheckList",
-        component: () => import("@/views/datamanage/report/index.vue"),
-        name: "reportCheckList",
-        meta: {
-          title: "报告审核列表",
-          keepAlive: true
         }
       },
       {
