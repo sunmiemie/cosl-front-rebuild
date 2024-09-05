@@ -37,7 +37,7 @@ const onSubmit = () => {
 }
 
 const headers1 = ref([
-  { prop: "id", label: "报告编号", align: "center" },
+  { prop: "idStr", label: "报告编号", align: "center" },
   { prop: "type", label: "报告类型", align: "center" },
   { prop: "boardSerial", label: "电路板序列号", align: "center" },
   { prop: "user", label: "测试人 ", align: "center" },
@@ -92,8 +92,13 @@ const getTableData = () => {
 }
 
 const handleLink = (data: any, i: string) => {
-  if (i == "审核") {
-    router.push({ name: "checkReport", query: data })
+  if (i === "审核") {
+    // console.log("abcd", data.idStr.startsWith("prod"))
+    if (data.idStr.startsWith("prod")) {
+      router.push({name: "checkReport", query: data})
+    } else {
+      router.push({name: "checkTempReport", query: data})
+    }
   } else {
     return
   }
