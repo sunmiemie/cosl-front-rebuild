@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from "vue"
 import { Viewer } from "vexip-ui"
-
 const props = defineProps(["previewList"])
 const picViewer = ref(false)
 const viewerUrl = ref("")

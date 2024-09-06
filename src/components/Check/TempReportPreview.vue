@@ -16,7 +16,7 @@ const openViewer = (img) => {
   <div>
     <el-scrollbar style="height: calc(100vh - 295px); margin-top: -1px; padding: 5px">
       <div v-if="props.previewList.json.tempTest.length != 0">
-        <template v-for="item in props.previewList.json.tempTest">
+        <template v-for="item in props.previewList.json.tempTest" :key="item.id">
           <el-descriptions :title="'名称:' + item.name" border column="3">
             <el-descriptions-item align="left" label="状态" span="3">
               <el-space>
@@ -31,7 +31,7 @@ const openViewer = (img) => {
             </el-descriptions-item>
             <el-descriptions-item label="留存图片" span="3">
               <div class="flex-imgs">
-                <template v-for="img in item.save">
+                <template v-for="img in item.save" :key="img">
                   <el-image
                     :src="img"
                     fit="contain"
@@ -48,7 +48,7 @@ const openViewer = (img) => {
               </el-descriptions-item>
               <el-descriptions-item label="缺陷图片" span="3">
                 <div class="flex-imgs">
-                  <template v-for="img in item.error.url">
+                  <template v-for="img in item.error.url" :key="img">
                     <el-image
                       :src="img"
                       fit="contain"
@@ -66,7 +66,7 @@ const openViewer = (img) => {
               </el-descriptions-item>
               <el-descriptions-item label="问题图片" span="3">
                 <div class="flex-imgs">
-                  <template v-for="img in item.question.url">
+                  <template v-for="img in item.question.url" :key="img">
                     <el-image
                       :src="img"
                       fit="contain"
@@ -84,7 +84,7 @@ const openViewer = (img) => {
               </el-descriptions-item>
               <el-descriptions-item label="制程警示图片" span="3">
                 <div class="flex-imgs">
-                  <template v-for="img in item.warn.url">
+                  <template v-for="img in item.warn.url" :key="img">
                     <el-image
                       :src="img"
                       fit="contain"
