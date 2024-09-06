@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, reactive, ref, watch } from "vue"
+import {onBeforeMount, onMounted, reactive, ref, watch} from "vue"
 import { useRoute, useRouter } from "vue-router"
 import {
   checkReportDataApi,
@@ -14,7 +14,9 @@ import { ElMessageBox } from "element-plus"
 
 const userStore = useUserStore()
 const reportJson = ref({})
+
 const hasError = ref(false)
+
 const feedbackList = ref([])
 const feedbackReason = ref("")
 const feedbackVisible = ref(false)
@@ -25,6 +27,36 @@ const questionDialogVisible = ref(false)
 
 // 存在疑问
 const hasQuestion = ref(false)
+const hasWarning = ref(false);
+const updateStatus = () => {
+  hasError.value = false;
+  hasQuestion.value = false;
+  hasWarning.value = false;
+
+  // 遍历 tempTest 列表，检查各个项的状态
+  reportJson.value.json.tempTest.forEach(item => {
+    if (item.pass === 2 || item.pass === 4) {
+      hasError.value = true;
+    }
+    if (item.pass === 3 || item.pass === 4) {
+      hasQuestion.value = true;
+    }
+    if ('warn' in item) {
+      hasWarning.value = true;
+    }
+  });
+
+  // 检查 plane 状态
+  if (reportJson.value.json.plane.leftPass === 2 || reportJson.value.json.plane.rightPass === 2) {
+    hasError.value = true;
+  }
+  if (reportJson.value.json.plane.leftPass === 3 || reportJson.value.json.plane.rightPass === 3) {
+    hasQuestion.value = true;
+  }
+};
+
+// 初次加载时更新状态
+// updateStatus();
 
 const loading = ref(false)
 const loaded = ref(false)
@@ -562,6 +594,7 @@ const questionPass = (obj) => {
             }
           }
         })
+        // TODO
         hasError.value = hasProperty(reportJson.value, "errorList")
         hasQuestion.value = hasProperty(reportJson.value, "questionList")
       } else if (obj.position === "area") {
@@ -1118,6 +1151,7 @@ const getErrorQuestionList = () => {
       }
     }
   })
+  // TODO
   hasError.value = hasProperty(reportJson.value, "errorList")
   hasQuestion.value = hasProperty(reportJson.value, "questionList")
   if (errorList.value.length === 0) {
@@ -1155,7 +1189,6 @@ const checkPass = () => {
     if (res.msg === "success") {
       loading.value = false
       router.push({ name: "reportCheckList" })
-      // router.push("/datamanage/reportCheckList")
     }
   })
 }
@@ -1181,7 +1214,6 @@ const checkFeedback = () => {
   checkReportFeedbackApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
-      // router.push("/datamanage/reportCheckList")
       router.push({ name: "reportCheckList" })
     }
   })
@@ -1208,7 +1240,6 @@ const generateQuestionUnit = () => {
   generateQuestionUnitApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
-      // router.push("/datamanage/reportCheckList")
       router.push({ name: "reportCheckList" })
     }
   })
@@ -1285,6 +1316,21 @@ const reGetReport = () => {
     reportJson.value = res.data
   })
 }
+// onBeforeMount(() => {
+//   loading.value = true
+//   anyObj.type = route.query.type
+//   anyObj.id = route.query.id
+//   anyObj.name = route.query.name
+//   anyObj.user = route.query.user
+//   anyObj.date = route.query.date
+//   checkTempReportDataApi({ id: route.query.id }).then((res) => {
+//     // console.log("临时测试报告", res)
+//     loaded.value = true
+//     loading.value = false
+//     getErrorQuestionList()
+//     reportJson.value = res.data
+//     updateStatus()
+// })
 onMounted(() => {
   loading.value = true
   anyObj.type = route.query.type
@@ -1293,13 +1339,27 @@ onMounted(() => {
   anyObj.user = route.query.user
   anyObj.date = route.query.date
   checkTempReportDataApi({ id: route.query.id }).then((res) => {
-    console.log("临时测试报告", res)
+    // console.log("临时测试报告", res)
     loaded.value = true
     loading.value = false
-    getErrorQuestionList()
     reportJson.value = res.data
+    getErrorQuestionList()
+    // updateStatus()
+    // console.log("haserror", hasError.value)
+    // console.log("haswarn", hasWarning.value)
+    // console.log("hasquestion", hasQuestion.value)
   })
   watch([() => reportJson.value], getErrorQuestionList, { immediate: true, deep: true })
+  // watch([() => reportJson.value], updateStatus, { immediate: true, deep: true })
+  // 监听 reportJson 变化，自动更新状态
+  // watch(
+  //   () => reportJson.value,
+  //   () => {
+  //     getErrorQuestionList(); // 更新状态
+  //     updateStatus();         // 更新后的进一步逻辑
+  //   },
+  //   { immediate: true, deep: true }
+  // );
 })
 </script>
 
@@ -1325,7 +1385,7 @@ onMounted(() => {
 
       <div style="display: flex; justify-content: space-between; align-items: center">
         <div>
-          <el-text v-if="!hasQuestion && !hasError" size="large" style="color: green">测试正常</el-text>
+          <el-text v-if="!hasError && !hasQuestion && !hasWarning" size="large" style="color: green">测试正常</el-text>
           <el-link
             v-if="hasError"
             :underline="false"
@@ -1344,6 +1404,13 @@ onMounted(() => {
             @click="questionVisible = true"
           >存在疑问
           </el-link>
+          <el-text
+            v-if="hasWarning"
+            size="large"
+            style="font-size: 18px; color: orange"
+          >
+            制程警示
+          </el-text>
         </div>
         <el-button icon="Refresh" v-if="reportFixed" @click="reGetReport">重置所有更改</el-button>
       </div>
@@ -1355,10 +1422,11 @@ onMounted(() => {
         <el-button icon="Check" size="large" type="success" @click="handlePass">审核通过</el-button>
         <el-button icon="Close" size="large" type="danger" @click="feedbackVisible = true">审核未通过</el-button>
       </div>
-      <div v-if="hasQuestion">
+      <div v-else>
         <el-button size="large" type="warning" @click="questionDialogVisible = true">? 生成疑问工单</el-button>
       </div>
     </el-card>
+
     <el-dialog v-model="errorVisible" title="缺陷操作" align-center width="80%">
       <el-table :data="errorList">
         <el-table-column label="测试类型">
@@ -1408,6 +1476,7 @@ onMounted(() => {
         </el-table-column>
       </el-table>
     </el-dialog>
+
     <el-dialog v-model="questionVisible" title="疑问操作" width="80%" align-center>
       <el-table :data="questionList">
         <el-table-column label="测试类型">
@@ -1457,6 +1526,7 @@ onMounted(() => {
         </el-table-column>
       </el-table>
     </el-dialog>
+
     <el-dialog v-model="feedbackVisible" title="请选择打回项" width="80%" align-center>
       <el-table :data="stepList" height="400px" @selection-change="handleSelectionChange">
         <el-table-column type="selection" />
@@ -1502,6 +1572,7 @@ onMounted(() => {
         <el-button type="danger" @click="handleFeedback">打回</el-button>
       </template>
     </el-dialog>
+
     <el-dialog v-model="questionDialogVisible" title="生成确认" width="80%" align-center>
       <el-table :data="questionList">
         <el-table-column label="测试类型">

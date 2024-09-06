@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { reactive, ref, watch } from "vue"
+import { onMounted, reactive, ref, watch } from "vue"
 import { type FormInstance, TabsPaneContext } from "element-plus"
 import { ElButton } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
@@ -163,12 +163,27 @@ const resetSearch = () => {
 const activeName = ref<any>("first")
 
 const handleTabClick = (tab: TabsPaneContext) => {
+  // 记下当前选中的标签页，当点击浏览器返回按钮时，可返回到前面选中的标签页
+  router.replace({ query: { ...router.currentRoute.value.query, tab: tab.props.name } })
+
   if (tab.props.name === "first") {
     getTableData()
   } else if (tab.props.name === "second") {
     getTempTableData()
   }
 }
+
+onMounted(() => {
+  const { tab } = router.currentRoute.value.query
+  if (tab) {
+    activeName.value = tab
+  }
+  if (tab === "second") {
+    getTempTableData()
+  } else {
+    getTableData()
+  }
+})
 
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: true })
@@ -180,7 +195,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       <el-tab-pane label="生产测试报告" name="first">
         <el-row>
           <el-col :span="24">
-            <el-card v-loading="loading" shadow="never" class="search-wrapper">
+            <el-card shadow="never" class="search-wrapper">
               <el-form ref="searchFormRef" :inline="true" :model="searchData">
                 <el-form-item label="报告编号">
                   <el-input v-model="searchData.id" placeholder="请输入" />
@@ -280,7 +295,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       <el-tab-pane label="临时测试报告" name="second">
         <el-row>
           <el-col :span="24">
-            <el-card v-loading="loading" shadow="never" class="search-wrapper">
+            <el-card shadow="never" class="search-wrapper">
               <el-form ref="searchFormRef" :inline="true" :model="searchData">
                 <el-form-item label="报告编号">
                   <el-input v-model="searchData.id" placeholder="请输入" />
@@ -307,12 +322,12 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                 </el-form-item>
               </el-form>
             </el-card>
-            <el-card v-loading="loading" shadow="never">
+            <el-card v-loading="tempLoading" shadow="never">
               <div class="toolbar-wrapper">
                 <div />
                 <div>
                   <el-tooltip content="刷新当前页">
-                    <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
+                    <el-button circle icon="RefreshRight" type="primary" @click="getTempTableData" />
                   </el-tooltip>
                 </div>
               </div>
