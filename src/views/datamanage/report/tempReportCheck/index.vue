@@ -1532,40 +1532,40 @@ onMounted(() => {
     </el-dialog>
 
     <el-dialog v-model="feedbackVisible" title="请选择打回项" width="80%" align-center>
-      <el-table :data="stepList" height="400px" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" />
-        <el-table-column label="测试类型" width="150">
-          <template #default="scope">
-            <el-text>
-              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
-            </el-text>
-          </template>
-        </el-table-column>
-        <el-table-column label="检测位置">
-          <template #default="scope">
-            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
-            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
-            <el-text v-if="scope.row.areaPosition !== undefined">
-              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
-            </el-text>
-            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
-          </template>
-        </el-table-column>
-        <el-table-column label="检测项名称">
-          <template #default="scope">
-            <el-text> {{ scope.row.content.name }}</el-text>
-          </template>
-        </el-table-column>
-        <el-table-column label="测试结果" fixed="right" align="right">
-          <template #default="scope">
-            <el-text
-              :type="scope.row.content.pass === 1 ? 'success' : scope.row.content.pass === 3 ? 'warning' : 'danger'"
-            >
-              {{ scope.row.content.pass === 1 ? "通过" : scope.row.content.pass === 3 ? "疑问" : "未通过" }}</el-text
-            >
-          </template>
-        </el-table-column>
-      </el-table>
+<!--      <el-table :data="stepList" height="400px" @selection-change="handleSelectionChange">-->
+<!--        <el-table-column type="selection" />-->
+<!--        <el-table-column label="测试类型" width="150">-->
+<!--          <template #default="scope">-->
+<!--            <el-text>-->
+<!--              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}-->
+<!--            </el-text>-->
+<!--          </template>-->
+<!--        </el-table-column>-->
+<!--        <el-table-column label="检测位置">-->
+<!--          <template #default="scope">-->
+<!--            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>-->
+<!--            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>-->
+<!--            <el-text v-if="scope.row.areaPosition !== undefined">-->
+<!--              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}-->
+<!--            </el-text>-->
+<!--            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>-->
+<!--          </template>-->
+<!--        </el-table-column>-->
+<!--        <el-table-column label="检测项名称">-->
+<!--          <template #default="scope">-->
+<!--            <el-text> {{ scope.row.content.name }}</el-text>-->
+<!--          </template>-->
+<!--        </el-table-column>-->
+<!--        <el-table-column label="测试结果" fixed="right" align="right">-->
+<!--          <template #default="scope">-->
+<!--            <el-text-->
+<!--              :type="scope.row.content.pass === 1 ? 'success' : scope.row.content.pass === 3 ? 'warning' : 'danger'"-->
+<!--            >-->
+<!--              {{ scope.row.content.pass === 1 ? "通过" : scope.row.content.pass === 3 ? "疑问" : "未通过" }}</el-text-->
+<!--            >-->
+<!--          </template>-->
+<!--        </el-table-column>-->
+<!--      </el-table>-->
       <el-input
         v-model="feedbackReason"
         type="textarea"
