@@ -17,15 +17,17 @@ const feedbackVisible = ref(false)
 const reportFixed = ref(false)
 const errorVisible = ref(false)
 const questionVisible = ref(false)
+const warnVisible = ref(false)
 const questionDialogVisible = ref(false)
 const hasQuestion = ref(false)
+const hasWarn = ref(false)
 const loading = ref(false)
 const loaded = ref(false)
 const route = useRoute()
 const router = useRouter()
 const errorList = ref([])
 const questionList = ref([])
-
+const warnList = ref([])
 const stepList = ref([])
 
 const anyObj = reactive({
@@ -50,6 +52,21 @@ const hasProperty = (obj, prop) => {
     }
   }
   return false
+}
+const generateWarnList = (obj, path = []) => {
+  let paths = []
+  if (obj === null || typeof obj !== "object") {
+    return paths
+  }
+  if (Object.prototype.hasOwnProperty.call(obj, "warnList")) {
+    paths.push([...path, "warnList"])
+  }
+  for (const key in obj) {
+    if (Object.prototype.hasOwnProperty.call(obj, key) && typeof obj[key] === "object") {
+      paths = paths.concat(generateWarnList(obj[key], [...path, key]))
+    }
+  }
+  return paths
 }
 const generateQuestionList = (obj, path = []) => {
   let paths = []
@@ -797,7 +814,7 @@ const questionError = (obj) => {
   })
 }
 
-const getErrorQuestionList = () => {
+const getErrorQuestionWarnList = () => {
   errorList.value = []
   questionList.value = []
   stepList.value = []
@@ -1009,6 +1026,110 @@ const getErrorQuestionList = () => {
       }
     }
   })
+  generateWarnList(reportJson.value).forEach((item) => {
+    if (item.includes("eyes")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          warnList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            warnList.value.push({
+              type: "eyes",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            warnList.value.push({
+              type: "eyes",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+    if (item.includes("eyesBak")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          warnList.value.push({ type: "eyesBak", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            warnList.value.push({
+              type: "eyesBak",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            warnList.value.push({
+              type: "eyesBak",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+    if (item.includes("xray")) {
+      if (item.includes("total")) {
+        getNestedValue(reportJson.value, item).forEach((value) => {
+          warnList.value.push({ type: "xray", position: "total", id: value.id, content: value })
+        })
+      }
+      if (item.includes("area")) {
+        if (item.includes("general")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            warnList.value.push({
+              type: "xray",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "general",
+              id: value.id,
+              content: value
+            })
+          })
+        }
+        if (item.includes("detail")) {
+          getNestedValue(reportJson.value, item).forEach((value) => {
+            warnList.value.push({
+              type: "xray",
+              position: "area",
+              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
+              areaPosition: "detail",
+              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
+              id: value.id,
+              content: value
+            })
+          })
+        }
+      }
+    }
+  })
   // TODO
   generateStepList(reportJson.value).forEach((item) => {
     if (item.includes("eyes")) {
@@ -1116,6 +1237,7 @@ const getErrorQuestionList = () => {
   })
   hasError.value = hasProperty(reportJson.value, "errorList")
   hasQuestion.value = hasProperty(reportJson.value, "questionList")
+  hasWarn.value = hasProperty(reportJson.value, "warnList")
   if (errorList.value.length === 0) {
     errorVisible.value = false
   }
@@ -1279,7 +1401,7 @@ const reGetReport = () => {
   checkReportDataApi({ id: route.query.id }).then((res) => {
     loaded.value = true
     loading.value = false
-    getErrorQuestionList()
+    getErrorQuestionWarnList()
     reportJson.value = res.data
   })
 }
@@ -1294,11 +1416,11 @@ onMounted(() => {
     // console.log("生产测试报告", res)
     loaded.value = true
     loading.value = false
-    getErrorQuestionList()
+    getErrorQuestionWarnList()
     console.log("stepList", stepList.value)
     reportJson.value = res.data
   })
-  watch([() => reportJson.value], getErrorQuestionList, { immediate: true, deep: true })
+  watch([() => reportJson.value], getErrorQuestionWarnList, { immediate: true, deep: true })
 })
 </script>
 
@@ -1338,10 +1460,19 @@ onMounted(() => {
             v-if="hasQuestion"
             :underline="false"
             size="large"
-            style="font-size: 18px"
-            type="warning"
+            style="font-size: 18px; margin-right: 20px"
+            type="info"
             @click="questionVisible = true"
             >存在疑问
+          </el-link>
+          <el-link
+            v-if="hasWarn"
+            :underline="false"
+            size="large"
+            style="font-size: 18px"
+            type="warning"
+            @click="warnVisible = true"
+            >存在制程警示
           </el-link>
         </div>
         <el-button icon="Refresh" v-if="reportFixed" @click="reGetReport">重置所有更改</el-button>
@@ -1457,8 +1588,62 @@ onMounted(() => {
         </el-table-column>
       </el-table>
     </el-dialog>
+    <el-dialog v-model="warnVisible" title="制程警示操作" width="80%" align-center>
+      <el-table :data="warnList">
+        <el-table-column label="测试类型">
+          <template #default="scope">
+            <el-text>
+              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
+            </el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="制程警示位置">
+          <template #default="scope">
+            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
+            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
+            <el-text v-if="scope.row.areaPosition !== undefined">
+              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
+            </el-text>
+            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="检测项">
+          <template #default="scope">
+            <el-text> {{ scope.row.content.name }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="制程警示描述">
+          <template #default="scope">
+            <el-text> {{ scope.row.content.warn.desc }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="留存图片">
+          <template #default="scope">
+            <div style="display: flex">
+              <el-text style="margin-right: 5px">共{{ scope.row.content.warn.url.length }}张</el-text>
+              <el-image
+                :preview-teleported="true"
+                :preview-src-list="scope.row.content.warn.url"
+                :src="scope.row.content.warn.url[0]"
+              />
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" fixed="right" label="操作">
+          <template #default="scope">
+            <el-button type="success" @click="questionPass(scope.row)">通过</el-button>
+            <el-button type="danger" @click="questionError(scope.row)">缺陷</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
 
-    <el-dialog v-if="route.query.type === '弓曲度测试' || route.query.type === '2D留存'" v-model="feedbackVisible" width="80%" align-center>
+    <el-dialog
+      v-if="route.query.type === '弓曲度测试' || route.query.type === '2D留存'"
+      v-model="feedbackVisible"
+      width="80%"
+      align-center
+    >
       <el-input
         placeholder="打回理由"
         v-model="feedbackReason"
@@ -1564,5 +1749,6 @@ onMounted(() => {
         <el-button type="primary" @click="handleQuestion">确认</el-button>
       </template>
     </el-dialog>
+
   </div>
 </template>

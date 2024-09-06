@@ -32,8 +32,13 @@ const openViewer = (img) => {
             <el-descriptions-item label="留存图片" span="3">
               <div class="flex-imgs">
                 <template v-for="img in item.save">
-                  <el-image :src="img" fit="contain" class="img-in-report" style="margin-right: 5px; cursor: pointer"
-                            @click="openViewer(img)" />
+                  <el-image
+                    :src="img"
+                    fit="contain"
+                    class="img-in-report"
+                    style="margin-right: 5px; cursor: pointer"
+                    @click="openViewer(img)"
+                  />
                 </template>
               </div>
             </el-descriptions-item>
@@ -44,8 +49,13 @@ const openViewer = (img) => {
               <el-descriptions-item label="缺陷图片" span="3">
                 <div class="flex-imgs">
                   <template v-for="img in item.error.url">
-                    <el-image :src="img" fit="contain" class="img-in-report" style="margin-right: 5px; cursor: pointer"
-                              @click="openViewer(img)"/>
+                    <el-image
+                      :src="img"
+                      fit="contain"
+                      class="img-in-report"
+                      style="margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
+                    />
                   </template>
                 </div>
               </el-descriptions-item>
@@ -57,8 +67,13 @@ const openViewer = (img) => {
               <el-descriptions-item label="问题图片" span="3">
                 <div class="flex-imgs">
                   <template v-for="img in item.question.url">
-                    <el-image :src="img" fit="contain" class="img-in-report" style="margin-right: 5px; cursor: pointer"
-                              @click="openViewer(img)"/>
+                    <el-image
+                      :src="img"
+                      fit="contain"
+                      class="img-in-report"
+                      style="margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
+                    />
                   </template>
                 </div>
               </el-descriptions-item>
@@ -70,8 +85,13 @@ const openViewer = (img) => {
               <el-descriptions-item label="制程警示图片" span="3">
                 <div class="flex-imgs">
                   <template v-for="img in item.warn.url">
-                    <el-image :src="img" fit="contain" class="img-in-report" style="margin-right: 5px; cursor: pointer"
-                              @click="openViewer(img)"/>
+                    <el-image
+                      :src="img"
+                      fit="contain"
+                      class="img-in-report"
+                      style="margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
+                    />
                   </template>
                 </div>
               </el-descriptions-item>
@@ -82,26 +102,27 @@ const openViewer = (img) => {
       </div>
       <div v-if="props.previewList.json.plane.leftUrl != ''">
         <el-text>检测项</el-text>
-        <el-table :data="[
-              { title: '正面弓曲度', pass: props.previewList.json.plane['leftPass'] },
-              { title: '对面弓曲度', pass: props.previewList.json.plane['rightPass'] }
-            ]"
-                  style="margin-top: 5px"
+        <el-table
+          :data="[
+            { title: '正面弓曲度', pass: props.previewList.json.plane['leftPass'] },
+            { title: '对面弓曲度', pass: props.previewList.json.plane['rightPass'] }
+          ]"
+          style="margin-top: 5px"
         >
           <el-table-column label="检测项" prop="title" />
           <el-table-column align="right" label="结果" prop="pass">
             <template #default="scope">
               <el-text :type="scope.row.pass === 3 ? 'warning' : scope.row.pass === 1 ? 'success' : 'danger'"
-              >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
+                >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
               </el-text>
             </template>
           </el-table-column>
         </el-table>
         <el-table
-            v-if="props.previewList.json.plane.noteList != undefined"
-            :data="props.previewList.json.plane.noteList"
-            border
-            stripe
+          v-if="props.previewList.json.plane.noteList != undefined"
+          :data="props.previewList.json.plane.noteList"
+          border
+          stripe
         >
           <el-table-column label="备注">
             <template #default="scope">
@@ -111,20 +132,16 @@ const openViewer = (img) => {
         </el-table>
         <el-text>留存项</el-text>
         <div style="display: flex; justify-content: center; align-items: center">
-          <el-image
-              :src="props.previewList.json.plane.leftUrl"
-              fit="contain"
-              style="width: 40%; margin-right: 10px"
-          />
+          <el-image :src="props.previewList.json.plane.leftUrl" fit="contain" style="width: 40%; margin-right: 10px" />
           <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%" />
         </div>
 
         <el-text v-if="props.previewList.json.plane.errorList != undefined">缺陷项</el-text>
         <el-table
-            v-if="props.previewList.json.plane.errorList != undefined"
-            :data="props.previewList.json.plane.errorList"
-            border
-            stripe
+          v-if="props.previewList.json.plane.errorList != undefined"
+          :data="props.previewList.json.plane.errorList"
+          border
+          stripe
         >
           <el-table-column label="检测项名称" prop="name" width="300" />
           <el-table-column label="缺陷描述">
@@ -135,9 +152,9 @@ const openViewer = (img) => {
           <el-table-column align="right" label="留存">
             <template #default="scope">
               <el-image
-                  :src="scope.row.error.url"
-                  fit="contain"
-                  style="height: 150px; width: 150px; margin-right: 5px"
+                :src="scope.row.error.url"
+                fit="contain"
+                style="height: 150px; width: 150px; margin-right: 5px"
               />
             </template>
           </el-table-column>
