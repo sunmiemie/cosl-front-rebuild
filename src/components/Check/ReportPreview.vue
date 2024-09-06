@@ -1,5 +1,15 @@
 <script setup>
+import { ref } from "vue";
+import { Viewer } from "vexip-ui"
+
 const props = defineProps(["previewList", "mode"])
+
+const picViewer = ref(false)
+const viewerUrl = ref("")
+const openViewer = (img) => {
+  picViewer.value = true
+  viewerUrl.value = img
+}
 </script>
 
 <template>
@@ -11,9 +21,9 @@ const props = defineProps(["previewList", "mode"])
             <el-text style="margin-left: 10px; font-size: 20px">2D留存图</el-text>
           </template>
           <el-text>正面留存</el-text>
-          <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%" />
+          <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%; cursor: pointer" @click="openViewer(props.previewList.json.twoD)" />
           <el-text>背面留存</el-text>
-          <el-image :src="props.previewList.json.twoDBak" fit="contain" style="width: 100%" />
+          <el-image :src="props.previewList.json.twoDBak" fit="contain" style="width: 100%; cursor: pointer" @click="openViewer(props.previewList.json.twoDBak)" />
         </el-collapse-item>
         <el-collapse-item v-if="props.previewList.json.plane['leftPass'] != undefined">
           <template #title>
@@ -52,9 +62,10 @@ const props = defineProps(["previewList", "mode"])
             <el-image
               :src="props.previewList.json.plane.leftUrl"
               fit="contain"
-              style="width: 40%; margin-right: 10px"
+              style="width: 40%; margin-right: 10px; cursor: pointer"
+              @click="openViewer(props.previewList.json.plane.leftUrl)"
             />
-            <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%" />
+            <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%; cursor: pointer" @click="openViewer(props.previewList.json.plane.rightUrl)" />
           </div>
 
           <el-text v-if="props.previewList.json.plane.errorList != undefined">缺陷项</el-text>
@@ -75,7 +86,8 @@ const props = defineProps(["previewList", "mode"])
                 <el-image
                   :src="scope.row.error.url"
                   fit="contain"
-                  style="height: 150px; width: 150px; margin-right: 5px"
+                  style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                  @click="openViewer(scope.row.error.url)"
                 />
               </template>
             </el-table-column>
@@ -132,7 +144,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.save"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -169,7 +182,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.error.url"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -193,7 +207,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.question.url"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -238,7 +253,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.save"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -266,7 +282,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.error.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -291,7 +308,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.question.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -331,7 +349,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.save"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -359,7 +378,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.error.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -379,7 +399,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.question.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -436,7 +457,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.save"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -474,7 +496,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.error.url"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -501,7 +524,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.question.url"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -547,7 +571,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.save"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -575,7 +600,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.error.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -600,7 +626,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.question.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -641,7 +668,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.save"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -669,7 +697,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.error.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -689,7 +718,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.question.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -746,7 +776,8 @@ const props = defineProps(["previewList", "mode"])
                   v-for="img in scope.row.save"
                   :src="img"
                   fit="contain"
-                  style="height: 150px; width: 150px; margin-right: 5px"
+                  style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                  @click="openViewer(img)"
                 />
               </template>
             </el-table-column>
@@ -784,7 +815,8 @@ const props = defineProps(["previewList", "mode"])
                   v-for="img in scope.row.error.url"
                   :src="img"
                   fit="contain"
-                  style="height: 150px; width: 150px; margin-right: 5px"
+                  style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                  @click="openViewer(img)"
                 />
               </template>
             </el-table-column>
@@ -809,7 +841,8 @@ const props = defineProps(["previewList", "mode"])
                   v-for="img in scope.row.question.url"
                   :src="img"
                   fit="contain"
-                  style="height: 150px; width: 150px; margin-right: 5px"
+                  style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                  @click="openViewer(img)"
                 />
               </template>
             </el-table-column>
@@ -852,7 +885,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.save"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -880,7 +914,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.error.url"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -900,7 +935,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.question.url"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -939,7 +975,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.save"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -967,7 +1004,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.error.url"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -986,7 +1024,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.question.url"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -1002,7 +1041,7 @@ const props = defineProps(["previewList", "mode"])
           <template #title>
             <el-text style="margin-left: 10px; font-size: 20px">2D留存图</el-text>
           </template>
-          <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%" />
+          <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%; cursor: pointer" />
         </el-collapse-item>
         <el-collapse-item v-if="props.previewList.json.plane['leftPass'] != undefined">
           <template #title>
@@ -1041,9 +1080,10 @@ const props = defineProps(["previewList", "mode"])
             <el-image
               :src="props.previewList.json.plane.leftUrl"
               fit="contain"
-              style="width: 40%; margin-right: 10px"
+              style="width: 40%; margin-right: 10px; cursor: pointer"
+              @click="openViewer(props.previewList.json.plane.leftUrl)"
             />
-            <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%" />
+            <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%; cursor: pointer" @click="openViewer(props.previewList.json.plane.rightUrl)" />
           </div>
 
           <el-text v-if="props.previewList.json.plane.errorList != undefined">缺陷项</el-text>
@@ -1064,7 +1104,8 @@ const props = defineProps(["previewList", "mode"])
                 <el-image
                   :src="scope.row.error.url"
                   fit="contain"
-                  style="height: 150px; width: 150px; margin-right: 5px"
+                  style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                  @click="openViewer(scope.row.error.url)"
                 />
               </template>
             </el-table-column>
@@ -1121,7 +1162,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.save"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -1158,7 +1200,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.error.url"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -1182,7 +1225,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.question.url"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -1227,7 +1271,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.save"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1255,7 +1300,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.error.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1280,7 +1326,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.question.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1320,7 +1367,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.save"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1348,7 +1396,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.error.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1368,7 +1417,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.question.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1425,7 +1475,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.save"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -1463,7 +1514,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.error.url"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -1490,7 +1542,8 @@ const props = defineProps(["previewList", "mode"])
                           v-for="img in scope.row.question.url"
                           :src="img"
                           fit="contain"
-                          style="height: 150px; width: 150px; margin-right: 5px"
+                          style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                          @click="openViewer(img)"
                         />
                       </template>
                     </el-table-column>
@@ -1536,7 +1589,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.save"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1564,7 +1618,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.error.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1589,7 +1644,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.question.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1630,7 +1686,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.save"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1658,7 +1715,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.error.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1678,7 +1736,8 @@ const props = defineProps(["previewList", "mode"])
                               v-for="img in scope.row.question.url"
                               :src="img"
                               fit="contain"
-                              style="height: 150px; width: 150px; margin-right: 5px"
+                              style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"
                             />
                           </template>
                         </el-table-column>
@@ -1735,7 +1794,8 @@ const props = defineProps(["previewList", "mode"])
                   v-for="img in scope.row.save"
                   :src="img"
                   fit="contain"
-                  style="height: 150px; width: 150px; margin-right: 5px"
+                  style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                  @click="openViewer(img)"
                 />
               </template>
             </el-table-column>
@@ -1773,7 +1833,8 @@ const props = defineProps(["previewList", "mode"])
                   v-for="img in scope.row.error.url"
                   :src="img"
                   fit="contain"
-                  style="height: 150px; width: 150px; margin-right: 5px"
+                  style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                  @click="openViewer(img)"
                 />
               </template>
             </el-table-column>
@@ -1798,7 +1859,8 @@ const props = defineProps(["previewList", "mode"])
                   v-for="img in scope.row.question.url"
                   :src="img"
                   fit="contain"
-                  style="height: 150px; width: 150px; margin-right: 5px"
+                  style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                  @click="openViewer(img)"
                 />
               </template>
             </el-table-column>
@@ -1841,7 +1903,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.save"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -1869,7 +1932,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.error.url"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -1889,7 +1953,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.question.url"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -1928,7 +1993,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.save"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -1956,7 +2022,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.error.url"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -1975,7 +2042,8 @@ const props = defineProps(["previewList", "mode"])
                       v-for="img in scope.row.question.url"
                       :src="img"
                       fit="contain"
-                      style="height: 150px; width: 150px; margin-right: 5px"
+                      style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
                     />
                   </template>
                 </el-table-column>
@@ -1985,6 +2053,11 @@ const props = defineProps(["previewList", "mode"])
         </el-collapse-item>
       </el-collapse>
     </el-scrollbar>
+    <el-dialog v-model="picViewer" align-center center width="70%">
+      <Viewer height="600">
+        <img :src="viewerUrl" alt="" />
+      </Viewer>
+    </el-dialog>
   </div>
 </template>
 
