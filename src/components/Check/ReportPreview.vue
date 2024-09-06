@@ -10,6 +10,7 @@ const openViewer = (img) => {
   picViewer.value = true
   viewerUrl.value = img
 }
+const props = defineProps(["previewList"])
 </script>
 
 <template>
@@ -24,6 +25,8 @@ const openViewer = (img) => {
           <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%; cursor: pointer" @click="openViewer(props.previewList.json.twoD)" />
           <el-text>背面留存</el-text>
           <el-image :src="props.previewList.json.twoDBak" fit="contain" style="width: 100%; cursor: pointer" @click="openViewer(props.previewList.json.twoDBak)" />
+          <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%" />
+          
         </el-collapse-item>
         <el-collapse-item v-if="props.previewList.json.plane['leftPass'] != undefined">
           <template #title>
@@ -32,6 +35,7 @@ const openViewer = (img) => {
           <el-text>检测项</el-text>
           <el-table
               :data="[
+            :data="[
               { title: '正面弓曲度', pass: props.previewList.json.plane['leftPass'] },
               { title: '对面弓曲度', pass: props.previewList.json.plane['rightPass'] }
             ]"
@@ -49,6 +53,16 @@ const openViewer = (img) => {
                 <el-text v-if="scope.row.pass == 4" type="info">
                   疑问
                 </el-text>
+            <el-table-column label="检测项" prop="title" />
+            <el-table-column align="right" label="结果" prop="pass">
+              <template #default="scope">
+                <el-text
+                  v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
+                  :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
+                  >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                </el-text>
+                <el-text v-if="scope.row.pass == 4" type="danger"> 不通过 </el-text>
+                <el-text v-if="scope.row.pass == 4" type="info"> 疑问 </el-text>
               </template>
             </el-table-column>
           </el-table>
@@ -57,6 +71,10 @@ const openViewer = (img) => {
               :data="props.previewList.json.plane.noteList"
               border
               stripe
+            v-if="props.previewList.json.plane.noteList != undefined"
+            :data="props.previewList.json.plane.noteList"
+            border
+            stripe
           >
             <el-table-column label="备注">
               <template #default="scope">
@@ -73,6 +91,11 @@ const openViewer = (img) => {
                 @click="openViewer(props.previewList.json.plane.leftUrl)"
             />
             <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%; cursor: pointer" @click="openViewer(props.previewList.json.plane.rightUrl)" />
+              :src="props.previewList.json.plane.leftUrl"
+              fit="contain"
+              style="width: 40%; margin-right: 10px"
+            />
+            <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%" />
           </div>
 
           <el-text v-if="props.previewList.json.plane.errorList != undefined">缺陷项</el-text>
@@ -83,6 +106,12 @@ const openViewer = (img) => {
               stripe
           >
             <el-table-column label="检测项名称" prop="name" width="300"/>
+            v-if="props.previewList.json.plane.errorList != undefined"
+            :data="props.previewList.json.plane.errorList"
+            border
+            stripe
+          >
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="缺陷描述">
               <template #default="scope">
                 <el-text>{{ scope.row.error.desc }}</el-text>
@@ -95,6 +124,9 @@ const openViewer = (img) => {
                     fit="contain"
                     style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
                     @click="openViewer(scope.row.error.url)"
+                  :src="scope.row.error.url"
+                  fit="contain"
+                  style="height: 150px; width: 150px; margin-right: 5px"
                 />
               </template>
             </el-table-column>
@@ -132,6 +164,25 @@ const openViewer = (img) => {
                         <el-text
                             v-if="props.previewList.json.threeD.eyes.total.warnList != undefined && (props.previewList.json.threeD.eyes.total.warnList.find((item) => item.id===scope.row.id) !== undefined)"
                             type="warning">
+                    <el-table-column label="检测项" prop="name" />
+                    <el-table-column align="right" label="结果" prop="pass">
+                      <template #default="scope">
+                        <el-text
+                          v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
+                          :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
+                          >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                        </el-text>
+                        <el-text v-if="scope.row.pass == 4" type="danger"> 不通过 </el-text>
+                        <el-text v-if="scope.row.pass == 4" type="info"> 疑问 </el-text>
+                        <el-text
+                          v-if="
+                            props.previewList.json.threeD.eyes.total.warnList != undefined &&
+                            props.previewList.json.threeD.eyes.total.warnList.find(
+                              (item) => item.id === scope.row.id
+                            ) !== undefined
+                          "
+                          type="warning"
+                        >
                           制程警示
                         </el-text>
                       </template>
@@ -142,6 +193,10 @@ const openViewer = (img) => {
                       :data="props.previewList.json.threeD.eyes.total.stepNote"
                       border
                       stripe
+                    v-if="props.previewList.json.threeD.eyes.total.stepNote.length != 0"
+                    :data="props.previewList.json.threeD.eyes.total.stepNote"
+                    border
+                    stripe
                   >
                     <el-table-column label="备注">
                       <template #default="scope">
@@ -165,6 +220,19 @@ const openViewer = (img) => {
                             fit="contain"
                             style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
                             @click="openViewer(img)"
+                    v-if="props.previewList.json.threeD.eyes.total.picList.length != 0"
+                    :data="props.previewList.json.threeD.eyes.total.picList"
+                    border
+                    stripe
+                  >
+                    <el-table-column label="留存项" prop="name" width="300" />
+                    <el-table-column align="right" label="结果" prop="save">
+                      <template #default="scope">
+                        <el-image
+                          v-for="img in scope.row.save"
+                          :src="img"
+                          fit="contain"
+                          style="height: 150px; width: 150px; margin-right: 5px"
                         />
                       </template>
                     </el-table-column>
@@ -175,6 +243,10 @@ const openViewer = (img) => {
                       :data="props.previewList.json.threeD.eyes.total.picNote"
                       border
                       stripe
+                    v-if="props.previewList.json.threeD.eyes.total.picNote.length != 0"
+                    :data="props.previewList.json.threeD.eyes.total.picNote"
+                    border
+                    stripe
                   >
                     <el-table-column label="备注">
                       <template #default="scope">
@@ -190,6 +262,12 @@ const openViewer = (img) => {
                       stripe
                   >
                     <el-table-column label="检测项名称" prop="name" width="300"/>
+                    v-if="props.previewList.json.threeD.eyes.total.errorList != undefined"
+                    :data="props.previewList.json.threeD.eyes.total.errorList"
+                    border
+                    stripe
+                  >
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="缺陷描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.error.desc }}</el-text>
@@ -203,6 +281,10 @@ const openViewer = (img) => {
                             fit="contain"
                             style="height: 150px; width: 150px; margin-right: 5px; cursor: pointer"
                             @click="openViewer(img)"
+                          v-for="img in scope.row.error.url"
+                          :src="img"
+                          fit="contain"
+                          style="height: 150px; width: 150px; margin-right: 5px"
                         />
                       </template>
                     </el-table-column>
