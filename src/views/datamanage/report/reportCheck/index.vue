@@ -1158,11 +1158,13 @@ const checkFeedback = () => {
   loading.value = true
   const blob_report = jsonToFile(reportJson.value)
   const blob_feedback = jsonToFile(feedbackList.value)
+
   const data = {
     id: anyObj.id,
     status: 1,
     reason: feedbackReason.value
   }
+
   const formData = new FormData()
   for (const key in data) {
     formData.append(key, data[key])
@@ -1173,7 +1175,9 @@ const checkFeedback = () => {
     formData.append("file_report", undefined)
   }
   formData.append("file_feedback", blob_feedback, "data_feedback.json")
+  // 生产测试报告
   checkReportFeedbackApi(formData).then((res) => {
+    // console.log(formData)
     if (res.msg === "success") {
       loading.value = false
       router.push({ name: "reportCheckList" })
@@ -1227,6 +1231,7 @@ const handlePass = () => {
   })
 }
 const handleFeedback = () => {
+  // console.log("hiiiii")
   ElMessageBox.confirm("确认打回吗？", "确认审核", {
     confirmButtonText: "确认",
     cancelButtonText: "取消",
