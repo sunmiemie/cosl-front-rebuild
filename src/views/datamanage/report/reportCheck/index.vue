@@ -1458,7 +1458,19 @@ onMounted(() => {
       </el-table>
     </el-dialog>
 
-    <el-dialog v-model="feedbackVisible" title="请选择打回项" width="80%" align-center>
+    <el-dialog v-if="route.query.type === '弓曲度测试' || route.query.type === '2D留存'" v-model="feedbackVisible" width="80%" align-center>
+      <el-input
+        placeholder="打回理由"
+        v-model="feedbackReason"
+        type="textarea"
+        :autosize="{ minRows: 6, maxRows: 6 }"
+        style="margin-top: 10px"
+      />
+      <template #footer>
+        <el-button type="danger" @click="handleFeedback">打回</el-button>
+      </template>
+    </el-dialog>
+    <el-dialog v-else v-model="feedbackVisible" title="请选择打回项" width="80%" align-center>
       <el-table :data="stepList" height="400px" @selection-change="handleSelectionChange">
         <el-table-column type="selection" />
         <el-table-column label="测试类型" width="150">
@@ -1494,6 +1506,7 @@ onMounted(() => {
         </el-table-column>
       </el-table>
       <el-input
+        placeholder="打回理由"
         v-model="feedbackReason"
         type="textarea"
         :autosize="{ minRows: 6, maxRows: 6 }"

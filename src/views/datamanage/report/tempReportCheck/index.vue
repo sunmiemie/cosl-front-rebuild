@@ -1579,6 +1579,7 @@ onMounted(() => {
         </el-table-column>
       </el-table>
       <el-input
+        placeholder="打回理由"
         v-model="feedbackReason"
         type="textarea"
         :autosize="{ minRows: 6, maxRows: 6 }"
