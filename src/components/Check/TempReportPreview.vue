@@ -33,7 +33,7 @@ const openViewer = (img) => {
               <div class="flex-imgs">
                 <template v-for="img in item.save">
                   <el-image :src="img" fit="contain" class="img-in-report" style="margin-right: 5px; cursor: pointer"
-                            @click="openViewer(img)"/>
+                            @click="openViewer(img)" />
                 </template>
               </div>
             </el-descriptions-item>
@@ -154,13 +154,12 @@ const openViewer = (img) => {
         </div>
       </div>
     </el-scrollbar>
+    <el-dialog v-model="picViewer" align-center center width="70%">
+      <Viewer height="600">
+        <img :src="viewerUrl" alt="" />
+      </Viewer>
+    </el-dialog>
   </div>
-
-  <el-dialog v-model="picViewer" align-center center width="70%">
-    <Viewer height="600">
-      <img :src="viewerUrl" alt="" />
-    </Viewer>
-  </el-dialog>
 </template>
 
 <style scoped>
