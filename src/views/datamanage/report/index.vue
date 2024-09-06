@@ -93,7 +93,6 @@ const getTableData = () => {
 
 const handleLink = (data: any, i: string) => {
   if (i === "审核") {
-    // console.log("abcd", data.idStr.startsWith("prod"))
     if (data.idStr.startsWith("prod")) {
       router.push({name: "checkReport", query: data})
     } else {
