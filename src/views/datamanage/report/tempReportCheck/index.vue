@@ -1,10 +1,10 @@
 <script setup>
-import {onBeforeMount, onMounted, reactive, ref, watch} from "vue"
+import { onMounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import {
   checkReportDataApi,
-  checkReportFeedbackApi,
   checkTempReportDataApi,
+  checkTempReportFeedbackApi,
   checkTempReportPassApi,
   generateQuestionUnitApi
 } from "@/api/report"
@@ -13,9 +13,6 @@ import TempReportPreview from "@/components/Check/TempReportPreview.vue"
 import { ElMessageBox } from "element-plus"
 
 const userStore = useUserStore()
-const reportJson = ref({})
-
-const hasError = ref(false)
 
 const feedbackList = ref([])
 const feedbackReason = ref("")
@@ -25,43 +22,48 @@ const errorVisible = ref(false)
 const questionVisible = ref(false)
 const questionDialogVisible = ref(false)
 
+const reportJson = ref({})
+const hasError = ref(false)
 // 存在疑问
 const hasQuestion = ref(false)
-const hasWarning = ref(false);
+const hasWarning = ref(false)
+// 应该在 reportJson 获取到数据之后调用
 const updateStatus = () => {
-  hasError.value = false;
-  hasQuestion.value = false;
-  hasWarning.value = false;
+  hasError.value = false
+  hasQuestion.value = false
+  hasWarning.value = false
 
   // 遍历 tempTest 列表，检查各个项的状态
-  reportJson.value.json.tempTest.forEach(item => {
+  reportJson.value.json.tempTest.forEach((item) => {
     if (item.pass === 2 || item.pass === 4) {
-      hasError.value = true;
+      hasError.value = true
     }
     if (item.pass === 3 || item.pass === 4) {
-      hasQuestion.value = true;
+      hasQuestion.value = true
     }
-    if ('warn' in item) {
-      hasWarning.value = true;
+    if ("warn" in item) {
+      hasWarning.value = true
     }
-  });
+  })
 
   // 检查 plane 状态
   if (reportJson.value.json.plane.leftPass === 2 || reportJson.value.json.plane.rightPass === 2) {
-    hasError.value = true;
+    hasError.value = true
   }
   if (reportJson.value.json.plane.leftPass === 3 || reportJson.value.json.plane.rightPass === 3) {
-    hasQuestion.value = true;
+    hasQuestion.value = true
   }
-};
+}
 
 // 初次加载时更新状态
-// updateStatus();
+// updateStatus()
 
 const loading = ref(false)
 const loaded = ref(false)
+
 const route = useRoute()
 const router = useRouter()
+
 const errorList = ref([])
 const questionList = ref([])
 const stepList = ref([])
@@ -597,6 +599,7 @@ const questionPass = (obj) => {
         // TODO
         hasError.value = hasProperty(reportJson.value, "errorList")
         hasQuestion.value = hasProperty(reportJson.value, "questionList")
+        console.log("questionPass | hasError - hasQuestion", hasError.value, hasQuestion.value)
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
           reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
@@ -1154,13 +1157,14 @@ const getErrorQuestionList = () => {
   // TODO
   hasError.value = hasProperty(reportJson.value, "errorList")
   hasQuestion.value = hasProperty(reportJson.value, "questionList")
+  console.log("getErrorQuestionList | hasError - hasQuestion", hasError.value, hasQuestion.value)
   if (errorList.value.length === 0) {
     errorVisible.value = false
   }
   if (questionList.value.length === 0) {
     questionVisible.value = false
   }
-  console.log(stepList.value)
+  // console.log(stepList.value)
 }
 
 const jsonToFile = (data) => {
@@ -1211,7 +1215,7 @@ const checkFeedback = () => {
     formData.append("file_report", undefined)
   }
   formData.append("file_feedback", blob_feedback, "data_feedback.json")
-  checkReportFeedbackApi(formData).then((res) => {
+  checkTempReportFeedbackApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
       router.push({ name: "reportCheckList" })
@@ -1251,7 +1255,7 @@ const handlePass = () => {
     cancelButtonText: "取消",
     type: "warning"
   }).then(() => {
-    if (reportFixed.value === true) {
+    if (reportFixed.value) {
       ElMessageBox.confirm("当前报告已被更改,确认以修改后状态通过审核吗？", "确认提交", {
         confirmButtonText: "确认",
         cancelButtonText: "取消",
@@ -1344,12 +1348,12 @@ onMounted(() => {
     loading.value = false
     reportJson.value = res.data
     getErrorQuestionList()
-    // updateStatus()
-    // console.log("haserror", hasError.value)
-    // console.log("haswarn", hasWarning.value)
-    // console.log("hasquestion", hasQuestion.value)
+    updateStatus()
+    console.log("haserror", hasError.value)
+    console.log("haswarn", hasWarning.value)
+    console.log("hasquestion", hasQuestion.value)
   })
-  watch([() => reportJson.value], getErrorQuestionList, { immediate: true, deep: true })
+  // watch([() => reportJson.value], getErrorQuestionList, { immediate: true, deep: true })
   // watch([() => reportJson.value], updateStatus, { immediate: true, deep: true })
   // 监听 reportJson 变化，自动更新状态
   // watch(

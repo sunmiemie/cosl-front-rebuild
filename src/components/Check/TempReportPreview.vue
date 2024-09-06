@@ -143,11 +143,15 @@ const openViewer = (img) => {
           </el-table-column>
         </el-table>
       </div>
-      <div v-if="props.previewList.json.twoD != ''">
-        <el-text>正面留存</el-text>
-        <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%" />
-        <el-text>背面留存</el-text>
-        <el-image :src="props.previewList.json.twoDBak" fit="contain" style="width: 100%" />
+      <div v-if="props.previewList.json.twoD != ''" class="flex-whole-img">
+        <div>
+          <el-text>正面留存</el-text>
+          <el-image :src="props.previewList.json.twoD" class="img-in-report" fit="contain" style="width: 100%" />
+        </div>
+        <div>
+          <el-text>背面留存</el-text>
+          <el-image :src="props.previewList.json.twoDBak" class="img-in-report" fit="contain" style="width: 100%" />
+        </div>
       </div>
     </el-scrollbar>
   </div>
@@ -175,5 +179,12 @@ const openViewer = (img) => {
 
 .img-in-report {
   max-width: 500px;
+}
+
+.flex-whole-img {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  margin-top: 10px;
 }
 </style>

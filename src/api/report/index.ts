@@ -96,6 +96,15 @@ export const checkReportFeedbackApi = (data: any) => {
   })
 }
 
+export const checkTempReportFeedbackApi = (data: any) => {
+  return request({
+    url: "data/devreport/check/feedback",
+    headers: { "Content-Type": "multipart/form-data" },
+    method: "post",
+    data
+  })
+}
+
 export const generateQuestionUnitApi = (data: any) => {
   return request({
     url: "test/questionunit/add/",
