@@ -3,9 +3,9 @@ import { Viewer } from "vexip-ui"
 import { ref } from "vue"
 
 const props = defineProps(["previewList"])
+
 const picViewer = ref(false)
 const viewerUrl = ref("")
-
 const openViewer = (img) => {
   picViewer.value = true
   viewerUrl.value = img
@@ -30,20 +30,24 @@ const openViewer = (img) => {
               {{ item.desc }}
             </el-descriptions-item>
             <el-descriptions-item label="留存图片" span="3">
-              <template v-for="img in item.save">
-                <el-image :src="img" fit="contain" style="width: 10vw; margin-right: 5px; cursor: pointer"
-                          @click="openViewer(img)"/>
-              </template>
+              <div class="flex-imgs">
+                <template v-for="img in item.save">
+                  <el-image :src="img" fit="contain" class="img-in-report" style="margin-right: 5px; cursor: pointer"
+                            @click="openViewer(img)"/>
+                </template>
+              </div>
             </el-descriptions-item>
             <div v-if="item.error != undefined">
               <el-descriptions-item label="缺陷描述" span="3">
                 {{ item.error.desc }}
               </el-descriptions-item>
               <el-descriptions-item label="缺陷图片" span="3">
-                <template v-for="img in item.error.url">
-                  <el-image :src="img" fit="contain" style="width: 10vw; margin-right: 5px; cursor: pointer"
-                            @click="openViewer(img)"/>
-                </template>
+                <div class="flex-imgs">
+                  <template v-for="img in item.error.url">
+                    <el-image :src="img" fit="contain" class="img-in-report" style="margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"/>
+                  </template>
+                </div>
               </el-descriptions-item>
             </div>
             <div v-if="item.question != undefined">
@@ -51,10 +55,12 @@ const openViewer = (img) => {
                 {{ item.question.desc }}
               </el-descriptions-item>
               <el-descriptions-item label="问题图片" span="3">
-                <template v-for="img in item.question.url">
-                  <el-image :src="img" fit="contain" style="width: 10vw; margin-right: 5px; cursor: pointer"
-                            @click="openViewer(img)"/>
-                </template>
+                <div class="flex-imgs">
+                  <template v-for="img in item.question.url">
+                    <el-image :src="img" fit="contain" class="img-in-report" style="margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"/>
+                  </template>
+                </div>
               </el-descriptions-item>
             </div>
             <div v-if="item.warn != undefined">
@@ -62,14 +68,16 @@ const openViewer = (img) => {
                 {{ item.warn.desc }}
               </el-descriptions-item>
               <el-descriptions-item label="制程警示图片" span="3">
-                <template v-for="img in item.warn.url">
-                  <el-image :src="img" fit="contain" style="width: 10vw; margin-right: 5px; cursor: pointer"
-                            @click="openViewer(img)"/>
-                </template>
+                <div class="flex-imgs">
+                  <template v-for="img in item.warn.url">
+                    <el-image :src="img" fit="contain" class="img-in-report" style="margin-right: 5px; cursor: pointer"
+                              @click="openViewer(img)"/>
+                  </template>
+                </div>
               </el-descriptions-item>
             </div>
           </el-descriptions>
-          <el-divider/>
+          <el-divider />
         </template>
       </div>
       <div v-if="props.previewList.json.plane.leftUrl != ''">
@@ -80,7 +88,7 @@ const openViewer = (img) => {
             ]"
                   style="margin-top: 5px"
         >
-          <el-table-column label="检测项" prop="title"/>
+          <el-table-column label="检测项" prop="title" />
           <el-table-column align="right" label="结果" prop="pass">
             <template #default="scope">
               <el-text :type="scope.row.pass === 3 ? 'warning' : scope.row.pass === 1 ? 'success' : 'danger'"
@@ -108,7 +116,7 @@ const openViewer = (img) => {
               fit="contain"
               style="width: 40%; margin-right: 10px"
           />
-          <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%"/>
+          <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%" />
         </div>
 
         <el-text v-if="props.previewList.json.plane.errorList != undefined">缺陷项</el-text>
@@ -118,7 +126,7 @@ const openViewer = (img) => {
             border
             stripe
         >
-          <el-table-column label="检测项名称" prop="name" width="300"/>
+          <el-table-column label="检测项名称" prop="name" width="300" />
           <el-table-column label="缺陷描述">
             <template #default="scope">
               <el-text>{{ scope.row.error.desc }}</el-text>
@@ -137,15 +145,16 @@ const openViewer = (img) => {
       </div>
       <div v-if="props.previewList.json.twoD != ''">
         <el-text>正面留存</el-text>
-        <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%"/>
+        <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%" />
         <el-text>背面留存</el-text>
-        <el-image :src="props.previewList.json.twoDBak" fit="contain" style="width: 100%"/>
+        <el-image :src="props.previewList.json.twoDBak" fit="contain" style="width: 100%" />
       </div>
     </el-scrollbar>
   </div>
+
   <el-dialog v-model="picViewer" align-center center width="70%">
     <Viewer height="600">
-      <img :src="viewerUrl" alt=""/>
+      <img :src="viewerUrl" alt="" />
     </Viewer>
   </el-dialog>
 </template>
@@ -157,5 +166,14 @@ const openViewer = (img) => {
   --el-collapse-header-bg-color: #f3f3f3;
   --el-collapse-bg-color: transparent;
   --el-collapse-content-bg-color: #f5f5ff;
+}
+
+.flex-imgs {
+  display: flex;
+  justify-content: center;
+}
+
+.img-in-report {
+  max-width: 500px;
 }
 </style>

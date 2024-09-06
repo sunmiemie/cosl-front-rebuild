@@ -8,7 +8,9 @@ import { ElMessageBox } from "element-plus"
 
 const userStore = useUserStore()
 const reportJson = ref({})
+
 const hasError = ref(false)
+
 const feedbackList = ref([])
 const feedbackReason = ref("")
 const feedbackVisible = ref(false)
@@ -1134,13 +1136,13 @@ const checkPass = () => {
   const blob = new Blob([jsonString], { type: "application/json" })
   const data = {
     id: anyObj.id,
-    status: hasError.value === false ? 2 : 3
+    status: !hasError.value ? 2 : 3
   }
   const formData = new FormData()
   for (const key in data) {
     formData.append(key, data[key])
   }
-  if (reportFixed.value === true) {
+  if (reportFixed.value) {
     formData.append("file", blob, "data.json")
   } else {
     formData.append("file", undefined)
@@ -1148,7 +1150,6 @@ const checkPass = () => {
   checkReportPassApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
-      // router.push("/datamanage/reportCheckList")
       router.push({ name: "reportCheckList" })
     }
   })
@@ -1166,7 +1167,7 @@ const checkFeedback = () => {
   for (const key in data) {
     formData.append(key, data[key])
   }
-  if (reportFixed.value === true) {
+  if (reportFixed.value) {
     formData.append("file_report", blob_report, "data_report.json")
   } else {
     formData.append("file_report", undefined)
@@ -1175,7 +1176,7 @@ const checkFeedback = () => {
   checkReportFeedbackApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
-      router.push("/datamanage/reportCheckList")
+      router.push({ name: "reportCheckList" })
     }
   })
 }
@@ -1201,7 +1202,7 @@ const generateQuestionUnit = () => {
   generateQuestionUnitApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
-      router.push("/datamanage/reportCheckList")
+      router.push({ name: "reportCheckList" })
     }
   })
 }
@@ -1231,7 +1232,7 @@ const handleFeedback = () => {
     cancelButtonText: "取消",
     type: "warning"
   }).then(() => {
-    if (reportFixed.value === true) {
+    if (reportFixed.value) {
       ElMessageBox.confirm("当前报告已被更改,确认以修改后状态打回吗？", "确认提交", {
         confirmButtonText: "确认",
         cancelButtonText: "取消",
@@ -1285,7 +1286,7 @@ onMounted(() => {
   anyObj.user = route.query.user
   anyObj.date = route.query.date
   checkReportDataApi({ id: route.query.id }).then((res) => {
-    console.log("生产测试报告", res)
+    // console.log("生产测试报告", res)
     loaded.value = true
     loading.value = false
     getErrorQuestionList()
@@ -1347,10 +1348,11 @@ onMounted(() => {
         <el-button icon="Check" size="large" type="success" @click="handlePass">审核通过</el-button>
         <el-button icon="Close" size="large" type="danger" @click="feedbackVisible = true">审核未通过</el-button>
       </div>
-      <div v-if="hasQuestion">
+      <div v-else>
         <el-button size="large" type="warning" @click="questionDialogVisible = true">? 生成疑问工单</el-button>
       </div>
     </el-card>
+
     <el-dialog v-model="errorVisible" title="缺陷操作" align-center width="80%">
       <el-table :data="errorList">
         <el-table-column label="测试类型">
@@ -1400,6 +1402,7 @@ onMounted(() => {
         </el-table-column>
       </el-table>
     </el-dialog>
+
     <el-dialog v-model="questionVisible" title="疑问操作" width="80%" align-center>
       <el-table :data="questionList">
         <el-table-column label="测试类型">
@@ -1449,6 +1452,7 @@ onMounted(() => {
         </el-table-column>
       </el-table>
     </el-dialog>
+
     <el-dialog v-model="feedbackVisible" title="请选择打回项" width="80%" align-center>
       <el-table :data="stepList" height="400px" @selection-change="handleSelectionChange">
         <el-table-column type="selection" />
@@ -1494,6 +1498,7 @@ onMounted(() => {
         <el-button type="danger" @click="handleFeedback">打回</el-button>
       </template>
     </el-dialog>
+
     <el-dialog v-model="questionDialogVisible" title="生成确认" width="80%" align-center>
       <el-table :data="questionList">
         <el-table-column label="测试类型">
@@ -1543,5 +1548,3 @@ onMounted(() => {
     </el-dialog>
   </div>
 </template>
-
-<style lang="scss" scoped></style>
