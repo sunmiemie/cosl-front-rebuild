@@ -19,7 +19,7 @@
     <el-card shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button v-permission="['admin']" type="primary" :icon="CirclePlus" @click="addTest">新增仪器</el-button>
+          <el-button v-permission="['5']" type="primary" :icon="CirclePlus" @click="addTest">新增仪器</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">

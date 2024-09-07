@@ -356,7 +356,7 @@ onMounted(() => {
       <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
         <template #header>
           <el-button
-            v-permission="['admin']"
+            v-permission="['1']"
             style="width: 100%; margin-bottom: 10px"
             type="primary"
             icon="circle-plus"

@@ -251,7 +251,7 @@ onMounted(() => {
       <el-col :span="5">
         <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
           <template #header>
-            <el-button style="width: 100%" type="primary" icon="circle-plus" @click="directoryDialogVisible = true"
+            <el-button v-permission="['17']" style="width: 100%" type="primary" icon="circle-plus" @click="directoryDialogVisible = true"
               >新建缺陷类型
             </el-button>
           </template>
@@ -276,7 +276,7 @@ onMounted(() => {
         <el-card v-loading="loading" shadow="never">
           <div class="toolbar-wrapper">
             <div>
-              <el-button type="primary" :icon="CirclePlus" @click="dialogVisible = true">新增缺陷项</el-button>
+              <el-button v-permission="['17']" type="primary" :icon="CirclePlus" @click="dialogVisible = true">新增缺陷项</el-button>
             </div>
             <!-- <div>-->
             <!--   <el-tooltip content="刷新当前页">-->
