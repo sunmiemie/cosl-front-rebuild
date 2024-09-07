@@ -59,7 +59,7 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = checkPermission(['admin']) ? ref<any>([
+const headers = checkPermission(['10']) ? ref<any>([
   { prop: "id", label: "设备类型ID", align: "center" },
   { prop: "name", label: "设备类型名称", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "center" }
@@ -138,7 +138,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button v-permission="['admin']" type="primary" :icon="CirclePlus" @click="dialogVisible = true">新增设备类型</el-button>
+          <el-button v-permission="['10']" type="primary" :icon="CirclePlus" @click="dialogVisible = true">新增设备类型</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -154,7 +154,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           stripe
           @selection-change="handleSelectionChange"
         >
-          <template v-if="checkPermission(['admin'])" #link="{ row }">
+          <template v-if="checkPermission(['10'])" #link="{ row }">
             <el-link type="primary" class="el-link" @click="handleLink(row)">编辑</el-link>
           </template>
         </TableComponent>
