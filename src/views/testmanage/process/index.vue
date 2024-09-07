@@ -306,7 +306,7 @@ watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSi
         <el-card v-else v-loading="loading" shadow="never">
           <div class="toolbar-wrapper">
             <div>
-              <el-button v-if="checkPermission(['admin'])" :icon="CirclePlus" type="primary" @click="addTest">新增流程</el-button>
+              <el-button v-permission="['12']" :icon="CirclePlus" type="primary" @click="addTest">新增流程</el-button>
             </div>
             <div>
               <el-tooltip content="刷新当前页">
