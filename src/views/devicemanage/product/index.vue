@@ -19,7 +19,7 @@
     <el-card shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button v-permission="['admin']" type="primary" :icon="CirclePlus" @click="addTest">新增产品</el-button>
+          <el-button v-permission="['6']" type="primary" :icon="CirclePlus" @click="addTest">新增产品</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -46,7 +46,7 @@
       <div class="table-wrapper">
         <TableComponent :columnData="headers" :tableData="TableData" v-loading="Loading">
           <template #link="{ row }">
-            <el-link v-if="checkPermission(['admin'])" :disabled="row.id === 1" type="primary" class="el-link" @click="handleLink(row, '编辑')"
+            <el-link v-if="checkPermission(['6'])" :disabled="row.id === 1" type="primary" class="el-link" @click="handleLink(row, '编辑')"
               >编辑
             </el-link>
           </template>

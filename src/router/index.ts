@@ -270,7 +270,6 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "TestProcess",
         meta: {
           title: "测试工艺列表",
-          roles: ["admin"],
           keepAlive: true
         }
       },
@@ -349,7 +348,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "WorkTime",
         meta: {
           title: "工时管理",
-          roles: ["admin"],
+          roles: ["15"],
           keepAlive: true
         }
       },
@@ -368,7 +367,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "reportCheckList",
         meta: {
           title: "报告审核列表",
-          roles: ["admin"],
+          roles: ["16"],
           keepAlive: true
         }
       },
@@ -458,7 +457,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
     meta: {
       title: "权限管理",
       svgIcon: "lock",
-      roles: ["admin", "editor"], // 可以在根路由中设置角色
+      roles: ["18", "19"], // 可以在根路由中设置角色
       alwaysShow: true // 将始终显示根菜单
       // hidden: true
     },
@@ -469,7 +468,16 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "UserManagement",
         meta: {
           title: "用户管理",
-          roles: ["admin"] // 或者在子导航中设置角色
+          roles: ["18"] // 或者在子导航中设置角色
+        }
+      },
+      {
+        path: "role",
+        component: () => import("@/views/permission/role/index.vue"),
+        name: "RoleManagement",
+        meta: {
+          title: "角色管理",
+          roles: ["19"] // 或者在子导航中设置角色
         }
       },
       {

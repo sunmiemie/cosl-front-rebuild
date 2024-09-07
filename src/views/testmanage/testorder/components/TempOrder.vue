@@ -624,7 +624,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
   <el-card v-loading="loading" shadow="never">
     <div class="toolbar-wrapper">
       <div>
-        <el-button v-permission="['admin']" icon="CirclePlus" type="primary" @click="addTempTest">新增临时测试工单</el-button>
+        <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTempTest">新增临时测试工单</el-button>
       </div>
       <div>
         <el-tooltip content="刷新当前页">
@@ -645,7 +645,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
           <el-tag v-else-if="row['dev_testunit_status'] === '7'" type="warning"> 测试暂存</el-tag>
           <el-tag v-else-if="row['dev_testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
         </template>
-        <template v-if="checkPermission(['admin'])" #link="{ row }">
+        <template v-if="checkPermission(['11'])" #link="{ row }">
           <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">
             {{ i }}
           </el-link>
