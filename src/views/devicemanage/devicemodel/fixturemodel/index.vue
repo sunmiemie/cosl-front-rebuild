@@ -80,7 +80,7 @@ const resetForm = () => {
 //#region 改
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = checkPermission(['admin']) ? ref([
+const headers = checkPermission(['8']) ? ref([
   { prop: "id", label: "夹具型号ID", align: "center" },
   { prop: "name", label: "夹具型号名称", align: "center" },
   { prop: "supplier", label: "夹具供应商", type: "center" },

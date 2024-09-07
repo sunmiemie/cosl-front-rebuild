@@ -79,7 +79,7 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = checkPermission(['admin']) ? ref([
+const headers = checkPermission(['7']) ? ref([
   { prop: "id", label: "电路板物料号", align: "center" },
   { prop: "name", label: "电路板型号名称", align: "center" },
   { prop: "model", label: "规格型号", align: "center" },

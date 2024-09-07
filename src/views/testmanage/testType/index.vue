@@ -52,7 +52,7 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = checkPermission(['admin']) ? ref([
+const headers = checkPermission(['14']) ? ref([
   { prop: "number", label: "类型ID", align: "center" },
   { prop: "name", label: "测试类型", align: "center" },
   { prop: "processCount", label: "所属流程数量", align: "center" },

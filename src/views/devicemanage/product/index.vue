@@ -135,7 +135,7 @@ const resetSearch = () => {
   getTableData()
 }
 
-const headers = checkPermission(['admin']) ? ref<any>([
+const headers = checkPermission(['6']) ? ref<any>([
   { prop: "id", label: "产品 ID", align: "center" },
   { prop: "name", label: "产品名称", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "center" }

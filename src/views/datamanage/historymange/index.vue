@@ -9,10 +9,6 @@ import { getReportDataApi, getTempReportDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useRouter } from "vue-router"
 
-// defineOptions({
-//   // 命名当前组件
-//   name: "ElementPlus"
-// })
 const loading = ref<boolean>(false)
 const tempLoading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
