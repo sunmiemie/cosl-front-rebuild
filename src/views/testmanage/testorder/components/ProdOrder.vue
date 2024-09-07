@@ -48,7 +48,7 @@ interface TableDataType {
   link?: any
 }
 
-const headers = checkPermission(['admin']) ?
+const headers = checkPermission(['11']) ?
   ref([
     { prop: "testunit_id", label: "工单号", align: "center" },
     { prop: "testunit_name", label: "测试名称", align: "center" },

@@ -29,7 +29,7 @@
       </div>
       <div class="table-wrapper">
         <TableComponent :columnData="headers" :tableData="TableData" v-loading="Loading">
-          <template v-if="checkPermission(['admin'])" #link="{ row }">
+          <template v-if="checkPermission(['5'])" #link="{ row }">
             <el-link type="primary" class="el-link" @click="handleLink(row, '编辑')">编辑</el-link>
           </template>
         </TableComponent>
@@ -136,7 +136,7 @@ const resetSearch = () => {
   getTableData()
 }
 
-const headers = checkPermission(['admin']) ? ref<any>([
+const headers = checkPermission(['5']) ? ref<any>([
   { prop: "id", label: "仪器id", align: "center", fixed: "left" },
   { prop: "label", label: "仪器名称", align: "center" },
   { prop: "product", label: "关联产品", align: "center" },
