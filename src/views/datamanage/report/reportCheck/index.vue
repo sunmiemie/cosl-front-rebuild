@@ -37,6 +37,7 @@ const anyObj = reactive({
   user: "",
   date: ""
 })
+
 const hasProperty = (obj, prop) => {
   if (obj === null || typeof obj !== "object") {
     return false
@@ -121,7 +122,8 @@ const getNestedValue = (obj, path) => {
     return undefined
   }, obj)
 }
-
+// 缺陷项操作
+// TODO 缺陷项通过
 const errorPass = (obj) => {
   ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
     confirmButtonText: "确认",
@@ -259,6 +261,7 @@ const errorPass = (obj) => {
     }
   })
 }
+// TODO 缺陷项疑问
 const errorQuestion = (obj) => {
   ElMessageBox.confirm("确认设置为疑问吗？", "通过确认", {
     confirmButtonText: "确认",
@@ -465,6 +468,8 @@ const errorQuestion = (obj) => {
     }
   })
 }
+// 疑问项操作
+// TODO 疑问项通过
 const questionPass = (obj) => {
   ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
     confirmButtonText: "确认",
@@ -574,8 +579,6 @@ const questionPass = (obj) => {
             }
           }
         })
-        hasError.value = hasProperty(reportJson.value, "errorList")
-        hasQuestion.value = hasProperty(reportJson.value, "questionList")
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
           reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
@@ -608,6 +611,7 @@ const questionPass = (obj) => {
     }
   })
 }
+// TODO 疑问项缺陷
 const questionError = (obj) => {
   ElMessageBox.confirm("确认设置为缺陷吗？", "通过确认", {
     confirmButtonText: "确认",
@@ -813,6 +817,8 @@ const questionError = (obj) => {
     }
   })
 }
+// 制程警示操作
+// TODO 制程警示通过
 const warnPass = (obj) => {
   ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
     confirmButtonText: "确认",
@@ -940,6 +946,7 @@ const warnPass = (obj) => {
     }
   })
 }
+// TODO 制程警示缺陷
 const warnError = (obj) => {
   ElMessageBox.confirm("确认设置为缺陷吗？", "通过确认", {
     confirmButtonText: "确认",
@@ -957,7 +964,7 @@ const warnError = (obj) => {
         }
         reportJson.value.json.threeD.eyes.total.warnList.forEach((item, index) => {
           if (item.id === obj.id) {
-            if (reportJson.value.json.threeD.eyes.total.errorList.length === 0) {
+            if (reportJson.value.json.threeD.eyes.total.errorList.find((error) => error.id === item.id) === undefined) {
               const { warn: error, ...rest } = reportJson.value.json.threeD.eyes.total.warnList[index]
               const newObj = { error, ...rest }
               reportJson.value.json.threeD.eyes.total.errorList.push(newObj)
@@ -987,7 +994,11 @@ const warnError = (obj) => {
           }
           reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.warnList.forEach((item, index) => {
             if (item.id === obj.id) {
-              if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.length === 0) {
+              if (
+                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find(
+                  (error) => error.id === item.id
+                ) === undefined
+              ) {
                 const { warn: error, ...rest } =
                   reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.warnList[index]
                 const newObj = { error, ...rest }
@@ -1024,9 +1035,10 @@ const warnError = (obj) => {
           reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.forEach(
             (item, index) => {
               if (item.id === obj.id) {
-                console.log(reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList)
                 if (
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.length === 0
+                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
+                    (error) => error.id === item.id
+                  ) === undefined
                 ) {
                   const { warn: error, ...rest } =
                     reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList[index]
@@ -1063,67 +1075,125 @@ const warnError = (obj) => {
       }
     } else if (obj.type === "eyesBak") {
       if (obj.position === "total") {
-        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 2
+        if (reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass === 1) {
+          reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 2
+        }
         if (reportJson.value.json.threeD.eyesBak.total.errorList === undefined) {
           reportJson.value.json.threeD.eyesBak.total["errorList"] = []
         }
-        reportJson.value.json.threeD.eyesBak.total.questionList.forEach((item, index) => {
+        reportJson.value.json.threeD.eyesBak.total.warnList.forEach((item, index) => {
           if (item.id === obj.id) {
-            const { question: error, ...rest } = reportJson.value.json.threeD.eyesBak.total.questionList[index]
-            const newObj = { error, ...rest }
-            reportJson.value.json.threeD.eyesBak.total.errorList.push(newObj)
-            if (reportJson.value.json.threeD.eyesBak.total.questionList.length === 1) {
-              delete reportJson.value.json.threeD.eyesBak.total.questionList
+            if (
+              reportJson.value.json.threeD.eyesBak.total.errorList.find((error) => error.id === item.id) === undefined
+            ) {
+              const { warn: error, ...rest } = reportJson.value.json.threeD.eyesBak.total.warnList[index]
+              const newObj = { error, ...rest }
+              reportJson.value.json.threeD.eyesBak.total.errorList.push(newObj)
             } else {
-              reportJson.value.json.threeD.eyesBak.total.questionList.splice(index, 1)
+              const newObj = reportJson.value.json.threeD.eyesBak.total.warnList[index]
+              reportJson.value.json.threeD.eyesBak.total.errorList.find((item) => item.id === newObj.id).error.desc +=
+                "\n制程警示：" + newObj.warn.desc
+              reportJson.value.json.threeD.eyesBak.total.errorList.find((item) => item.id === newObj.id).error.url =
+                reportJson.value.json.threeD.eyesBak.total.errorList
+                  .find((item) => item.id === newObj.id)
+                  .error.url.concat(newObj.warn.url)
+            }
+            if (reportJson.value.json.threeD.eyesBak.total.warnList.length === 1) {
+              delete reportJson.value.json.threeD.eyesBak.total.warnList
+            } else {
+              reportJson.value.json.threeD.eyesBak.total.warnList.splice(index, 1)
             }
           }
         })
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
+          if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 1) {
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
+          }
           if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList === undefined) {
             reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general["errorList"] = []
           }
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.forEach((item, index) => {
             if (item.id === obj.id) {
-              const { question: error, ...rest } =
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList[index]
-              const newObj = { error, ...rest }
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.push(newObj)
-              if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.length === 1) {
-                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList
+              if (
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find(
+                  (error) => error.id === item.id
+                ) === undefined
+              ) {
+                const { warn: error, ...rest } =
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList[index]
+                const newObj = { error, ...rest }
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.push(newObj)
               } else {
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.splice(index, 1)
+                const newObj = reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList[index]
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find(
+                  (item) => item.id === newObj.id
+                ).error.desc += "\n制程警示：" + newObj.warn.desc
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find(
+                  (item) => item.id === newObj.id
+                ).error.url = reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList
+                  .find((item) => item.id === newObj.id)
+                  .error.url.concat(newObj.warn.url)
+              }
+              if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.length === 1) {
+                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList
+              } else {
+                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.splice(index, 1)
               }
             }
           })
         } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
-            2
+          if (
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
+              .pass === 1
+          ) {
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[
+              obj.id - 1
+            ].pass = 2
+          }
           if (
             reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined
           ) {
             reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
           }
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
+          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.forEach(
             (item, index) => {
               if (item.id === obj.id) {
-                const { question: error, ...rest } =
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
-                const newObj = { error, ...rest }
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(
-                  newObj
-                )
                 if (
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                    .length === 1
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
+                    (error) => error.id === item.id
+                  ) === undefined
                 ) {
-                  delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
+                  const { warn: error, ...rest } =
+                    reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList[index]
+                  const newObj = { error, ...rest }
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(
+                    newObj
+                  )
                 } else {
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[
+                  const newObj =
+                    reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList[index]
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
+                    (item) => item.id === newObj.id
+                  ).error.desc += "\n制程警示：" + newObj.warn.desc
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
+                    (item) => item.id === newObj.id
+                  ).error.url = reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[
                     obj.detailId - 1
-                  ].questionList.splice(index, 1)
+                  ].errorList
+                    .find((item) => item.id === newObj.id)
+                    .error.url.concat(newObj.warn.url)
+                }
+                if (
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.length ===
+                  1
+                ) {
+                  delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList
+                } else {
+                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.splice(
+                    index,
+                    1
+                  )
                 }
               }
             }
@@ -1132,68 +1202,114 @@ const warnError = (obj) => {
       }
     } else if (obj.type === "xray") {
       if (obj.position === "total") {
-        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 2
+        if (reportJson.value.json.xray.total.stepList[obj.id - 1].pass === 1) {
+          reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 2
+        }
         if (reportJson.value.json.xray.total.errorList === undefined) {
           reportJson.value.json.xray.total["errorList"] = []
         }
-        reportJson.value.json.xray.total.questionList.forEach((item, index) => {
+        reportJson.value.json.xray.total.warnList.forEach((item, index) => {
           if (item.id === obj.id) {
-            const { question: error, ...rest } = reportJson.value.json.xray.total.questionList[index]
-            const newObj = { error, ...rest }
-            reportJson.value.json.xray.total.errorList.push(newObj)
-            if (reportJson.value.json.xray.total.questionList.length === 1) {
-              delete reportJson.value.json.xray.total.questionList
+            if (reportJson.value.json.xray.total.errorList.find((error) => error.id === item.id) === undefined) {
+              const { warn: error, ...rest } = reportJson.value.json.xray.total.warnList[index]
+              const newObj = { error, ...rest }
+              reportJson.value.json.xray.total.errorList.push(newObj)
             } else {
-              reportJson.value.json.xray.total.questionList.splice(index, 1)
+              const newObj = reportJson.value.json.xray.total.warnList[index]
+              reportJson.value.json.xray.total.errorList.find((item) => item.id === newObj.id).error.desc +=
+                "\n制程警示：" + newObj.warn.desc
+              reportJson.value.json.xray.total.errorList.find((item) => item.id === newObj.id).error.url =
+                reportJson.value.json.xray.total.errorList
+                  .find((item) => item.id === newObj.id)
+                  .error.url.concat(newObj.warn.url)
+            }
+            if (reportJson.value.json.xray.total.warnList.length === 1) {
+              delete reportJson.value.json.xray.total.warnList
+            } else {
+              reportJson.value.json.xray.total.warnList.splice(index, 1)
             }
           }
         })
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
+          if (reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 1) {
+            reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
+          }
           if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList === undefined) {
             reportJson.value.json.xray.area[obj.areaId - 1].general["errorList"] = []
           }
-          reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
+          reportJson.value.json.xray.area[obj.areaId - 1].general.warnList.forEach((item, index) => {
             if (item.id === obj.id) {
-              const { question: error, ...rest } =
-                reportJson.value.json.xray.area[obj.areaId - 1].general.questionList[index]
-              const newObj = { error, ...rest }
-              reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.push(newObj)
-              if (reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.length === 1) {
-                delete reportJson.value.json.xray.area[obj.areaId - 1].general.questionList
+              if (
+                reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.find(
+                  (error) => error.id === item.id
+                ) === undefined
+              ) {
+                const { warn: error, ...rest } = reportJson.value.json.xray.area[obj.areaId - 1].general.warnList[index]
+                const newObj = { error, ...rest }
+                reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.push(newObj)
               } else {
-                reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.splice(index, 1)
+                const newObj = reportJson.value.json.xray.area[obj.areaId - 1].general.warnList[index]
+                reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.find(
+                  (item) => item.id === newObj.id
+                ).error.desc += "\n制程警示：" + newObj.warn.desc
+                reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.find(
+                  (item) => item.id === newObj.id
+                ).error.url = reportJson.value.json.xray.area[obj.areaId - 1].general.errorList
+                  .find((item) => item.id === newObj.id)
+                  .error.url.concat(newObj.warn.url)
+              }
+              if (reportJson.value.json.xray.area[obj.areaId - 1].general.warnList.length === 1) {
+                delete reportJson.value.json.xray.area[obj.areaId - 1].general.warnList
+              } else {
+                reportJson.value.json.xray.area[obj.areaId - 1].general.warnList.splice(index, 1)
               }
             }
           })
         } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
+          if (
+            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass === 1
+          ) {
+            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
+          }
           if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
             reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
           }
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                const { question: error, ...rest } =
-                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
+          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.forEach((item, index) => {
+            if (item.id === obj.id) {
+              if (
+                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
+                  (error) => error.id === item.id
+                ) === undefined
+              ) {
+                const { warn: error, ...rest } =
+                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList[index]
                 const newObj = { error, ...rest }
                 reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(newObj)
-                if (
-                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.length === 1
-                ) {
-                  delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                } else {
-                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(index, 1)
-                }
+              } else {
+                const newObj = reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList[index]
+                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
+                  (item) => item.id === newObj.id
+                ).error.desc += "\n制程警示：" + newObj.warn.desc
+                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
+                  (item) => item.id === newObj.id
+                ).error.url = reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
+                  .find((item) => item.id === newObj.id)
+                  .error.url.concat(newObj.warn.url)
+              }
+              if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.length === 1) {
+                delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList
+              } else {
+                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.splice(index, 1)
               }
             }
-          )
+          })
         }
       }
     }
   })
 }
+
 const getErrorQuestionWarnList = () => {
   errorList.value = []
   questionList.value = []
@@ -1511,7 +1627,6 @@ const getErrorQuestionWarnList = () => {
       }
     }
   })
-  // TODO
   generateStepList(reportJson.value).forEach((item) => {
     if (item.includes("eyes")) {
       if (item.includes("total")) {
@@ -1625,7 +1740,9 @@ const getErrorQuestionWarnList = () => {
   if (questionList.value.length === 0) {
     questionVisible.value = false
   }
-  console.log("stepList", stepList.value)
+  if (warnList.value.length === 0) {
+    warnVisible.value = false
+  }
 }
 
 const jsonToFile = (data) => {
