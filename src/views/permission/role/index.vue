@@ -221,12 +221,7 @@ const handleLink = (data) => {
           </el-tooltip>
         </div>
       </div>
-      <TableComponent
-        class="table-wrapper"
-        :column-data="roleTableHeaders"
-        :tableData="roleTableData"
-        stripe
-      >
+      <TableComponent class="table-wrapper" :column-data="roleTableHeaders" :tableData="roleTableData" stripe>
         <template #link="{ row }">
           <el-link type="primary" @click="handleLink(row)">角色详情</el-link>
         </template>
@@ -262,6 +257,7 @@ const handleLink = (data) => {
               :titles="['可选的权限', '具有的权限']"
               filter-placeholder="搜索"
               :data="permissionList"
+              class="el-transfer"
             >
               <template #default="{ option }">
                 <!-- 鼠标悬浮在文字上时，显示提示 -->
@@ -298,6 +294,7 @@ const handleLink = (data) => {
               :titles="['可选的权限', '具有的权限']"
               filter-placeholder="搜索"
               :data="permissionList"
+              class="el-transfer"
             >
               <template #default="{ option }">
                 <!-- 鼠标悬浮在文字上时，显示提示 -->
@@ -347,12 +344,10 @@ const handleLink = (data) => {
 .table-wrapper {
   margin-bottom: 20px;
 }
-
 .pager-wrapper {
   display: flex;
   justify-content: flex-end;
 }
-
 .search-wrapper {
   margin-bottom: 20px;
 
@@ -360,10 +355,12 @@ const handleLink = (data) => {
     padding-bottom: 2px;
   }
 }
-
 .toolbar-wrapper {
   display: flex;
   justify-content: space-between;
   margin-bottom: 20px;
+}
+.el-transfer {
+  --el-transfer-panel-width: 300px;
 }
 </style>
