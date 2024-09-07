@@ -195,7 +195,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button v-permission="['admin']" type="primary" icon="CirclePlus" @click="addType">新增电路板型号</el-button>
+          <el-button v-permission="['7']" type="primary" icon="CirclePlus" @click="addType">新增电路板型号</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -205,7 +205,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       </div>
       <div class="table-wrapper">
         <TableComponent :tableData="TableData" :column-data="headers" stripe @selection-change="handleSelectionChange">
-          <template v-if="checkPermission(['admin'])" #link="{ row }">
+          <template v-if="checkPermission(['7'])" #link="{ row }">
             <el-link type="primary" class="el-link" @click="handleLink(row)">编辑</el-link>
           </template>
         </TableComponent>
