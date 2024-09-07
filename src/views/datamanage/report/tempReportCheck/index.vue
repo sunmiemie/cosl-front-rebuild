@@ -105,21 +105,21 @@ const generateQuestionList = (obj, path = []) => {
   }
   return paths
 }
-const generateErrorList = (obj, path = []) => {
-  let paths = []
-  if (obj === null || typeof obj !== "object") {
-    return paths
-  }
-  if (Object.prototype.hasOwnProperty.call(obj, "errorList")) {
-    paths.push([...path, "errorList"])
-  }
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key) && typeof obj[key] === "object") {
-      paths = paths.concat(generateErrorList(obj[key], [...path, key]))
-    }
-  }
-  return paths
-}
+// const generateErrorList = (obj, path = []) => {
+//   let paths = []
+//   if (obj === null || typeof obj !== "object") {
+//     return paths
+//   }
+//   if (Object.prototype.hasOwnProperty.call(obj, "errorList")) {
+//     paths.push([...path, "errorList"])
+//   }
+//   for (const key in obj) {
+//     if (Object.prototype.hasOwnProperty.call(obj, key) && typeof obj[key] === "object") {
+//       paths = paths.concat(generateErrorList(obj[key], [...path, key]))
+//     }
+//   }
+//   return paths
+// }
 const generateStepList = (obj, path = []) => {
   let paths = []
   if (obj === null || typeof obj !== "object") {
@@ -151,134 +151,18 @@ const errorPass = (obj) => {
     type: "warning"
   }).then(() => {
     reportFixed.value = true
-    if (obj.type === "eyes") {
-      if (obj.position === "total") {
-        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 1
-        reportJson.value.json.threeD.eyes.total.errorList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.threeD.eyes.total.errorList.length === 1) {
-              delete reportJson.value.json.threeD.eyes.total.errorList
-            } else {
-              reportJson.value.json.threeD.eyes.total.errorList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.length === 1) {
-                delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList
-              } else {
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 1
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                if (
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.length === 1
-                ) {
-                  delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
-                } else {
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(
-                    index,
-                    1
-                  )
-                }
-              }
-            }
-          )
+    const path = []
+
+    if (obj.pass === 4) {
+      path.forEach((item) => {
+        if (item.id === obj.id) {
+          item.pass == 3
         }
-      }
-    } else if (obj.type === "eyesBak") {
-      if (obj.position === "total") {
-        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 1
-        reportJson.value.json.threeD.eyesBak.total.errorList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.threeD.eyesBak.total.errorList.length === 1) {
-              delete reportJson.value.json.threeD.eyesBak.total.errorList
-            } else {
-              reportJson.value.json.threeD.eyesBak.total.errorList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.length === 1) {
-                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList
-              } else {
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
-            1
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                if (
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
-                    .length === 1
-                ) {
-                  delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
-                } else {
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(
-                    index,
-                    1
-                  )
-                }
-              }
-            }
-          )
-        }
-      }
-    } else if (obj.type === "xray") {
-      if (obj.position === "total") {
-        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 1
-        reportJson.value.json.xray.total.errorList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.xray.total.errorList.length === 1) {
-              delete reportJson.value.json.xray.total.errorList
-            } else {
-              reportJson.value.json.xray.total.errorList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
-          reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.length === 1) {
-                delete reportJson.value.json.xray.area[obj.areaId - 1].general.errorList
-              } else {
-                reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 1
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.length === 1) {
-                delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]
-              } else {
-                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(index, 1)
-              }
-            }
-          })
-        }
-      }
+      })
     }
+
+    console.log(reportJson.value, 566)
+    console.log(reportJson.value.json, obj, 555)
   })
 }
 const errorQuestion = (obj) => {
@@ -288,203 +172,6 @@ const errorQuestion = (obj) => {
     type: "warning"
   }).then(() => {
     reportFixed.value = true
-    if (obj.type === "eyes") {
-      if (obj.position === "total") {
-        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 3
-        if (reportJson.value.json.threeD.eyes.total.questionList === undefined) {
-          reportJson.value.json.threeD.eyes.total["questionList"] = []
-        }
-        reportJson.value.json.threeD.eyes.total.errorList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            const { error: question, ...rest } = reportJson.value.json.threeD.eyes.total.errorList[index]
-            const newObj = { question, ...rest }
-            reportJson.value.json.threeD.eyes.total.questionList.push(newObj)
-            if (reportJson.value.json.threeD.eyes.total.errorList.length === 1) {
-              delete reportJson.value.json.threeD.eyes.total.errorList
-            } else {
-              reportJson.value.json.threeD.eyes.total.errorList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
-          if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList === undefined) {
-            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general["questionList"] = []
-          }
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              const { error: question, ...rest } =
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList[index]
-              const newObj = { question, ...rest }
-              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.push(newObj)
-              if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.length === 1) {
-                delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList
-              } else {
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 3
-          if (
-            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList === undefined
-          ) {
-            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1]["questionList"] = []
-          }
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                const { error: question, ...rest } =
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList[index]
-                const newObj = { question, ...rest }
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.push(
-                  newObj
-                )
-                if (
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.length === 1
-                ) {
-                  delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
-                } else {
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(
-                    index,
-                    1
-                  )
-                }
-              }
-            }
-          )
-        }
-      }
-    } else if (obj.type === "eyesBak") {
-      if (obj.position === "total") {
-        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 3
-        if (reportJson.value.json.threeD.eyesBak.total.questionList === undefined) {
-          reportJson.value.json.threeD.eyesBak.total["questionList"] = []
-        }
-        reportJson.value.json.threeD.eyesBak.total.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            const { error: question, ...rest } = reportJson.value.json.threeD.eyesBak.total.errorList[index]
-            const newObj = { question, ...rest }
-            reportJson.value.json.threeD.eyesBak.total.questionList.push(newObj)
-            if (reportJson.value.json.threeD.eyesBak.total.errorList.length === 1) {
-              delete reportJson.value.json.threeD.eyesBak.total.errorList
-            } else {
-              reportJson.value.json.threeD.eyesBak.total.errorList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
-          if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList === undefined) {
-            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general["questionList"] = []
-          }
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              const { error: question, ...rest } =
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList[index]
-              const newObj = { question, ...rest }
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.push(newObj)
-              if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.length === 1) {
-                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList
-              } else {
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
-            3
-          if (
-            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList ===
-            undefined
-          ) {
-            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1]["questionList"] = []
-          }
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                const { error: question, ...rest } =
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList[index]
-                const newObj = { question, ...rest }
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.push(
-                  newObj
-                )
-                if (
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
-                    .length === 1
-                ) {
-                  delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
-                } else {
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(
-                    index,
-                    1
-                  )
-                }
-              }
-            }
-          )
-        }
-      }
-    } else if (obj.type === "xray") {
-      if (obj.position === "total") {
-        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 3
-        if (reportJson.value.json.xray.total.questionList === undefined) {
-          reportJson.value.json.xray.total["questionList"] = []
-        }
-        reportJson.value.json.xray.total.errorList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            const { error: question, ...rest } = reportJson.value.json.xray.total.errorList[index]
-            const newObj = { question, ...rest }
-            reportJson.value.json.xray.total.questionList.push(newObj)
-            if (reportJson.value.json.xray.total.errorList.length === 1) {
-              delete reportJson.value.json.xray.total.errorList
-            } else {
-              reportJson.value.json.xray.total.errorList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
-          if (reportJson.value.json.xray.area[obj.areaId - 1].general.questionList === undefined) {
-            reportJson.value.json.xray.area[obj.areaId - 1].general["questionList"] = []
-          }
-          reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              const { error: question, ...rest } =
-                reportJson.value.json.xray.area[obj.areaId - 1].general.errorList[index]
-              const newObj = { question, ...rest }
-              reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.push(newObj)
-              if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.length === 1) {
-                delete reportJson.value.json.xray.area[obj.areaId - 1].general.errorList
-              } else {
-                reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 3
-          if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList === undefined) {
-            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]["questionList"] = []
-          }
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              const { error: question, ...rest } =
-                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList[index]
-              const newObj = { question, ...rest }
-              reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.push(newObj)
-              if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.length === 1) {
-                delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
-              } else {
-                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(index, 1)
-              }
-            }
-          })
-        }
-      }
-    }
   })
 }
 const questionPass = (obj) => {
@@ -494,142 +181,6 @@ const questionPass = (obj) => {
     type: "warning"
   }).then(() => {
     reportFixed.value = true
-    if (obj.type === "eyes") {
-      if (obj.position === "total") {
-        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 1
-        reportJson.value.json.threeD.eyes.total.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.threeD.eyes.total.questionList.length === 1) {
-              delete reportJson.value.json.threeD.eyes.total.questionList
-            } else {
-              reportJson.value.json.threeD.eyes.total.questionList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.length === 1) {
-                delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList
-              } else {
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 1
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                if (
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                    .length === 1
-                ) {
-                  delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                } else {
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(
-                    index,
-                    1
-                  )
-                }
-              }
-            }
-          )
-        }
-      }
-    } else if (obj.type === "eyesBak") {
-      if (obj.position === "total") {
-        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 1
-        reportJson.value.json.threeD.eyesBak.total.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.threeD.eyesBak.total.questionList.length === 1) {
-              delete reportJson.value.json.threeD.eyesBak.total.questionList
-            } else {
-              reportJson.value.json.threeD.eyesBak.total.questionList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.length === 1) {
-                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList
-              } else {
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
-            1
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                if (
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                    .length === 1
-                ) {
-                  delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                } else {
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[
-                  obj.detailId - 1
-                    ].questionList.splice(index, 1)
-                }
-              }
-            }
-          )
-        }
-      }
-    } else if (obj.type === "xray") {
-      if (obj.position === "total") {
-        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 1
-        reportJson.value.json.xray.total.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.xray.total.questionList.length === 1) {
-              delete reportJson.value.json.xray.total.questionList
-            } else {
-              reportJson.value.json.xray.total.questionList.splice(index, 1)
-            }
-          }
-        })
-        // TODO
-        hasError.value = hasProperty(reportJson.value, "errorList")
-        hasQuestion.value = hasProperty(reportJson.value, "questionList")
-        console.log("questionPass | hasError - hasQuestion", hasError.value, hasQuestion.value)
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
-          reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              if (reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.length === 1) {
-                delete reportJson.value.json.xray.area[obj.areaId - 1].general.questionList
-              } else {
-                reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 1
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                if (
-                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.length === 1
-                ) {
-                  delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                } else {
-                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(index, 1)
-                }
-              }
-            }
-          )
-        }
-      }
-    }
   })
 }
 const questionError = (obj) => {
@@ -639,202 +190,6 @@ const questionError = (obj) => {
     type: "warning"
   }).then(() => {
     reportFixed.value = true
-    if (obj.type === "eyes") {
-      if (obj.position === "total") {
-        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 2
-        if (reportJson.value.json.threeD.eyes.total.errorList === undefined) {
-          reportJson.value.json.threeD.eyes.total["errorList"] = []
-        }
-        reportJson.value.json.threeD.eyes.total.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            const { question: error, ...rest } = reportJson.value.json.threeD.eyes.total.questionList[index]
-            const newObj = { error, ...rest }
-            reportJson.value.json.threeD.eyes.total.errorList.push(newObj)
-            if (reportJson.value.json.threeD.eyes.total.questionList.length === 1) {
-              delete reportJson.value.json.threeD.eyes.total.questionList
-            } else {
-              reportJson.value.json.threeD.eyes.total.questionList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-          if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList === undefined) {
-            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general["errorList"] = []
-          }
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              const { question: error, ...rest } =
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList[index]
-              const newObj = { error, ...rest }
-              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.push(newObj)
-              if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.length === 1) {
-                delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList
-              } else {
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
-          if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
-            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
-          }
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                const { question: error, ...rest } =
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
-                const newObj = { error, ...rest }
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(newObj)
-                if (
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                    .length === 1
-                ) {
-                  delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                } else {
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(
-                    index,
-                    1
-                  )
-                }
-              }
-            }
-          )
-        }
-      }
-    } else if (obj.type === "eyesBak") {
-      if (obj.position === "total") {
-        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 2
-        if (reportJson.value.json.threeD.eyesBak.total.errorList === undefined) {
-          reportJson.value.json.threeD.eyesBak.total["errorList"] = []
-        }
-        reportJson.value.json.threeD.eyesBak.total.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            const { question: error, ...rest } = reportJson.value.json.threeD.eyesBak.total.questionList[index]
-            const newObj = { error, ...rest }
-            reportJson.value.json.threeD.eyesBak.total.errorList.push(newObj)
-            if (reportJson.value.json.threeD.eyesBak.total.questionList.length === 1) {
-              delete reportJson.value.json.threeD.eyesBak.total.questionList
-            } else {
-              reportJson.value.json.threeD.eyesBak.total.questionList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-          if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList === undefined) {
-            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general["errorList"] = []
-          }
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              const { question: error, ...rest } =
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList[index]
-              const newObj = { error, ...rest }
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.push(newObj)
-              if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.length === 1) {
-                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList
-              } else {
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
-            2
-          if (
-            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined
-          ) {
-            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
-          }
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                const { question: error, ...rest } =
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
-                const newObj = { error, ...rest }
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(
-                  newObj
-                )
-                if (
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                    .length === 1
-                ) {
-                  delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                } else {
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[
-                  obj.detailId - 1
-                    ].questionList.splice(index, 1)
-                }
-              }
-            }
-          )
-        }
-      }
-    } else if (obj.type === "xray") {
-      if (obj.position === "total") {
-        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 2
-        if (reportJson.value.json.xray.total.errorList === undefined) {
-          reportJson.value.json.xray.total["errorList"] = []
-        }
-        reportJson.value.json.xray.total.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            const { question: error, ...rest } = reportJson.value.json.xray.total.questionList[index]
-            const newObj = { error, ...rest }
-            reportJson.value.json.xray.total.errorList.push(newObj)
-            if (reportJson.value.json.xray.total.questionList.length === 1) {
-              delete reportJson.value.json.xray.total.questionList
-            } else {
-              reportJson.value.json.xray.total.questionList.splice(index, 1)
-            }
-          }
-        })
-      } else if (obj.position === "area") {
-        if (obj.areaPosition === "general") {
-          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-          if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList === undefined) {
-            reportJson.value.json.xray.area[obj.areaId - 1].general["errorList"] = []
-          }
-          reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-            if (item.id === obj.id) {
-              const { question: error, ...rest } =
-                reportJson.value.json.xray.area[obj.areaId - 1].general.questionList[index]
-              const newObj = { error, ...rest }
-              reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.push(newObj)
-              if (reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.length === 1) {
-                delete reportJson.value.json.xray.area[obj.areaId - 1].general.questionList
-              } else {
-                reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.splice(index, 1)
-              }
-            }
-          })
-        } else if (obj.areaPosition === "detail") {
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
-          if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
-            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
-          }
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-            (item, index) => {
-              if (item.id === obj.id) {
-                const { question: error, ...rest } =
-                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
-                const newObj = { error, ...rest }
-                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(newObj)
-                if (
-                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.length === 1
-                ) {
-                  delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                } else {
-                  reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(index, 1)
-                }
-              }
-            }
-          )
-        }
-      }
-    }
   })
 }
 
@@ -842,322 +197,20 @@ const getErrorQuestionList = () => {
   errorList.value = []
   questionList.value = []
   stepList.value = []
-  generateErrorList(reportJson.value).forEach((item) => {
-    if (item.includes("eyes")) {
-      if (item.includes("total")) {
-        getNestedValue(reportJson.value, item).forEach((value) => {
-          errorList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
-        })
-      }
-      if (item.includes("area")) {
-        if (item.includes("general")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            errorList.value.push({
-              type: "eyes",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "general",
-              id: value.id,
-              content: value
-            })
-          })
-        }
-        if (item.includes("detail")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            errorList.value.push({
-              type: "eyes",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "detail",
-              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-              id: value.id,
-              content: value
-            })
-          })
-        }
-      }
+  const path = reportJson.value.json.tempTest
+  path.forEach((item) => {
+    item.type = anyObj.type
+    if (item.pass === 4 || item.pass === 2) {
+      errorList.value.push(item)
     }
-    if (item.includes("eyesBak")) {
-      if (item.includes("total")) {
-        getNestedValue(reportJson.value, item).forEach((value) => {
-          errorList.value.push({ type: "eyesBak", position: "total", id: value.id, content: value })
-        })
-      }
-      if (item.includes("area")) {
-        if (item.includes("general")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            errorList.value.push({
-              type: "eyesBak",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "general",
-              id: value.id,
-              content: value
-            })
-          })
-        }
-        if (item.includes("detail")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            errorList.value.push({
-              type: "eyesBak",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "detail",
-              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-              id: value.id,
-              content: value
-            })
-          })
-        }
-      }
-    }
-    if (item.includes("xray")) {
-      if (item.includes("total")) {
-        getNestedValue(reportJson.value, item).forEach((value) => {
-          errorList.value.push({ type: "xray", position: "total", id: value.id, content: value })
-        })
-      }
-      if (item.includes("area")) {
-        if (item.includes("general")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            errorList.value.push({
-              type: "xray",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "general",
-              id: value.id,
-              content: value
-            })
-          })
-        }
-        if (item.includes("detail")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            errorList.value.push({
-              type: "xray",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "detail",
-              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-              id: value.id,
-              content: value
-            })
-          })
-        }
-      }
+    if (item.pass === 4 || item.pass === 3) {
+      questionList.value.push(item)
     }
   })
-  generateQuestionList(reportJson.value).forEach((item) => {
-    if (item.includes("eyes")) {
-      if (item.includes("total")) {
-        getNestedValue(reportJson.value, item).forEach((value) => {
-          questionList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
-        })
-      }
-      if (item.includes("area")) {
-        if (item.includes("general")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            questionList.value.push({
-              type: "eyes",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "general",
-              id: value.id,
-              content: value
-            })
-          })
-        }
-        if (item.includes("detail")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            questionList.value.push({
-              type: "eyes",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "detail",
-              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-              id: value.id,
-              content: value
-            })
-          })
-        }
-      }
-    }
-    if (item.includes("eyesBak")) {
-      if (item.includes("total")) {
-        getNestedValue(reportJson.value, item).forEach((value) => {
-          questionList.value.push({ type: "eyesBak", position: "total", id: value.id, content: value })
-        })
-      }
-      if (item.includes("area")) {
-        if (item.includes("general")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            questionList.value.push({
-              type: "eyesBak",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "general",
-              id: value.id,
-              content: value
-            })
-          })
-        }
-        if (item.includes("detail")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            questionList.value.push({
-              type: "eyesBak",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "detail",
-              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-              id: value.id,
-              content: value
-            })
-          })
-        }
-      }
-    }
-    if (item.includes("xray")) {
-      if (item.includes("total")) {
-        getNestedValue(reportJson.value, item).forEach((value) => {
-          questionList.value.push({ type: "xray", position: "total", id: value.id, content: value })
-        })
-      }
-      if (item.includes("area")) {
-        if (item.includes("general")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            questionList.value.push({
-              type: "xray",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "general",
-              id: value.id,
-              content: value
-            })
-          })
-        }
-        if (item.includes("detail")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            questionList.value.push({
-              type: "xray",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "detail",
-              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-              id: value.id,
-              content: value
-            })
-          })
-        }
-      }
-    }
-  })
-  generateStepList(reportJson.value).forEach((item) => {
-    if (item.includes("eyes")) {
-      if (item.includes("total")) {
-        getNestedValue(reportJson.value, item).forEach((value) => {
-          stepList.value.push({ type: "eyes", position: "total", id: value.id, content: value })
-        })
-      }
-      if (item.includes("area")) {
-        if (item.includes("general")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            stepList.value.push({
-              type: "eyes",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "general",
-              id: value.id,
-              content: value
-            })
-          })
-        }
-        if (item.includes("detail")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            stepList.value.push({
-              type: "eyes",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "detail",
-              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-              id: value.id,
-              content: value
-            })
-          })
-        }
-      }
-    }
-    if (item.includes("eyesBak")) {
-      if (item.includes("total")) {
-        getNestedValue(reportJson.value, item).forEach((value) => {
-          stepList.value.push({ type: "eyesBak", position: "total", id: value.id, content: value })
-        })
-      }
-      if (item.includes("area")) {
-        if (item.includes("general")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            stepList.value.push({
-              type: "eyesBak",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "general",
-              id: value.id,
-              content: value
-            })
-          })
-        }
-        if (item.includes("detail")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            stepList.value.push({
-              type: "eyesBak",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "detail",
-              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-              id: value.id,
-              content: value
-            })
-          })
-        }
-      }
-    }
-    if (item.includes("xray")) {
-      if (item.includes("total")) {
-        getNestedValue(reportJson.value, item).forEach((value) => {
-          stepList.value.push({ type: "xray", position: "total", id: value.id, content: value })
-        })
-      }
-      if (item.includes("area")) {
-        if (item.includes("general")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            stepList.value.push({
-              type: "xray",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "general",
-              id: value.id,
-              content: value
-            })
-          })
-        }
-        if (item.includes("detail")) {
-          getNestedValue(reportJson.value, item).forEach((value) => {
-            stepList.value.push({
-              type: "xray",
-              position: "area",
-              areaId: parseInt(item[item.indexOf("area") + 1]) + 1,
-              areaPosition: "detail",
-              detailId: parseInt(item[item.indexOf("area") + 3]) + 1,
-              id: value.id,
-              content: value
-            })
-          })
-        }
-      }
-    }
-  })
+
   // TODO
   hasError.value = hasProperty(reportJson.value, "errorList")
   hasQuestion.value = hasProperty(reportJson.value, "questionList")
-  console.log("getErrorQuestionList | hasError - hasQuestion", hasError.value, hasQuestion.value)
   if (errorList.value.length === 0) {
     errorVisible.value = false
   }
@@ -1396,30 +449,24 @@ onMounted(() => {
             size="large"
             style="font-size: 18px; margin-right: 20px"
             type="danger"
+            :disabled="route.query.type === '弓曲度测试' || route.query.type === '2D留存'"
             @click="errorVisible = true"
-          >存在缺陷
+            >存在缺陷
           </el-link>
           <el-link
             v-if="hasQuestion"
             :underline="false"
             size="large"
             style="font-size: 18px"
-            type="warning"
+            type="info"
             @click="questionVisible = true"
-          >存在疑问
+            >存在疑问
           </el-link>
-          <el-text
-            v-if="hasWarning"
-            size="large"
-            style="font-size: 18px; color: orange"
-          >
-            制程警示
-          </el-text>
+          <el-text v-if="hasWarning" size="large" style="font-size: 18px; color: orange"> 制程警示 </el-text>
         </div>
         <el-button icon="Refresh" v-if="reportFixed" @click="reGetReport">重置所有更改</el-button>
       </div>
       <div style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px">
-<!--        <report-preview v-if="loaded" v-model:preview-list="reportJson" mode="check" style="width: 100vw" />-->
         <temp-report-preview v-if="loaded" v-model:preview-list="reportJson" style="width: 100vw" />
       </div>
       <div v-if="!hasQuestion">
@@ -1435,39 +482,30 @@ onMounted(() => {
       <el-table :data="errorList">
         <el-table-column label="测试类型">
           <template #default="scope">
-            <el-text>
-              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
+            <el-text
+              >{{ errorList.value }}
+              {{ scope.row.type }}
             </el-text>
           </template>
         </el-table-column>
-        <el-table-column label="缺陷位置">
+
+        <el-table-column label="缺陷名称">
           <template #default="scope">
-            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
-            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
-            <el-text v-if="scope.row.areaPosition !== undefined">
-              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
-            </el-text>
-            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
-          </template>
-        </el-table-column>
-        <el-table-column label="检测项">
-          <template #default="scope">
-            <el-text> {{ scope.row.content.name }}</el-text>
+            <el-text> {{ scope.row.name }}</el-text>
           </template>
         </el-table-column>
         <el-table-column label="缺陷描述">
           <template #default="scope">
-            <el-text> {{ scope.row.content.error.desc }}</el-text>
+            <el-text> {{ scope.row.error.desc }}</el-text>
           </template>
         </el-table-column>
-        <el-table-column align="center" label="留存图片">
+        <el-table-column align="center" label="缺陷图片">
           <template #default="scope">
             <div style="display: flex">
-              <el-text style="margin-right: 5px">共{{ scope.row.content.error.url.length }}张</el-text>
               <el-image
                 :preview-teleported="true"
-                :preview-src-list="scope.row.content.error.url"
-                :src="scope.row.content.error.url[0]"
+                :preview-src-list="scope.row.error.url"
+                :src="scope.row.error.url[0]"
               />
             </div>
           </template>
@@ -1486,38 +524,29 @@ onMounted(() => {
         <el-table-column label="测试类型">
           <template #default="scope">
             <el-text>
-              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
+              {{ scope.row.type }}
             </el-text>
           </template>
         </el-table-column>
-        <el-table-column label="疑问位置">
+
+        <el-table-column label="疑问名称">
           <template #default="scope">
-            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
-            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
-            <el-text v-if="scope.row.areaPosition !== undefined">
-              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
-            </el-text>
-            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
-          </template>
-        </el-table-column>
-        <el-table-column label="检测项">
-          <template #default="scope">
-            <el-text> {{ scope.row.content.name }}</el-text>
+            <el-text> {{ scope.row.name }}</el-text>
           </template>
         </el-table-column>
         <el-table-column label="疑问描述">
           <template #default="scope">
-            <el-text> {{ scope.row.content.question.desc }}</el-text>
+            <el-text> {{ scope.row.desc }}</el-text>
           </template>
         </el-table-column>
-        <el-table-column align="center" label="留存图片">
+        <el-table-column align="center" label="疑问图片">
           <template #default="scope">
             <div style="display: flex">
-              <el-text style="margin-right: 5px">共{{ scope.row.content.question.url.length }}张</el-text>
+              <el-text style="margin-right: 5px">共{{ scope.row.question.url.length }}张</el-text>
               <el-image
                 :preview-teleported="true"
-                :preview-src-list="scope.row.content.question.url"
-                :src="scope.row.content.question.url[0]"
+                :preview-src-list="scope.row.question.url"
+                :src="scope.row.question.url[0]"
               />
             </div>
           </template>
@@ -1531,7 +560,12 @@ onMounted(() => {
       </el-table>
     </el-dialog>
 
-    <el-dialog v-if="route.query.type === '弓曲度测试' || route.query.type === '2D留存'" v-model="feedbackVisible" width="80%" align-center>
+    <el-dialog
+      v-if="route.query.type === '弓曲度测试' || route.query.type === '2D留存'"
+      v-model="feedbackVisible"
+      width="80%"
+      align-center
+    >
       <el-input
         placeholder="打回理由"
         v-model="feedbackReason"
@@ -1573,8 +607,8 @@ onMounted(() => {
             <el-text
               :type="scope.row.content.pass === 1 ? 'success' : scope.row.content.pass === 3 ? 'warning' : 'danger'"
             >
-              {{ scope.row.content.pass === 1 ? "通过" : scope.row.content.pass === 3 ? "疑问" : "未通过" }}</el-text
-            >
+              {{ scope.row.content.pass === 1 ? "通过" : scope.row.content.pass === 3 ? "疑问" : "未通过" }}
+            </el-text>
           </template>
         </el-table-column>
       </el-table>
