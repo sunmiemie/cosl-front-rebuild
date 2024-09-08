@@ -65,11 +65,11 @@ const searchData = reactive({
 const defineLink = (status: string, reportGenerated: number) => {
   switch (status) {
     case "0":
-    case "3":
+    case "1":
     case "4":
       return { 1: "查看" }
-    case "1":
     case "2":
+    case "3":
       if (reportGenerated == 0) return { 1: "查看", 2: "生成" }
       else return { 1: "查看", 2: "下载" }
   }
