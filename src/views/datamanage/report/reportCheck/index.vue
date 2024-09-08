@@ -2998,7 +2998,9 @@ const checkFeedback = () => {
   } else {
     formData.append("file_report", undefined)
   }
-  formData.append("file_feedback", blob_feedback, "data_feedback.json")
+  if (route.query.type !== "弓曲度测试" && route.query.type !== "2D留存") {
+    formData.append("file_feedback", blob_feedback, "data_feedback.json")
+  }
   // 生产测试报告
   checkReportFeedbackApi(formData).then((res) => {
     // console.log(formData)

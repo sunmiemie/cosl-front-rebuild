@@ -132,8 +132,8 @@ const openViewer = (img) => {
         </el-table>
         <el-text>留存项</el-text>
         <div style="display: flex; justify-content: center; align-items: center">
-          <el-image :src="props.previewList.json.plane.leftUrl" fit="contain" style="width: 40%; margin-right: 10px" />
-          <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%" />
+          <el-image :src="props.previewList.json.plane.leftUrl" fit="contain" style="width: 40%; margin-right: 10px; cursor: pointer" @click="openViewer(props.previewList.json.plane.leftUrl)"/>
+          <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%; cursor: pointer" @click="openViewer(props.previewList.json.plane.rightUrl)"/>
         </div>
 
         <el-text v-if="props.previewList.json.plane.errorList != undefined">缺陷项</el-text>
