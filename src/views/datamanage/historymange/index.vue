@@ -1,11 +1,11 @@
 <script lang="ts" setup>
 import { onMounted, reactive, ref, watch } from "vue"
-import { type FormInstance, TabsPaneContext } from "element-plus"
+import { ElMessage, type FormInstance, TabsPaneContext } from "element-plus"
 import { ElButton } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import { getReportDataApi, getTempReportDataApi } from "@/api/report"
+import { generateReportPdfApi, generateTempReportPdfApi, getReportDataApi, getTempReportDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useRouter } from "vue-router"
 
@@ -62,18 +62,16 @@ const searchData = reactive({
   type: "",
   serial: ""
 })
-const defineLink = (status: string) => {
+const defineLink = (status: string, reportGenerated: number) => {
   switch (status) {
     case "0":
-      return { 1: "查看" }
-    case "1":
-      return { 1: "查看" }
-    case "2":
-      return { 1: "查看", 2: "导出" }
     case "3":
-      return { 1: "查看", 2: "导出" }
     case "4":
       return { 1: "查看" }
+    case "1":
+    case "2":
+      if (reportGenerated == 0) return { 1: "查看", 2: "生成" }
+      else return { 1: "查看", 2: "下载" }
   }
 }
 
@@ -88,9 +86,10 @@ const getTableData = () => {
     serial: searchData.serial || undefined
   }).then((res) => {
     TableData.value = res.data.list
+    console.log("reportData", TableData.value)
     paginationData.total = res.data.total
     for (let i = 0; i < TableData.value.length; i++) {
-      TableData.value[i].link = defineLink(TableData.value[i].status)
+      TableData.value[i].link = defineLink(TableData.value[i].status, TableData.value[i].report_generated)
     }
     loading.value = false
   })
@@ -107,39 +106,88 @@ const getTempTableData = () => {
   }).then((res) => {
     // console.log(res)
     tempTableData.value = res.data.list
+    console.log("reportData", tempTableData.value)
+
     paginationData.total = res.data.total
     for (let i = 0; i < tempTableData.value.length; i++) {
-      tempTableData.value[i].link = defineLink(tempTableData.value[i].status)
+      tempTableData.value[i].link = defineLink(tempTableData.value[i].status, tempTableData.value[i].report_generated)
     }
     tempLoading.value = false
   })
 }
 
 const handleLink = (data: any, i: string) => {
-  if (i == "导出") {
+  if (i === "下载") {
     const link = document.createElement("a")
-    link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${data.report_filepath}.pdf?id=${data.id}`
+    // 去掉 .json 后缀
+    const filePath = data.report_filepath.replace(".json", "")
+    link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${filePath}.pdf?id=${data.id}`
+    // 新标签页打开
+    link.target = "_blank"
     link.setAttribute("download", data.report_filepath + ".pdf")
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  } else {
+  } else if (i === "查看") {
     // console.log("report view", data)
     router.push({ name: "reportView", query: data })
+  } else if (i === "生成") {
+    console.log("生成")
+    console.log(data)
+    // const link = document.createElement("a")
+    // link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/generate-pdf`
+    // document.body.appendChild(link)
+    // link.click()
+    // document.body.removeChild(link)
+
+    generateReportPdfApi({ id: data.id })
+      .then((res) => {
+        console.log("生成报告", res)
+        ElMessage.success("报告生成成功")
+        getTableData()
+      })
+      .catch((err) => {
+        ElMessage.error("报告生成失败")
+        console.error("报告生成失败", err)
+      })
   }
 }
 // devreport/check/operate
 const handleTempLink = (data: any, i: string) => {
-  if (i === "导出") {
+  if (i === "下载") {
     const link = document.createElement("a")
-    link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${data.report_filepath}.pdf?id=${data.id}`
+    // 去掉 .json 后缀
+    const filePath = data.report_filepath.replace(".json", "")
+    link.href = `${import.meta.env.VITE_BASE_API}data/devreport/pdf/download/${filePath}.pdf?id=${data.id}`
+    // 新标签页打开
+    link.target = "_blank"
+
     link.setAttribute("download", data.report_filepath + ".pdf")
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-  } else {
+  } else if (i === "查看") {
     // console.log("report view", data)
     router.push({ name: "tempReportView", query: data })
+  } else if (i === "生成") {
+    console.log("生成")
+    console.log(data)
+    // const link = document.createElement("a")
+    // link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/generate-pdf`
+    // document.body.appendChild(link)
+    // link.click()
+    // document.body.removeChild(link)
+
+    generateTempReportPdfApi({ id: data.id })
+      .then((res) => {
+        console.log("生成报告", res)
+        ElMessage.success("报告生成成功")
+        getTempTableData()
+      })
+      .catch((err) => {
+        ElMessage.error("报告生成失败")
+        console.error("报告生成失败", err)
+      })
   }
 }
 
