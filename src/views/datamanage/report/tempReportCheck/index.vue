@@ -2,11 +2,10 @@
 import { onMounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import {
-  checkReportDataApi,
   checkTempReportDataApi,
   checkTempReportFeedbackApi,
   checkTempReportPassApi,
-  generateQuestionUnitApi
+  generateDevQuestionUnitApi
 } from "@/api/report"
 import { useUserStore } from "@/store/modules/user"
 import TempReportPreview from "@/components/Check/TempReportPreview.vue"
@@ -354,7 +353,7 @@ const generateQuestionUnit = () => {
     formData.append("file_report", undefined)
   }
   formData.append("file_question", blob_question, "data_question.json")
-  generateQuestionUnitApi(formData).then((res) => {
+  generateDevQuestionUnitApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
       router.push({ name: "reportCheckList" })
@@ -514,12 +513,21 @@ onMounted(async () => {
       >
         <temp-report-preview v-if="loaded" v-model:preview-list="reportJson" style="width: 100vw" />
       </div>
-      <div v-if="!hasQuestion">
-        <el-button icon="Check" size="large" type="success" @click="handlePass">审核通过</el-button>
-        <el-button icon="Close" size="large" type="danger" @click="feedbackVisible = true">审核未通过</el-button>
-      </div>
-      <div v-else>
-        <el-button size="large" type="warning" @click="questionDialogVisible = true">? 生成疑问工单</el-button>
+      <div style="display: flex; align-items: center">
+        <div v-if="!hasQuestion">
+          <el-button icon="Check" size="large" type="success" @click="handlePass" :disabled="hasWarning"
+            >审核通过</el-button
+          >
+          <el-button icon="Close" size="large" type="danger" @click="feedbackVisible = true" :disabled="hasWarning"
+            >审核未通过</el-button
+          >
+        </div>
+        <div v-else>
+          <el-button size="large" type="warning" @click="questionDialogVisible = true" :disabled="hasWarning"
+            >? 生成疑问工单</el-button
+          >
+        </div>
+        <el-text type="warning" v-if="hasWarning" style="margin-left: 20px">完成操作需要处理所有制程警示</el-text>
       </div>
     </el-card>
 
@@ -707,7 +715,9 @@ onMounted(async () => {
         style="margin-top: 10px"
       />
       <template #footer>
-        <el-button type="danger" :disabled="feedbackReason === '' || feedbackList.length === 0" @click="handleFeedback">打回</el-button>
+        <el-button type="danger" :disabled="feedbackReason === '' || feedbackList.length === 0" @click="handleFeedback"
+          >打回</el-button
+        >
       </template>
     </el-dialog>
 
