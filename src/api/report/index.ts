@@ -113,3 +113,11 @@ export const generateQuestionUnitApi = (data: any) => {
     data
   })
 }
+export const generateDevQuestionUnitApi = (data: any) => {
+  return request({
+    url: "test/devquestionunit/add/",
+    headers: { "Content-Type": "multipart/form-data" },
+    method: "post",
+    data
+  })
+}
