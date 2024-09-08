@@ -3404,7 +3404,7 @@ onMounted(() => {
         style="margin-top: 10px"
       />
       <template #footer>
-        <el-button :disabled="!feedbackReason" type="danger" @click="handleFeedback">打回</el-button>
+        <el-button :disabled="feedbackReason === ''" type="danger" @click="handleFeedback">打回</el-button>
       </template>
     </el-dialog>
     <el-dialog v-else v-model="feedbackVisible" title="请选择打回项" width="80%" align-center>
@@ -3450,7 +3450,7 @@ onMounted(() => {
         style="margin-top: 10px"
       />
       <template #footer>
-        <el-button :disabled="!feedbackReason" type="danger" @click="handleFeedback">打回</el-button>
+        <el-button :disabled="feedbackReason === '' || feedbackList.length === 0" type="danger" @click="handleFeedback">打回</el-button>
       </template>
     </el-dialog>
     <el-dialog v-model="questionDialogVisible" title="生成确认" width="80%" align-center>

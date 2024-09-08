@@ -88,7 +88,6 @@ const getErrorQuestionWarnList = () => {
     }
     stepList.value.push(item)
   })
-
 }
 
 // 缺陷项操作
@@ -671,7 +670,7 @@ onMounted(async () => {
         style="margin-top: 10px"
       />
       <template #footer>
-        <el-button type="danger" :disabled="!feedbackReason" @click="handleFeedback">打回</el-button>
+        <el-button type="danger" :disabled="feedbackReason === ''" @click="handleFeedback">打回</el-button>
       </template>
     </el-dialog>
     <el-dialog v-else v-model="feedbackVisible" title="请选择打回项" width="80%" align-center>
@@ -691,9 +690,7 @@ onMounted(async () => {
         </el-table-column>
         <el-table-column label="测试结果" fixed="right" align="right">
           <template #default="scope">
-            <el-text
-              :type="scope.row.pass === 1 ? 'success' : scope.row.pass === 3 ? 'warning' : 'danger'"
-            >
+            <el-text :type="scope.row.pass === 1 ? 'success' : scope.row.pass === 3 ? 'warning' : 'danger'">
               {{ scope.row.pass === 1 ? "通过" : scope.row.pass === 3 ? "疑问" : "未通过" }}
             </el-text>
           </template>
@@ -707,7 +704,7 @@ onMounted(async () => {
         style="margin-top: 10px"
       />
       <template #footer>
-        <el-button type="danger" :disabled="!feedbackReason" @click="handleFeedback">打回</el-button>
+        <el-button type="danger" :disabled="feedbackReason === '' || feedbackList.length === 0" @click="handleFeedback">打回</el-button>
       </template>
     </el-dialog>
 
@@ -716,38 +713,28 @@ onMounted(async () => {
         <el-table-column label="测试类型">
           <template #default="scope">
             <el-text>
-              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
+              {{ scope.row.type }}
             </el-text>
-          </template>
-        </el-table-column>
-        <el-table-column label="疑问位置">
-          <template #default="scope">
-            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
-            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
-            <el-text v-if="scope.row.areaPosition !== undefined">
-              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
-            </el-text>
-            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
           </template>
         </el-table-column>
         <el-table-column label="检测项">
           <template #default="scope">
-            <el-text> {{ scope.row.content.name }}</el-text>
+            <el-text> {{ scope.row.name }}</el-text>
           </template>
         </el-table-column>
         <el-table-column label="疑问描述">
           <template #default="scope">
-            <el-text> {{ scope.row.content.question.desc }}</el-text>
+            <el-text> {{ scope.row.question.desc }}</el-text>
           </template>
         </el-table-column>
         <el-table-column align="center" label="留存图片">
           <template #default="scope">
             <div style="display: flex">
-              <el-text style="margin-right: 5px">共{{ scope.row.content.question.url.length }}张</el-text>
+              <el-text style="margin-right: 5px">共{{ scope.row.question.url.length }}张</el-text>
               <el-image
                 :preview-teleported="true"
-                :preview-src-list="scope.row.content.question.url"
-                :src="scope.row.content.question.url[0]"
+                :preview-src-list="scope.row.question.url"
+                :src="scope.row.question.url[0]"
               />
             </div>
           </template>
