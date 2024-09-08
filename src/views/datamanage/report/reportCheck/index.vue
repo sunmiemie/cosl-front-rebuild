@@ -1894,9 +1894,6 @@ const warnError = (obj) => {
     reportFixed.value = true
     if (obj.type === "eyes") {
       if (obj.position === "total") {
-        if (reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass === 1) {
-          reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 2
-        }
         if (reportJson.value.json.threeD.eyes.total.errorList === undefined) {
           reportJson.value.json.threeD.eyes.total["errorList"] = []
         }
@@ -1940,11 +1937,13 @@ const warnError = (obj) => {
             }
           }
         })
+        if (reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass === 1) {
+          reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 2
+        } else if (reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass === 3) {
+          reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 4
+        }
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 1) {
-            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-          }
           if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList === undefined) {
             reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general["errorList"] = []
           }
@@ -2009,14 +2008,12 @@ const warnError = (obj) => {
               }
             }
           })
-        } else if (obj.areaPosition === "detail") {
-          if (
-            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
-              .pass === 1
-          ) {
-            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
-              2
+          if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 1) {
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
+          } else if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 3) {
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 4
           }
+        } else if (obj.areaPosition === "detail") {
           if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
             reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
           }
@@ -2095,13 +2092,23 @@ const warnError = (obj) => {
               }
             }
           )
+          if (
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
+              .pass === 1
+          ) {
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
+              2
+          } else if (
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
+              .pass === 3
+          ) {
+            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
+              4
+          }
         }
       }
     } else if (obj.type === "eyesBak") {
       if (obj.position === "total") {
-        if (reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass === 1) {
-          reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 2
-        }
         if (reportJson.value.json.threeD.eyesBak.total.errorList === undefined) {
           reportJson.value.json.threeD.eyesBak.total["errorList"] = []
         }
@@ -2149,11 +2156,13 @@ const warnError = (obj) => {
             }
           }
         })
+        if (reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass === 1) {
+          reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 2
+        } else if (reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass === 3) {
+          reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 4
+        }
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 1) {
-            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-          }
           if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList === undefined) {
             reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general["errorList"] = []
           }
@@ -2218,15 +2227,14 @@ const warnError = (obj) => {
               }
             }
           })
-        } else if (obj.areaPosition === "detail") {
-          if (
-            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
-              .pass === 1
+          if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 1) {
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
+          } else if (
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 3
           ) {
-            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[
-              obj.id - 1
-            ].pass = 2
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 4
           }
+        } else if (obj.areaPosition === "detail") {
           if (
             reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined
           ) {
@@ -2316,13 +2324,25 @@ const warnError = (obj) => {
               }
             }
           )
+          if (
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
+              .pass === 1
+          ) {
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[
+              obj.id - 1
+            ].pass = 2
+          } else if (
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
+              .pass === 3
+          ) {
+            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[
+              obj.id - 1
+            ].pass = 4
+          }
         }
       }
     } else if (obj.type === "xray") {
       if (obj.position === "total") {
-        if (reportJson.value.json.xray.total.stepList[obj.id - 1].pass === 1) {
-          reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 2
-        }
         if (reportJson.value.json.xray.total.errorList === undefined) {
           reportJson.value.json.xray.total["errorList"] = []
         }
@@ -2366,11 +2386,13 @@ const warnError = (obj) => {
             }
           }
         })
+        if (reportJson.value.json.xray.total.stepList[obj.id - 1].pass === 1) {
+          reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 2
+        } else if (reportJson.value.json.xray.total.stepList[obj.id - 1].pass === 3) {
+          reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 4
+        }
       } else if (obj.position === "area") {
         if (obj.areaPosition === "general") {
-          if (reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 1) {
-            reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-          }
           if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList === undefined) {
             reportJson.value.json.xray.area[obj.areaId - 1].general["errorList"] = []
           }
@@ -2434,12 +2456,12 @@ const warnError = (obj) => {
               }
             }
           })
-        } else if (obj.areaPosition === "detail") {
-          if (
-            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass === 1
-          ) {
-            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
+          if (reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 1) {
+            reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
+          } else if (reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 3) {
+            reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 4
           }
+        } else if (obj.areaPosition === "detail") {
           if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
             reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
           }
@@ -2508,6 +2530,15 @@ const warnError = (obj) => {
               }
             }
           })
+          if (
+            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass === 1
+          ) {
+            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
+          } else if (
+            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass === 3
+          ) {
+            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 4
+          }
         }
       }
     }
@@ -3121,7 +3152,6 @@ onMounted(() => {
     loaded.value = true
     loading.value = false
     getErrorQuestionWarnList()
-    console.log("stepList", stepList.value)
     reportJson.value = res.data
   })
   watch([() => reportJson.value], getErrorQuestionWarnList, { immediate: true, deep: true })
@@ -3182,7 +3212,7 @@ onMounted(() => {
         </div>
         <el-button icon="Refresh" v-if="reportFixed" @click="reGetReport">重置所有更改</el-button>
       </div>
-      <div style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px">
+      <div v-loading="loading" style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px">
         <report-preview v-if="loaded" v-model:preview-list="reportJson" mode="check" style="width: 100vw" />
       </div>
       <div style="display: flex; align-items: center">

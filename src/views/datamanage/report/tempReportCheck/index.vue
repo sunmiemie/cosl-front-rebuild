@@ -20,6 +20,7 @@ const feedbackVisible = ref(false)
 const reportFixed = ref(false)
 const errorVisible = ref(false)
 const questionVisible = ref(false)
+const warnVisible = ref(false)
 const questionDialogVisible = ref(false)
 
 const reportJson = ref({})
@@ -27,45 +28,13 @@ const hasError = ref(false)
 // 存在疑问
 const hasQuestion = ref(false)
 const hasWarning = ref(false)
-// 应该在 reportJson 获取到数据之后调用
-const updateStatus = () => {
-  hasError.value = false
-  hasQuestion.value = false
-  hasWarning.value = false
-
-  // 遍历 tempTest 列表，检查各个项的状态
-  reportJson.value.json.tempTest.forEach((item) => {
-    if (item.pass === 2 || item.pass === 4) {
-      hasError.value = true
-    }
-    if (item.pass === 3 || item.pass === 4) {
-      hasQuestion.value = true
-    }
-    if ("warn" in item) {
-      hasWarning.value = true
-    }
-  })
-
-  // 检查 plane 状态
-  if (reportJson.value.json.plane.leftPass === 2 || reportJson.value.json.plane.rightPass === 2) {
-    hasError.value = true
-  }
-  if (reportJson.value.json.plane.leftPass === 3 || reportJson.value.json.plane.rightPass === 3) {
-    hasQuestion.value = true
-  }
-}
-
-// 初次加载时更新状态
-// updateStatus()
-
 const loading = ref(false)
 const loaded = ref(false)
-
 const route = useRoute()
 const router = useRouter()
-
 const errorList = ref([])
 const questionList = ref([])
+const warnList = ref([])
 const stepList = ref([])
 const anyObj = reactive({
   id: "",
@@ -74,131 +43,39 @@ const anyObj = reactive({
   user: "",
   date: ""
 })
-const hasProperty = (obj, prop) => {
-  if (obj === null || typeof obj !== "object") {
-    return false
-  }
-  if (Object.prototype.hasOwnProperty.call(obj, prop)) {
-    return true
-  }
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      if (hasProperty(obj[key], prop)) {
-        return true
+const updateStatus = () => {
+  console.log("update")
+  hasError.value = false
+  hasQuestion.value = false
+  hasWarning.value = false
+
+  if (route.query.type === "弓曲度测试") {
+    if (reportJson.value.json.plane.leftPass === 2 || reportJson.value.json.plane.rightPass === 2) {
+      hasError.value = true
+    }
+    if (reportJson.value.json.plane.leftPass === 3 || reportJson.value.json.plane.rightPass === 3) {
+      hasQuestion.value = true
+    }
+  } else if (route.query.type === "3D检测" || route.query.type === "X-Ray测试") {
+    reportJson.value.json.tempTest.forEach((item) => {
+      if (item.pass === 2 || item.pass === 4) {
+        hasError.value = true
       }
-    }
+      if (item.pass === 3 || item.pass === 4) {
+        hasQuestion.value = true
+      }
+      if ("warn" in item) {
+        hasWarning.value = true
+      }
+    })
   }
-  return false
 }
-const generateQuestionList = (obj, path = []) => {
-  let paths = []
-  if (obj === null || typeof obj !== "object") {
-    return paths
-  }
-  if (Object.prototype.hasOwnProperty.call(obj, "questionList")) {
-    paths.push([...path, "questionList"])
-  }
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key) && typeof obj[key] === "object") {
-      paths = paths.concat(generateQuestionList(obj[key], [...path, key]))
-    }
-  }
-  return paths
-}
-// const generateErrorList = (obj, path = []) => {
-//   let paths = []
-//   if (obj === null || typeof obj !== "object") {
-//     return paths
-//   }
-//   if (Object.prototype.hasOwnProperty.call(obj, "errorList")) {
-//     paths.push([...path, "errorList"])
-//   }
-//   for (const key in obj) {
-//     if (Object.prototype.hasOwnProperty.call(obj, key) && typeof obj[key] === "object") {
-//       paths = paths.concat(generateErrorList(obj[key], [...path, key]))
-//     }
-//   }
-//   return paths
-// }
-const generateStepList = (obj, path = []) => {
-  let paths = []
-  if (obj === null || typeof obj !== "object") {
-    return paths
-  }
-  if (Object.prototype.hasOwnProperty.call(obj, "stepList")) {
-    paths.push([...path, "stepList"])
-  }
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key) && typeof obj[key] === "object") {
-      paths = paths.concat(generateStepList(obj[key], [...path, key]))
-    }
-  }
-  return paths
-}
-const getNestedValue = (obj, path) => {
-  return path.reduce((acc, key) => {
-    if (acc && acc[key] !== undefined) {
-      return acc[key]
-    }
-    return undefined
-  }, obj)
-}
-
-const errorPass = (obj) => {
-  ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
-    confirmButtonText: "确认",
-    cancelButtonText: "取消",
-    type: "warning"
-  }).then(() => {
-    reportFixed.value = true
-    const path = []
-
-    if (obj.pass === 4) {
-      path.forEach((item) => {
-        if (item.id === obj.id) {
-          item.pass == 3
-        }
-      })
-    }
-
-    console.log(reportJson.value, 566)
-    console.log(reportJson.value.json, obj, 555)
-  })
-}
-const errorQuestion = (obj) => {
-  ElMessageBox.confirm("确认设置为疑问吗？", "通过确认", {
-    confirmButtonText: "确认",
-    cancelButtonText: "取消",
-    type: "warning"
-  }).then(() => {
-    reportFixed.value = true
-  })
-}
-const questionPass = (obj) => {
-  ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
-    confirmButtonText: "确认",
-    cancelButtonText: "取消",
-    type: "warning"
-  }).then(() => {
-    reportFixed.value = true
-  })
-}
-const questionError = (obj) => {
-  ElMessageBox.confirm("确认设置为缺陷吗？", "通过确认", {
-    confirmButtonText: "确认",
-    cancelButtonText: "取消",
-    type: "warning"
-  }).then(() => {
-    reportFixed.value = true
-  })
-}
-
-const getErrorQuestionList = () => {
+const getErrorQuestionWarnList = () => {
   errorList.value = []
   questionList.value = []
+  warnList.value = []
   stepList.value = []
-  const path = reportJson.value.json.tempTest
-  path.forEach((item) => {
+  reportJson.value.json.tempTest.forEach((item) => {
     item.type = anyObj.type
     if (item.pass === 4 || item.pass === 2) {
       errorList.value.push(item)
@@ -206,18 +83,202 @@ const getErrorQuestionList = () => {
     if (item.pass === 4 || item.pass === 3) {
       questionList.value.push(item)
     }
+    if ("warn" in item) {
+      warnList.value.push(item)
+    }
+    stepList.value.push(item)
   })
 
-  // TODO
-  hasError.value = hasProperty(reportJson.value, "errorList")
-  hasQuestion.value = hasProperty(reportJson.value, "questionList")
-  if (errorList.value.length === 0) {
-    errorVisible.value = false
-  }
-  if (questionList.value.length === 0) {
-    questionVisible.value = false
-  }
-  // console.log(stepList.value)
+}
+
+// 缺陷项操作
+// NOTE 缺陷项通过
+const errorPass = (obj) => {
+  ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    reportFixed.value = true
+    delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).error
+    errorList.value.forEach((item, index) => {
+      if (item.id === obj.id) {
+        errorList.value.splice(index, 1)
+      }
+    })
+    if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 2) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 1
+    } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 3
+    }
+    if (errorList.value.length === 0) {
+      errorVisible.value = false
+    }
+  })
+}
+// NOTE 缺陷项疑问
+const errorQuestion = (obj) => {
+  ElMessageBox.confirm("确认设置为疑问吗？", "通过确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    reportFixed.value = true
+    if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 2) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id)["question"] =
+        reportJson.value.json.tempTest.find((item) => item.id === obj.id).error
+      delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).error
+      errorList.value.forEach((item, index) => {
+        if (item.id === obj.id) {
+          errorList.value.splice(index, 1)
+        }
+      })
+    } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).question.desc +=
+        "\n" + reportJson.value.json.tempTest.find((item) => item.id === obj.id).error.desc
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).question.url = reportJson.value.json.tempTest
+        .find((item) => item.id === obj.id)
+        .question.url.concat(reportJson.value.json.tempTest.find((item) => item.id === obj.id).error.url)
+      delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).error
+      errorList.value.forEach((item, index) => {
+        if (item.id === obj.id) {
+          errorList.value.splice(index, 1)
+        }
+      })
+    }
+    reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 3
+    if (errorList.value.length === 0) {
+      errorVisible.value = false
+    }
+  })
+}
+
+// 疑问项操作
+// NOTE 疑问项通过
+const questionPass = (obj) => {
+  ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    reportFixed.value = true
+    delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).question
+    questionList.value.forEach((item, index) => {
+      if (item.id === obj.id) {
+        questionList.value.splice(index, 1)
+      }
+    })
+    if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 1
+    } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 2
+    }
+    if (questionList.value.length === 0) {
+      questionVisible.value = false
+    }
+  })
+}
+// NOTE 疑问项缺陷
+const questionError = (obj) => {
+  ElMessageBox.confirm("确认设置为缺陷吗？", "通过确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    reportFixed.value = true
+    if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id)["error"] = reportJson.value.json.tempTest.find(
+        (item) => item.id === obj.id
+      ).question
+      delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).question
+      questionList.value.forEach((item, index) => {
+        if (item.id === obj.id) {
+          questionList.value.splice(index, 1)
+        }
+      })
+    } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).error.desc +=
+        "\n" + reportJson.value.json.tempTest.find((item) => item.id === obj.id).question.desc
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).error.url = reportJson.value.json.tempTest
+        .find((item) => item.id === obj.id)
+        .error.url.concat(reportJson.value.json.tempTest.find((item) => item.id === obj.id).question.url)
+      delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).question
+      questionList.value.forEach((item, index) => {
+        if (item.id === obj.id) {
+          questionList.value.splice(index, 1)
+        }
+      })
+    }
+    reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 2
+    if (questionList.value.length === 0) {
+      questionVisible.value = false
+    }
+  })
+}
+
+//制程警示操作
+// NOTE 制程警示通过
+const warnPass = (obj) => {
+  ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    reportFixed.value = true
+    delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).warn
+    warnList.value.forEach((item, index) => {
+      if (item.id === obj.id) {
+        warnList.value.splice(index, 1)
+      }
+    })
+    if (warnList.value.length === 0) {
+      warnVisible.value = false
+    }
+  })
+}
+// NOTE 制程警示缺陷
+const warnError = (obj) => {
+  ElMessageBox.confirm("确认设置为缺陷吗？", "通过确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "warning"
+  }).then(() => {
+    reportFixed.value = true
+    if (
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 1 ||
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3
+    ) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id)["error"] = reportJson.value.json.tempTest.find(
+        (item) => item.id === obj.id
+      ).warn
+      delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).warn
+      warnList.value.forEach((item, index) => {
+        if (item.id === obj.id) {
+          warnList.value.splice(index, 1)
+        }
+      })
+    } else {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).error.desc +=
+        "\n制程警示:" + reportJson.value.json.tempTest.find((item) => item.id === obj.id).warn.desc
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).error.url = reportJson.value.json.tempTest
+        .find((item) => item.id === obj.id)
+        .error.url.concat(reportJson.value.json.tempTest.find((item) => item.id === obj.id).warn.url)
+      delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).warn
+      warnList.value.forEach((item, index) => {
+        if (item.id === obj.id) {
+          warnList.value.splice(index, 1)
+        }
+      })
+    }
+    if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 1) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 2
+    } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 4
+    }
+    if (warnList.value.length === 0) {
+      warnVisible.value = false
+    }
+  })
 }
 
 const jsonToFile = (data) => {
@@ -366,63 +427,37 @@ const handleSelectionChange = (value) => {
 const reGetReport = () => {
   loading.value = true
   reportFixed.value = false
-  checkReportDataApi({ id: route.query.id }).then((res) => {
+  checkTempReportDataApi({ id: route.query.id }).then((res) => {
     loaded.value = true
     loading.value = false
-    getErrorQuestionList()
     reportJson.value = res.data
+    getErrorQuestionWarnList()
+    updateStatus()
   })
 }
-// onBeforeMount(() => {
-//   loading.value = true
-//   anyObj.type = route.query.type
-//   anyObj.id = route.query.id
-//   anyObj.name = route.query.name
-//   anyObj.user = route.query.user
-//   anyObj.date = route.query.date
-//   checkTempReportDataApi({ id: route.query.id }).then((res) => {
-//     // console.log("临时测试报告", res)
-//     loaded.value = true
-//     loading.value = false
-//     getErrorQuestionList()
-//     reportJson.value = res.data
-//     updateStatus()
-// })
-onMounted(() => {
+
+onMounted(async () => {
   loading.value = true
   anyObj.type = route.query.type
   anyObj.id = route.query.id
   anyObj.name = route.query.name
   anyObj.user = route.query.user
   anyObj.date = route.query.date
-  checkTempReportDataApi({ id: route.query.id }).then((res) => {
-    // console.log("临时测试报告", res)
+  await checkTempReportDataApi({ id: route.query.id }).then((res) => {
     loaded.value = true
     loading.value = false
     reportJson.value = res.data
-    getErrorQuestionList()
     updateStatus()
-    console.log("haserror", hasError.value)
-    console.log("haswarn", hasWarning.value)
-    console.log("hasquestion", hasQuestion.value)
+    getErrorQuestionWarnList()
   })
-  // watch([() => reportJson.value], getErrorQuestionList, { immediate: true, deep: true })
-  // watch([() => reportJson.value], updateStatus, { immediate: true, deep: true })
-  // 监听 reportJson 变化，自动更新状态
-  // watch(
-  //   () => reportJson.value,
-  //   () => {
-  //     getErrorQuestionList(); // 更新状态
-  //     updateStatus();         // 更新后的进一步逻辑
-  //   },
-  //   { immediate: true, deep: true }
-  // );
+  watch([() => reportJson.value], getErrorQuestionWarnList, { immediate: true, deep: true })
+  watch([() => reportJson.value], updateStatus, { immediate: true, deep: true })
 })
 </script>
 
 <template>
   <div class="app-container">
-    <el-card v-loading="loading" class="test-check">
+    <el-card class="test-check">
       <!-- 审核测试工艺 -->
       <h2>审核测试报告</h2>
       <el-form :inline="true" :model="anyObj" class="demo-form-inline" label-position="top" style="margin: 10px">
@@ -442,7 +477,7 @@ onMounted(() => {
 
       <div style="display: flex; justify-content: space-between; align-items: center">
         <div>
-          <el-text v-if="!hasError && !hasQuestion && !hasWarning" size="large" style="color: green">测试正常</el-text>
+          <el-text v-if="!hasError && !hasQuestion" size="large" style="color: green">测试正常</el-text>
           <el-link
             v-if="hasError"
             :underline="false"
@@ -457,16 +492,27 @@ onMounted(() => {
             v-if="hasQuestion"
             :underline="false"
             size="large"
-            style="font-size: 18px"
+            style="font-size: 18px; margin-right: 20px"
             type="info"
             @click="questionVisible = true"
             >存在疑问
           </el-link>
-          <el-text v-if="hasWarning" size="large" style="font-size: 18px; color: orange"> 制程警示 </el-text>
+          <el-link
+            v-if="hasWarning"
+            :underline="false"
+            size="large"
+            style="font-size: 18px"
+            type="warning"
+            @click="warnVisible = true"
+            >存在制程警示
+          </el-link>
         </div>
         <el-button icon="Refresh" v-if="reportFixed" @click="reGetReport">重置所有更改</el-button>
       </div>
-      <div style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px">
+      <div
+        v-loading="loading"
+        style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px; min-height: 200px"
+      >
         <temp-report-preview v-if="loaded" v-model:preview-list="reportJson" style="width: 100vw" />
       </div>
       <div v-if="!hasQuestion">
@@ -479,7 +525,12 @@ onMounted(() => {
     </el-card>
 
     <el-dialog v-model="errorVisible" title="缺陷操作" align-center width="80%">
-      <el-table :data="errorList">
+      <el-table
+        :data="errorList"
+        v-loading="hasWarning"
+        element-loading-svg="1"
+        element-loading-text="请先完成制程警示审核"
+      >
         <el-table-column label="测试类型">
           <template #default="scope">
             <el-text
@@ -520,7 +571,12 @@ onMounted(() => {
     </el-dialog>
 
     <el-dialog v-model="questionVisible" title="疑问操作" width="80%" align-center>
-      <el-table :data="questionList">
+      <el-table
+        :data="questionList"
+        v-loading="hasWarning"
+        element-loading-svg="1"
+        element-loading-text="请先完成制程警示审核"
+      >
         <el-table-column label="测试类型">
           <template #default="scope">
             <el-text>
@@ -536,7 +592,7 @@ onMounted(() => {
         </el-table-column>
         <el-table-column label="疑问描述">
           <template #default="scope">
-            <el-text> {{ scope.row.desc }}</el-text>
+            <el-text> {{ scope.row.question.desc }}</el-text>
           </template>
         </el-table-column>
         <el-table-column align="center" label="疑问图片">
@@ -555,6 +611,47 @@ onMounted(() => {
           <template #default="scope">
             <el-button type="success" @click="questionPass(scope.row)">通过</el-button>
             <el-button type="danger" @click="questionError(scope.row)">缺陷</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
+
+    <el-dialog v-model="warnVisible" title="制程警示操作" width="80%" align-center>
+      <el-table :data="warnList">
+        <el-table-column label="测试类型">
+          <template #default="scope">
+            <el-text>
+              {{ scope.row.type }}
+            </el-text>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="名称">
+          <template #default="scope">
+            <el-text> {{ scope.row.name }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="制程警示描述">
+          <template #default="scope">
+            <el-text> {{ scope.row.warn.desc }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="制程警示图片">
+          <template #default="scope">
+            <div style="display: flex">
+              <el-text style="margin-right: 5px">共{{ scope.row.warn.url.length }}张</el-text>
+              <el-image
+                :preview-teleported="true"
+                :preview-src-list="scope.row.warn.url"
+                :src="scope.row.warn.url[0]"
+              />
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" fixed="right" label="操作">
+          <template #default="scope">
+            <el-button type="success" @click="warnPass(scope.row)">通过</el-button>
+            <el-button type="danger" @click="warnError(scope.row)">缺陷</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -587,27 +684,17 @@ onMounted(() => {
             </el-text>
           </template>
         </el-table-column>
-        <el-table-column label="检测位置">
-          <template #default="scope">
-            <el-text> {{ scope.row.position === "total" ? "整体检测" : "区域检测" }}</el-text>
-            <el-text v-if="scope.row.areaId !== undefined"> -第{{ scope.row.areaId }}区域</el-text>
-            <el-text v-if="scope.row.areaPosition !== undefined">
-              -{{ scope.row.areaPosition === "general" ? "通用检测" : "具体检测" }}
-            </el-text>
-            <el-text v-if="scope.row.detailId !== undefined"> -第{{ scope.row.detailId }}点位</el-text>
-          </template>
-        </el-table-column>
         <el-table-column label="检测项名称">
           <template #default="scope">
-            <el-text> {{ scope.row.content.name }}</el-text>
+            <el-text> {{ scope.row.name }}</el-text>
           </template>
         </el-table-column>
         <el-table-column label="测试结果" fixed="right" align="right">
           <template #default="scope">
             <el-text
-              :type="scope.row.content.pass === 1 ? 'success' : scope.row.content.pass === 3 ? 'warning' : 'danger'"
+              :type="scope.row.pass === 1 ? 'success' : scope.row.pass === 3 ? 'warning' : 'danger'"
             >
-              {{ scope.row.content.pass === 1 ? "通过" : scope.row.content.pass === 3 ? "疑问" : "未通过" }}
+              {{ scope.row.pass === 1 ? "通过" : scope.row.pass === 3 ? "疑问" : "未通过" }}
             </el-text>
           </template>
         </el-table-column>
