@@ -977,7 +977,7 @@ const handleOperate = () => {
         const blob = new Blob([jsonString], { type: "application/json" })
         const data = {
           id: currentReportId.value,
-          status: !hasProperty(reportJson.value, "error") ? 2 : 3,
+          status: !hasProperty(reportJson.value, "errorList") ? 2 : 3,
           userId: userStore.userid,
           mode: "question"
         }
