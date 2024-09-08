@@ -113,3 +113,19 @@ export const generateQuestionUnitApi = (data: any) => {
     data
   })
 }
+
+export const generateReportPdfApi = (params: any) => {
+  return request({
+    url: "data/report/pdf/generate-pdf",
+    method: "get",
+    params
+  })
+}
+
+export const generateTempReportPdfApi = (params: any) => {
+  return request({
+    url: "data/devreport/pdf/generate-dev-pdf",
+    method: "get",
+    params
+  })
+}
