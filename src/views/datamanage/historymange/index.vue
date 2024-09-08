@@ -62,6 +62,9 @@ const searchData = reactive({
   type: "",
   serial: ""
 })
+const clearSearchData = () => {
+  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+}
 const defineLink = (status: string, reportGenerated: number) => {
   switch (status) {
     case "0":
@@ -194,13 +197,19 @@ const handleTempLink = (data: any, i: string) => {
 const handleSearch = () => {
   paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
 }
-
+const handleTempSearch = () => {
+  paginationData.currentPage === 1 ? getTempTableData() : (paginationData.currentPage = 1)
+}
 /**
  * 重置查询条件
  */
 const resetSearch = () => {
-  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
-  paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
+  clearSearchData()
+  handleSearch()
+}
+const resetTempSearch = () => {
+  clearSearchData()
+  handleTempSearch()
 }
 //#endregion
 
@@ -209,6 +218,8 @@ const activeName = ref<any>("first")
 const handleTabClick = (tab: TabsPaneContext) => {
   // 记下当前选中的标签页，当点击浏览器返回按钮时，可返回到前面选中的标签页
   router.replace({ query: { ...router.currentRoute.value.query, tab: tab.props.name } })
+
+  clearSearchData()
 
   if (tab.props.name === "first") {
     getTableData()
@@ -361,8 +372,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                   </el-select>
                 </el-form-item>
                 <el-form-item>
-                  <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
-                  <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+<!--                  <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>-->
+                  <el-button type="primary" :icon="Search" @click="handleTempSearch" style="margin-right: 10px">查询</el-button>
+                  <el-button :icon="Refresh" @click="resetTempSearch">重置</el-button>
                 </el-form-item>
               </el-form>
             </el-card>
