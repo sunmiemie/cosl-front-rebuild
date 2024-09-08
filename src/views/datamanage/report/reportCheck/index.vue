@@ -3239,6 +3239,7 @@ onMounted(() => {
         v-loading="hasWarn"
         element-loading-svg="1"
         element-loading-text="请先完成制程警示审核"
+        max-height="70vh"
       >
         <el-table-column label="测试类型">
           <template #default="scope">
@@ -3293,6 +3294,7 @@ onMounted(() => {
         v-loading="hasWarn"
         element-loading-svg="1"
         element-loading-text="请先完成制程警示审核"
+        max-height="70vh"
       >
         <el-table-column label="测试类型">
           <template #default="scope">
@@ -3342,7 +3344,7 @@ onMounted(() => {
       </el-table>
     </el-dialog>
     <el-dialog v-model="warnVisible" title="制程警示操作" width="80%" align-center>
-      <el-table :data="warnList">
+      <el-table :data="warnList" max-height="70vh">
         <el-table-column label="测试类型">
           <template #default="scope">
             <el-text>
@@ -3408,7 +3410,7 @@ onMounted(() => {
       </template>
     </el-dialog>
     <el-dialog v-else v-model="feedbackVisible" title="请选择打回项" width="80%" align-center>
-      <el-table :data="stepList" height="400px" @selection-change="handleSelectionChange">
+      <el-table :data="stepList" max-height="70vh" @selection-change="handleSelectionChange">
         <el-table-column type="selection" />
         <el-table-column label="测试类型" width="150">
           <template #default="scope">

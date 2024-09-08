@@ -529,6 +529,7 @@ onMounted(async () => {
         v-loading="hasWarning"
         element-loading-svg="1"
         element-loading-text="请先完成制程警示审核"
+        max-height="70vh"
       >
         <el-table-column label="测试类型">
           <template #default="scope">
@@ -552,6 +553,7 @@ onMounted(async () => {
         <el-table-column align="center" label="缺陷图片">
           <template #default="scope">
             <div style="display: flex">
+              <el-text style="margin-right: 5px">共{{ scope.row.error.url.length }}张</el-text>
               <el-image
                 :preview-teleported="true"
                 :preview-src-list="scope.row.error.url"
@@ -575,6 +577,7 @@ onMounted(async () => {
         v-loading="hasWarning"
         element-loading-svg="1"
         element-loading-text="请先完成制程警示审核"
+        max-height="70vh"
       >
         <el-table-column label="测试类型">
           <template #default="scope">
@@ -616,7 +619,7 @@ onMounted(async () => {
     </el-dialog>
 
     <el-dialog v-model="warnVisible" title="制程警示操作" width="80%" align-center>
-      <el-table :data="warnList">
+      <el-table :data="warnList" max-height="70vh">
         <el-table-column label="测试类型">
           <template #default="scope">
             <el-text>
@@ -709,7 +712,7 @@ onMounted(async () => {
     </el-dialog>
 
     <el-dialog v-model="questionDialogVisible" title="生成确认" width="80%" align-center>
-      <el-table :data="questionList">
+      <el-table :data="questionList" max-height="70vh">
         <el-table-column label="测试类型">
           <template #default="scope">
             <el-text>
