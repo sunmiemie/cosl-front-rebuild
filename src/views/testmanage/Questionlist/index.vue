@@ -4,7 +4,13 @@ import { ElMessage, ElMessageBox } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { questionUnitDataApi, questionOperateDataApi } from "@/api/questionunit"
-import { checkReportDataApi, checkReportPassApi, getSingleReportDataApi } from "@/api/report"
+import {
+  checkReportDataApi,
+  checkReportPassApi,
+  checkTempReportDataApi,
+  checkTempReportPassApi,
+  getSingleReportDataApi
+} from "@/api/report"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
 
@@ -16,6 +22,7 @@ const updateLoading = ref<boolean>(false)
 const detailDrawer = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const currentReportId = ref<number>()
+const prodOrTemp = ref(0)
 // 显示
 const operatorDialog = ref<any>(false)
 const questionLoading = ref<boolean>(false)
@@ -73,6 +80,7 @@ const handleLink = (data: any, i: string) => {
   if (i === "详情") {
     detailDrawer.value = true
     questionLoading.value = true
+    prodOrTemp.value = data["prod_or_temp"]
     questionOperateDataApi({ id: data["questionunit_id"] })
       .then((res) => {
         questionList.value = res.data
@@ -83,7 +91,12 @@ const handleLink = (data: any, i: string) => {
   } else if (i === "直接处理") {
     operatorDialog.value = true
     questionLoading.value = true
-    currentReportId.value = data["report_id"]
+    prodOrTemp.value = data["prod_or_temp"]
+    if (prodOrTemp.value === 0) {
+      currentReportId.value = data["report_id"]
+    } else {
+      currentReportId.value = data["dev_report_id"]
+    }
     questionOperateDataApi({ id: data["questionunit_id"] })
       .then((res) => {
         questionList.value = res.data
@@ -149,12 +162,14 @@ const uploadFunc = () => {
   })
 }
 const uploadNew = (index) => {
-  if (questionList.value[index].content.question.url.length < 5) {
+  if (prodOrTemp.value === 0) {
     uploadFunc().then((data) => {
       questionList.value[index].content.question.url.push(data)
     })
   } else {
-    ElMessage.error("最多上传5张图片")
+    uploadFunc().then((data) => {
+      questionList.value[index].question.url.push(data)
+    })
   }
 }
 const checkCanUpdate = () => {
@@ -859,6 +874,49 @@ const questionError = (obj) => {
   }
 }
 
+// 疑问项操作
+// NOTE 疑问项通过
+const questionDevPass = (obj) => {
+  delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).question
+  questionList.value.forEach((item, index) => {
+    if (item.id === obj.id) {
+      questionList.value.splice(index, 1)
+    }
+  })
+  if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3) {
+    reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 1
+  } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
+    reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 2
+  }
+}
+// NOTE 疑问项缺陷
+const questionDevError = (obj) => {
+  if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3) {
+    reportJson.value.json.tempTest.find((item) => item.id === obj.id)["error"] = reportJson.value.json.tempTest.find(
+      (item) => item.id === obj.id
+    ).question
+    delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).question
+    questionList.value.forEach((item, index) => {
+      if (item.id === obj.id) {
+        questionList.value.splice(index, 1)
+      }
+    })
+  } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
+    reportJson.value.json.tempTest.find((item) => item.id === obj.id).error.desc +=
+      "\n" + reportJson.value.json.tempTest.find((item) => item.id === obj.id).question.desc
+    reportJson.value.json.tempTest.find((item) => item.id === obj.id).error.url = reportJson.value.json.tempTest
+      .find((item) => item.id === obj.id)
+      .error.url.concat(reportJson.value.json.tempTest.find((item) => item.id === obj.id).question.url)
+    delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).question
+    questionList.value.forEach((item, index) => {
+      if (item.id === obj.id) {
+        questionList.value.splice(index, 1)
+      }
+    })
+  }
+  reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 2
+}
+
 const handleOperate = () => {
   ElMessageBox.confirm("确认以该结果处理疑问吗？", "确认处理", {
     confirmButtonText: "确认",
@@ -866,44 +924,81 @@ const handleOperate = () => {
     type: "warning"
   }).then(() => {
     updateLoading.value = true
-    checkReportDataApi({ id: currentReportId.value }).then((res) => {
-      console.log(res.data)
-      // 深拷贝res.data
-      reportJson.value = JSON.parse(JSON.stringify(res.data))
-      questionList.value.forEach((item) => {
-        if (item["pass"] === true) {
-          delete item["pass"]
-          questionPass(item)
-        } else if (item["pass"] === false) {
-          delete item["pass"]
-          questionError(item)
-        }
-      })
-      const jsonString = JSON.stringify(reportJson.value)
-      const blob = new Blob([jsonString], { type: "application/json" })
-      const data = {
-        id: currentReportId.value,
-        status: !hasProperty(reportJson.value, "errorList") ? 2 : 3,
-        userId: userStore.userid,
-        mode: "question"
-      }
-      const formData = new FormData()
-      for (const key in data) {
-        formData.append(key, data[key])
-      }
-      formData.append("file", blob, "data.json")
-      checkReportPassApi(formData)
-        .then((res) => {
-          if (res.msg === "success") {
-            loading.value = false
-            operatorDialog.value = false
+    if (prodOrTemp.value === 0) {
+      checkReportDataApi({ id: currentReportId.value }).then((res) => {
+        reportJson.value = JSON.parse(JSON.stringify(res.data))
+        questionList.value.forEach((item) => {
+          if (item["pass"] === true) {
+            delete item["pass"]
+            questionPass(item)
+          } else if (item["pass"] === false) {
+            delete item["pass"]
+            questionError(item)
           }
         })
-        .finally(() => {
-          getTableData()
-          updateLoading.value = false
+        const jsonString = JSON.stringify(reportJson.value)
+        const blob = new Blob([jsonString], { type: "application/json" })
+        const data = {
+          id: currentReportId.value,
+          status: !hasProperty(reportJson.value, "error") ? 2 : 3,
+          userId: userStore.userid,
+          mode: "question"
+        }
+        const formData = new FormData()
+        for (const key in data) {
+          formData.append(key, data[key])
+        }
+        formData.append("file", blob, "data.json")
+        checkReportPassApi(formData)
+          .then((res) => {
+            if (res.msg === "success") {
+              loading.value = false
+              operatorDialog.value = false
+            }
+          })
+          .finally(() => {
+            getTableData()
+            updateLoading.value = false
+          })
+      })
+    } else {
+      checkTempReportDataApi({ id: currentReportId.value }).then((res) => {
+        reportJson.value = JSON.parse(JSON.stringify(res.data))
+        questionList.value.forEach((item) => {
+          if (item["value"] === true) {
+            delete item["value"]
+            questionDevPass(item)
+          } else if (item["value"] === false) {
+            delete item["value"]
+            questionDevError(item)
+          }
         })
-    })
+        const jsonString = JSON.stringify(reportJson.value)
+        const blob = new Blob([jsonString], { type: "application/json" })
+        const data = {
+          id: currentReportId.value,
+          status: !hasProperty(reportJson.value, "error") ? 2 : 3,
+          userId: userStore.userid,
+          mode: "question"
+        }
+        const formData = new FormData()
+        for (const key in data) {
+          formData.append(key, data[key])
+        }
+        formData.append("file", blob, "data.json")
+        checkTempReportPassApi(formData)
+          .then((res) => {
+            if (res.msg === "success") {
+              loading.value = false
+              operatorDialog.value = false
+            }
+          })
+          .finally(() => {
+            getTableData()
+            updateLoading.value = false
+          })
+      })
+    }
   })
 }
 const openPreview = (item) => {
@@ -973,7 +1068,7 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
       </div>
     </el-card>
     <el-drawer v-model="detailDrawer" title="疑问详情" size="60%" @close="questionList = []">
-      <el-table v-loading="questionLoading" :data="questionList">
+      <el-table v-if="prodOrTemp === 0" v-loading="questionLoading" :data="questionList">
         <el-table-column label="测试类型">
           <template #default="scope">
             <el-text>
@@ -1012,9 +1107,41 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
           </template>
         </el-table-column>
       </el-table>
+      <el-table v-if="prodOrTemp === 1" v-loading="questionLoading" :data="questionList" max-height="70vh">
+        <el-table-column label="测试类型">
+          <template #default="scope">
+            <el-text>
+              {{ scope.row.type }}
+            </el-text>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="疑问名称">
+          <template #default="scope">
+            <el-text> {{ scope.row.name }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="疑问描述">
+          <template #default="scope">
+            <el-text> {{ scope.row.question.desc }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="疑问图片">
+          <template #default="scope">
+            <div style="display: flex">
+              <el-text style="margin-right: 5px">共{{ scope.row.question.url.length }}张</el-text>
+              <el-image
+                :preview-teleported="true"
+                :preview-src-list="scope.row.question.url"
+                :src="scope.row.question.url[0]"
+              />
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
     </el-drawer>
     <el-dialog v-model="operatorDialog" width="80%" title="直接处理" @close="questionList = []">
-      <el-table v-loading="questionLoading" :data="questionList">
+      <el-table v-if="prodOrTemp === 0" v-loading="questionLoading" :data="questionList">
         <el-table-column label="测试类型" width="120">
           <template #default="scope">
             <el-text>
@@ -1100,6 +1227,89 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
                 >通过</el-button
               >
               <el-button :type="scope.row['pass'] === false ? 'danger' : ''" @click="scope.row['pass'] = false"
+                >缺陷</el-button
+              >
+            </el-button-group>
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-table v-if="prodOrTemp === 1" :data="questionList" v-loading="questionLoading" max-height="70vh">
+        <el-table-column label="测试类型">
+          <template #default="scope">
+            <el-text>
+              {{ scope.row.type }}
+            </el-text>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="疑问名称">
+          <template #default="scope">
+            <el-text> {{ scope.row.name }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column label="疑问描述">
+          <template #default="scope">
+            <el-text> {{ scope.row.question.desc }}</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" label="疑问图片" width="550">
+          <template #default="scope">
+            <div style="display: flex" v-if="scope.row['value'] !== true">
+              <el-text style="margin-right: 5px; width: 15px">共{{ scope.row.question.url.length }}张</el-text>
+              <el-link style="margin-left: 5px; width: 10px" :underline="false" @click="uploadNew(scope.$index)"
+                >上传新图片</el-link
+              >
+              <div class="el-upload-list el-upload-list&#45;&#45;picture-card">
+                <div
+                  v-for="(item, index) in scope.row.question.url"
+                  :key="item"
+                  class="el-upload-list__item is-success animated"
+                >
+                  <el-image
+                    :src="item"
+                    alt=""
+                    class="el-upload-list__item-thumbnail"
+                    fit="contain"
+                    :preview-src-list="[item]"
+                  />
+                  <i class="el-icon-close" />
+                  <span class="el-upload-list__item-actions">
+                    <!-- 预览 -->
+                    <span class="el-upload-list__item-preview" @click="openPreview(item)">
+                      <i class="el-icon el-icon--zoom-in">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+                          <path
+                            fill="currentColor"
+                            d="m795.904 750.72 124.992 124.928a32 32 0 0 1-45.248 45.248L750.656 795.904a416 416 0 1 1 45.248-45.248zM480 832a352 352 0 1 0 0-704 352 352 0 0 0 0 704zm-32-384v-96a32 32 0 0 1 64 0v96h96a32 32 0 0 1 0 64h-96v96a32 32 0 0 1-64 0v-96h-96a32 32 0 0 1 0-64h96z"
+                          />
+                        </svg>
+                      </i>
+                    </span>
+                    <!-- 删除 -->
+                    <span class="el-upload-list__item-delete" @click="scope.row.question.url.splice(index, 1)">
+                      <i class="el-icon el-icon--zoom-in">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+                          <path
+                            fill="currentColor"
+                            d="M160 256H96a32 32 0 0 1 0-64h256V95.936a32 32 0 0 1 32-32h256a32 32 0 0 1 32 32V192h256a32 32 0 1 1 0 64h-64v672a32 32 0 0 1-32 32H192a32 32 0 0 1-32-32V256zm448-64v-64H416v64h192zM224 896h576V256H224v640zm192-128a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32zm192 0a32 32 0 0 1-32-32V416a32 32 0 0 1 64 0v320a32 32 0 0 1-32 32z"
+                          />
+                        </svg>
+                      </i>
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <el-text v-else>设置通过无需留存图片</el-text>
+          </template>
+        </el-table-column>
+        <el-table-column align="center" fixed="right" label="操作" width="150">
+          <template #default="scope">
+            <el-button-group is-button>
+              <el-button :type="scope.row['value'] === true ? 'success' : ''" @click="scope.row['value'] = true"
+                >通过</el-button
+              >
+              <el-button :type="scope.row['value'] === false ? 'danger' : ''" @click="scope.row['value'] = false"
                 >缺陷</el-button
               >
             </el-button-group>
