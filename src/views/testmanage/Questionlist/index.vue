@@ -198,7 +198,11 @@ const questionPass = (obj) => {
         delete reportJson.value.json.threeD.eyes.total.warnList.find((warn) => warn.id === obj.id).question
       }
       if (reportJson.value.json.threeD.eyes.total.errorList !== undefined) {
-        delete reportJson.value.json.threeD.eyes.total.errorList.find((warn) => warn.id === obj.id).question
+        try {
+          delete reportJson.value.json.threeD.eyes.total.errorList.find((warn) => warn.id === obj.id).question
+        } catch (e) {
+          console.log(e)
+        }
       }
     } else if (obj.position === "area") {
       if (obj.areaPosition === "general") {
@@ -222,9 +226,14 @@ const questionPass = (obj) => {
           ).question
         }
         if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList !== undefined) {
-          delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find(
-            (warn) => warn.id === obj.id
-          ).question
+          try {
+            delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find(
+              (warn) => warn.id === obj.id
+            ).question
+          } catch (e) {
+            console.log(e)
+          }
+
         }
       } else if (obj.areaPosition === "detail") {
         if (
@@ -261,9 +270,13 @@ const questionPass = (obj) => {
           ).question
         }
         if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
-          delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-            (warn) => warn.id === obj.id
-          ).question
+          try {
+            delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
+              (warn) => warn.id === obj.id
+            ).question
+          } catch (e) {
+            console.log(e)
+          }
         }
       }
     }
@@ -287,7 +300,11 @@ const questionPass = (obj) => {
         delete reportJson.value.json.threeD.eyesBak.total.warnList.find((warn) => warn.id === obj.id).question
       }
       if (reportJson.value.json.threeD.eyesBak.total.errorList !== undefined) {
-        delete reportJson.value.json.threeD.eyesBak.total.errorList.find((warn) => warn.id === obj.id).question
+        try {
+          delete reportJson.value.json.threeD.eyesBak.total.errorList.find((warn) => warn.id === obj.id).question
+        } catch (e) {
+          console(e)
+        }
       }
     } else if (obj.position === "area") {
       if (obj.areaPosition === "general") {
@@ -311,9 +328,13 @@ const questionPass = (obj) => {
           ).question
         }
         if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList !== undefined) {
-          delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find(
-            (warn) => warn.id === obj.id
-          ).question
+          try {
+            delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find(
+              (warn) => warn.id === obj.id
+            ).question
+          } catch (e) {
+            console.log(e)
+          }
         }
       } else if (obj.areaPosition === "detail") {
         if (
@@ -355,9 +376,13 @@ const questionPass = (obj) => {
         if (
           reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined
         ) {
-          delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-            (warn) => warn.id === obj.id
-          ).question
+          try {
+            delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
+              (warn) => warn.id === obj.id
+            ).question
+          } catch (e) {
+            console.log(e)
+          }
         }
       }
     }
@@ -381,7 +406,11 @@ const questionPass = (obj) => {
         delete reportJson.value.json.xray.total.warnList.find((warn) => warn.id === obj.id).question
       }
       if (reportJson.value.json.xray.total.errorList !== undefined) {
-        delete reportJson.value.json.xray.total.errorList.find((warn) => warn.id === obj.id).question
+        try {
+          delete reportJson.value.json.xray.total.errorList.find((warn) => warn.id === obj.id).question
+        } catch (e) {
+          console.log(e)
+        }
       }
     } else if (obj.position === "area") {
       if (obj.areaPosition === "general") {
@@ -404,8 +433,12 @@ const questionPass = (obj) => {
             .question
         }
         if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList !== undefined) {
-          delete reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id)
-            .question
+          try {
+            delete reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id)
+              .question
+          } catch (e) {
+            console.log(e)
+          }
         }
       } else if (obj.areaPosition === "detail") {
         if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass === 3) {
@@ -430,9 +463,13 @@ const questionPass = (obj) => {
           ).question
         }
         if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
-          delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-            (warn) => warn.id === obj.id
-          ).question
+          try {
+            delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
+              (warn) => warn.id === obj.id
+            ).question
+          } catch (e) {
+            console.log(e)
+          }
         }
       }
     }
