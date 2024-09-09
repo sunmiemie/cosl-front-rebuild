@@ -4,15 +4,14 @@ import type * as CheckItem from "./types/check-item"
 // FirstLevelDirectory
 
 /** 查 */
-export function getFirstLevelDirectoryApi(params: CheckItem.GetFirstLevelDirectoryRequestData) {
+export function getFirstLevelDirectoryApi() {
   return request<CheckItem.GetFirstLevelDirectoryResponseData>({
     url: "data/check-item-first-level-directory/list",
-    method: "get",
-    params
+    method: "get"
   })
 }
 
-export function createFirstLevelDirectoryApi(data: CheckItem.CreateFirstLevelDirectoryRequestData) {
+export function createFirstLevelDirectoryApi(data: { name: string }) {
   return request({
     url: "data/check-item-first-level-directory/add",
     method: "post",
@@ -33,15 +32,14 @@ export function createSecondLevelDirectoryApi(data: CheckItem.CreateSecondLevelD
 // Directory
 
 /** 查 */
-export function getDirectoryApi(params: CheckItem.GetDirectoryRequestData) {
+export function getDirectoryApi() {
   return request<CheckItem.GetDirectoryResponseData>({
     url: "data/check-item-directory/list",
-    method: "get",
-    params
+    method: "get"
   })
 }
 
-// CheckItem
+// 检测项
 
 /** 查 */
 export function getCheckItemApi(params: CheckItem.GetCheckItemRequestData) {

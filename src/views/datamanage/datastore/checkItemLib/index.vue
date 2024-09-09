@@ -1,4 +1,4 @@
-<!--检测项库列表-->
+<!-- 检测项库列表 -->
 
 <script lang="ts" setup>
 import { nextTick, onMounted, reactive, ref, watch } from "vue"
@@ -17,64 +17,109 @@ import {
 import { CirclePlus } from "@element-plus/icons-vue"
 import { FirstLevelDirectory, CheckItem } from "@/api/check-item/types/check-item"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
+// 一级目录列表
+const firstLevelDirectoryList = ref<FirstLevelDirectory[]>([])
+// 获取一级目录列表
+getFirstLevelDirectoryApi().then((res) => {
+  firstLevelDirectoryList.value = res.data
 })
 
-const loading = ref<boolean>(false)
-
-const treeLoading = ref<boolean>(false)
-
-const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-
-const dialogVisible = ref<boolean>(false)
-
-const headers = ref<any>([
-  { prop: "id", label: "检测项ID", align: "center" },
-  { prop: "name", label: "检测项名称", align: "center" },
-  { prop: "operation_desc", label: "操作描述", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "right" }
-])
-
-const defaultProps = {
-  children: "children",
-  label: "label"
+const directoryDialogVisible = ref(false)
+const directoryFormRef = ref<FormInstance | null>(null)
+const directoryFormData = reactive<any>({
+  firstLevelDirectoryId: "",
+  secondLevelDirectoryName: ""
+})
+const clearDirectoryFormData = () => {
+  Object.keys(directoryFormData).forEach((key) => (directoryFormData[key] = ""))
 }
+const directoryFormRules: FormRules = reactive({
+  firstLevelDirectoryId: [{ required: true, trigger: "blur", message: "请选择一级目录" }],
+  secondLevelDirectoryName: [{ required: true, trigger: "blur", message: "请输入二级目录" }]
+})
+const firstLevelDirectoryName = ref("")
+const isAdding = ref(false)
+const clear = () => {
+  firstLevelDirectoryName.value = ""
+  isAdding.value = false
+}
+const directorySelectRef = ref(null)
+const onConfirm = () => {
+  if (firstLevelDirectoryName.value) {
+    createFirstLevelDirectoryApi({ name: firstLevelDirectoryName.value })
+      .then((res) => {
+        firstLevelDirectoryList.value = [
+          { id: res.id, name: firstLevelDirectoryName.value },
+          ...firstLevelDirectoryList.value
+        ]
+        directoryFormData.firstLevelDirectoryId = res.id
+        clear()
 
-const TreeData = ref<any>([])
-
+        const selectComponent = directorySelectRef.value as any
+        if (selectComponent) {
+          selectComponent.blur()
+        }
+        nextTick(() => {
+          directoryFormRef.value?.validateField("firstLevelDirectoryId")
+        })
+      })
+  }
+}
+// 树形结构展开的节点 ID
+const expandTreeNodeId = ref(1)
+const createSecondLevelDirectory = () => {
+  directoryFormRef.value?.validate((valid: boolean, fields) => {
+    if (valid) {
+      createSecondLevelDirectoryApi({ ...directoryFormData })
+        .then(() => {
+          expandTreeNodeId.value = directoryFormData.firstLevelDirectoryId
+          ElMessage.success("新增成功")
+          getTreeData()
+        })
+        .finally(() => {
+          directoryDialogVisible.value = false
+        })
+    } else {
+      ElMessage.error("请填写完整")
+      console.error("表单校验不通过", fields)
+    }
+  })
+}
+// 树形控件的默认参数
+const defaultProps = {
+  children: "children", // 树形结构中的子节点字段
+  label: "label" // 节点显示的文本字段
+}
+const treeData = ref<any>([])
+const treeLoading = ref(false)
 const getTreeData = () => {
   treeLoading.value = true
-  getDirectoryApi({
-    currentPage: 1,
-    size: 999999,
-    isTree: true
-  })
+
+  getDirectoryApi()
     .then((res) => {
-      TreeData.value = res.data.list
+      treeData.value = res.data
     })
     .catch(() => {
-      TreeData.value = []
+      treeData.value = []
     })
     .finally(() => {
       treeLoading.value = false
     })
 }
-
-const secondLevelDirectoryId = ref<string | undefined>(undefined)
+const secondLevelDirectoryId = ref<number | undefined>(undefined)
 const handleNodeClick = (data: any) => {
   if (data.children === undefined) {
     secondLevelDirectoryId.value = data.id
     getTableData()
   }
 }
-
+const gettingCheckItems = ref(false)
 const getTableData = () => {
-  loading.value = true
+  gettingCheckItems.value = true
+
   getCheckItemApi({
     currentPage: paginationData.currentPage,
-    size: paginationData.pageSize,
+    pageSize: paginationData.pageSize,
     secondLevelDirectoryId: secondLevelDirectoryId.value!
   })
     .then((res) => {
@@ -85,30 +130,21 @@ const getTableData = () => {
       tableData.value = []
     })
     .finally(() => {
-      loading.value = false
+      gettingCheckItems.value = false
     })
 }
-
-const currentUpdateId = ref<undefined | string>(undefined)
-
-const formRef = ref<FormInstance | null>(null)
 const formData = reactive({
   name: "",
   operation_desc: ""
 })
-const formRules: FormRules = reactive({})
-const resetForm = () => {
-  currentUpdateId.value = undefined
-  formData.name = ""
-  formData.operation_desc = ""
-  getTableData()
-}
-const tableData = ref<CheckItem[]>([])
 const handleCreate = () => {
   formRef.value?.validate((valid: boolean, fields) => {
     if (valid) {
-      if (currentUpdateId.value === undefined) {
-        createCheckItemApi({ ...formData, secondLevelDirectoryId: secondLevelDirectoryId.value! })
+      if (checkItemId.value === undefined) {
+        createCheckItemApi({
+          ...formData,
+          secondLevelDirectoryId: secondLevelDirectoryId.value!
+        })
           .then(() => {
             ElMessage.success("新增成功")
             getTableData()
@@ -118,9 +154,8 @@ const handleCreate = () => {
           })
       } else {
         updateCheckItemApi({
-          id: currentUpdateId.value,
-          name: formData.name,
-          operation_desc: formData.operation_desc
+          id: checkItemId.value,
+          ...formData
         })
           .then(() => {
             ElMessage.success("修改成功")
@@ -136,96 +171,43 @@ const handleCreate = () => {
   })
 }
 
-const selectedRows = ref([])
+const dialogVisible = ref(false)
 
-const handleSelectionChange = (val: any) => {
-  // console.log("index", val)
-  selectedRows.value = val
+const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+
+const tableHeaders = ref<any>([
+  { prop: "id", label: "检测项 ID", align: "center" },
+  { prop: "name", label: "检测项名称", align: "center" },
+  { prop: "operation_desc", label: "操作描述", align: "center" },
+  { prop: "link", label: "操作", type: "link", align: "center" }
+])
+
+const checkItemId = ref<number | undefined>(undefined)
+
+const resetForm = () => {
+  checkItemId.value = undefined
+  formData.name = ""
+  formData.operation_desc = ""
+  getTableData()
 }
+const tableData = ref<CheckItem[]>([])
+const formRef = ref<FormInstance | null>(null)
 
 // 编辑
 const handleLink = (data: any) => {
-  currentUpdateId.value = data.id
+  checkItemId.value = data.id
   formData.name = data.name
   formData.operation_desc = data.operation_desc
   dialogVisible.value = true
 }
 
-const filterNode = (value: string, data: any) => {
-  if (!value) return true
-  return data.label.includes(value)
-}
+// const filterNode = (value: string, data: any) => {
+//   if (!value) return true
+//   return data.label.includes(value)
+// }
+
 //#endregion
 
-const directoryDialogVisible = ref<boolean>(false)
-const directoryFormRef = ref<FormInstance | null>(null)
-const directoryFormData = reactive<any>({
-  firstLevelDirectoryId: "",
-  secondLevelDirectoryName: ""
-})
-const directoryFormRules: FormRules = reactive({
-  firstLevelDirectoryId: [{ required: true, trigger: "blur", message: "请选择一级目录" }],
-  secondLevelDirectoryName: [{ required: true, trigger: "blur", message: "请输入二级目录" }]
-})
-const resetDirectoryForm = () => {
-  directoryFormData.firstLevelDirectoryId = ""
-  directoryFormData.secondLevelDirectoryName = ""
-}
-
-const firstLevelDirectory = ref<FirstLevelDirectory[]>([])
-getFirstLevelDirectoryApi({ currentPage: 1, size: 999999 }).then((res) => {
-  firstLevelDirectory.value = res.data.list
-})
-
-const isAdding = ref(false)
-
-const optionName = ref("")
-const onConfirm = () => {
-  if (optionName.value) {
-    createFirstLevelDirectoryApi({ name: optionName.value }).then((res) => {
-      firstLevelDirectory.value = [{ id: res.id, name: res.name }, ...firstLevelDirectory.value]
-      directoryFormData.firstLevelDirectoryId = res.id
-      clear()
-
-      const selectComponent = directorySelect.value as any
-      if (selectComponent) {
-        selectComponent.blur()
-      }
-
-      nextTick(() => {
-        directoryFormRef.value?.validateField("firstLevelDirectoryId")
-      })
-    })
-  }
-}
-
-const clear = () => {
-  optionName.value = ""
-  isAdding.value = false
-}
-
-const createSecondLevelDirectory = () => {
-  directoryFormRef.value?.validate((valid: boolean) => {
-    if (valid) {
-      console.log(directoryFormData)
-      createSecondLevelDirectoryApi({
-        name: directoryFormData.secondLevelDirectoryName,
-        firstLevelDirectoryId: directoryFormData.firstLevelDirectoryId
-      })
-        .then(() => {
-          ElMessage.success("新增成功")
-          getTreeData()
-        })
-        .finally(() => {
-          directoryDialogVisible.value = false
-        })
-    } else {
-      ElMessage.error("请填写完整")
-    }
-  })
-}
-
-const directorySelect = ref(null)
 const newDirInput = ref<HTMLInputElement | null>(null)
 const showInput = (): void => {
   isAdding.value = true
@@ -251,18 +233,23 @@ onMounted(() => {
       <el-col :span="5">
         <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
           <template #header>
-            <el-button v-permission="['17']" style="width: 100%" type="primary" icon="circle-plus" @click="directoryDialogVisible = true"
+            <!-- 17 代表添加检测项、缺陷项、疑问项权限 -->
+            <el-button
+              v-permission="['17']"
+              style="width: 100%"
+              type="primary"
+              icon="circle-plus"
+              @click="directoryDialogVisible = true"
               >新建检测类型
             </el-button>
           </template>
           <el-tree
             class="filter-tree"
-            :data="TreeData"
+            :data="treeData"
             :props="defaultProps"
             node-key="id"
-            :default-expanded-keys="[1]"
+            :default-expanded-keys="[expandTreeNodeId]"
             accordion
-            :filter-node-method="filterNode"
             @node-click="handleNodeClick"
           />
         </el-card>
@@ -273,23 +260,25 @@ onMounted(() => {
         </el-card>
       </el-col>
       <el-col v-else :span="19">
-        <el-card v-loading="loading" shadow="never">
+        <el-card v-loading="gettingCheckItems" shadow="never">
           <div class="toolbar-wrapper">
             <div>
-              <el-button v-permission="['17']" type="primary" :icon="CirclePlus" @click="dialogVisible = true">新增检测项</el-button>
+              <!-- 17 代表添加检测项、缺陷项、疑问项权限 -->
+              <el-button v-permission="['17']" type="primary" :icon="CirclePlus" @click="dialogVisible = true">
+                添加检测项
+              </el-button>
             </div>
-            <!-- <div>-->
-            <!--   <el-tooltip content="刷新当前页">-->
-            <!--     <el-button type="primary" icon="refresh-right" circle @click="getTableData" />-->
-            <!--   </el-tooltip>-->
-            <!-- </div>-->
+            <div>
+              <el-tooltip content="刷新当前页">
+                <el-button type="primary" icon="refresh-right" circle @click="getTableData" />
+              </el-tooltip>
+            </div>
           </div>
           <div class="table-wrapper">
             <TableComponent
               :tableData="tableData"
-              :column-data="headers"
+              :column-data="tableHeaders"
               stripe
-              @selection-change="handleSelectionChange"
             >
               <template #link="{ row }">
                 <el-link type="primary" class="el-link" @click="handleLink(row)">编辑</el-link>
@@ -310,19 +299,20 @@ onMounted(() => {
           </div>
         </el-card>
       </el-col>
-      <!-- 新增/修改 -->
+
+      <!-- 新增/修改检测项 -->
       <el-dialog
         v-model="dialogVisible"
-        :title="currentUpdateId === undefined ? '新增检测项' : '修改检测项'"
+        :title="checkItemId === undefined ? '新增检测项' : '修改检测项'"
         @close="resetForm"
         width="30%"
       >
-        <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" label-position="left">
+        <el-form ref="formRef" :model="formData" label-width="auto">
           <el-form-item prop="name" label="检测项名称">
             <el-input v-model="formData.name" placeholder="请输入" />
           </el-form-item>
           <el-form-item prop="operation_desc" label="操作描述">
-            <el-input v-model="formData.operation_desc" placeholder="请输入" />
+            <el-input v-model="formData.operation_desc" type="textarea" placeholder="请输入" />
           </el-form-item>
         </el-form>
         <template #footer>
@@ -333,18 +323,17 @@ onMounted(() => {
     </el-row>
 
     <!-- 新建检测类型 -->
-    <el-dialog v-model="directoryDialogVisible" title="新建检测类型" @close="resetDirectoryForm" width="30%">
+    <el-dialog v-model="directoryDialogVisible" title="新建检测类型" @close="clearDirectoryFormData" width="30%">
       <el-form
         ref="directoryFormRef"
         :model="directoryFormData"
         :rules="directoryFormRules"
-        label-width="100px"
-        label-position="left"
+        label-width="auto"
       >
         <el-form-item prop="firstLevelDirectoryId" label="一级目录">
-          <el-select ref="directorySelect" v-model="directoryFormData.firstLevelDirectoryId" placeholder="请选择">
+          <el-select ref="directorySelectRef" v-model="directoryFormData.firstLevelDirectoryId" placeholder="请选择">
             <el-option
-              v-for="directory in firstLevelDirectory"
+              v-for="directory in firstLevelDirectoryList"
               :label="directory.name"
               :value="directory.id"
               :key="directory.id"
@@ -354,7 +343,7 @@ onMounted(() => {
               <template v-else>
                 <el-input
                   ref="newDirInput"
-                  v-model="optionName"
+                  v-model="firstLevelDirectoryName"
                   class="option-input"
                   placeholder="请输入"
                   size="small"

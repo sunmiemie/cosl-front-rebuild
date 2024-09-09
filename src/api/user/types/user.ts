@@ -4,7 +4,6 @@ export interface GetUserData {
   role: number
   introduction: string
   nickname: string
-  password: string
 }
 
 export type GetUserResponseData = ApiResponseData<{
