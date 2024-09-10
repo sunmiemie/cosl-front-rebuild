@@ -1,10 +1,12 @@
-<!--缺陷项库列表-->
+ <!--缺陷项库列表-->
 
 <script lang="ts" setup>
 import { nextTick, onMounted, reactive, ref, watch } from "vue"
 import { ElMessage, ElTree, type FormInstance, type FormRules } from "element-plus"
-import { usePagination } from "@/hooks/usePagination"
+import { CirclePlus } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
+import { usePagination } from "@/hooks/usePagination"
+import { FirstLevelDirectory, DefectItem } from "@/api/defect-item/types/defect-item"
 import {
   createDefectItemApi,
   createFirstLevelDirectoryApi,
@@ -14,27 +16,20 @@ import {
   getFirstLevelDirectoryApi,
   updateDefectItemApi
 } from "@/api/defect-item"
-import { CirclePlus } from "@element-plus/icons-vue"
-import { FirstLevelDirectory, DefectItem } from "@/api/defect-item/types/defect-item"
 
-defineOptions({
-  // 命名当前组件
-  name: "ElementPlus"
-})
+const loading = ref(false)
 
-const loading = ref<boolean>(false)
-
-const treeLoading = ref<boolean>(false)
+const treeLoading = ref(false)
 
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
-const dialogVisible = ref<boolean>(false)
+const dialogVisible = ref(false)
 
 const headers = ref<any>([
-  { prop: "id", label: "缺陷项ID", align: "center" },
+  { prop: "id", label: "缺陷项 ID", align: "center" },
   { prop: "name", label: "缺陷项名称", align: "center" },
   { prop: "problem_desc", label: "问题描述", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "right" }
+  { prop: "link", label: "操作", type: "link", align: "center" }
 ])
 
 const defaultProps = {

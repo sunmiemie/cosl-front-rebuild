@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <el-card>
-      <el-tabs v-model="activeName" type="card" class="demo-tabs" @tab-click="handleTabClick">
+      <el-tabs v-model="activeName" type="card" @tab-click="handleTabClick">
         <el-tab-pane label="生产电路板" name="first">
           <ProdBoard ref="prodBoardComponent" />
         </el-tab-pane>
@@ -14,13 +14,12 @@
 </template>
 
 <script setup lang="ts">
-import ProdBoard from "./components/ProdBoard.vue"
-import TempBoard from "./components/TempBoard.vue"
 import { ref } from "vue"
 import { TabsPaneContext } from "element-plus"
+import ProdBoard from "./components/ProdBoard.vue"
+import TempBoard from "./components/TempBoard.vue"
 
 const activeName = ref<any>("first")
-
 const prodBoardComponent = ref<InstanceType<typeof ProdBoard> | null>(null)
 const tempBoardComponent = ref<InstanceType<typeof TempBoard> | null>(null)
 
