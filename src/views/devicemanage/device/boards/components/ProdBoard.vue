@@ -2,28 +2,28 @@
 
 <script lang="ts" setup>
 import { onMounted, reactive, ref, watch } from "vue"
-import { getBoardDataApi } from "@/api/board"
-import { createBatchDataApi, getBatchDataApi, previewBatchDataApi } from "@/api/batch"
-import { type GetBatchData } from "@/api/batch/types/batch"
 import { ElMessage, ElMessageBox, ElTree, type FormInstance } from "element-plus"
-import { usePagination, useDetailPagination } from "@/hooks/usePagination"
+import { UploadFilled } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import QrcodeVue from "qrcode.vue"
 import { type GetBoardData } from "@/api/board/types/board"
+import { type GetBatchData } from "@/api/batch/types/batch"
+import { getBoardDataApi } from "@/api/board"
+import { createBatchDataApi, getBatchDataApi, previewBatchDataApi } from "@/api/batch"
+import { usePagination, useDetailPagination } from "@/hooks/usePagination"
 import { getInstrumentDataApi } from "@/api/instrument"
-import { UploadFilled } from "@element-plus/icons-vue"
 import { getQRcodeImgApi } from "@/api/qrcode"
 
-const loading = ref<boolean>(false)
-const detailLoading = ref<boolean>(false)
-const treeLoading = ref<boolean>(false)
+const loading = ref(false)
+const detailLoading = ref(false)
+const treeLoading = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const { paginationDetailData, handleDetailCurrentChange, handleDetailSizeChange } = useDetailPagination()
-const modelId = ref<string>("")
-const dialogVisible = ref<boolean>(false)
-const qrcodeVisible = ref<boolean>(false)
-const qrcodeValue = ref<string>("")
-const dialogDetail = ref<boolean>(false)
+const modelId = ref("")
+const dialogVisible = ref(false)
+const qrcodeVisible = ref(false)
+const qrcodeValue = ref("")
+const dialogDetail = ref(false)
 
 const formData = reactive<any>({
   file: []
@@ -31,14 +31,13 @@ const formData = reactive<any>({
 const fileList = reactive<any>({
   file: []
 })
-
+const currentUpdateId = ref<string | undefined>(undefined)
 const resetForm = () => {
   currentUpdateId.value = undefined
   formData.name = ""
   formData.model = ""
   formData.seria = ""
 }
-const currentUpdateId = ref<undefined | string>(undefined)
 const headers = ref([
   { prop: "id", label: "电路板ID", align: "center", width: "120", fixed: "left" },
   { prop: "name", label: "电路板型号", align: "center", width: "150" },
@@ -354,6 +353,7 @@ onMounted(() => {
     <!-- 设置列占据的宽度 -->
     <el-col :span="5">
       <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
+        <!-- 1 代表添加电路板权限 -->
         <template #header>
           <el-button
             v-permission="['1']"
