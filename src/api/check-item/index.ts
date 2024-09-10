@@ -1,7 +1,7 @@
 import { request } from "@/utils/service"
 import type * as CheckItem from "./types/check-item"
 
-// FirstLevelDirectory
+// 一级目录
 
 /** 查 */
 export function getFirstLevelDirectoryApi() {
@@ -19,8 +19,7 @@ export function createFirstLevelDirectoryApi(data: { name: string }) {
   })
 }
 
-// SecondLevelDirectory
-
+// 创建二级目录
 export function createSecondLevelDirectoryApi(data: CheckItem.CreateSecondLevelDirectoryRequestData) {
   return request({
     url: "data/check-item-second-level-directory/add",
@@ -29,8 +28,7 @@ export function createSecondLevelDirectoryApi(data: CheckItem.CreateSecondLevelD
   })
 }
 
-// Directory
-
+// 获取目录列表
 /** 查 */
 export function getDirectoryApi() {
   return request<CheckItem.GetDirectoryResponseData>({

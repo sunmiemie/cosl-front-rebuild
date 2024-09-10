@@ -4,7 +4,6 @@ import { ElButton, ElMessage, type FormInstance, type FormRules } from "element-
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
 import { GetRoleData } from "@/api/role/types/role"
-
 import { createRoleDataApi, getRoleDataApi, updateRoleDataApi } from "@/api/role"
 import { getPermissionDataApi } from "@/api/permission"
 

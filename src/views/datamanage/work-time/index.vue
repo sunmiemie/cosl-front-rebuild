@@ -4,7 +4,6 @@ import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { GetUserData } from "@/api/user/types/user"
 import { GetWorkTimeData } from "@/api/work-time/types/work-time"
-
 import { getUserDataApi } from "@/api/user"
 import { getWorkTimeDataApi } from "@/api/work-time"
 

@@ -3,8 +3,10 @@
 <script lang="ts" setup>
 import { nextTick, onMounted, reactive, ref, watch } from "vue"
 import { ElMessage, ElTree, type FormInstance, type FormRules } from "element-plus"
-import { usePagination } from "@/hooks/usePagination"
+import { CirclePlus } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
+import { usePagination } from "@/hooks/usePagination"
+import { FirstLevelDirectory, CheckItem } from "@/api/check-item/types/check-item"
 import {
   createCheckItemApi,
   createFirstLevelDirectoryApi,
@@ -14,8 +16,6 @@ import {
   getFirstLevelDirectoryApi,
   updateCheckItemApi
 } from "@/api/check-item"
-import { CirclePlus } from "@element-plus/icons-vue"
-import { FirstLevelDirectory, CheckItem } from "@/api/check-item/types/check-item"
 
 // 一级目录列表
 const firstLevelDirectoryList = ref<FirstLevelDirectory[]>([])
@@ -38,41 +38,40 @@ const directoryFormRules: FormRules = reactive({
   secondLevelDirectoryName: [{ required: true, trigger: "blur", message: "请输入二级目录" }]
 })
 const firstLevelDirectoryName = ref("")
-const isAdding = ref(false)
-const clear = () => {
+const addingFirstLevelDirectory = ref(false)
+const cancelCreatingFirstLevelDir = () => {
   firstLevelDirectoryName.value = ""
-  isAdding.value = false
+  addingFirstLevelDirectory.value = false
 }
-const directorySelectRef = ref(null)
-const onConfirm = () => {
+const firstLevelDirectorySelectRef = ref(null)
+const createFirstLevelDir = () => {
   if (firstLevelDirectoryName.value) {
-    createFirstLevelDirectoryApi({ name: firstLevelDirectoryName.value })
-      .then((res) => {
-        firstLevelDirectoryList.value = [
-          { id: res.id, name: firstLevelDirectoryName.value },
-          ...firstLevelDirectoryList.value
-        ]
-        directoryFormData.firstLevelDirectoryId = res.id
-        clear()
+    createFirstLevelDirectoryApi({ name: firstLevelDirectoryName.value }).then((res) => {
+      firstLevelDirectoryList.value = [
+        { id: res.id, name: firstLevelDirectoryName.value },
+        ...firstLevelDirectoryList.value
+      ]
+      directoryFormData.firstLevelDirectoryId = res.id
+      cancelCreatingFirstLevelDir()
 
-        const selectComponent = directorySelectRef.value as any
-        if (selectComponent) {
-          selectComponent.blur()
-        }
-        nextTick(() => {
-          directoryFormRef.value?.validateField("firstLevelDirectoryId")
-        })
+      const selectComponent = firstLevelDirectorySelectRef.value as any
+      if (selectComponent) {
+        selectComponent.blur()
+      }
+      nextTick(() => {
+        directoryFormRef.value?.validateField("firstLevelDirectoryId")
       })
+    })
   }
 }
 // 树形结构展开的节点 ID
-const expandTreeNodeId = ref(1)
+const expandedTreeNodeId = ref(1)
 const createSecondLevelDirectory = () => {
   directoryFormRef.value?.validate((valid: boolean, fields) => {
     if (valid) {
       createSecondLevelDirectoryApi({ ...directoryFormData })
         .then(() => {
-          expandTreeNodeId.value = directoryFormData.firstLevelDirectoryId
+          expandedTreeNodeId.value = directoryFormData.firstLevelDirectoryId
           ElMessage.success("新增成功")
           getTreeData()
         })
@@ -114,6 +113,14 @@ const handleNodeClick = (data: any) => {
   }
 }
 const gettingCheckItems = ref(false)
+const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+const tableHeaders = ref<any>([
+  { prop: "id", label: "检测项 ID", align: "center" },
+  { prop: "name", label: "检测项名称", align: "center" },
+  { prop: "operation_desc", label: "操作描述", align: "center" },
+  { prop: "link", label: "操作", type: "link", align: "center" }
+])
+const tableData = ref<CheckItem[]>([])
 const getTableData = () => {
   gettingCheckItems.value = true
 
@@ -133,16 +140,17 @@ const getTableData = () => {
       gettingCheckItems.value = false
     })
 }
-const formData = reactive({
+const checkItemFormData = reactive({
   name: "",
   operation_desc: ""
 })
-const handleCreate = () => {
-  formRef.value?.validate((valid: boolean, fields) => {
+const checkItemDialogVisible = ref(false)
+const createOrUpdateCheckItem = () => {
+  checkItemFormRef.value?.validate((valid: boolean, fields) => {
     if (valid) {
       if (checkItemId.value === undefined) {
         createCheckItemApi({
-          ...formData,
+          ...checkItemFormData,
           secondLevelDirectoryId: secondLevelDirectoryId.value!
         })
           .then(() => {
@@ -150,19 +158,19 @@ const handleCreate = () => {
             getTableData()
           })
           .finally(() => {
-            dialogVisible.value = false
+            checkItemDialogVisible.value = false
           })
       } else {
         updateCheckItemApi({
           id: checkItemId.value,
-          ...formData
+          ...checkItemFormData
         })
           .then(() => {
             ElMessage.success("修改成功")
             getTableData()
           })
           .finally(() => {
-            dialogVisible.value = false
+            checkItemDialogVisible.value = false
           })
       }
     } else {
@@ -171,49 +179,34 @@ const handleCreate = () => {
   })
 }
 
-const dialogVisible = ref(false)
-
-const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-
-const tableHeaders = ref<any>([
-  { prop: "id", label: "检测项 ID", align: "center" },
-  { prop: "name", label: "检测项名称", align: "center" },
-  { prop: "operation_desc", label: "操作描述", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "center" }
-])
-
 const checkItemId = ref<number | undefined>(undefined)
-
-const resetForm = () => {
+const resetCheckItemForm = () => {
   checkItemId.value = undefined
-  formData.name = ""
-  formData.operation_desc = ""
+  checkItemFormData.name = ""
+  checkItemFormData.operation_desc = ""
   getTableData()
 }
-const tableData = ref<CheckItem[]>([])
-const formRef = ref<FormInstance | null>(null)
-
-// 编辑
+// 编辑检测项
 const handleLink = (data: any) => {
   checkItemId.value = data.id
-  formData.name = data.name
-  formData.operation_desc = data.operation_desc
-  dialogVisible.value = true
+  checkItemFormData.name = data.name
+  checkItemFormData.operation_desc = data.operation_desc
+  checkItemDialogVisible.value = true
 }
+const checkItemFormRef = ref<FormInstance | null>(null)
 
+// 搜索树形结构的节点
 // const filterNode = (value: string, data: any) => {
 //   if (!value) return true
 //   return data.label.includes(value)
 // }
 
-//#endregion
-
-const newDirInput = ref<HTMLInputElement | null>(null)
+const newFirstLevelDirInput = ref<HTMLInputElement | null>(null)
 const showInput = (): void => {
-  isAdding.value = true
+  addingFirstLevelDirectory.value = true
   nextTick(() => {
-    if (newDirInput.value) {
-      newDirInput.value.focus()
+    if (newFirstLevelDirInput.value) {
+      newFirstLevelDirInput.value.focus()
     }
   })
 }
@@ -244,11 +237,10 @@ onMounted(() => {
             </el-button>
           </template>
           <el-tree
-            class="filter-tree"
             :data="treeData"
             :props="defaultProps"
             node-key="id"
-            :default-expanded-keys="[expandTreeNodeId]"
+            :default-expanded-keys="[expandedTreeNodeId]"
             accordion
             @node-click="handleNodeClick"
           />
@@ -264,7 +256,7 @@ onMounted(() => {
           <div class="toolbar-wrapper">
             <div>
               <!-- 17 代表添加检测项、缺陷项、疑问项权限 -->
-              <el-button v-permission="['17']" type="primary" :icon="CirclePlus" @click="dialogVisible = true">
+              <el-button v-permission="['17']" type="primary" :icon="CirclePlus" @click="checkItemDialogVisible = true">
                 添加检测项
               </el-button>
             </div>
@@ -275,13 +267,9 @@ onMounted(() => {
             </div>
           </div>
           <div class="table-wrapper">
-            <TableComponent
-              :tableData="tableData"
-              :column-data="tableHeaders"
-              stripe
-            >
+            <TableComponent :tableData="tableData" :column-data="tableHeaders" stripe>
               <template #link="{ row }">
-                <el-link type="primary" class="el-link" @click="handleLink(row)">编辑</el-link>
+                <el-link type="primary" @click="handleLink(row)">编辑</el-link>
               </template>
             </TableComponent>
           </div>
@@ -302,36 +290,35 @@ onMounted(() => {
 
       <!-- 新增/修改检测项 -->
       <el-dialog
-        v-model="dialogVisible"
+        v-model="checkItemDialogVisible"
         :title="checkItemId === undefined ? '新增检测项' : '修改检测项'"
-        @close="resetForm"
+        @close="resetCheckItemForm"
         width="30%"
       >
-        <el-form ref="formRef" :model="formData" label-width="auto">
+        <el-form ref="checkItemFormRef" :model="checkItemFormData" label-width="auto">
           <el-form-item prop="name" label="检测项名称">
-            <el-input v-model="formData.name" placeholder="请输入" />
+            <el-input v-model="checkItemFormData.name" placeholder="请输入" />
           </el-form-item>
           <el-form-item prop="operation_desc" label="操作描述">
-            <el-input v-model="formData.operation_desc" type="textarea" placeholder="请输入" />
+            <el-input v-model="checkItemFormData.operation_desc" type="textarea" placeholder="请输入" />
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleCreate">确认</el-button>
+          <el-button @click="checkItemDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="createOrUpdateCheckItem">确认</el-button>
         </template>
       </el-dialog>
     </el-row>
 
     <!-- 新建检测类型 -->
     <el-dialog v-model="directoryDialogVisible" title="新建检测类型" @close="clearDirectoryFormData" width="30%">
-      <el-form
-        ref="directoryFormRef"
-        :model="directoryFormData"
-        :rules="directoryFormRules"
-        label-width="auto"
-      >
+      <el-form ref="directoryFormRef" :model="directoryFormData" :rules="directoryFormRules" label-width="auto">
         <el-form-item prop="firstLevelDirectoryId" label="一级目录">
-          <el-select ref="directorySelectRef" v-model="directoryFormData.firstLevelDirectoryId" placeholder="请选择">
+          <el-select
+            ref="firstLevelDirectorySelectRef"
+            v-model="directoryFormData.firstLevelDirectoryId"
+            placeholder="请选择"
+          >
             <el-option
               v-for="directory in firstLevelDirectoryList"
               :label="directory.name"
@@ -339,17 +326,19 @@ onMounted(() => {
               :key="directory.id"
             />
             <template #footer>
-              <el-button v-if="!isAdding" text bg size="small" @click="showInput"> 新建目录 </el-button>
+              <el-button v-if="!addingFirstLevelDirectory" text bg size="small" @click="showInput">
+                新建一级目录
+              </el-button>
               <template v-else>
                 <el-input
-                  ref="newDirInput"
+                  ref="newFirstLevelDirInput"
                   v-model="firstLevelDirectoryName"
                   class="option-input"
                   placeholder="请输入"
                   size="small"
                 />
-                <el-button type="primary" size="small" @click="onConfirm"> 确认 </el-button>
-                <el-button size="small" @click="clear">取消</el-button>
+                <el-button type="primary" size="small" @click="createFirstLevelDir"> 新建 </el-button>
+                <el-button size="small" @click="cancelCreatingFirstLevelDir">取消</el-button>
               </template>
             </template>
           </el-select>
@@ -360,21 +349,13 @@ onMounted(() => {
       </el-form>
       <template #footer>
         <el-button @click="directoryDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="createSecondLevelDirectory">确认</el-button>
+        <el-button type="primary" @click="createSecondLevelDirectory">新建</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.search-wrapper {
-  margin-bottom: 20px;
-
-  :deep(.el-card__body) {
-    padding-bottom: 2px;
-  }
-}
-
 .toolbar-wrapper {
   display: flex;
   justify-content: space-between;
@@ -388,23 +369,6 @@ onMounted(() => {
 .pager-wrapper {
   display: flex;
   justify-content: flex-end;
-}
-
-.el-col {
-  border-radius: 4px;
-}
-
-.grid-content {
-  border-radius: 4px;
-  min-height: 36px;
-}
-
-.addbutton {
-  width: 10vw;
-}
-
-.drawer-head {
-  height: 5%;
 }
 
 .option-input {

@@ -430,7 +430,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         }
       },
       {
-        path: "defectItemLibList",
+        path: "defect-item-lib-list",
         component: () => import("@/views/datamanage/datastore/defectItemLib/index.vue"),
         name: "defectItemLibList",
         meta: {

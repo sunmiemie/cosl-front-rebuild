@@ -1,4 +1,4 @@
-// FirstLevelDirectory
+// 一级目录
 
 export interface FirstLevelDirectory {
   id: number
@@ -7,12 +7,13 @@ export interface FirstLevelDirectory {
 
 export type GetFirstLevelDirectoryResponseData = ApiResponseData<FirstLevelDirectory[]>
 
-// SecondLevelDirectory
-
+// 二级目录
 export interface CreateSecondLevelDirectoryRequestData {
   secondLevelDirectoryName: string
   firstLevelDirectoryId: number
 }
+
+// 目录
 
 interface Directory {
   id: string
@@ -21,7 +22,7 @@ interface Directory {
 
 export type GetDirectoryResponseData = ApiResponseData<Directory[]>
 
-// CheckItem
+// 检测项
 
 export interface GetCheckItemRequestData {
   currentPage?: number
