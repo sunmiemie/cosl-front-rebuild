@@ -288,8 +288,7 @@ const generatePreview = () => {
 
   previewBatchDataApi(param)
     .then((data) => {
-      // console.log(data)
-      preview.boards = data.preview_boards
+      preview.boards = data.boards_to_add
       preview.batches = data.batches
       preview.boardModels = data.board_models
       previewDialogVisible.value = true
@@ -312,7 +311,7 @@ const insertingData = ref<boolean>(false)
 const bulkImport = () => {
   insertingData.value = true
   createBatchDataApi({
-    boards: preview.boards,
+    boardsToAdd: preview.boards,
     batches: preview.batches,
     boardModels: preview.boardModels
   })

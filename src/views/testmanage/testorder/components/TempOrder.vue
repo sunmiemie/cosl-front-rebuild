@@ -178,7 +178,7 @@ const handleLink = (data: any, i: string) => {
     drawer.value = true
   } else if (i === "导出工单") {
     const link = document.createElement("a")
-    link.href = `${import.meta.env.VITE_BASE_API}test/testunit/download/${data.testunit_name}.json?id=${data.testunit_id}`
+    link.href = `${import.meta.env.VITE_BASE_API}test/dev-testunit/download/${data.dev_testunit_name}.json?id=${data.dev_testunit_id}`
     link.setAttribute("download", data.testunit_name + ".json")
     document.body.appendChild(link)
     link.click()
