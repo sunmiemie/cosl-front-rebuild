@@ -9,7 +9,12 @@ export function createRoleDataApi(data: Role.CreateRoleRequestData) {
   })
 }
 
-export function getRoleDataApi(params: { pageSize?: number; currentPage?: number; roleId?: string; roleName?: string }) {
+export function getRoleDataApi(params: {
+  pageSize?: number
+  currentPage?: number
+  roleId?: string
+  roleName?: string
+}) {
   return request<Role.GetRoleResponseData>({
     url: "data/role/list",
     method: "get",

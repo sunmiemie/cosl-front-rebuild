@@ -1,63 +1,37 @@
-// FirstLevelDirectory
-
-export interface GetFirstLevelDirectoryRequestData {
-  /** 当前页码 */
-  currentPage: number
-  /** 查询条数 */
-  size: number
-}
+// 一级目录
 
 export interface FirstLevelDirectory {
-  id: string
+  id: number
   name: string
 }
 
-export type GetFirstLevelDirectoryResponseData = ApiResponseData<{
-  list: FirstLevelDirectory[]
-  total: number
-}>
+export type GetFirstLevelDirectoryResponseData = ApiResponseData<FirstLevelDirectory[]>
 
-export interface CreateFirstLevelDirectoryRequestData {
-  name: string
-}
-
-// SecondLevelDirectory
-
+// 二级目录
 export interface CreateSecondLevelDirectoryRequestData {
-  name: string
-  firstLevelDirectoryId: string
+  secondLevelDirectoryName: string
+  firstLevelDirectoryId: number
 }
 
-// Directory
-
-export interface GetDirectoryRequestData {
-  currentPage?: number
-  size?: number
-  name?: string
-  id?: string
-  isTree?: boolean
-}
+// 目录
 
 interface Directory {
   id: string
   name: string
 }
 
-export type GetDirectoryResponseData = ApiResponseData<{
-  list: Directory[]
-  total: number
-}>
+export type GetDirectoryResponseData = ApiResponseData<Directory[]>
 
-// CheckItem
+// 检测项
 
 export interface GetCheckItemRequestData {
-  currentPage: number
-  size: number
-  secondLevelDirectoryId: string
+  currentPage?: number
+  pageSize?: number
+  secondLevelDirectoryId: number
 }
 
 export interface CheckItem {
-  id: string
+  id: number
   name: string
   operation_desc: string
 }
@@ -70,11 +44,11 @@ export type GetCheckItemResponseData = ApiResponseData<{
 export interface CreateCheckItemRequestData {
   name: string
   operation_desc: string
-  secondLevelDirectoryId: string
+  secondLevelDirectoryId: number
 }
 
 export interface UpdateCheckItemRequestData {
-  id: string
+  id: number
   name: string
   operation_desc: string
 }

@@ -1,30 +1,23 @@
 <script setup lang="ts">
-import TableComponent from "@/components/Table/index.vue"
 import { reactive, ref } from "vue"
-import { createUserDataApi, getUserDataApi, updateUserDataApi } from "@/api/user"
+import { ElButton, ElMessage, type FormInstance, type FormRules } from "element-plus"
+import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
 import { GetUserData } from "@/api/user/types/user"
-import { ElButton, ElMessage, type FormInstance, type FormRules } from "element-plus"
+import { createUserDataApi, getUserDataApi, updateUserDataApi } from "@/api/user"
 import { getRoleDataApi } from "@/api/role"
 
 const searchData = reactive({
   userId: "",
-  username: ""
+  username: "",
+  nickname: ""
 })
 const clearSearchData = () => {
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
 }
-const resetSearch = () => {
-  clearSearchData()
-  getUserTableData()
-}
-
-const gettingUsers = ref<boolean>(false)
-
+const gettingUsers = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-
 const userTableData = ref<GetUserData[]>([])
-
 const getUserTableData = async () => {
   gettingUsers.value = true
 
@@ -46,14 +39,18 @@ const getUserTableData = async () => {
     })
 }
 getUserTableData()
-
 const userTableHeaders = ref([
   { prop: "id", label: "用户 ID", align: "center" },
   { prop: "username", label: "用户名", align: "center" },
+  { prop: "nickname", label: "昵称", align: "center" },
   { prop: "link", label: "操作 ", type: "link", align: "center" }
 ])
+const resetSearch = () => {
+  clearSearchData()
+  getUserTableData()
+}
 
-const addUserDialogVisible = ref<boolean>(false)
+const addUserDialogVisible = ref(false)
 const userInfoFormData = reactive<any>({
   id: "",
   username: "",
@@ -62,23 +59,18 @@ const userInfoFormData = reactive<any>({
   role: "",
   introduction: ""
 })
+const clearUserInfoFormData = () => {
+  Object.keys(userInfoFormData).forEach((key) => (userInfoFormData[key] = ""))
+}
 const userFormRules: FormRules = reactive({
   username: [{ required: true, trigger: "blur", message: "请填写用户名" }]
 })
-const handleCloseAddUserDialog = () => {
+const handleCloseUserAddDialog = () => {
   addUserDialogVisible.value = false
   clearUserInfoFormData()
 }
-const clearUserInfoFormData = () => {
-  userInfoFormData.id = ""
-  userInfoFormData.username = ""
-  userInfoFormData.password = ""
-  userInfoFormData.nickname = ""
-  userInfoFormData.roles = []
-  userInfoFormData.introduction = ""
-}
 
-const addingUser = ref<boolean>(false)
+const addingUser = ref(false)
 const addUserFormRef = ref<FormInstance | null>(null)
 const addUser = () => {
   addUserFormRef.value?.validate((valid: boolean, fields) => {
@@ -104,8 +96,7 @@ const addUser = () => {
   })
 }
 
-const userInfoDialogVisible = ref<boolean>(false)
-const editUserDialogVisible = ref<boolean>(false)
+const editUserDialogVisible = ref(false)
 const handleRowClick = (row: GetUserData) => {
   editUserDialogVisible.value = true
   userInfoFormData.id = row.id
@@ -114,14 +105,12 @@ const handleRowClick = (row: GetUserData) => {
   userInfoFormData.introduction = row.introduction
   userInfoFormData.nickname = row.nickname
 }
-
-const handleCloseEditUserDialog = () => {
+const handleCloseUserEditDialog = () => {
   editUserDialogVisible.value = false
   clearUserInfoFormData()
 }
-
 const editUserFormRef = ref<FormInstance | null>(null)
-const updatingUser = ref<boolean>(false)
+const updatingUser = ref(false)
 const updateUser = () => {
   editUserFormRef.value?.validate((valid: boolean, fields) => {
     if (valid) {
@@ -172,6 +161,9 @@ getRoleList()
         <el-form-item label="用户名">
           <el-input v-model="searchData.username" placeholder="请输入" />
         </el-form-item>
+        <el-form-item label="昵称">
+          <el-input v-model="searchData.nickname" placeholder="请输入" />
+        </el-form-item>
         <el-form-item>
           <el-button icon="Search" type="primary" @click="getUserTableData">查询</el-button>
           <el-button icon="Refresh" @click="resetSearch">重置</el-button>
@@ -191,12 +183,7 @@ getRoleList()
       </div>
       <TableComponent class="table-wrapper" :column-data="userTableHeaders" :tableData="userTableData" stripe>
         <template #link="{ row }">
-          <el-link
-            type="primary"
-            @click="handleRowClick(row)"
-          >
-            用户详情
-          </el-link>
+          <el-link type="primary" @click="handleRowClick(row)"> 用户详情 </el-link>
         </template>
       </TableComponent>
       <el-pagination
@@ -212,7 +199,7 @@ getRoleList()
       />
     </el-card>
 
-    <!-- 添加用户对话框 -->
+    <!-- 添加用户弹窗 -->
     <el-dialog v-model="addUserDialogVisible" title="添加用户" top="5vh">
       <el-card v-loading="addingUser" shadow="never">
         <el-form ref="addUserFormRef" :model="userInfoFormData" label-width="auto" :rules="userFormRules">
@@ -226,17 +213,8 @@ getRoleList()
             <el-input v-model="userInfoFormData.nickname" placeholder="请输入" />
           </el-form-item>
           <el-form-item prop="role" label="角色">
-            <el-select
-              v-model="userInfoFormData.role"
-              filterable
-              placeholder="请选择角色"
-            >
-              <el-option
-                v-for="item in roleList"
-                :key="item.id"
-                :label="item.roleName"
-                :value="item.id"
-              />
+            <el-select v-model="userInfoFormData.role" filterable placeholder="请选择角色">
+              <el-option v-for="item in roleList" :key="item.id" :label="item.roleName" :value="item.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="介绍">
@@ -247,13 +225,13 @@ getRoleList()
           <!-- </el-form-item> -->
         </el-form>
         <template #footer>
-          <el-button @click="handleCloseAddUserDialog">取消</el-button>
-          <el-button type="primary" @click="addUser">确认</el-button>
+          <el-button @click="handleCloseUserAddDialog">取消</el-button>
+          <el-button type="primary" @click="addUser">添加</el-button>
         </template>
       </el-card>
     </el-dialog>
 
-    <!-- 编辑用户信息 -->
+    <!-- 用户详情弹窗 -->
     <el-dialog v-model="editUserDialogVisible" top="5vh" title="用户详情">
       <el-card v-loading="updatingUser" shadow="never">
         <el-form ref="editUserFormRef" :model="userInfoFormData" label-width="auto" :rules="userFormRules">
@@ -269,18 +247,9 @@ getRoleList()
           <el-form-item label="昵称">
             <el-input v-model="userInfoFormData.nickname" />
           </el-form-item>
-          <el-form-item prop="roles" label="角色">
-            <el-select
-              v-model="userInfoFormData.role"
-              filterable
-              placeholder="请选择角色"
-            >
-              <el-option
-                v-for="item in roleList"
-                :key="item.id"
-                :label="item.roleName"
-                :value="item.id"
-              />
+          <el-form-item prop="role" label="角色">
+            <el-select v-model="userInfoFormData.role" filterable placeholder="请选择角色">
+              <el-option v-for="item in roleList" :key="item.id" :label="item.roleName" :value="item.id" />
             </el-select>
           </el-form-item>
           <el-form-item label="介绍">
@@ -288,7 +257,7 @@ getRoleList()
           </el-form-item>
         </el-form>
         <template #footer>
-          <el-button @click="handleCloseEditUserDialog">取消</el-button>
+          <el-button @click="handleCloseUserEditDialog">取消</el-button>
           <el-button type="primary" @click="updateUser">更新</el-button>
         </template>
       </el-card>

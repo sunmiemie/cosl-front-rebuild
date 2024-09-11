@@ -348,7 +348,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "WorkTime",
         meta: {
           title: "工时管理",
-          roles: ["15"],
+          roles: ["15"], // 工时管理所需的权限
           keepAlive: true
         }
       },
@@ -421,7 +421,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         }
       },
       {
-        path: "checkItemLibList",
+        path: "check-item-lib-list",
         component: () => import("@/views/datamanage/datastore/checkItemLib/index.vue"),
         name: "checkItemLibList",
         meta: {
@@ -430,7 +430,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         }
       },
       {
-        path: "defectItemLibList",
+        path: "defect-item-lib-list",
         component: () => import("@/views/datamanage/datastore/defectItemLib/index.vue"),
         name: "defectItemLibList",
         meta: {
@@ -468,7 +468,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "UserManagement",
         meta: {
           title: "用户管理",
-          roles: ["18"] // 或者在子导航中设置角色
+          roles: ["18"] // 用户管理所需的权限
         }
       },
       {
@@ -477,7 +477,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "RoleManagement",
         meta: {
           title: "角色管理",
-          roles: ["19"] // 或者在子导航中设置角色
+          roles: ["19"] // 角色管理所需的权限
         }
       },
       {
