@@ -159,33 +159,34 @@ const handleSelectionChange = (val: any) => {
 
 // 打印二维码
 const getSelection = () => {
-  getQRcodeImgApi({ data: selectedRows.value, headerKey: "model", seriaKey: "seria", startTimeKey: "startTime" }).then(
-    (res) => {
-      if (res.code === 0) {
-        const imageData = res.data
-        const printWindow = window.open("", "_blank")
-        printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
+  getQRcodeImgApi({ data: selectedRows.value, headerKey: "model", seriaKey: "seria", startTimeKey: "startTime" })
+    .then(
+      (res) => {
+        if (res.code === 0) {
+          const imageData = res.data
+          const printWindow = window.open("", "_blank")
+          printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
 
-        for (const key in imageData) {
-          if (Object.prototype.hasOwnProperty.call(imageData, key)) {
-            const img = new Image()
-            img.src = imageData[key]
-            img.alt = "QR Code"
-            printWindow.document.body.appendChild(img)
-            printWindow.document.body.appendChild(document.createElement("br"))
+          for (const key in imageData) {
+            if (Object.prototype.hasOwnProperty.call(imageData, key)) {
+              const img = new Image()
+              img.src = imageData[key]
+              img.alt = "QR Code"
+              printWindow.document.body.appendChild(img)
+              printWindow.document.body.appendChild(document.createElement("br"))
+            }
           }
-        }
 
-        printWindow.document.write("</body></html>")
-        printWindow.document.close()
-        printWindow.onload = function () {
-          printWindow.print()
-          printWindow.close()
+          printWindow.document.write("</body></html>")
+          printWindow.document.close()
+          printWindow.onload = function () {
+            printWindow.print()
+            printWindow.close()
+          }
+        } else {
+          console.error("Error fetching QR codes", res)
         }
-      } else {
-        console.error("Error fetching QR codes", res)
       }
-    }
   )
 }
 
@@ -357,9 +358,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             <el-tag v-if="row['status'] === 2" type="danger"> 故障 </el-tag>
           </template>
           <template #link="{ row }">
-            <el-link v-for="i in row['link']" :key="i" type="primary" class="el-link" @click="handleLink(row, i)">{{
-              i
-            }}</el-link>
+            <el-link v-for="i in row['link']" :key="i" type="primary" class="el-link" @click="handleLink(row, i)">
+              {{ i }}
+            </el-link>
           </template>
 
           <template #download="{ row }">
@@ -397,7 +398,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         />
       </div>
     </el-card>
-    <!-- 新增/修改 -->
+
+    <!-- 新增/修改夹具 -->
     <el-dialog
       v-model="dialogVisible"
       :title="currentUpdateId === undefined ? '新增夹具' : '编辑夹具'"
