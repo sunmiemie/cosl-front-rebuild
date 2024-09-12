@@ -3,7 +3,7 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { createBoardModelDataApi, getBoardModelDataApi, updateBoardModelDataApi } from "@/api/boardmodel"
-import { getInstrumentDataApi } from "@/api/instrument"
+import { getAllInstrumentsDataApi } from "@/api/instrument"
 import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
@@ -138,9 +138,9 @@ const getTableData = async () => {
     .finally(() => {
       loading.value = false
     })
-  const result = await getInstrumentDataApi({})
+  const result = await getAllInstrumentsDataApi({})
 
-  DetailList.value = result.data.list
+  DetailList.value = result.data
 }
 const selectedRows = ref([])
 
