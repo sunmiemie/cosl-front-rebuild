@@ -40,6 +40,7 @@ const formData = reactive<any>({
   supplier: "",
   batchId: "",
   serialNumber: "",
+  contractNoOrOrderNo: "",
   belong: ""
 })
 const formRules: FormRules = reactive({
@@ -91,8 +92,8 @@ const headers = ref([
   { prop: "id", label: "电路板ID", align: "center", width: "120", fixed: "left" },
   { prop: "name", label: "测试品名称", align: "center", width: "150" },
   { prop: "seria", label: "电路板序列号", align: "center" },
-  { prop: "contractNoOrOrderNo", label: "合同号 / 委托单号", align: "center" },
-  { prop: "startTime", label: "入库时间", align: "center", width: "150" },
+  { prop: "contract_no_or_order_no", label: "合同号 / 委托单号", align: "center" },
+  { prop: "start_time", label: "入库时间", align: "center", width: "150" },
   { prop: "link", label: "操作", type: "link", align: "center" }
 ])
 
@@ -691,6 +692,9 @@ onMounted(() => {
       </el-form-item>
       <el-form-item label="SN 号">
         <el-input v-model="formData.serialNumber" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item label="合同号/委托单号">
+        <el-input v-model="formData.contractNoOrOrderNo" placeholder="请输入" />
       </el-form-item>
       <el-form-item label="所属单位">
         <el-input v-model="formData.belong" placeholder="请输入" />
