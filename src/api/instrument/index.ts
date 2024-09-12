@@ -38,6 +38,13 @@ export function getInstrumentDataApi(params: Instrument.GetInstrumentRequestData
   })
 }
 
+export function getAllInstrumentsDataApi() {
+  return request<Instrument.GetInstrumentResponseData>({
+    url: "equipment/all-instruments",
+    method: "get"
+  })
+}
+
 /** 查 */
 export function getTempBatchInstrumentDataApi(params: Instrument.GetInstrumentRequestData) {
   return request<Instrument.GetInstrumentResponseData>({
