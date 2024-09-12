@@ -91,6 +91,7 @@ const headers = ref([
   { prop: "id", label: "电路板ID", align: "center", width: "120", fixed: "left" },
   { prop: "name", label: "测试品名称", align: "center", width: "150" },
   { prop: "seria", label: "电路板序列号", align: "center" },
+  { prop: "contractNoOrOrderNo", label: "合同号 / 委托单号", align: "center" },
   { prop: "startTime", label: "入库时间", align: "center", width: "150" },
   { prop: "link", label: "操作", type: "link", align: "center" }
 ])
@@ -262,10 +263,9 @@ const generatePreview = () => {
       preview.batches = data.batches_gen
       previewDialogVisible.value = true
     })
-    // .catch((err) => {
-    .catch(() => {
+    .catch((err) => {
       fileList.file = []
-      // ElMessage.error(err.data.errormessage)
+      ElMessage.error(err.data.errormessage)
     })
     .finally(() => {
       previewLoading.value = false
@@ -410,7 +410,7 @@ const cancelInsert = () => {
 onMounted(() => {
   /** 监听分页参数的变化 */
   watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: false })
-  watch([() => paginationDetailData.currentPage], getDetailTableData, { immediate: false })
+  watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSize], getDetailTableData, { immediate: false })
 })
 </script>
 
