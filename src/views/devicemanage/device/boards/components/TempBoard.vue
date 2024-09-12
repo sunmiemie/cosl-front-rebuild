@@ -262,9 +262,10 @@ const generatePreview = () => {
       preview.batches = data.batches_gen
       previewDialogVisible.value = true
     })
-    .catch((err) => {
+    // .catch((err) => {
+    .catch(() => {
       fileList.file = []
-      ElMessage.error(err.data.errormessage)
+      // ElMessage.error(err.data.errormessage)
     })
     .finally(() => {
       previewLoading.value = false
