@@ -416,7 +416,6 @@ onMounted(() => {
             :tableData="BatchData"
             :column-data="batchHeaders"
             stripe
-            @selection-change="handleSelectionChange"
           >
             <template #link="{ row }">
               <el-link type="primary" class="el-link" @click="handleLink(row, '批次详情')"> 批次详情 </el-link>
@@ -461,8 +460,8 @@ onMounted(() => {
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button v-if="selectedRows.length > 0" type="warning" icon="printer" @click="getSelection"
-            >打印二维码
+          <el-button v-show="selectedRows.length > 0" type="warning" icon="printer" @click="getSelection">
+            打印二维码
           </el-button>
         </div>
         <div>

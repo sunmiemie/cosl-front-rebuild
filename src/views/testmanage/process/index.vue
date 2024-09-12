@@ -430,7 +430,7 @@ watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSi
   height: 5%;
 }
 
-:deep .el-upload-dragger {
+:deep(.el-upload-dragger) {
   padding: 5px !important;
 }
 
@@ -525,7 +525,7 @@ header {
   max-width: 300px;
 }
 
-:deep .el-button + .el-button {
+:deep(.el-button + .el-button) {
   margin: 0;
 }
 </style>
