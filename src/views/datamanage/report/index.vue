@@ -226,7 +226,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
   height: 60px;
 }
 
-:deep .el-upload-dragger {
+:deep(.el-upload-dragger) {
   padding: 5px !important;
 }
 
@@ -311,7 +311,7 @@ header {
   }
 }
 
-:deep .el-button + .el-button {
+:deep(.el-button + .el-button) {
   margin: 0;
 }
 </style>

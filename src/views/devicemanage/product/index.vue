@@ -75,7 +75,7 @@ import { Search, Refresh, CirclePlus, RefreshRight } from "@element-plus/icons-v
 import { createProductDataApi, updateProductDataApi, getProductDataApi } from "@/api/product"
 import { ElMessage, type FormRules } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
-import {checkPermission} from "@/utils/permission";
+import { checkPermission } from "@/utils/permission"
 
 const loading = ref<boolean>(false)
 const dialogVisible = ref<boolean>(false)
@@ -135,16 +135,17 @@ const resetSearch = () => {
   getTableData()
 }
 
-const headers = checkPermission(['6']) ? ref<any>([
-  { prop: "id", label: "产品 ID", align: "center" },
-  { prop: "name", label: "产品名称", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "center" }
-]) :
+// 6 代表添加、编辑产品权限
+const headers = checkPermission(["6"]) ?
+  ref<any>([
+    { prop: "id", label: "产品 ID", align: "center" },
+    { prop: "name", label: "产品名称", align: "center" },
+    { prop: "link", label: "操作", type: "link", align: "center" }
+  ]) :
   ref<any>([
     { prop: "id", label: "产品 ID", align: "center" },
     { prop: "name", label: "产品名称", align: "center" },
   ]);
-
 
 const TableData = ref<any>([])
 /**
