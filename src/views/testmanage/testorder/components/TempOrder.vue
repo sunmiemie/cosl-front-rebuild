@@ -175,6 +175,7 @@ const handleLink = (data: any, i: string) => {
     detailform.testunitType = data.dev_testunit_type
     detailform.testunitDesc = data.dev_testunit_desc
     detailform.testunitConsignor = data.dev_testunit_consignor
+    detailform.tempBoardName = data.temp_board_name
     drawer.value = true
   } else if (i === "导出工单") {
     const link = document.createElement("a")
@@ -344,7 +345,8 @@ const detailform = reactive({
   processVersion: "",
   testunitType: "",
   testunitDesc: "",
-  testunitConsignor: ""
+  testunitConsignor: "",
+  tempBoardName: ""
 })
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
@@ -698,21 +700,20 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       <el-row>
         <el-col :span="24">
           <el-card class="info-box" shadow="never" style="margin: 20px 0">
-            <el-text size="large" style="margin-right: 20px">{{ detailform.boardModel }}</el-text>
-            <span style="margin: 0 20px"
-              >电路板ID:
-              <el-input
-                v-if="detailform.tempBoardId !== null"
-                v-model="detailform.tempBoardId"
-                disabled
-                style="width: 150px"
-              />
-              <el-input v-else v-model="detailform.prodBoardId" disabled style="width: 150px" />
-            </span>
-            <span style="margin: 0 20px">
-              电路板序列号
-              <el-input v-model="detailform.boardSerial" disabled style="width: 300px" />
-            </span>
+            <el-form :model="detailform" label-position="left" label-width="auto">
+              <el-form-item v-if="detailform.tempBoardId !== null" label="临时电路板 ID">
+                <el-input v-model="detailform.tempBoardId" disabled />
+              </el-form-item>
+              <el-form-item v-else label="生产电路板 ID">
+                <el-input v-model="detailform.prodBoardId" disabled />
+              </el-form-item>
+              <el-form-item v-if="detailform.tempBoardId !== null" label="电路板名称">
+                <el-input v-model="detailform.tempBoardName" disabled />
+              </el-form-item>
+              <el-form-item label="电路板序列号">
+                <el-input v-model="detailform.boardSerial" disabled />
+              </el-form-item>
+            </el-form>
           </el-card>
         </el-col>
       </el-row>
