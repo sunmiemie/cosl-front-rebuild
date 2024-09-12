@@ -8,7 +8,7 @@ import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { type GetBoardModelData } from "@/api/boardmodel/types/boardmodel"
-import { checkPermission } from "@/utils/permission";
+import { checkPermission } from "@/utils/permission"
 
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
@@ -79,13 +79,15 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = checkPermission(['7']) ? ref([
-  { prop: "id", label: "电路板物料号", align: "center" },
-  { prop: "name", label: "电路板型号名称", align: "center" },
-  { prop: "model", label: "规格型号", align: "center" },
-  { prop: "type", label: "关联仪器", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "center" }
-]) :
+// 7 代表“新增、编辑电路板型号”权限
+const headers = checkPermission(["7"]) ?
+  ref([
+    { prop: "id", label: "电路板物料号", align: "center" },
+    { prop: "name", label: "电路板型号名称", align: "center" },
+    { prop: "model", label: "规格型号", align: "center" },
+    { prop: "type", label: "关联仪器", align: "center" },
+    { prop: "link", label: "操作", type: "link", align: "center" }
+  ]) :
   ref([
     { prop: "id", label: "电路板物料号", align: "center" },
     { prop: "name", label: "电路板型号名称", align: "center" },
@@ -195,6 +197,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
+          <!-- 7 代表“新增、编辑电路板型号”权限 -->
           <el-button v-permission="['7']" type="primary" icon="CirclePlus" @click="addType">新增电路板型号</el-button>
         </div>
         <div>
@@ -205,6 +208,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       </div>
       <div class="table-wrapper">
         <TableComponent :tableData="TableData" :column-data="headers" stripe @selection-change="handleSelectionChange">
+          <!-- 7 代表“新增、编辑电路板型号”权限 -->
           <template v-if="checkPermission(['7'])" #link="{ row }">
             <el-link type="primary" class="el-link" @click="handleLink(row)">编辑</el-link>
           </template>
@@ -223,10 +227,11 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         />
       </div>
     </el-card>
-    <!-- 新增/修改 -->
+
+    <!-- 新增/修改电路板类型 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="currentUpdateId === undefined ? '新电路板类型' : '修改电路板类型'"
+      :title="currentUpdateId === undefined ? '新增电路板类型' : '修改电路板类型'"
       @close="resetForm"
       width="50%"
     >

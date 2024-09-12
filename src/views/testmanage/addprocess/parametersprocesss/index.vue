@@ -78,7 +78,7 @@ const formInline = reactive({
   margin-left: 1vw;
 }
 
-:deep .el-form--inline .el-form-item {
+:deep(.el-form--inline .el-form-item) {
   margin-right: 0.6vw;
 }
 
@@ -102,7 +102,7 @@ const formInline = reactive({
   width: 4.9vw;
 }
 
-:deep .el-form--inline .el-form-item {
+:deep(.el-form--inline .el-form-item) {
   margin-right: 1vw;
 }
 </style>
