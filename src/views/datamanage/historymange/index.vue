@@ -11,7 +11,21 @@ import { useRouter } from "vue-router"
 
 const loading = ref<boolean>(false)
 const tempLoading = ref<boolean>(false)
-const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+
+// 标签页1
+const {
+  paginationData: paginationDataForTab1,
+  handleCurrentChange: handleCurrentChangeTab1,
+  handleSizeChange: handleSizeChangeTab1
+} = usePagination()
+
+// 标签页2
+const {
+  paginationData: paginationDataForTab2,
+  handleCurrentChange: handleCurrentChangeTab2,
+  handleSizeChange: handleSizeChangeTab2
+} = usePagination()
+
 const router = useRouter()
 const DialogCheck = ref<boolean>(false)
 
@@ -81,16 +95,15 @@ const defineLink = (status: string, reportGenerated: number) => {
 const getTableData = () => {
   loading.value = true
   getReportDataApi({
-    currentPage: paginationData.currentPage,
-    size: paginationData.pageSize,
+    currentPage: paginationDataForTab1.currentPage,
+    size: paginationDataForTab1.pageSize,
     id: searchData.id || undefined,
     user: searchData.user || undefined,
     type: searchData.type || undefined,
     serial: searchData.serial || undefined
   }).then((res) => {
     TableData.value = res.data.list
-    console.log("reportData", TableData.value)
-    paginationData.total = res.data.total
+    paginationDataForTab1.total = res.data.total
     for (let i = 0; i < TableData.value.length; i++) {
       TableData.value[i].link = defineLink(TableData.value[i].status, TableData.value[i].report_generated)
     }
@@ -100,18 +113,15 @@ const getTableData = () => {
 const getTempTableData = () => {
   tempLoading.value = true
   getTempReportDataApi({
-    currentPage: paginationData.currentPage,
-    size: paginationData.pageSize,
+    currentPage: paginationDataForTab2.currentPage,
+    size: paginationDataForTab2.pageSize,
     id: searchData.id || undefined,
     user: searchData.user || undefined,
     type: searchData.type || undefined,
     serial: searchData.serial || undefined
   }).then((res) => {
-    // console.log(res)
     tempTableData.value = res.data.list
-    console.log("reportData", tempTableData.value)
-
-    paginationData.total = res.data.total
+    paginationDataForTab2.total = res.data.total
     for (let i = 0; i < tempTableData.value.length; i++) {
       tempTableData.value[i].link = defineLink(tempTableData.value[i].status, tempTableData.value[i].report_generated)
     }
@@ -132,11 +142,8 @@ const handleLink = (data: any, i: string) => {
     link.click()
     document.body.removeChild(link)
   } else if (i === "查看") {
-    // console.log("report view", data)
     router.push({ name: "reportView", query: data })
   } else if (i === "生成") {
-    console.log("生成")
-    console.log(data)
     // const link = document.createElement("a")
     // link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/generate-pdf`
     // document.body.appendChild(link)
@@ -170,11 +177,8 @@ const handleTempLink = (data: any, i: string) => {
     link.click()
     document.body.removeChild(link)
   } else if (i === "查看") {
-    // console.log("report view", data)
     router.push({ name: "tempReportView", query: data })
   } else if (i === "生成") {
-    console.log("生成")
-    console.log(data)
     // const link = document.createElement("a")
     // link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/generate-pdf`
     // document.body.appendChild(link)
@@ -195,10 +199,10 @@ const handleTempLink = (data: any, i: string) => {
 }
 
 const handleSearch = () => {
-  paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
+  paginationDataForTab1.currentPage === 1 ? getTableData() : (paginationDataForTab1.currentPage = 1)
 }
 const handleTempSearch = () => {
-  paginationData.currentPage === 1 ? getTempTableData() : (paginationData.currentPage = 1)
+  paginationDataForTab2.currentPage === 1 ? getTempTableData() : (paginationDataForTab2.currentPage = 1)
 }
 /**
  * 重置查询条件
@@ -241,7 +245,12 @@ onMounted(() => {
 })
 
 /** 监听分页参数的变化 */
-watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: true })
+watch([() => paginationDataForTab1.currentPage, () => paginationDataForTab1.pageSize], getTableData, {
+  immediate: true
+})
+watch([() => paginationDataForTab2.currentPage, () => paginationDataForTab2.pageSize], getTempTableData, {
+  immediate: true
+})
 </script>
 
 <template>
@@ -297,9 +306,15 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                   </template>
 
                   <template #link="{ row }">
-                    <el-link v-for="i in row['link']" type="primary" class="el-link" @click="handleLink(row, i)" :key="i">{{
-                        i
-                      }}</el-link>
+                    <el-link
+                      v-for="i in row['link']"
+                      type="primary"
+                      class="el-link"
+                      @click="handleLink(row, i)"
+                      :key="i"
+                    >
+                      {{ i }}
+                    </el-link>
                   </template>
                 </TableComponent>
               </div>
@@ -307,13 +322,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
               <div class="pager-wrapper">
                 <el-pagination
                   background
-                  :layout="paginationData.layout"
-                  :page-sizes="paginationData.pageSizes"
-                  :total="paginationData.total"
-                  :page-size="paginationData.pageSize"
-                  :currentPage="paginationData.currentPage"
-                  @size-change="handleSizeChange"
-                  @current-change="handleCurrentChange"
+                  :layout="paginationDataForTab1.layout"
+                  :page-sizes="paginationDataForTab1.pageSizes"
+                  :total="paginationDataForTab1.total"
+                  :page-size="paginationDataForTab1.pageSize"
+                  :currentPage="paginationDataForTab1.currentPage"
+                  @size-change="handleSizeChangeTab1"
+                  @current-change="handleCurrentChangeTab1"
                 />
               </div>
 
@@ -338,8 +353,12 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                     <el-input v-model="TestCheck.type" disabled />
                   </el-form-item>
 
-                  <el-button type="primary" @click="onSubmit" icon="Check" style="position: absolute; top: 120px; left: 41%"
-                  >确认提交</el-button
+                  <el-button
+                    type="primary"
+                    @click="onSubmit"
+                    icon="Check"
+                    style="position: absolute; top: 120px; left: 41%"
+                    >确认提交</el-button
                   >
                 </el-form>
               </el-dialog>
@@ -372,7 +391,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                   </el-select>
                 </el-form-item>
                 <el-form-item>
-<!--                  <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>-->
                   <el-button type="primary" :icon="Search" @click="handleTempSearch" style="margin-right: 10px">查询</el-button>
                   <el-button :icon="Refresh" @click="resetTempSearch">重置</el-button>
                 </el-form-item>
@@ -380,6 +398,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             </el-card>
             <el-card v-loading="tempLoading" shadow="never">
               <div class="toolbar-wrapper">
+                <!-- 别删这个空 div，作用是把下面的按钮靠右对齐 -->
                 <div />
                 <div>
                   <el-tooltip content="刷新当前页">
@@ -398,9 +417,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                   </template>
 
                   <template #link="{ row }">
-                    <el-link v-for="i in row['link']" type="primary" class="el-link" @click="handleTempLink(row, i)" :key="i">{{
-                        i
-                      }}</el-link>
+                    <el-link v-for="i in row['link']" type="primary" class="el-link" @click="handleTempLink(row, i)" :key="i">
+                      {{ i }}
+                    </el-link>
                   </template>
                 </TableComponent>
               </div>
@@ -408,13 +427,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
               <div class="pager-wrapper">
                 <el-pagination
                   background
-                  :layout="paginationData.layout"
-                  :page-sizes="paginationData.pageSizes"
-                  :total="paginationData.total"
-                  :page-size="paginationData.pageSize"
-                  :currentPage="paginationData.currentPage"
-                  @size-change="handleSizeChange"
-                  @current-change="handleCurrentChange"
+                  :layout="paginationDataForTab2.layout"
+                  :page-sizes="paginationDataForTab2.pageSizes"
+                  :total="paginationDataForTab2.total"
+                  :page-size="paginationDataForTab2.pageSize"
+                  :currentPage="paginationDataForTab2.currentPage"
+                  @size-change="handleSizeChangeTab2"
+                  @current-change="handleCurrentChangeTab2"
                 />
               </div>
 
@@ -439,9 +458,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                     <el-input v-model="TestCheck.type" disabled />
                   </el-form-item>
 
-                  <el-button type="primary" @click="onSubmit" icon="Check" style="position: absolute; top: 120px; left: 41%"
-                  >确认提交</el-button
-                  >
+                  <el-button type="primary" @click="onSubmit" icon="Check" style="position: absolute; top: 120px; left: 41%">确认提交</el-button>
                 </el-form>
               </el-dialog>
             </el-card>
