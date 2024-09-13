@@ -48,27 +48,27 @@ interface TableDataType {
   link?: any
 }
 
-const headers = checkPermission(['11']) ?
+const headers = checkPermission(["11"]) ?
   ref([
     { prop: "testunit_id", label: "工单号", align: "center" },
+    { prop: "boardmodel_name", label: "电路板类型", align: "center" },
     { prop: "testunit_name", label: "测试名称", align: "center" },
     { prop: "user_name", label: "创建人", align: "center" },
     { prop: "testunit_starttime", label: "创建时间", align: "center" },
     { prop: "testunit_endtime", label: "结束时间", align: "center" },
     { prop: "process_type", label: "测试类型", align: "center" },
-    { prop: "process_id", label: "使用工艺ID", align: "center" },
     { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
     { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
     { prop: "link", label: "操作", type: "link" }
   ]) :
   ref([
     { prop: "testunit_id", label: "工单号", align: "center" },
+    { prop: "boardmodel_name", label: "电路板类型", align: "center" },
     { prop: "testunit_name", label: "测试名称", align: "center" },
     { prop: "user_name", label: "创建人", align: "center" },
     { prop: "testunit_starttime", label: "创建时间", align: "center" },
     { prop: "testunit_endtime", label: "结束时间", align: "center" },
     { prop: "process_type", label: "测试类型", align: "center" },
-    { prop: "process_id", label: "使用工艺ID", align: "center" },
     { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
     { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" }
   ]);
@@ -610,15 +610,17 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       <el-row>
         <el-col :span="24">
           <el-card class="info-box" shadow="never" style="margin: 20px 0">
-            <el-text size="large" style="margin-right: 20px">{{ detailform.boardModel }}</el-text>
-            <span style="margin: 0 20px"
-              >电路板ID:
-              <el-input v-model="detailform.boardId" disabled style="width: 150px" />
-            </span>
-            <span style="margin: 0 20px">
-              电路板序列号
-              <el-input v-model="detailform.boardSerial" disabled style="width: 300px" />
-            </span>
+            <el-form :model="detailform" label-position="left" label-width="auto">
+              <el-form-item label="电路板类型">
+                <el-input v-model="detailform.boardModel" disabled />
+              </el-form-item>
+              <el-form-item label="电路板 ID">
+                <el-input v-model="detailform.boardId" disabled />
+              </el-form-item>
+              <el-form-item label="电路板序列号">
+                <el-input v-model="detailform.boardSerial" disabled />
+              </el-form-item>
+            </el-form>
           </el-card>
         </el-col>
       </el-row>
