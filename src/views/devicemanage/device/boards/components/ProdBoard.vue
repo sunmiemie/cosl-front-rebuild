@@ -407,11 +407,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="table-wrapper">
-          <TableComponent
-            :tableData="BatchData"
-            :column-data="batchHeaders"
-            stripe
-          >
+          <TableComponent :tableData="BatchData" :column-data="batchHeaders" stripe>
             <template #link="{ row }">
               <el-link type="primary" class="el-link" @click="handleLink(row, '批次详情')"> 批次详情 </el-link>
             </template>
@@ -513,7 +509,7 @@ onMounted(() => {
     </el-card>
   </el-drawer>
 
-  <!-- 新增/编辑对话框 -->
+  <!-- 新增/编辑弹窗 -->
   <el-dialog
     v-model="dialogVisible"
     :title="currentUpdateId === undefined ? '新增批次' : '编辑批次'"
