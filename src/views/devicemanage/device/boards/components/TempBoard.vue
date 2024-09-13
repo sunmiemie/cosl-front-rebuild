@@ -693,7 +693,7 @@ onMounted(() => {
       <el-form-item label="SN 号">
         <el-input v-model="formData.serialNumber" placeholder="请输入" />
       </el-form-item>
-      <el-form-item label="合同号/委托单号">
+      <el-form-item label="合同号">
         <el-input v-model="formData.contractNo" placeholder="请输入" />
       </el-form-item>
       <el-form-item label="所属单位">
