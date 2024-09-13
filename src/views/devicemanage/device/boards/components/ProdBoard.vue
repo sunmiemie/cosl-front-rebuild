@@ -39,11 +39,11 @@ const resetForm = () => {
   formData.seria = ""
 }
 const headers = ref([
-  { prop: "id", label: "电路板ID", align: "center", width: "120", fixed: "left" },
-  { prop: "name", label: "电路板型号", align: "center", width: "150" },
+  { prop: "id", label: "电路板 ID", align: "center", fixed: "left" },
+  { prop: "name", label: "电路板型号", align: "center" },
   { prop: "seria", label: "电路板序列号", align: "center" },
-  { prop: "startTime", label: "入库时间", align: "center", width: "150" },
-  { prop: "link", label: "操作", type: "link", align: "right" }
+  { prop: "startTime", label: "入库时间", align: "center" },
+  { prop: "link", label: "操作", type: "link", align: "center" }
 ])
 
 // 批次
@@ -84,11 +84,7 @@ const DetailsearchData = reactive({
 })
 const getTreeData = () => {
   treeLoading.value = true
-  getInstrumentDataApi({
-    currentPage: 1,
-    size: 999999,
-    isTree: true
-  })
+  getInstrumentDataApi({ isTree: true })
     .then((res) => {
       TreeData.value = res.data.list
     })
@@ -101,9 +97,7 @@ const getTreeData = () => {
 }
 
 // 显式暴露方法供父组件调用
-defineExpose({
-  getTreeData
-})
+defineExpose({ getTreeData })
 
 const getDetailTableData = () => {
   detailLoading.value = true
@@ -167,6 +161,7 @@ const beforeUpload = (file: any) => {
     file.type === "application/vnd.ms-excel" ||
     file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 
+  // 判断文件大小是不是小于 20M
   const isLt2M = file.size / 1024 / 1024 < 20
 
   if (!isExcel)
@@ -273,8 +268,8 @@ const filterNode = (value: string, data: any) => {
   return data.label.includes(value)
 }
 
-const previewLoading = ref<boolean>(false)
-const previewDialogVisible = ref<boolean>(false)
+const previewLoading = ref(false)
+const previewDialogVisible = ref(false)
 const preview = reactive<any>({
   boards: [],
   batches: [],
@@ -306,7 +301,7 @@ const cancelInsert = () => {
   previewDialogVisible.value = false
   fileList.file = []
 }
-const insertingData = ref<boolean>(false)
+const insertingData = ref(false)
 // 批量导入
 const bulkImport = () => {
   insertingData.value = true
