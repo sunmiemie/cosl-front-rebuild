@@ -161,6 +161,7 @@ const handleLink = (data: any, i: string) => {
     PublicFormInfo = data
     PublicOrDelete.value = "删除"
   } else if (i === "详情") {
+    // console.log(data)
     detailform.unitId = data.dev_testunit_id
     detailform.unitName = data.dev_testunit_name
     detailform.user = data.user_name
@@ -359,7 +360,8 @@ const orderInfo = reactive<any>({
   testType: "",
   testUnitType: "",
   testUnitDesc: "",
-  consignor: ""
+  consignor: "",
+  orderNo: ""
 })
 
 const clearOrderInfo = () => {
@@ -367,6 +369,7 @@ const clearOrderInfo = () => {
   orderInfo.testUnitType = ""
   orderInfo.testUnitDesc = ""
   orderInfo.consignor = ""
+  orderInfo.orderNo = ""
 }
 
 // 确认新增
@@ -453,8 +456,10 @@ const clickNode = async (data: NodeData & any, node: any) => {
   boardInfoLoading.value = true
   currentRow.value = undefined
   selectedRows.value = []
+  // console.log(data)
   Batch.value = data.id
   CircuitBatch.value = data.label
+  // console.log(node.parent.data)
   CircuitBoardModel.value = node.parent.data.label
   CircuitBoardModelId.value = node.parent.data.id
   showFlags.value = false
@@ -714,6 +719,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
               <el-form-item v-if="detailform.tempBoardId !== null" label="电路板名称">
                 <el-input v-model="detailform.tempBoardName" disabled />
               </el-form-item>
+<!--              <el-form-item v-else label="电路板型号">-->
+<!--                <el-input v-model="detailform.boardModel" disabled />-->
+<!--              </el-form-item>-->
               <el-form-item label="电路板序列号">
                 <el-input v-model="detailform.boardSerial" disabled />
               </el-form-item>
@@ -837,6 +845,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                           <el-form-item prop="consignor" label="委托人">
                             <el-input v-model="orderInfo.consignor" placeholder="请输入" />
                           </el-form-item>
+                          <el-form-item prop="orderNo" label="委托单号">
+                            <el-input v-model="orderInfo.orderNo" placeholder="请输入" />
+                          </el-form-item>
                           <el-form-item>
                             <el-button @click="clearOrderInfo">清空已输入内容</el-button>
                           </el-form-item>
@@ -937,6 +948,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                           </el-form-item>
                           <el-form-item prop="consignor" label="委托人">
                             <el-input v-model="orderInfo.consignor" placeholder="请输入" />
+                          </el-form-item>
+                          <el-form-item prop="orderNo" label="委托单号">
+                            <el-input v-model="orderInfo.orderNo" placeholder="请输入" />
                           </el-form-item>
                           <el-form-item>
                             <el-button @click="clearOrderInfo">清空已输入内容</el-button>

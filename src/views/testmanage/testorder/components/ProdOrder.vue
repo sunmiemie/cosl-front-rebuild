@@ -579,18 +579,19 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       />
     </div>
   </el-card>
+
   <!-- 详情 -->
-  <el-drawer v-model="drawer" :append-to-body="true" :with-header="false" size="1000">
+  <el-drawer v-model="drawer" :append-to-body="true" :with-header="false" size="1005">
     <header class="drawer-head">
       <el-page-header @back="goBack">
         <template #content>
-          <span class="text-large font-600 mr-3">测试工单详情</span>
+          <span class="text-large font-600">测试工单详情</span>
         </template>
       </el-page-header>
     </header>
     <el-header style="margin: 20px 0 20px 0">
       <el-text size="large">测试基本信息</el-text>
-      <el-form :inline="true" :model="detailform" class="demo-form-inline" label-position="top" style="margin: 10px">
+      <el-form :inline="true" :model="detailform" class="demo-form-inline" label-position="top" style="margin: 10px 0">
         <el-form-item label="工单号" style="width: 13%">
           <el-input v-model="detailform.unitId" disabled />
         </el-form-item>
@@ -600,7 +601,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         <el-form-item label="创建人" style="width: 14%">
           <el-input v-model="detailform.user" disabled />
         </el-form-item>
-        <el-form-item label="创建日期" style="width: 16%">
+        <el-form-item label="创建日期" style="width: 167px">
           <el-input v-model="detailform.startTime" disabled />
         </el-form-item>
       </el-form>
@@ -628,7 +629,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     <el-footer class="drawer-footer">
       <el-text size="large">所选测试工艺信息</el-text>
       <br />
-      <el-button type="primary" style="margin-top: 10px">{{ detailform.testType }}</el-button>
+<!--      <el-button type="primary" style="margin-top: 10px">{{ detailform.testType }}</el-button>-->
+      <el-text style="display: inline-block; margin-top: 20px; margin-left: 10px">测试类型：{{ detailform.testType }}</el-text>
       <el-card class="info-box" shadow="never" style="margin: 20px 0">
         <span style="margin: 0 20px"
           >使用工艺ID:
