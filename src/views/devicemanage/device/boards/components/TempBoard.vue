@@ -17,20 +17,20 @@ import { useUserStore } from "@/store/modules/user"
 
 const username = useUserStore().username
 
-const loading = ref<boolean>(false)
-const detailLoading = ref<boolean>(false)
-const treeLoading = ref<boolean>(false)
-const insertingData = ref<boolean>(false)
+const loading = ref(false)
+const detailLoading = ref(false)
+const treeLoading = ref(false)
+const insertingData = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const { paginationDetailData, handleDetailCurrentChange, handleDetailSizeChange } = useDetailPagination()
 // 手动添加
-const manualDialogVisible = ref<boolean>(false)
+const manualDialogVisible = ref(false)
 
 // 批量导入
-const dialogVisible = ref<boolean>(false)
+const dialogVisible = ref(false)
 
-const qrcodeVisible = ref<boolean>(false)
-const qrcodeValue = ref<string>("")
+const qrcodeVisible = ref(false)
+const qrcodeValue = ref("")
 
 const formData = reactive<any>({
   instrument: "",
@@ -40,7 +40,7 @@ const formData = reactive<any>({
   supplier: "",
   batchId: "",
   serialNumber: "",
-  contractNoOrOrderNo: "",
+  contractNo: "",
   belong: ""
 })
 const formRules: FormRules = reactive({
@@ -87,13 +87,13 @@ const handleCreate = () => {
   }
 }
 
-const currentUpdateId = ref<undefined | string>(undefined)
+const currentUpdateId = ref<string | undefined>(undefined)
 const headers = ref([
-  { prop: "id", label: "电路板ID", align: "center", width: "120", fixed: "left" },
-  { prop: "name", label: "测试品名称", align: "center", width: "150" },
+  { prop: "id", label: "电路板 ID", align: "center", fixed: "left" },
+  { prop: "name", label: "测试品名称", align: "center" },
   { prop: "seria", label: "电路板序列号", align: "center" },
-  { prop: "contract_no_or_order_no", label: "合同号 / 委托单号", align: "center" },
-  { prop: "start_time", label: "入库时间", align: "center", width: "150" },
+  { prop: "contract_no", label: "合同号", align: "center" },
+  { prop: "start_time", label: "入库时间", align: "center" },
   { prop: "link", label: "操作", type: "link", align: "center" }
 ])
 
@@ -103,7 +103,7 @@ const batchHeaders = ref([
   { prop: "name", label: "批次名称", align: "center" },
   { prop: "supplier", label: "供应商", align: "center" },
   { prop: "startTime", label: "入库时间", align: "center" },
-  { prop: "link", label: "操作", type: "link" }
+  { prop: "link", label: "操作", type: "link", align: "center" }
 ])
 
 const treeRef = ref<InstanceType<typeof ElTree>>()
@@ -136,11 +136,7 @@ const DetailsearchData = reactive({
 
 const getTreeData = () => {
   treeLoading.value = true
-  getTempBatchInstrumentDataApi({
-    currentPage: 1,
-    size: 999999,
-    isTree: true
-  })
+  getTempBatchInstrumentDataApi({ isTree: true })
     .then((res) => {
       TreeData.value = res.data.list
     })
@@ -153,9 +149,7 @@ const getTreeData = () => {
 }
 
 // 显式暴露方法供父组件调用
-defineExpose({
-  getTreeData
-})
+defineExpose({ getTreeData })
 
 const getDetailTableData = () => {
   detailLoading.value = true
@@ -262,6 +256,8 @@ const generatePreview = () => {
       preview.tempBoardData = data.preview_temp_boards
       preview.testUnitData = data.preview_dev_testunit
       preview.batches = data.batches_gen
+      // console.log(preview.testUnitData)
+
       previewDialogVisible.value = true
     })
     .catch((err) => {
@@ -411,7 +407,9 @@ const cancelInsert = () => {
 onMounted(() => {
   /** 监听分页参数的变化 */
   watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: false })
-  watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSize], getDetailTableData, { immediate: false })
+  watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSize], getDetailTableData, {
+    immediate: false
+  })
 })
 </script>
 
@@ -629,6 +627,7 @@ onMounted(() => {
         <el-table-column property="物料号" label="物料号" width="150" />
         <el-table-column property="规格型号" label="规格型号" width="150" />
         <el-table-column property="SN号" label="SN 号" width="150" />
+        <el-table-column property="合同号" label="合同号" width="150" />
         <el-table-column property="所属单位" label="所属单位" width="150" />
       </el-table>
 
@@ -638,12 +637,13 @@ onMounted(() => {
         </el-col>
       </el-row>
       <el-table :data="preview.testUnitData" max-height="500">
-        <el-table-column property="测试品名称" label="测试品名称" width="150" />
-        <el-table-column property="测试类型" label="测试类型" width="150" />
-        <el-table-column property="测试类别" label="测试类别" width="200" />
-        <el-table-column property="测试内容" label="测试内容" width="150" />
-        <el-table-column property="创建人" label="创建人" width="120" />
-        <el-table-column property="委托人" label="委托人" width="150" />
+        <el-table-column property="测试品名称" label="测试品名称" />
+        <el-table-column property="测试类型" label="测试类型" />
+        <el-table-column property="测试类别" label="测试类别" />
+        <el-table-column property="测试内容" label="测试内容" />
+        <el-table-column property="创建人" label="创建人" />
+        <el-table-column property="委托人" label="委托人" />
+        <el-table-column property="委托单号" label="委托单号" />
       </el-table>
 
       <el-row>
@@ -693,8 +693,8 @@ onMounted(() => {
       <el-form-item label="SN 号">
         <el-input v-model="formData.serialNumber" placeholder="请输入" />
       </el-form-item>
-      <el-form-item label="合同号/委托单号">
-        <el-input v-model="formData.contractNoOrOrderNo" placeholder="请输入" />
+      <el-form-item label="合同号">
+        <el-input v-model="formData.contractNo" placeholder="请输入" />
       </el-form-item>
       <el-form-item label="所属单位">
         <el-input v-model="formData.belong" placeholder="请输入" />

@@ -1,4 +1,4 @@
-<!--产品管理-->
+<!-- 产品管理 -->
 
 <template>
   <div class="app-container">
@@ -19,6 +19,7 @@
     <el-card shadow="never">
       <div class="toolbar-wrapper">
         <div>
+          <!-- 6 代表添加、编辑产品权限 -->
           <el-button v-permission="['6']" type="primary" :icon="CirclePlus" @click="addTest">新增产品</el-button>
         </div>
         <div>
@@ -27,6 +28,7 @@
           </el-tooltip>
         </div>
       </div>
+
       <el-dialog
         v-model="dialogVisible"
         width="40%"
@@ -43,10 +45,17 @@
           <el-button type="primary" @click="handleCreate">确认</el-button>
         </template>
       </el-dialog>
+
+      <!-- 6 代表添加、编辑产品权限 -->
       <div class="table-wrapper">
         <TableComponent :columnData="headers" :tableData="TableData" v-loading="Loading">
           <template #link="{ row }">
-            <el-link v-if="checkPermission(['6'])" :disabled="row.id === 1" type="primary" class="el-link" @click="handleLink(row, '编辑')"
+            <el-link
+              v-if="checkPermission(['6'])"
+              :disabled="row.id === 1"
+              type="primary"
+              class="el-link"
+              @click="handleLink(row, '编辑')"
               >编辑
             </el-link>
           </template>
