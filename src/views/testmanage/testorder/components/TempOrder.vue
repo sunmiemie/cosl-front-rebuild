@@ -50,6 +50,7 @@ interface TableDataType {
 
 const headers = checkPermission(['11']) ? ref([
   { prop: "dev_testunit_id", label: "工单号", align: "center" },
+  { prop: "order_no", label: "委托单号", align: "center" },
   { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
   { prop: "user_name", label: "创建人", align: "center" },
   { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
@@ -60,6 +61,7 @@ const headers = checkPermission(['11']) ? ref([
 ]) :
   ref([
     { prop: "dev_testunit_id", label: "工单号", align: "center" },
+    { prop: "order_no", label: "委托单号", align: "center" },
     { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
     { prop: "user_name", label: "创建人", align: "center" },
     { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
@@ -169,7 +171,7 @@ const handleLink = (data: any, i: string) => {
     detailform.tempBoardId = data.temp_board_id
     detailform.prodBoardId = data.prod_board_id
     detailform.boardSerial = data.sn
-    detailform.boardModel = data.dev_boardmodel_name
+    detailform.boardModel = data.prod_board_model_name
     detailform.testType = data.process_type
     detailform.processId = data.process_id
     detailform.processVersion = data.testprocess_version
@@ -469,11 +471,14 @@ const clickNode = async (data: NodeData & any, node: any) => {
   if (activeName.value === "first") {
     result = await getboardsinfoForTempOrder({
       batchId: Batch.value,
+      boardModelId: CircuitBoardModelId.value,
       tempBatch: false
     })
   } else {
     result = await getboardsinfoForTempOrder({
       batchId: Batch.value,
+      instrumentName: CircuitBoardModel.value,
+      instrumentId: CircuitBoardModelId.value,
       tempBatch: true
     })
   }
@@ -557,7 +562,7 @@ async function getMangeData() {
   // 调用接口
   const tableResult = await getTempTestMangeTable(params)
   TableData.value = tableResult.TableData
-  // console.log(TableData.value)
+  console.log(TableData.value)
   loading.value = false
   paginationData.total = tableResult.total // Store the table data
   getTableData()
@@ -635,7 +640,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
   <el-card v-loading="loading" shadow="never">
     <div class="toolbar-wrapper">
       <div>
-        <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTempTest">新增临时测试工单</el-button>
+        <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTempTest">
+          新增临时测试工单
+        </el-button>
       </div>
       <div>
         <el-tooltip content="刷新当前页">
@@ -719,9 +726,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
               <el-form-item v-if="detailform.tempBoardId !== null" label="电路板名称">
                 <el-input v-model="detailform.tempBoardName" disabled />
               </el-form-item>
-<!--              <el-form-item v-else label="电路板型号">-->
-<!--                <el-input v-model="detailform.boardModel" disabled />-->
-<!--              </el-form-item>-->
+              <el-form-item v-else label="电路板型号">
+                <el-input v-model="detailform.boardModel" disabled />
+              </el-form-item>
               <el-form-item label="电路板序列号">
                 <el-input v-model="detailform.boardSerial" disabled />
               </el-form-item>
