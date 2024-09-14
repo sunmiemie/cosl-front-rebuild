@@ -29,6 +29,8 @@ export type inpTestMangeTableDataType = {
   TestType?: string
   TestStatus?: string
   Daterange?: string
+  boardName?: string
+  boardModel?: string
   currentPage?: any
   pageSize?: any
 }

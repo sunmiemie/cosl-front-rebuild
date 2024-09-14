@@ -51,6 +51,7 @@ interface TableDataType {
 const headers = checkPermission(['11']) ? ref([
   { prop: "dev_testunit_id", label: "工单号", align: "center" },
   { prop: "order_no", label: "委托单号", align: "center" },
+  { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
   { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
   { prop: "user_name", label: "创建人", align: "center" },
   { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
@@ -62,6 +63,7 @@ const headers = checkPermission(['11']) ? ref([
   ref([
     { prop: "dev_testunit_id", label: "工单号", align: "center" },
     { prop: "order_no", label: "委托单号", align: "center" },
+    { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
     { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
     { prop: "user_name", label: "创建人", align: "center" },
     { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
@@ -84,7 +86,9 @@ const searchData = reactive({
   TestName: "",
   TestType: "",
   TestStatus: "",
-  Daterange: ""
+  Daterange: "",
+  boardName: "",
+  boardModel: ""
 })
 
 const clearSearchData = () => {
@@ -601,6 +605,12 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     <el-form ref="searchFormRef" :inline="true" :model="searchData">
       <el-form-item label="工单号">
         <el-input v-model="searchData.number" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item label="电路板型号">
+        <el-input v-model="searchData.boardModel" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item label="电路板名称">
+        <el-input v-model="searchData.boardName" placeholder="请输入" />
       </el-form-item>
       <el-form-item label="测试名称">
         <el-input v-model="searchData.TestName" placeholder="请输入" />

@@ -115,6 +115,8 @@ export const getTempTestMangeTable = ({
   TestType,
   TestStatus,
   Daterange,
+  boardName,
+  boardModel,
   currentPage,
   pageSize
 }: TestMange.inpTestMangeTableDataType): Promise<TestMange.getTestMangeTableType> => {
@@ -127,6 +129,8 @@ export const getTempTestMangeTable = ({
       TestType,
       TestStatus,
       Daterange,
+      boardName,
+      boardModel,
       currentPage,
       pageSize
     }
