@@ -2,7 +2,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, watch, type Ref, h, onMounted } from "vue"
-import { ElMessage, ElMessageBox } from "element-plus"
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
 import { Search, Refresh, CirclePlus, RefreshRight, Delete } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
@@ -21,41 +21,72 @@ const dialogVisible = ref(false)
 const currentUpdateId = ref<any>()
 const Loading: Ref<boolean> = ref<any>(false)
 
+const formRef = ref<FormInstance | null>(null)
 const formData = reactive<any>({
   name: "",
   id: null,
   type: null
 })
+const formRules: FormRules = reactive({
+  name: [{ required: true, trigger: "blur", message: "请输入仪器名称" }],
+  type: [{ required: true, trigger: "blur", message: "请选择关联产品" }]
+})
+
+const resetFormData = () => {
+  dialogVisible.value = false
+  Object.keys(formData).forEach((key: any) => (formData[key] = ""))
+}
 
 const handleCreate = () => {
-  if (currentUpdateId.value === undefined) {
-    createInstrumentDataApi(formData)
-      .then(() => {
-        ElMessage.success("新增成功")
-        getTableData()
-      })
-      .catch((err) => {
-        ElMessage.error(err.response.data.error)
-      })
-      .finally(() => {
-        dialogVisible.value = false
-        Object.keys(formData).forEach((key: any) => (formData[key] = ""))
-      })
-  } else {
-    updateInstrumentDataApi({
-      name: formData.name,
-      type: formData.type,
-      id: formData.id
-    })
-      .then(() => {
-        ElMessage.success("编辑成功")
-        getTableData()
-      })
-      .finally(() => {
-        dialogVisible.value = false
-        Object.keys(formData).forEach((key: any) => (formData[key] = ""))
-      })
-  }
+  // 表单校验
+  formRef.value?.validate((valid: boolean) => {
+    if (valid) {
+      if (currentUpdateId.value === undefined) {
+        createInstrumentDataApi(formData)
+          .then((res) => {
+            if (res.status === "exists") {
+              ElMessageBox.confirm(res.message, "警告", {
+                type: "warning",
+                confirmButtonText: "是",
+                cancelButtonText: "否"
+              }).then(() => {
+                createInstrumentDataApi({ ...formData, force: true })
+                  .then(() => {
+                    ElMessage.success("新增成功")
+                    getTableData()
+                  })
+                  .catch((err) => {
+                    ElMessage.error(err.response.data.error)
+                  })
+                  .finally(() => {
+                    resetFormData()
+                  })
+              })
+            } else {
+              ElMessage.success("新增成功")
+              getTableData()
+              resetFormData()
+            }
+          })
+          .catch((err) => {
+            ElMessage.error(err.response.data.error)
+          })
+      } else {
+        updateInstrumentDataApi({
+          name: formData.name,
+          type: formData.type,
+          id: formData.id
+        })
+          .then(() => {
+            ElMessage.success("编辑成功")
+            getTableData()
+          })
+          .finally(() => {
+            resetFormData()
+          })
+      }
+    }
+  })
 }
 
 // 查询参数
@@ -72,16 +103,16 @@ const resetSearch = () => {
 
 const headers = checkPermission(["5"])
   ? ref<any>([
-    { prop: "id", label: "仪器id", align: "center", fixed: "left" },
-    { prop: "label", label: "仪器名称", align: "center" },
-    { prop: "product", label: "关联产品", align: "center" },
-    { prop: "link", label: "操作", type: "link", align: "center" }
-  ])
+      { prop: "id", label: "仪器id", align: "center", fixed: "left" },
+      { prop: "label", label: "仪器名称", align: "center" },
+      { prop: "product", label: "关联产品", align: "center" },
+      { prop: "link", label: "操作", type: "link", align: "center" }
+    ])
   : ref<any>([
-    { prop: "id", label: "仪器id", align: "center", fixed: "left" },
-    { prop: "label", label: "仪器名称", align: "center" },
-    { prop: "product", label: "关联产品", align: "center" }
-  ])
+      { prop: "id", label: "仪器id", align: "center", fixed: "left" },
+      { prop: "label", label: "仪器名称", align: "center" },
+      { prop: "product", label: "关联产品", align: "center" }
+    ])
 
 const TableData = ref<any>([])
 
@@ -170,7 +201,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       <div class="toolbar-wrapper">
         <div>
           <el-button v-permission="['5']" type="primary" :icon="CirclePlus" @click="dialogVisible = true"
-          >新增仪器</el-button
+            >新增仪器</el-button
           >
         </div>
         <div>
@@ -183,7 +214,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         <TableComponent :columnData="headers" :tableData="TableData" v-loading="Loading">
           <template v-if="checkPermission(['5'])" #link="{ row }">
             <el-link type="primary" style="margin-right: 10px" class="el-link" @click="handleLink(row, '编辑')"
-            >编辑</el-link
+              >编辑</el-link
             >
             <el-link type="danger" class="el-link" @click="handleLink(row, '删除')">删除</el-link>
           </template>
@@ -208,11 +239,11 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       @close="closedInstrument"
       :title="currentUpdateId === undefined ? '新增仪器' : '编辑仪器'"
     >
-      <el-form :model="formData">
-        <el-form-item label="仪器名称" label-width="100">
+      <el-form ref="formRef" :model="formData" :rules="formRules">
+        <el-form-item prop="name" label="仪器名称" label-width="100">
           <el-input v-model="formData.name" placeholder="请输入" />
         </el-form-item>
-        <el-form-item label="仪器型号" label-width="100">
+        <el-form-item prop="type" label="仪器型号" label-width="100">
           <el-select v-model="formData.type" placeholder="请选择" @visible-change="getProducts">
             <el-option v-for="item in TypeList" :label="item.name" :value="item.id" :key="item.id" />
           </el-select>
