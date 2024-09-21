@@ -177,6 +177,8 @@ const handleLink = (data: any, i: string) => {
     detailform.testType = data.process_type
     detailform.processId = data.process_id
     detailform.processVersion = data.testprocess_version
+    detailform.instrument = data.instrument
+    detailform.product = data.product
     drawer.value = true
   } else if (i === "导出工单") {
     const link = document.createElement("a")
@@ -342,7 +344,9 @@ const detailform = reactive({
   boardSerial: "",
   testType: "",
   processId: "",
-  processVersion: ""
+  processVersion: "",
+  instrument: "",
+  product: ""
 })
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
@@ -593,16 +597,16 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       <el-text size="large">测试基本信息</el-text>
       <el-form :inline="true" :model="detailform" class="demo-form-inline" label-position="top" style="margin: 10px 0">
         <el-form-item label="工单号" style="width: 13%">
-          <el-input v-model="detailform.unitId" disabled />
+          <el-input v-model="detailform.unitId" readonly />
         </el-form-item>
         <el-form-item label="测试名称" style="width: 380px">
-          <el-input v-model="detailform.unitName" disabled />
+          <el-input v-model="detailform.unitName" readonly />
         </el-form-item>
         <el-form-item label="创建人" style="width: 14%">
-          <el-input v-model="detailform.user" disabled />
+          <el-input v-model="detailform.user" readonly />
         </el-form-item>
         <el-form-item label="创建日期" style="width: 167px">
-          <el-input v-model="detailform.startTime" disabled />
+          <el-input v-model="detailform.startTime" readonly />
         </el-form-item>
       </el-form>
     </el-header>
@@ -612,14 +616,20 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         <el-col :span="24">
           <el-card class="info-box" shadow="never" style="margin: 20px 0">
             <el-form :model="detailform" label-position="left" label-width="auto">
-              <el-form-item label="电路板类型">
-                <el-input v-model="detailform.boardModel" disabled />
-              </el-form-item>
               <el-form-item label="电路板 ID">
-                <el-input v-model="detailform.boardId" disabled />
+                <el-input v-model="detailform.boardId" readonly />
               </el-form-item>
               <el-form-item label="电路板序列号">
-                <el-input v-model="detailform.boardSerial" disabled />
+                <el-input v-model="detailform.boardSerial" readonly />
+              </el-form-item>
+              <el-form-item label="电路板类型">
+                <el-input v-model="detailform.boardModel" readonly />
+              </el-form-item>
+              <el-form-item v-if="detailform.instrument" label="仪器名称">
+                <el-input v-model="detailform.instrument" readonly />
+              </el-form-item>
+              <el-form-item label="所属产品">
+                <el-input v-model="detailform.product" readonly />
               </el-form-item>
             </el-form>
           </el-card>
@@ -634,11 +644,11 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       <el-card class="info-box" shadow="never" style="margin: 20px 0">
         <span style="margin: 0 20px"
           >使用工艺ID:
-          <el-input v-model="detailform.processId" disabled style="width: 150px" />
+          <el-input v-model="detailform.processId" readonly style="width: 150px" />
         </span>
         <span style="margin: 0 20px">
           使用工艺版本:
-          <el-input v-model="detailform.processVersion" disabled style="width: 150px" />
+          <el-input v-model="detailform.processVersion" readonly style="width: 150px" />
         </span>
       </el-card>
     </el-footer>
