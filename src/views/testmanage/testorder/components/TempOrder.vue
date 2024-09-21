@@ -1,41 +1,38 @@
 <!-- 临时测试工单 -->
 
 <script lang="ts" setup>
-import { reactive, ref, watch, type Ref } from "vue"
-import { ElMessage, ElTable, ElTree, type FormInstance, type FormRules, TabsPaneContext } from "element-plus"
-import { usePagination } from "@/hooks/usePagination"
-import TableComponent from "@/components/Table/index.vue"
+import { reactive, ref, watch } from "vue"
 import { useRouter } from "vue-router"
+import { ElMessage, ElTable, ElTree, type FormInstance, TabsPaneContext } from "element-plus"
+import TableComponent from "@/components/Table/index.vue"
+import ProdBoard from "@/views/testmanage/testorder/components/temp_order/ProdBoard.vue"
+import TempBoard from "@/views/testmanage/testorder/components/temp_order/TempBoard.vue"
+import { usePagination } from "@/hooks/usePagination"
+import { useUserStore } from "@/store/modules/user"
+import { checkPermission } from "@/utils/permission"
 import {
-  getTestMangePath,
   getTempTestMangeTable,
-  getboardsinfoForTempOrder,
   createDevTestUnitApi,
-  getTempTestMangePath,
   publishDevTestUnitApi,
   deleteDevTestUnitApi
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
-import { useUserStore } from "@/store/modules/user"
-import { checkReportDataApi, getSingleReportDataApi } from "@/api/report"
-import { checkPermission } from "@/utils/permission";
+import { checkReportDataApi, getSingleDevReportDataApi, getSingleReportDataApi } from "@/api/report"
 
 const router = useRouter()
 const userStore = useUserStore()
+const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+
 const reportJson = ref<any>([])
 const errorList = ref<any>([])
-const errorVisible = ref<boolean>(false)
-const errorLoading = ref<boolean>(false)
-const loading = ref<boolean>(false)
-const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-const currentRow = ref<any>()
+const errorVisible = ref(false)
+const errorLoading = ref(false)
+const loading = ref(false)
 const showFlags = ref<any>(true)
-const showProcess = ref<any>(true)
 const testFlags = ref<any>(true)
-const tempDialogVisible = ref<boolean>(false)
-const PublicVisible = ref<boolean>(false)
+const tempDialogVisible = ref(false)
+const postVisible = ref(false)
 const testTypeList = ref<any>([])
-const boardInfoLoading = ref(false)
 
 interface TableDataType {
   dev_testunit_id?: number
@@ -48,19 +45,20 @@ interface TableDataType {
   link?: any
 }
 
-const headers = checkPermission(['11']) ? ref([
-  { prop: "dev_testunit_id", label: "工单号", align: "center" },
-  { prop: "order_no", label: "委托单号", align: "center" },
-  { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
-  { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
-  { prop: "user_name", label: "创建人", align: "center" },
-  { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
-  { prop: "dev_testunit_endtime", label: "结束时间", align: "center" },
-  { prop: "process_type", label: "测试类型", align: "center" },
-  { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" },
-  { prop: "link", label: "操作", type: "link" }
-]) :
-  ref([
+const headers = checkPermission(["11"])
+  ? ref([
+    { prop: "dev_testunit_id", label: "工单号", align: "center" },
+    { prop: "order_no", label: "委托单号", align: "center" },
+    { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
+    { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
+    { prop: "user_name", label: "创建人", align: "center" },
+    { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
+    { prop: "dev_testunit_endtime", label: "结束时间", align: "center" },
+    { prop: "process_type", label: "测试类型", align: "center" },
+    { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" },
+    { prop: "link", label: "操作", type: "link" }
+  ])
+  : ref([
     { prop: "dev_testunit_id", label: "工单号", align: "center" },
     { prop: "order_no", label: "委托单号", align: "center" },
     { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
@@ -70,13 +68,8 @@ const headers = checkPermission(['11']) ? ref([
     { prop: "dev_testunit_endtime", label: "结束时间", align: "center" },
     { prop: "process_type", label: "测试类型", align: "center" },
     { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" }
-  ]);
+  ])
 
-const selectedRows = ref<any>([])
-const addHeaders = ref([
-  { prop: "id", label: "电路板ID", align: "center" },
-  { prop: "serial_num", label: "电路板序列号", align: "center" }
-])
 const TableData = ref<Array<TableDataType>>([])
 
 const searchFormRef = ref<FormInstance | null>(null)
@@ -90,7 +83,6 @@ const searchData = reactive({
   boardName: "",
   boardModel: ""
 })
-
 const clearSearchData = () => {
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
 }
@@ -102,28 +94,24 @@ const defineLink = (status: any) => {
     case "1":
       return { 1: "详情", 2: "导出工单", 3: "导入报告" }
     case "2":
-      return { 1: "详情" }
     case "3":
-      return { 1: "详情" }
     case "4":
+    case "7":
+    case "8":
       return { 1: "详情" }
     case "5":
       return { 1: "详情", 2: "查看报告" }
     case "6":
       return { 1: "详情", 2: "查看报告", 3: "查看缺陷" }
-    case "7":
-      return { 1: "详情" }
-    case "8":
-      return { 1: "详情" }
   }
 }
-const getTableData = () => {
+const getTableLinkData = () => {
   for (let i = 0; i < TableData.value.length; i++) {
     TableData.value[i].link = defineLink(TableData.value[i].dev_testunit_status)
   }
 }
 
-let PublicFormInfo = reactive({
+let postFormInfo = reactive({
   dev_testunit_id: "",
   dev_testunit_name: "",
   process_type: "",
@@ -153,21 +141,19 @@ const getNestedValue = (obj, path) => {
     return undefined
   }, obj)
 }
-const PublicOrDelete = ref<string>("发布")
-const drawer: Ref<boolean> = ref(false)
+const postOrDelete = ref("发布")
+const drawerVisible = ref(false)
 // link操作逻辑
 const handleLink = (data: any, i: string) => {
-  // console.log(data)
   if (i === "发布") {
-    PublicVisible.value = true
-    PublicFormInfo = data
-    PublicOrDelete.value = "发布"
-  } else if (i == "删除") {
-    PublicVisible.value = true
-    PublicFormInfo = data
-    PublicOrDelete.value = "删除"
+    postVisible.value = true
+    postFormInfo = data
+    postOrDelete.value = "发布"
+  } else if (i === "删除") {
+    postVisible.value = true
+    postFormInfo = data
+    postOrDelete.value = "删除"
   } else if (i === "详情") {
-    // console.log(data)
     detailform.unitId = data.dev_testunit_id
     detailform.unitName = data.dev_testunit_name
     detailform.user = data.user_name
@@ -184,7 +170,10 @@ const handleLink = (data: any, i: string) => {
     detailform.testunitConsignor = data.dev_testunit_consignor
     detailform.tempBoardName = data.temp_board_name
     detailform.orderNo = data.order_no
-    drawer.value = true
+    detailform.instrument = data.instrument
+    detailform.product = data.product
+
+    drawerVisible.value = true
   } else if (i === "导出工单") {
     const link = document.createElement("a")
     link.href = `${import.meta.env.VITE_BASE_API}test/dev-testunit/download/${data.dev_testunit_name}.json?id=${data.dev_testunit_id}`
@@ -193,8 +182,8 @@ const handleLink = (data: any, i: string) => {
     link.click()
     document.body.removeChild(link)
   } else if (i === "查看报告") {
-    getSingleReportDataApi({ unitId: data["testunit_id"] }).then((res) => {
-      router.push({ name: "reportView", query: res.data })
+    getSingleDevReportDataApi({ unitId: data["dev_testunit_id"] }).then((res) => {
+      router.push({ name: "tempReportView", query: res.data })
     })
   } else if (i === "查看缺陷") {
     errorVisible.value = true
@@ -313,10 +302,6 @@ const handleLink = (data: any, i: string) => {
     })
   }
 }
-// 关闭详情
-const goBack = () => {
-  drawer.value = false
-}
 
 const handleSearch = async () => {
   // 深拷贝
@@ -331,9 +316,8 @@ const handleSearch = async () => {
   const tableResult = await getTempTestMangeTable(params)
   // 赋值
   TableData.value = tableResult.TableData
-  // console.log(TableData.value)
-  paginationData.total = tableResult.total // Store the table data
-  getTableData()
+  paginationData.total = tableResult.total
+  getTableLinkData()
 }
 const resetSearch = () => {
   clearSearchData()
@@ -356,36 +340,16 @@ const detailform = reactive({
   testunitDesc: "",
   testunitConsignor: "",
   tempBoardName: "",
-  orderNo: ""
+  orderNo: "",
+  instrument: "",
+  product: ""
 })
-const handleSelectionChange = (val: any) => {
-  selectedRows.value = val
-}
-
-const orderInfo = reactive<any>({
-  testType: "",
-  testUnitType: "",
-  testUnitDesc: "",
-  consignor: "",
-  orderNo: ""
-})
-
-const clearOrderInfo = () => {
-  orderInfo.testType = ""
-  orderInfo.testUnitType = ""
-  orderInfo.testUnitDesc = ""
-  orderInfo.consignor = ""
-  orderInfo.orderNo = ""
-}
 
 // 确认新增
-const submitAdd = () => {
-  let addProdBoard = false
-  if (activeName.value === "first") addProdBoard = true
-
+const addOrder = (addProdBoard, selectedRows, orderInfo) => {
   createDevTestUnitApi({
     addProdBoard,
-    boardList: selectedRows.value,
+    boardList: selectedRows,
     userId: userStore.userid,
     ...orderInfo
   })
@@ -393,23 +357,20 @@ const submitAdd = () => {
       tempDialogVisible.value = false
       ElMessage.success("添加成功")
       getMangeData()
-      clearOrderInfo()
-      clearTableSelection()
+      if (addProdBoard) {
+        prodBoardComponent.value?.clearOrderInfo()
+        prodBoardComponent.value?.clearTableSelection()
+      } else {
+        tempBoardComponent.value?.clearOrderInfo()
+        tempBoardComponent.value?.clearTableSelection()
+      }
     })
     .catch((err) => {
       ElMessage.error(err.response.data.errorMessage)
       console.error("添加失败", err.response.data.errorMessage)
     })
 }
-const tableRef = ref<InstanceType<typeof TableComponent> | null>(null)
-const tempTableRef = ref<InstanceType<typeof TableComponent> | null>(null)
-const clearTableSelection = () => {
-  if (activeName.value === "first" && tableRef.value) {
-    tableRef.value.clearSelection()
-  } else if (activeName.value === "second" && tempTableRef.value) {
-    tempTableRef.value.clearSelection()
-  }
-}
+
 // 测试状态
 const TestStatus = reactive([
   { status: 0, mes: "已创建" },
@@ -426,71 +387,20 @@ const TestStatus = reactive([
 // 确认发布或删除
 const confirm = async (value: string) => {
   if (value === "发布") {
-    publishDevTestUnitApi({ id: PublicFormInfo["dev_testunit_id"] }).then(() => {
+    publishDevTestUnitApi({ id: postFormInfo["dev_testunit_id"] }).then(() => {
       getMangeData()
     })
   } else {
-    deleteDevTestUnitApi(PublicFormInfo["dev_testunit_id"]).then(() => {
+    deleteDevTestUnitApi(postFormInfo["dev_testunit_id"]).then(() => {
       getMangeData()
     })
   }
-  PublicVisible.value = false
+  postVisible.value = false
 }
 
-// 树结构
-interface Tree {
-  [key: string]: any
-}
-
-// 电路板信息 型号和批次ID
-const Batch = ref<any>()
-const CircuitBatch = ref<any>()
-const CircuitBoardModel = ref<any>()
-const CircuitBoardModelId = ref<any>()
 //  电路板ID和序列号
 const boardTableData = ref<any>([])
 
-type NodeData = {
-  id: string
-}
-const clickNode = async (data: NodeData & any, node: any) => {
-  // 如果点击的节点有子节点则直接返回
-  if (node.data.children) {
-    return
-  }
-  // 点击叶子节点，设置批次ID和型号
-  boardInfoLoading.value = true
-  currentRow.value = undefined
-  selectedRows.value = []
-  // console.log(data)
-  Batch.value = data.id
-  CircuitBatch.value = data.label
-  // console.log(node.parent.data)
-  CircuitBoardModel.value = node.parent.data.label
-  CircuitBoardModelId.value = node.parent.data.id
-  showFlags.value = false
-  showProcess.value = true
-
-  let result
-  if (activeName.value === "first") {
-    result = await getboardsinfoForTempOrder({
-      batchId: Batch.value,
-      boardModelId: CircuitBoardModelId.value,
-      tempBatch: false
-    })
-  } else {
-    result = await getboardsinfoForTempOrder({
-      batchId: Batch.value,
-      instrumentName: CircuitBoardModel.value,
-      instrumentId: CircuitBoardModelId.value,
-      tempBatch: true
-    })
-  }
-
-  boardTableData.value = result.data
-  boardInfoLoading.value = false
-  getTestTypeData()
-}
 const getTestTypeData = () => {
   getTestTypeDataApi({
     currentPage: 1,
@@ -503,56 +413,14 @@ const getTestTypeData = () => {
 const closeDiaLog = () => {
   showFlags.value = true
   testFlags.value = true
-  clearOrderInfo()
 }
 
 const filterText = ref("")
 const treeRef = ref<InstanceType<typeof ElTree>>()
 
-const defaultProps = {
-  children: "children",
-  label: "label"
-}
-
 watch(filterText, (val) => {
   treeRef.value!.filter(val)
 })
-const treeData: Ref<any[]> = ref([])
-const tempTreeData: Ref<any[]> = ref([])
-const filterNode = (value: string, data: Tree) => {
-  if (!value) return true
-  return data.label.includes(value)
-}
-const addTempTest = async () => {
-  await getTreeData()
-  tempDialogVisible.value = true
-}
-
-const treeLoading = ref(false)
-const tempTreeLoading = ref(false)
-async function getTreeData() {
-  treeLoading.value = true
-  try {
-    const result = await getTestMangePath()
-    treeData.value = result.Pathdata
-  } catch (error) {
-    console.error("Failed to fetch tree data:", error)
-  } finally {
-    treeLoading.value = false // 请求结束，停止加载
-  }
-}
-
-async function getTempTreeData() {
-  tempTreeLoading.value = true
-  try {
-    const result = await getTempTestMangePath()
-    tempTreeData.value = result.Pathdata
-  } catch (error) {
-    console.error("Failed to fetch tree data:", error)
-  } finally {
-    tempTreeLoading.value = false // 请求结束，停止加载
-  }
-}
 
 async function getMangeData() {
   loading.value = true
@@ -566,35 +434,27 @@ async function getMangeData() {
   // 调用接口
   const tableResult = await getTempTestMangeTable(params)
   TableData.value = tableResult.TableData
-  console.log(TableData.value)
   loading.value = false
-  paginationData.total = tableResult.total // Store the table data
-  getTableData()
+  paginationData.total = tableResult.total
+  getTableLinkData()
 }
 
 // 显式暴露方法供父组件调用
-defineExpose({
-  resetSearch
-})
+defineExpose({ resetSearch })
 
 const activeName = ref<any>("first")
+const prodBoardComponent = ref<InstanceType<typeof ProdBoard> | null>(null)
+const tempBoardComponent = ref<InstanceType<typeof TempBoard> | null>(null)
 
 const handleTabClick = (tab: TabsPaneContext) => {
   boardTableData.value = []
   showFlags.value = true
-  if (tab.props.name === "first") {
-    getTreeData()
-  } else if (tab.props.name === "second") {
-    getTempTreeData()
+  if (tab.props.name === "first" && prodBoardComponent.value) {
+    prodBoardComponent.value.getTreeData()
+  } else if (tab.props.name === "second" && tempBoardComponent.value) {
+    tempBoardComponent.value.getTempTreeData()
   }
 }
-
-const formRules: FormRules = reactive({
-  testType: [{ required: true, trigger: "blur", message: "请选择测试类型" }],
-  testUnitType: [{ required: true, trigger: "blur", message: "请输入测试类别" }],
-  testUnitDesc: [{ required: true, trigger: "blur", message: "请输入测试内容" }],
-  consignor: [{ required: true, trigger: "blur", message: "请输入委托人" }]
-})
 
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getMangeData, { immediate: true })
@@ -650,7 +510,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
   <el-card v-loading="loading" shadow="never">
     <div class="toolbar-wrapper">
       <div>
-        <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTempTest">
+        <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="tempDialogVisible = true">
           新增临时测试工单
         </el-button>
       </div>
@@ -695,16 +555,16 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     </div>
   </el-card>
 
-  <!-- 详情抽屉 -->
-  <el-drawer v-model="drawer" :append-to-body="true" :with-header="false" size="1000">
+  <!-- 详情 -->
+  <el-drawer v-model="drawerVisible" :append-to-body="true" :with-header="false" size="1000">
     <header class="drawer-head">
-      <el-page-header @back="goBack">
+      <el-page-header @back="drawerVisible = false">
         <template #content>
           <span class="text-large font-600 mr-3">测试工单详情</span>
         </template>
       </el-page-header>
     </header>
-    <el-header style="margin: 20px 0 20px 0">
+    <el-header style="margin: 20px 0">
       <el-text size="large">测试基本信息</el-text>
       <el-form :inline="true" :model="detailform" class="demo-form-inline" label-position="top" style="margin: 10px">
         <el-form-item label="工单号" style="width: 13%">
@@ -727,20 +587,31 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         <el-col :span="24">
           <el-card class="info-box" shadow="never" style="margin: 20px 0">
             <el-form :model="detailform" label-position="left" label-width="auto">
-              <el-form-item v-if="detailform.tempBoardId !== null" label="临时电路板 ID">
-                <el-input v-model="detailform.tempBoardId" disabled />
-              </el-form-item>
-              <el-form-item v-else label="生产电路板 ID">
-                <el-input v-model="detailform.prodBoardId" disabled />
-              </el-form-item>
-              <el-form-item v-if="detailform.tempBoardId !== null" label="电路板名称">
-                <el-input v-model="detailform.tempBoardName" disabled />
-              </el-form-item>
-              <el-form-item v-else label="电路板型号">
-                <el-input v-model="detailform.boardModel" disabled />
-              </el-form-item>
+              <div v-if="detailform.tempBoardId">
+                <el-form-item label="临时电路板 ID">
+                  <el-input v-model="detailform.tempBoardId" disabled />
+                </el-form-item>
+                <el-form-item label="电路板名称">
+                  <el-input v-model="detailform.tempBoardName" disabled />
+                </el-form-item>
+              </div>
+              <div v-else>
+                <el-form-item label="生产电路板 ID">
+                  <el-input v-model="detailform.prodBoardId" disabled />
+                </el-form-item>
+                <el-form-item label="电路板型号">
+                  <el-input v-model="detailform.boardModel" disabled />
+                </el-form-item>
+              </div>
+
               <el-form-item label="电路板序列号">
                 <el-input v-model="detailform.boardSerial" disabled />
+              </el-form-item>
+              <el-form-item v-if="detailform.instrument" label="仪器名称">
+                <el-input v-model="detailform.instrument" disabled />
+              </el-form-item>
+              <el-form-item label="所属产品">
+                <el-input v-model="detailform.product" disabled />
               </el-form-item>
             </el-form>
           </el-card>
@@ -773,254 +644,48 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 
   <!-- 新增临时测试 -->
   <el-dialog v-model="tempDialogVisible" width="85%" @close="closeDiaLog" align-center :close-on-click-modal="false">
-    <el-tabs v-model="activeName" type="card" class="demo-tabs" @tab-click="handleTabClick">
+    <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleTabClick">
       <el-tab-pane label="生产电路板" name="first">
-        <!-- 设置列之间的间距 -->
-        <el-row :gutter="20">
-          <!-- 设置列占据的宽度 -->
-          <el-col :span="6">
-            <el-card shadow="never" v-loading="treeLoading">
-              <template #header>
-                <el-input v-model="filterText" placeholder="搜索" />
-              </template>
-              <el-tree
-                ref="treeRef"
-                :data="treeData"
-                :filter-node-method="filterNode"
-                :props="defaultProps"
-                default-expand-all
-                @node-click="clickNode"
-              />
-            </el-card>
-          </el-col>
-
-          <el-col :span="18">
-            <el-card shadow="never">
-              <div v-if="showFlags">请先在左侧选择批次</div>
-
-              <div v-else>
-                <div class="info-header">
-                  <el-card shadow="never">
-                    <el-space :size="10" spacer="|">
-                      <el-text>电路板型号：{{ CircuitBoardModel }}</el-text>
-                      <el-text>批次号：{{ Batch }}</el-text>
-                      <el-text>批次名称：{{ CircuitBatch }}</el-text>
-                    </el-space>
-                  </el-card>
-                </div>
-                <div>
-                  <el-row :gutter="20">
-                    <el-col :span="12">
-                      <el-card
-                        v-if="showProcess"
-                        shadow="never"
-                        style="margin-top: 10px; margin-bottom: 10px"
-                        v-loading="boardInfoLoading"
-                      >
-                        <div class="table-wrapper">
-                          <TableComponent
-                            ref="tableRef"
-                            :column-data="addHeaders"
-                            :table-data="boardTableData"
-                            selection
-                            stripe
-                            @selection-change="handleSelectionChange"
-                          />
-                        </div>
-                      </el-card>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-card shadow="never" style="margin-top: 10px; margin-bottom: 10px">
-                        <el-form
-                          ref="searchFormRef"
-                          :model="orderInfo"
-                          label-position="left"
-                          label-width="auto"
-                          :rules="formRules"
-                        >
-                          <el-form-item label="测试类型" prop="testType">
-                            <el-select
-                              v-model="orderInfo.testType"
-                              placeholder="请选择"
-                              filterable
-                              @visible-change="getTestTypeData"
-                            >
-                              <el-option
-                                v-for="item in testTypeList"
-                                :label="item.name"
-                                :value="item.number"
-                                :key="item.id"
-                              />
-                            </el-select>
-                          </el-form-item>
-                          <el-form-item prop="testUnitType" label="测试类别">
-                            <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
-                          </el-form-item>
-                          <el-form-item prop="testUnitDesc" label="测试内容">
-                            <el-input v-model="orderInfo.testUnitDesc" type="textarea" placeholder="请输入" />
-                          </el-form-item>
-                          <el-form-item prop="consignor" label="委托人">
-                            <el-input v-model="orderInfo.consignor" placeholder="请输入" />
-                          </el-form-item>
-                          <el-form-item prop="orderNo" label="委托单号">
-                            <el-input v-model="orderInfo.orderNo" placeholder="请输入" />
-                          </el-form-item>
-                          <el-form-item>
-                            <el-button @click="clearOrderInfo">清空已输入内容</el-button>
-                          </el-form-item>
-                        </el-form>
-                      </el-card>
-                    </el-col>
-                  </el-row>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
+        <ProdBoard @stop-adding-order="tempDialogVisible = false" @add-order="addOrder" ref="prodBoardComponent" />
       </el-tab-pane>
       <el-tab-pane label="临时电路板" name="second">
-        <el-row :gutter="20">
-          <el-col :span="6">
-            <el-card shadow="never" v-loading="tempTreeLoading">
-              <template #header>
-                <el-input v-model="filterText" placeholder="搜索" />
-              </template>
-              <el-scrollbar max-height="600px">
-                <el-tree
-                  ref="treeRef"
-                  :data="tempTreeData"
-                  :filter-node-method="filterNode"
-                  :props="defaultProps"
-                  default-expand-all
-                  @node-click="clickNode"
-                />
-              </el-scrollbar>
-            </el-card>
-          </el-col>
-
-          <el-col :span="18">
-            <el-card shadow="never">
-              <div v-if="showFlags">请先在左侧选择批次</div>
-
-              <div v-else>
-                <div class="info-header">
-                  <el-card shadow="never">
-                    <el-space :size="10" spacer="|">
-                      <el-text>{{ CircuitBoardModel }}</el-text>
-                      <el-text>批次号：{{ Batch }}</el-text>
-                      <el-text>批次名称：{{ CircuitBatch }}</el-text>
-                    </el-space>
-                  </el-card>
-                </div>
-                <div>
-                  <el-row :gutter="20">
-                    <el-col :span="12">
-                      <el-card
-                        v-if="showProcess"
-                        shadow="never"
-                        style="margin-top: 10px; margin-bottom: 10px"
-                        v-loading="boardInfoLoading"
-                      >
-                        <div class="table-wrapper">
-                          <TableComponent
-                            ref="tempTableRef"
-                            :column-data="addHeaders"
-                            :table-data="boardTableData"
-                            selection
-                            stripe
-                            @selection-change="handleSelectionChange"
-                          />
-                        </div>
-                      </el-card>
-                    </el-col>
-                    <el-col :span="12">
-                      <el-card shadow="never" style="margin-top: 10px; margin-bottom: 10px">
-                        <el-form
-                          ref="searchFormRef"
-                          :model="orderInfo"
-                          label-position="left"
-                          label-width="auto"
-                          :rules="formRules"
-                        >
-                          <el-form-item label="测试类型" prop="testType">
-                            <el-select
-                              v-model="orderInfo.testType"
-                              placeholder="请选择"
-                              filterable
-                              @visible-change="getTestTypeData"
-                            >
-                              <el-option
-                                v-for="item in testTypeList"
-                                :label="item.name"
-                                :value="item.number"
-                                :key="item.id"
-                              />
-                            </el-select>
-                          </el-form-item>
-                          <el-form-item prop="testUnitType" label="测试类别">
-                            <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
-                          </el-form-item>
-                          <el-form-item prop="testUnitDesc" label="测试内容">
-                            <el-input v-model="orderInfo.testUnitDesc" type="textarea" placeholder="请输入" />
-                          </el-form-item>
-                          <el-form-item prop="consignor" label="委托人">
-                            <el-input v-model="orderInfo.consignor" placeholder="请输入" />
-                          </el-form-item>
-                          <el-form-item prop="orderNo" label="委托单号">
-                            <el-input v-model="orderInfo.orderNo" placeholder="请输入" />
-                          </el-form-item>
-                          <el-form-item>
-                            <el-button @click="clearOrderInfo">清空已输入内容</el-button>
-                          </el-form-item>
-                        </el-form>
-                      </el-card>
-                    </el-col>
-                  </el-row>
-                </div>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
+        <TempBoard @stop-adding-order="tempDialogVisible = false" @add-order="addOrder" ref="tempBoardComponent" />
       </el-tab-pane>
     </el-tabs>
-    <template #footer>
-      <el-button @click="tempDialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="submitAdd">添加工单</el-button>
-    </template>
   </el-dialog>
 
-  <!-- 发布 删除 对话框 -->
-  <el-dialog v-model="PublicVisible" :show-close="true" width="44%">
+  <!-- 发布 / 删除 -->
+  <el-dialog v-model="postVisible" :show-close="true" width="44%">
     <template #header>
       <div class="my-header">
-        <h2>{{ PublicOrDelete }}测试工单</h2>
+        <h2>{{ postOrDelete }}测试工单</h2>
       </div>
     </template>
-    <el-form :inline="true" :model="PublicFormInfo">
+    <el-form :inline="true" :model="postFormInfo">
       <el-form-item label="工单号">
-        <el-input v-model="PublicFormInfo['dev_testunit_id']" disabled type="text" />
+        <el-input v-model="postFormInfo['dev_testunit_id']" disabled type="text" />
       </el-form-item>
       <el-form-item label="测试名称">
-        <el-input v-model="PublicFormInfo['dev_testunit_name']" disabled type="text" style="width: 350px" />
+        <el-input v-model="postFormInfo['dev_testunit_name']" disabled type="text" style="width: 450px" />
       </el-form-item>
       <br />
       <el-form-item label="测试类型">
-        <el-input v-model="PublicFormInfo['process_type']" disabled type="text" />
+        <el-input v-model="postFormInfo['process_type']" disabled type="text" />
       </el-form-item>
       <el-form-item label="创建人">
-        <el-input v-model="PublicFormInfo['user_name']" disabled style="width: 100px" type="text" />
+        <el-input v-model="postFormInfo['user_name']" disabled style="width: 100px" type="text" />
       </el-form-item>
       <el-form-item label="创建日期">
-        <el-input v-model="PublicFormInfo['dev_testunit_starttime']" disabled style="width: 180px" type="text" />
+        <el-input v-model="postFormInfo['dev_testunit_starttime']" disabled style="width: 180px" type="text" />
       </el-form-item>
     </el-form>
     <el-button
-      :type="PublicOrDelete === '发布' ? 'primary' : 'danger'"
+      :type="postOrDelete === '发布' ? 'primary' : 'danger'"
       icon="Check"
       size="large"
       style="position: relative; left: 50%; transform: translateX(-50%); width: 170px"
-      @click="confirm(PublicOrDelete)"
-      >确认{{ PublicOrDelete }}
+      @click="confirm(postOrDelete)"
+    >确认{{ postOrDelete }}
     </el-button>
   </el-dialog>
   <el-dialog v-model="errorVisible" title="查看缺陷" align-center width="80%">
