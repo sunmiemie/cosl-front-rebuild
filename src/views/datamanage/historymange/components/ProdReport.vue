@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { reactive, ref, watch } from "vue"
+import { computed, reactive, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import { ElButton, ElMessage, type FormInstance } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
@@ -142,6 +142,12 @@ const resetSearch = () => {
 // 显式暴露方法供父组件调用
 defineExpose({ resetSearch })
 
+const selectedRows = ref<any>([])
+const selectedRowCount = computed(() => selectedRows.value.length)
+const handleSelectionChange = (val: any) => {
+  selectedRows.value = val
+}
+
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, {
   immediate: true
@@ -180,7 +186,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       </el-card>
       <el-card v-loading="loading" shadow="never">
         <div class="toolbar-wrapper">
-          <div />
+          <div>
+            <el-text v-show="selectedRowCount > 0" class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
+          </div>
           <div>
             <el-tooltip content="刷新当前页">
               <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
@@ -188,7 +196,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </div>
         </div>
         <div class="table-wrapper">
-          <TableComponent :tableData="TableData" :column-data="headers" stripe>
+          <TableComponent :tableData="TableData" :column-data="headers" selection @selection-change="handleSelectionChange" stripe>
             <template #status="{ row }">
               <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
               <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>

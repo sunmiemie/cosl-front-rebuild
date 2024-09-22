@@ -1,7 +1,7 @@
 <!-- 生产测试工单 -->
 
 <script lang="ts" setup>
-import { reactive, ref, watch, type Ref } from "vue"
+import { reactive, ref, watch, type Ref, computed } from "vue"
 import { ElTable, ElTree, type FormInstance } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
@@ -348,8 +348,15 @@ const detailform = reactive({
   instrument: "",
   product: ""
 })
+const selectedRowCount = computed(() => selectedRows.value.length)
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
+}
+
+const selectedUnitRows = ref<any>([])
+const selectedUnitRowCount = computed(() => selectedUnitRows.value.length)
+const handleUnitSelectionChange = (val: any) => {
+  selectedUnitRows.value = val
 }
 
 // 确认新增
@@ -541,8 +548,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
   </el-card>
   <el-card v-loading="loading" shadow="never">
     <div class="toolbar-wrapper">
-      <div>
-        <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTest">新增生产测试工单</el-button>
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div>
+          <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTest">新增生产测试工单</el-button>
+        </div>
+        <div v-show="selectedUnitRowCount > 0">
+          <el-text class="mx-1">已选择 {{ selectedUnitRowCount }} 项</el-text>
+        </div>
       </div>
       <div>
         <el-tooltip content="刷新当前页">
@@ -551,7 +563,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       </div>
     </div>
     <div class="table-wrapper">
-      <TableComponent :column-data="headers" :tableData="TableData" stripe>
+      <TableComponent :column-data="headers" :tableData="TableData" selection @selection-change="handleUnitSelectionChange" stripe>
         <template #testunit_status="{ row }">
           <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
           <el-tag v-else-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
@@ -690,6 +702,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                     <el-text>电路板型号：{{ CircuitBoardModel }}</el-text>
                     <el-text>批次号：{{ Batch }}</el-text>
                     <el-text>批次名称：{{ CircuitBatch }}</el-text>
+                    <el-text v-if="selectedRowCount > 0" class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
                   </el-space>
                 </el-card>
               </div>

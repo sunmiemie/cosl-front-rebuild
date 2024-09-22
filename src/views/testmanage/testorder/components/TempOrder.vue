@@ -1,7 +1,7 @@
 <!-- 临时测试工单 -->
 
 <script lang="ts" setup>
-import { reactive, ref, watch } from "vue"
+import { computed, reactive, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import { ElMessage, ElMessageBox, ElTable, ElTree, type FormInstance, TabsPaneContext } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
@@ -487,6 +487,12 @@ const handleTabClick = (tab: TabsPaneContext) => {
   }
 }
 
+const selectedRows = ref<any>([])
+const selectedRowCount = computed(() => selectedRows.value.length)
+const handleSelectionChange = (val: any) => {
+  selectedRows.value = val
+}
+
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getMangeData, { immediate: true })
 </script>
@@ -540,10 +546,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 
   <el-card v-loading="loading" shadow="never">
     <div class="toolbar-wrapper">
-      <div>
+      <div style="display: flex; align-items: center; gap: 10px">
         <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="tempDialogVisible = true">
           新增临时测试工单
         </el-button>
+        <div v-show="selectedRowCount > 0">
+          <el-text class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
+        </div>
       </div>
       <div>
         <el-tooltip content="刷新当前页">
@@ -552,7 +561,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       </div>
     </div>
     <div class="table-wrapper">
-      <TableComponent :column-data="headers" :tableData="TableData" stripe>
+      <TableComponent :column-data="headers" :tableData="TableData" selection @selection-change="handleSelectionChange" stripe>
         <template #dev_testunit_status="{ row }">
           <el-tag v-if="row['dev_testunit_status'] === '0'" type="success"> 已创建</el-tag>
           <el-tag v-else-if="row['dev_testunit_status'] === '1'" type="warning"> 待领取</el-tag>

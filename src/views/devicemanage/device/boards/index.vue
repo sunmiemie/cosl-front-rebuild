@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <el-card>
-      <el-tabs v-model="activeName" type="card" @tab-click="handleTabClick">
+      <el-tabs v-model="activeName" @tab-click="handleTabClick">
         <el-tab-pane label="生产电路板" name="prod">
           <ProdBoard ref="prodBoardComponent" />
         </el-tab-pane>

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { reactive, ref, watch, type Ref, onMounted } from "vue"
+import { reactive, ref, watch, type Ref, onMounted, computed } from "vue"
 import { ElTree, type FormInstance, type FormRules } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForTempOrder, getTestMangePath } from "@/api/testMangelist"
@@ -20,6 +20,7 @@ const addHeaders = ref([
 
 const searchFormRef = ref<FormInstance | null>(null)
 
+const selectedRowCount = computed(() => selectedRows.value.length)
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
 }
@@ -174,6 +175,7 @@ onMounted(getTreeData)
                 <el-text>电路板型号：{{ CircuitBoardModel }}</el-text>
                 <el-text>批次号：{{ Batch }}</el-text>
                 <el-text>批次名称：{{ CircuitBatch }}</el-text>
+                <el-text v-if="selectedRowCount > 0" class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
               </el-space>
             </el-card>
           </div>
