@@ -62,6 +62,7 @@ const clickNode = async (data: NodeData & any, node: any) => {
   boardInfoLoading.value = true
   currentRow.value = undefined
   selectedRows.value = []
+  clearOrderInfo()
   Batch.value = data.id
   CircuitBatch.value = data.label
   CircuitBoardModel.value = node.parent.data.label
@@ -133,6 +134,14 @@ const formRules: FormRules = reactive({
   testUnitDesc: [{ required: true, trigger: "blur", message: "请输入测试内容" }],
   consignor: [{ required: true, trigger: "blur", message: "请输入委托人" }]
 })
+const emit = defineEmits(["add-order"])
+const handleCreate = () => {
+  searchFormRef.value?.validate((valid: boolean) => {
+    if (valid) {
+      emit("add-order", addProdBoard, selectedRows.value, orderInfo)
+    }
+  })
+}
 
 onMounted(getTempTreeData)
 </script>
@@ -232,7 +241,7 @@ onMounted(getTempTreeData)
                       <el-button @click="$emit('stop-adding-order')">取消</el-button>
                       <el-button
                         type="primary"
-                        @click="$emit('add-order', addProdBoard, selectedRows, orderInfo)"
+                        @click="handleCreate"
                         :disabled="selectedRows.length <= 0"
                       >添加工单</el-button
                       >

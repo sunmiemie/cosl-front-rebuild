@@ -3,7 +3,7 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
 import { useRouter } from "vue-router"
-import { ElMessage, ElTable, ElTree, type FormInstance, TabsPaneContext } from "element-plus"
+import { ElMessage, ElMessageBox, ElTable, ElTree, type FormInstance, TabsPaneContext } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import ProdBoard from "@/views/testmanage/testorder/components/temp_order/ProdBoard.vue"
 import TempBoard from "@/views/testmanage/testorder/components/temp_order/TempBoard.vue"
@@ -47,28 +47,28 @@ interface TableDataType {
 
 const headers = checkPermission(["11"])
   ? ref([
-    { prop: "dev_testunit_id", label: "工单号", align: "center" },
-    { prop: "order_no", label: "委托单号", align: "center" },
-    { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
-    { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
-    { prop: "user_name", label: "创建人", align: "center" },
-    { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
-    { prop: "dev_testunit_endtime", label: "结束时间", align: "center" },
-    { prop: "process_type", label: "测试类型", align: "center" },
-    { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" },
-    { prop: "link", label: "操作", type: "link" }
-  ])
+      { prop: "dev_testunit_id", label: "工单号", align: "center" },
+      { prop: "order_no", label: "委托单号", align: "center" },
+      { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
+      { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
+      { prop: "user_name", label: "创建人", align: "center" },
+      { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
+      { prop: "dev_testunit_endtime", label: "结束时间", align: "center" },
+      { prop: "process_type", label: "测试类型", align: "center" },
+      { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" },
+      { prop: "link", label: "操作", type: "link" }
+    ])
   : ref([
-    { prop: "dev_testunit_id", label: "工单号", align: "center" },
-    { prop: "order_no", label: "委托单号", align: "center" },
-    { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
-    { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
-    { prop: "user_name", label: "创建人", align: "center" },
-    { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
-    { prop: "dev_testunit_endtime", label: "结束时间", align: "center" },
-    { prop: "process_type", label: "测试类型", align: "center" },
-    { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" }
-  ])
+      { prop: "dev_testunit_id", label: "工单号", align: "center" },
+      { prop: "order_no", label: "委托单号", align: "center" },
+      { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
+      { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
+      { prop: "user_name", label: "创建人", align: "center" },
+      { prop: "dev_testunit_starttime", label: "创建时间", align: "center" },
+      { prop: "dev_testunit_endtime", label: "结束时间", align: "center" },
+      { prop: "process_type", label: "测试类型", align: "center" },
+      { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" }
+    ])
 
 const TableData = ref<Array<TableDataType>>([])
 
@@ -353,21 +353,52 @@ const addOrder = (addProdBoard, selectedRows, orderInfo) => {
     userId: userStore.userid,
     ...orderInfo
   })
-    .then(() => {
-      tempDialogVisible.value = false
-      ElMessage.success("添加成功")
-      getMangeData()
-      if (addProdBoard) {
-        prodBoardComponent.value?.clearOrderInfo()
-        prodBoardComponent.value?.clearTableSelection()
+    .then((res) => {
+      if (res.status === "exists") {
+        ElMessageBox.confirm(res.message, "警告", {
+          type: "warning",
+          confirmButtonText: "是",
+          cancelButtonText: "否"
+        }).then(() => {
+          createDevTestUnitApi({
+            force: true,
+            addProdBoard,
+            boardList: selectedRows,
+            userId: userStore.userid,
+            ...orderInfo
+          })
+            .then(() => {
+              tempDialogVisible.value = false
+              ElMessage.success("添加成功")
+              getMangeData()
+              if (addProdBoard) {
+                prodBoardComponent.value?.clearOrderInfo()
+                prodBoardComponent.value?.clearTableSelection()
+              } else {
+                tempBoardComponent.value?.clearOrderInfo()
+                tempBoardComponent.value?.clearTableSelection()
+              }
+            })
+            .catch((err) => {
+              ElMessage.error(err.response.data.errorMessage)
+            })
+        })
       } else {
-        tempBoardComponent.value?.clearOrderInfo()
-        tempBoardComponent.value?.clearTableSelection()
+        tempDialogVisible.value = false
+        ElMessage.success("添加成功")
+        getMangeData()
+        if (addProdBoard) {
+          prodBoardComponent.value?.clearOrderInfo()
+          prodBoardComponent.value?.clearTableSelection()
+        } else {
+          tempBoardComponent.value?.clearOrderInfo()
+          tempBoardComponent.value?.clearTableSelection()
+        }
       }
     })
     .catch((err) => {
       ElMessage.error(err.response.data.errorMessage)
-      console.error("添加失败", err.response.data.errorMessage)
+      // console.error("添加失败", err.response.data.errorMessage)
     })
 }
 
@@ -685,7 +716,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       size="large"
       style="position: relative; left: 50%; transform: translateX(-50%); width: 170px"
       @click="confirm(postOrDelete)"
-    >确认{{ postOrDelete }}
+      >确认{{ postOrDelete }}
     </el-button>
   </el-dialog>
   <el-dialog v-model="errorVisible" title="查看缺陷" align-center width="80%">
