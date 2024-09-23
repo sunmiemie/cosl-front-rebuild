@@ -1,3 +1,5 @@
+<!-- 电路板管理 -->
+
 <template>
   <div class="app-container">
     <el-card>
