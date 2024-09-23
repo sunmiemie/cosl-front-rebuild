@@ -92,7 +92,8 @@ export const getTestMangeTable = ({
   TestStatus,
   Daterange,
   currentPage,
-  pageSize
+  pageSize,
+  batchId
 }: TestMange.inpTestMangeTableDataType): Promise<TestMange.getTestMangeTableType> => {
   return request<TestMange.getTestMangeTableType>({
     url: "/test/getTableData",
@@ -104,10 +105,28 @@ export const getTestMangeTable = ({
       TestStatus,
       Daterange,
       currentPage,
-      pageSize
+      pageSize,
+      batchId
     }
   })
 }
+
+export const getBatchesBySupplier = () =>
+  request<TestMange.getTestMangePathType>({
+    url: "/test/batches-of-supplier",
+    method: "get"
+  })
+
+export const getTestunitsByBatchApi = ({ batchId, currentPage, pageSize }) =>
+  request<TestMange.getTestMangeTableType>({
+    url: "/test/testunits-by-batch",
+    method: "get",
+    params: {
+      batchId,
+      currentPage,
+      pageSize
+    }
+  })
 
 export const getTempTestMangeTable = ({
   number,

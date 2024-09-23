@@ -31,7 +31,7 @@ const handleTabClick = (tab: TabsPaneContext) => {
   router.replace({ query: { ...router.currentRoute.value.query, tab: tab.props.name } })
 
   if (tab.props.name === "prod" && prodOrderComponent.value) {
-    prodOrderComponent.value.resetSearch()
+    prodOrderComponent.value.getTestUnitTree()
   } else if (tab.props.name === "temp" && tempOrderComponent.value) {
     tempOrderComponent.value.resetSearch()
   }
@@ -41,11 +41,5 @@ onMounted(() => {
   // 如果路由参数中指定了标签页，则打开指定的标签页
   const { tab } = router.currentRoute.value.query
   if (tab) activeName.value = tab
-
-  if (tab === "prod" && prodOrderComponent.value) {
-    prodOrderComponent.value.resetSearch()
-  } else if (tab === "temp" && tempOrderComponent.value) {
-    tempOrderComponent.value.resetSearch()
-  }
 })
 </script>

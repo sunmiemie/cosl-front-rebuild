@@ -2,37 +2,39 @@
 
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref, computed } from "vue"
-import { ElTable, ElTree, type FormInstance } from "element-plus"
-import { usePagination } from "@/hooks/usePagination"
-import TableComponent from "@/components/Table/index.vue"
 import { useRouter } from "vue-router"
+import { ElTable, ElTree, type FormInstance } from "element-plus"
+import TableComponent from "@/components/Table/index.vue"
+import { usePagination } from "@/hooks/usePagination"
+import { useUserStore } from "@/store/modules/user"
+import { checkPermission } from "@/utils/permission"
 import {
   getTestMangePath,
   getbordsinfo,
   getTestMangeTable,
   createTestUnitApi,
   publicTestUnitApi,
-  deleteTestUnitApi
+  deleteTestUnitApi,
+  getBatchesBySupplier
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
-import { useUserStore } from "@/store/modules/user"
 import { checkReportDataApi, getSingleReportDataApi } from "@/api/report"
-import { checkPermission } from "@/utils/permission"
 
 const router = useRouter()
 const userStore = useUserStore()
+const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+
 const reportJson = ref<any>([])
 const errorList = ref<any>([])
-const errorVisible = ref<boolean>(false)
-const errorLoading = ref<boolean>(false)
-const loading = ref<boolean>(false)
-const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+const errorVisible = ref(false)
+const errorLoading = ref(false)
+const gettingTestunits = ref(false)
 const currentRow = ref<any>()
 const showFlags = ref<any>(true)
 const testFlags = ref<any>(true)
-const dialogVisible = ref<boolean>(false)
-const PublicVisible = ref<boolean>(false)
+const dialogVisible = ref(false)
+const PublicVisible = ref(false)
 const testTypeList = ref<any>([])
 const processList = ref<any>([])
 const boardInfoLoading = ref(false)
@@ -48,34 +50,33 @@ interface TableDataType {
   link?: any
 }
 
-const headers = checkPermission(["11"]) ?
-  ref([
-    { prop: "testunit_id", label: "工单号", align: "center" },
-    { prop: "boardmodel_name", label: "电路板类型", align: "center" },
-    { prop: "testunit_name", label: "测试名称", align: "center" },
-    { prop: "user_name", label: "创建人", align: "center" },
-    { prop: "testunit_starttime", label: "创建时间", align: "center" },
-    { prop: "testunit_endtime", label: "结束时间", align: "center" },
-    { prop: "process_type", label: "测试类型", align: "center" },
-    { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
-    { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
-    { prop: "link", label: "操作", type: "link" }
-  ]) :
-  ref([
-    { prop: "testunit_id", label: "工单号", align: "center" },
-    { prop: "boardmodel_name", label: "电路板类型", align: "center" },
-    { prop: "testunit_name", label: "测试名称", align: "center" },
-    { prop: "user_name", label: "创建人", align: "center" },
-    { prop: "testunit_starttime", label: "创建时间", align: "center" },
-    { prop: "testunit_endtime", label: "结束时间", align: "center" },
-    { prop: "process_type", label: "测试类型", align: "center" },
-    { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
-    { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" }
-  ]);
+const headers = checkPermission(["11"])
+  ? ref([
+      { prop: "testunit_id", label: "工单号", align: "center" },
+      { prop: "boardmodel_name", label: "电路板类型", align: "center" },
+      { prop: "testunit_name", label: "测试名称", align: "center" },
+      { prop: "user_name", label: "创建人", align: "center" },
+      { prop: "testunit_starttime", label: "创建时间", align: "center" },
+      { prop: "testunit_endtime", label: "结束时间", align: "center" },
+      { prop: "process_type", label: "测试类型", align: "center" },
+      { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
+      { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
+      { prop: "link", label: "操作", type: "link" }
+    ])
+  : ref([
+      { prop: "testunit_id", label: "工单号", align: "center" },
+      { prop: "boardmodel_name", label: "电路板类型", align: "center" },
+      { prop: "testunit_name", label: "测试名称", align: "center" },
+      { prop: "user_name", label: "创建人", align: "center" },
+      { prop: "testunit_starttime", label: "创建时间", align: "center" },
+      { prop: "testunit_endtime", label: "结束时间", align: "center" },
+      { prop: "process_type", label: "测试类型", align: "center" },
+      { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
+      { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" }
+    ])
 
-const selectedRows = ref<any>([])
 const addHeaders = ref([
-  { prop: "id", label: "电路板ID", align: "center", width: "150px" },
+  { prop: "id", label: "电路板 ID", align: "center", width: "150px" },
   { prop: "serial_num", label: "电路板序列号", align: "center", width: "200px" },
   { prop: "available", label: "可选测试", align: "center", type: "btn" }
 ])
@@ -90,40 +91,31 @@ const searchData = reactive({
   TestStatus: "",
   Daterange: ""
 })
-
 const clearSearchData = () => {
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
 }
 
 const defineLink = (status: any) => {
   switch (status) {
+    // 需要权限
     case "0":
       return { 1: "发布", 2: "删除" }
     case "1":
       return { 1: "详情", 2: "导出工单", 3: "导入报告" }
     case "2":
-      return { 1: "详情" }
     case "3":
-      return { 1: "详情" }
     case "4":
+    case "7":
+    case "8":
       return { 1: "详情" }
     case "5":
       return { 1: "详情", 2: "查看报告" }
     case "6":
       return { 1: "详情", 2: "查看报告", 3: "查看缺陷" }
-    case "7":
-      return { 1: "详情" }
-    case "8":
-      return { 1: "详情" }
-  }
-}
-const getTableData = () => {
-  for (let i = 0; i < TableData.value.length; i++) {
-    TableData.value[i].link = defineLink(TableData.value[i].testunit_status)
   }
 }
 
-let PublicFormInfo = reactive({
+let postFormInfo = reactive({
   testunit_id: "",
   testunit_name: "",
   process_type: "",
@@ -153,19 +145,19 @@ const getNestedValue = (obj, path) => {
     return undefined
   }, obj)
 }
-const PublicOrDelete = ref<string>("发布")
 
-const drawer: Ref<boolean> = ref(false)
-// link操作逻辑
+const postOrDelete = ref("发布")
+const drawerVisible = ref(false)
+// link 操作逻辑
 const handleLink = (data: any, i: string) => {
   if (i === "发布") {
     PublicVisible.value = true
-    PublicFormInfo = data
-    PublicOrDelete.value = "发布"
-  } else if (i == "删除") {
+    postFormInfo = data
+    postOrDelete.value = "发布"
+  } else if (i === "删除") {
     PublicVisible.value = true
-    PublicFormInfo = data
-    PublicOrDelete.value = "删除"
+    postFormInfo = data
+    postOrDelete.value = "删除"
   } else if (i === "详情") {
     detailform.unitId = data.testunit_id
     detailform.unitName = data.testunit_name
@@ -179,7 +171,8 @@ const handleLink = (data: any, i: string) => {
     detailform.processVersion = data.testprocess_version
     detailform.instrument = data.instrument
     detailform.product = data.product
-    drawer.value = true
+
+    drawerVisible.value = true
   } else if (i === "导出工单") {
     const link = document.createElement("a")
     link.href = `${import.meta.env.VITE_BASE_API}test/testunit/download/${data.testunit_name}.json?id=${data.testunit_id}`
@@ -308,31 +301,6 @@ const handleLink = (data: any, i: string) => {
     })
   }
 }
-// 关闭详情
-const goBack = () => {
-  drawer.value = false
-}
-
-const handleSearch = async () => {
-  // 深拷贝
-  const params = JSON.parse(JSON.stringify(searchData))
-  // 拼接时间参数
-  if (params.Daterange !== "") {
-    params.Daterange = params.Daterange.join("-")
-  }
-  params.currentPage = paginationData.currentPage
-  params.pageSize = paginationData.pageSize
-  // 调用接口
-  const tableResult = await getTestMangeTable(params)
-  // 赋值
-  TableData.value = tableResult.TableData
-  paginationData.total = tableResult.total
-  getTableData()
-}
-const resetSearch = () => {
-  clearSearchData()
-  getMangeData()
-}
 
 const detailform = reactive({
   unitId: "",
@@ -348,6 +316,8 @@ const detailform = reactive({
   instrument: "",
   product: ""
 })
+
+const selectedRows = ref<any>([])
 const selectedRowCount = computed(() => selectedRows.value.length)
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
@@ -365,12 +335,13 @@ const submitAdd = () => {
     boardList: selectedRows.value,
     userId: userStore.userid
   }).then(() => {
-    getMangeData()
+    // getMangeData()
     dialogVisible.value = false
+    getTestunitsByBatch()
   })
 }
 // 测试状态
-const TestStatus = reactive([
+const TestStatus = [
   { status: 0, mes: "已创建" },
   { status: 1, mes: "待领取" },
   { status: 2, mes: "测试中" },
@@ -380,17 +351,19 @@ const TestStatus = reactive([
   { status: 6, mes: "测试异常" },
   { status: 7, mes: "测试暂存" },
   { status: 8, mes: "疑问待处理" }
-])
+]
 
 // 确认发布或删除
 const confirm = async (value: string) => {
   if (value === "发布") {
-    publicTestUnitApi({ id: PublicFormInfo["testunit_id"] }).then(() => {
-      getMangeData()
+    publicTestUnitApi({ id: postFormInfo["testunit_id"] }).then(() => {
+      // getMangeData()
+      getTestunitsByBatch()
     })
   } else {
-    deleteTestUnitApi(PublicFormInfo["testunit_id"]).then(() => {
-      getMangeData()
+    deleteTestUnitApi(postFormInfo["testunit_id"]).then(() => {
+      // getMangeData()
+      getTestunitsByBatch()
     })
   }
   PublicVisible.value = false
@@ -480,126 +453,210 @@ async function getTreeData() {
   const result = await getTestMangePath()
   treeData.value = result.Pathdata
 }
-async function getMangeData() {
-  loading.value = true
+
+const treeLoading = ref(false)
+const batchTreeData = ref<any>([])
+const getTestUnitTree = () => {
+  treeLoading.value = true
+  getBatchesBySupplier()
+    .then((res) => {
+      batchTreeData.value = res.Pathdata
+    })
+    .catch(() => {
+      batchTreeData.value = []
+    })
+    .finally(() => {
+      treeLoading.value = false
+    })
+}
+
+const batchData = reactive({
+  boardModel: "",
+  batchId: "",
+  batchName: ""
+})
+const handleNodeClick = (data: any) => {
+  if (data.children === undefined) {
+    // 批次号
+    batchData.batchId = data.id
+    batchData.batchName = data.label
+    getTestunitsByBatch()
+  }
+}
+const getTableLinkData = () => {
+  for (let i = 0; i < TableData.value.length; i++) {
+    TableData.value[i].link = defineLink(TableData.value[i].testunit_status)
+  }
+}
+
+const resetSearch = () => {
+  clearSearchData()
+  getTestunitsByBatch()
+}
+async function getTestunitsByBatch() {
+  if (batchData.batchId === "") return
+
+  gettingTestunits.value = true
+
   const params = JSON.parse(JSON.stringify(searchData))
   // 拼接时间参数
   if (params.Daterange !== "") {
     params.Daterange = params.Daterange.join("-")
   }
+
   params.currentPage = paginationData.currentPage
   params.pageSize = paginationData.pageSize
-  // 调用接口
+  params.batchId = batchData.batchId
+
   const tableResult = await getTestMangeTable(params)
   TableData.value = tableResult.TableData
-  loading.value = false
-  paginationData.total = tableResult.total // Store the table data
-  getTableData()
+  // console.log(TableData.value)
+  getTableLinkData()
+  paginationData.total = tableResult.total
+
+  gettingTestunits.value = false
 }
 
 // 显式暴露方法供父组件调用
-defineExpose({
-  resetSearch
-})
+defineExpose({ getTestUnitTree })
 
 /** 监听分页参数的变化 */
-watch([() => paginationData.currentPage, () => paginationData.pageSize], getMangeData, { immediate: true })
+watch([() => paginationData.currentPage, () => paginationData.pageSize], getTestUnitTree, { immediate: true })
+watch([() => paginationData.currentPage, () => paginationData.pageSize], getTestunitsByBatch, { immediate: false })
 </script>
 
 <template>
-  <el-card class="search-wrapper" shadow="never">
-    <el-form ref="searchFormRef" :inline="true" :model="searchData">
-      <el-form-item label="工单号">
-        <el-input v-model="searchData.number" placeholder="请输入" />
-      </el-form-item>
-      <el-form-item label="测试名">
-        <el-input v-model="searchData.TestName" placeholder="请输入" />
-      </el-form-item>
-      <el-form-item label="测试类型">
-        <el-select
-          v-model="searchData.TestType"
-          placeholder="请选择"
-          style="width: 150px"
-          @visible-change="getTestTypeData"
-        >
-          <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="测试状态">
-        <el-select v-model="searchData.TestStatus" placeholder="请选择" style="width: 150px">
-          <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="创建时间范围">
-        <el-date-picker
-          v-model="searchData['Daterange'] as any"
-          end-placeholder="结束日期"
-          range-separator="至"
-          start-placeholder="开始日期"
-          type="daterange"
-          value-format="YYYY/MM/DD"
+  <el-row :gutter="20">
+    <el-col :span="5">
+      <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
+        <!-- 11 代表“添加测试工单”权限 -->
+        <template #header>
+          <el-button style="width: 100%" v-permission="['11']" icon="CirclePlus" type="primary" @click="addTest">
+            新增生产测试工单
+          </el-button>
+        </template>
+        <el-tree
+          ref="treeRef"
+          class="filter-tree"
+          :data="batchTreeData"
+          :props="defaultProps"
+          node-key="id"
+          @node-click="handleNodeClick"
         />
-      </el-form-item>
-      <el-form-item>
-        <el-button icon="Search" type="primary" @click="handleSearch">查询</el-button>
-        <el-button icon="Refresh" @click="resetSearch">重置</el-button>
-      </el-form-item>
-    </el-form>
-  </el-card>
-  <el-card v-loading="loading" shadow="never">
-    <div class="toolbar-wrapper">
-      <div style="display: flex; align-items: center; gap: 10px">
-        <div>
-          <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTest">新增生产测试工单</el-button>
+      </el-card>
+    </el-col>
+    <el-col v-if="batchData.batchId === ''" :span="19">
+      <el-card shadow="never" style="height: 100%">
+        <el-empty description="请先在左侧选择批次" />
+      </el-card>
+    </el-col>
+    <el-col v-else :span="19">
+      <el-card class="search-wrapper" shadow="never">
+        <el-form ref="searchFormRef" :inline="true" :model="searchData">
+          <el-form-item label="工单号">
+            <el-input v-model="searchData.number" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="测试名称">
+            <el-input v-model="searchData.TestName" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="测试类型">
+            <el-select
+              v-model="searchData.TestType"
+              placeholder="请选择"
+              style="width: 150px"
+              @visible-change="getTestTypeData"
+            >
+              <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="测试状态">
+            <el-select v-model="searchData.TestStatus" placeholder="请选择" style="width: 150px">
+              <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="创建时间范围">
+            <el-date-picker
+              v-model="searchData['Daterange'] as any"
+              end-placeholder="结束日期"
+              range-separator="至"
+              start-placeholder="开始日期"
+              type="daterange"
+              value-format="YYYY/MM/DD"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button icon="Search" type="primary" @click="getTestunitsByBatch">查询</el-button>
+            <el-button icon="Refresh" @click="resetSearch">重置</el-button>
+          </el-form-item>
+        </el-form>
+      </el-card>
+      <el-card v-loading="gettingTestunits" shadow="never">
+        <div class="toolbar-wrapper">
+          <div style="display: flex; align-items: center; gap: 10px">
+            <!--            <div>-->
+            <!--              <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTest"-->
+            <!--                >新增生产测试工单</el-button-->
+            <!--              >-->
+            <!--            </div>-->
+            <div>
+              <el-text class="mx-1">{{ batchData.batchName }}</el-text>
+            </div>
+            <div v-show="selectedUnitRowCount > 0">
+              <el-text class="mx-1">已选择 {{ selectedUnitRowCount }} 项</el-text>
+            </div>
+          </div>
+          <div>
+            <el-tooltip content="刷新当前页">
+              <el-button circle icon="RefreshRight" type="primary" @click="getTestunitsByBatch" />
+            </el-tooltip>
+          </div>
         </div>
-        <div v-show="selectedUnitRowCount > 0">
-          <el-text class="mx-1">已选择 {{ selectedUnitRowCount }} 项</el-text>
+        <div class="table-wrapper">
+          <TableComponent
+            :column-data="headers"
+            :tableData="TableData"
+            selection
+            @selection-change="handleUnitSelectionChange"
+            stripe
+          >
+            <template #testunit_status="{ row }">
+              <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
+              <el-tag v-else-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
+              <el-tag v-else-if="row['testunit_status'] === '2'"> 测试中</el-tag>
+              <el-tag v-else-if="row['testunit_status'] === '3'" type="warning"> 测试待审核</el-tag>
+              <el-tag v-else-if="row['testunit_status'] === '4'" type="danger"> 待重做</el-tag>
+              <el-tag v-else-if="row['testunit_status'] === '5'" type="success"> 测试正常</el-tag>
+              <el-tag v-else-if="row['testunit_status'] === '6'" type="danger"> 测试异常</el-tag>
+              <el-tag v-else-if="row['testunit_status'] === '7'" type="warning"> 测试暂存</el-tag>
+              <el-tag v-else-if="row['testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
+            </template>
+            <template #link="{ row }" v-if="checkPermission(['11'])">
+              <el-link v-for="i in row['link']" class="el-link" type="primary" :key="i" @click="handleLink(row, i)">
+                {{ i }}
+              </el-link>
+            </template>
+          </TableComponent>
         </div>
-      </div>
-      <div>
-        <el-tooltip content="刷新当前页">
-          <el-button circle icon="RefreshRight" type="primary" @click="getMangeData" />
-        </el-tooltip>
-      </div>
-    </div>
-    <div class="table-wrapper">
-      <TableComponent :column-data="headers" :tableData="TableData" selection @selection-change="handleUnitSelectionChange" stripe>
-        <template #testunit_status="{ row }">
-          <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
-          <el-tag v-else-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
-          <el-tag v-else-if="row['testunit_status'] === '2'"> 测试中</el-tag>
-          <el-tag v-else-if="row['testunit_status'] === '3'" type="warning"> 测试待审核</el-tag>
-          <el-tag v-else-if="row['testunit_status'] === '4'" type="danger"> 待重做</el-tag>
-          <el-tag v-else-if="row['testunit_status'] === '5'" type="success"> 测试正常</el-tag>
-          <el-tag v-else-if="row['testunit_status'] === '6'" type="danger"> 测试异常</el-tag>
-          <el-tag v-else-if="row['testunit_status'] === '7'" type="warning"> 测试暂存</el-tag>
-          <el-tag v-else-if="row['testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
-        </template>
-        <template v-if="checkPermission(['11'])" #link="{ row }">
-          <el-link v-for="i in row['link']" class="el-link" type="primary" @click="handleLink(row, i)" :key="i">
-            {{ i }}
-          </el-link>
-        </template>
-      </TableComponent>
-    </div>
-    <div class="pager-wrapper">
-      <el-pagination
-        :currentPage="paginationData.currentPage"
-        :layout="paginationData.layout"
-        :page-size="paginationData.pageSize"
-        :page-sizes="paginationData.pageSizes"
-        :total="paginationData.total"
-        background
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
-    </div>
-  </el-card>
+        <div class="pager-wrapper">
+          <el-pagination
+            :currentPage="paginationData.currentPage"
+            :layout="paginationData.layout"
+            :page-size="paginationData.pageSize"
+            :page-sizes="paginationData.pageSizes"
+            :total="paginationData.total"
+            background
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
+      </el-card>
+    </el-col>
+  </el-row>
 
   <!-- 详情 -->
-  <el-drawer v-model="drawer" :append-to-body="true" :with-header="false" size="1005">
+  <el-drawer v-model="drawerVisible" :append-to-body="true" :with-header="false" size="1005">
     <header class="drawer-head">
-      <el-page-header @back="goBack">
+      <el-page-header @back="drawerVisible = false">
         <template #content>
           <span class="text-large font-600">测试工单详情</span>
         </template>
@@ -651,8 +708,10 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
     <el-footer class="drawer-footer">
       <el-text size="large">所选测试工艺信息</el-text>
       <br />
-<!--      <el-button type="primary" style="margin-top: 10px">{{ detailform.testType }}</el-button>-->
-      <el-text style="display: inline-block; margin-top: 20px; margin-left: 10px">测试类型：{{ detailform.testType }}</el-text>
+      <!--      <el-button type="primary" style="margin-top: 10px">{{ detailform.testType }}</el-button>-->
+      <el-text style="display: inline-block; margin-top: 20px; margin-left: 10px"
+        >测试类型：{{ detailform.testType }}</el-text
+      >
       <el-card class="info-box" shadow="never" style="margin: 20px 0">
         <span style="margin: 0 20px"
           >使用工艺ID:
@@ -744,8 +803,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
                               @change="
                                 row['checkAll'] = row['selectedTest'].length === row['available'].length;
                                 row['isInd'] =
-                                  row['selectedTest'].length > 0 &&
-                                  row['selectedTest'].length < row['available'].length
+                                  row['selectedTest'].length > 0 && row['selectedTest'].length < row['available'].length
                               "
                             />
                           </el-checkbox-group>
@@ -771,34 +829,34 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
   <el-dialog v-model="PublicVisible" :show-close="true" width="44%">
     <template #header>
       <div class="my-header">
-        <h2>{{ PublicOrDelete }}测试工单</h2>
+        <h2>{{ postOrDelete }}测试工单</h2>
       </div>
     </template>
-    <el-form :inline="true" :model="PublicFormInfo">
+    <el-form :inline="true" :model="postFormInfo">
       <el-form-item label="工单号">
-        <el-input v-model="PublicFormInfo['testunit_id']" disabled type="text" />
+        <el-input v-model="postFormInfo['testunit_id']" disabled type="text" />
       </el-form-item>
       <el-form-item label="测试名称">
-        <el-input v-model="PublicFormInfo['testunit_name']" disabled type="text" style="width: 350px" />
+        <el-input v-model="postFormInfo['testunit_name']" disabled type="text" style="width: 350px" />
       </el-form-item>
       <br />
       <el-form-item label="测试类型">
-        <el-input v-model="PublicFormInfo['process_type']" disabled type="text" />
+        <el-input v-model="postFormInfo['process_type']" disabled type="text" />
       </el-form-item>
       <el-form-item label="创建人">
-        <el-input v-model="PublicFormInfo['user_name']" disabled style="width: 100px" type="text" />
+        <el-input v-model="postFormInfo['user_name']" disabled style="width: 100px" type="text" />
       </el-form-item>
       <el-form-item label="创建日期">
-        <el-input v-model="PublicFormInfo['testunit_starttime']" disabled style="width: 180px" type="text" />
+        <el-input v-model="postFormInfo['testunit_starttime']" disabled style="width: 180px" type="text" />
       </el-form-item>
     </el-form>
     <el-button
-      :type="PublicOrDelete === '发布' ? 'primary' : 'danger'"
+      :type="postOrDelete === '发布' ? 'primary' : 'danger'"
       icon="Check"
       size="large"
       style="position: relative; left: 50%; transform: translateX(-50%); width: 170px"
-      @click="confirm(PublicOrDelete)"
-      >确认{{ PublicOrDelete }}
+      @click="confirm(postOrDelete)"
+      >确认{{ postOrDelete }}
     </el-button>
   </el-dialog>
   <el-dialog v-model="errorVisible" title="查看缺陷" align-center width="80%">

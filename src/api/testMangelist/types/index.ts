@@ -31,6 +31,7 @@ export type inpTestMangeTableDataType = {
   Daterange?: string
   boardName?: string
   boardModel?: string
+  batchId?: string
   currentPage?: any
   pageSize?: any
 }
