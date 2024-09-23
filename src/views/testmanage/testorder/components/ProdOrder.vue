@@ -618,6 +618,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
             selection
             @selection-change="handleUnitSelectionChange"
             stripe
+            max-height="450"
           >
             <template #testunit_status="{ row }">
               <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
