@@ -196,7 +196,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </div>
         </div>
         <div class="table-wrapper">
-          <TableComponent :tableData="TableData" :column-data="headers" selection @selection-change="handleSelectionChange" stripe>
+          <TableComponent max-height="450" :tableData="TableData" :column-data="headers" selection @selection-change="handleSelectionChange" stripe>
             <template #status="{ row }">
               <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
               <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>

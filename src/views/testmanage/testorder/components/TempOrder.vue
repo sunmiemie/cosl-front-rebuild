@@ -561,7 +561,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       </div>
     </div>
     <div class="table-wrapper">
-      <TableComponent :column-data="headers" :tableData="TableData" selection @selection-change="handleSelectionChange" stripe>
+      <TableComponent :column-data="headers" :tableData="TableData" selection @selection-change="handleSelectionChange" max-height="450" stripe>
         <template #dev_testunit_status="{ row }">
           <el-tag v-if="row['dev_testunit_status'] === '0'" type="success"> 已创建</el-tag>
           <el-tag v-else-if="row['dev_testunit_status'] === '1'" type="warning"> 待领取</el-tag>

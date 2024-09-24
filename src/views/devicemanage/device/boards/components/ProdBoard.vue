@@ -407,7 +407,7 @@ onMounted(() => {
           </div>
         </div>
         <div class="table-wrapper">
-          <TableComponent :tableData="BatchData" :column-data="batchHeaders" stripe>
+          <TableComponent :tableData="BatchData" :column-data="batchHeaders" stripe max-height="450">
             <template #link="{ row }">
               <el-link type="primary" class="el-link" @click="handleLink(row, '批次详情')"> 批次详情 </el-link>
             </template>
