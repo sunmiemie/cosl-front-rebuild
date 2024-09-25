@@ -10,14 +10,10 @@ import { getTestTypeDataApi } from "@/api/testtype"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
 
-// defineOptions({
-//   // 命名当前组件
-//   name: "ElementPlus"
-// })
-const loading = ref<boolean>(false)
+const loading = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
-const DialogCheck = ref<boolean>(false)
+const DialogCheck = ref(false)
 
 interface TestCheckType {
   ID?: string
@@ -148,6 +144,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             <el-form-item>
               <el-button :icon="Search" style="margin-right: 10px" type="primary" @click="handleSearch">查询</el-button>
               <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+              <el-text style="display: inline-block; margin-left: 20px; letter-spacing: 0.5px; opacity: 0.7">
+                * 表格中的报告编号" temp- "和" prod- "是为了区分临时报告和正式报告，实际的报告编号并不包含，在查询时请不要带上它们
+              </el-text>
             </el-form-item>
           </el-form>
         </el-card>

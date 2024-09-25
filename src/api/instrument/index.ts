@@ -15,7 +15,7 @@ export function createInstrumentDataApi(data: UnwrapNestedRefs<{ name: string; i
 /** 删 */
 export function deleteInstrumentDataApi(id: string) {
   return request({
-    url: `equipment/instrument/${id}`,
+    url: `equipment/instrument/delete/${id}`,
     method: "delete"
   })
 }

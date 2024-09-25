@@ -1,15 +1,16 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
-import { createPsiModelDataApi, getPsiModelDataApi, updatePsiModelDataApi } from "@/api/psimodel"
 import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
-import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import { checkPermission } from "@/utils/permission";
+import { usePagination } from "@/hooks/usePagination"
+import { checkPermission } from "@/utils/permission"
+import { createPsiModelDataApi, getPsiModelDataApi, updatePsiModelDataApi } from "@/api/psimodel"
 
-const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-const dialogVisible = ref<boolean>(false)
+
+const loading = ref(false)
+const dialogVisible = ref(false)
 const formRef = ref<FormInstance | null>(null)
 const formData = reactive<any>({
   id: "",
