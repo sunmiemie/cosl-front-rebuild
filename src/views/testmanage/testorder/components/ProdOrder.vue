@@ -3,7 +3,7 @@
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref, computed } from "vue"
 import { useRouter } from "vue-router"
-import { ElTable, ElTree, type FormInstance } from "element-plus"
+import { ElMessage, ElTable, ElTree, type FormInstance } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
 import { useUserStore } from "@/store/modules/user"
@@ -15,7 +15,7 @@ import {
   createTestUnitApi,
   publicTestUnitApi,
   deleteTestUnitApi,
-  getBatchesBySupplier
+  getBatchesBySupplier, postUnits
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
@@ -54,24 +54,26 @@ const headers = checkPermission(["11"])
   ? ref([
       { prop: "testunit_id", label: "工单号", align: "center" },
       { prop: "boardmodel_name", label: "电路板类型", align: "center" },
+      { prop: "instrument", label: "仪器名称", align: "center" },
+      { prop: "product", label: "所属产品", align: "center" },
       { prop: "testunit_name", label: "测试名称", align: "center" },
       { prop: "user_name", label: "创建人", align: "center" },
       { prop: "testunit_starttime", label: "创建时间", align: "center" },
       { prop: "testunit_endtime", label: "结束时间", align: "center" },
       { prop: "process_type", label: "测试类型", align: "center" },
-      { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
       { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
       { prop: "link", label: "操作", type: "link" }
     ])
   : ref([
       { prop: "testunit_id", label: "工单号", align: "center" },
       { prop: "boardmodel_name", label: "电路板类型", align: "center" },
+      { prop: "instrument", label: "仪器名称", align: "center" },
+      { prop: "product", label: "所属产品", align: "center" },
       { prop: "testunit_name", label: "测试名称", align: "center" },
       { prop: "user_name", label: "创建人", align: "center" },
       { prop: "testunit_starttime", label: "创建时间", align: "center" },
       { prop: "testunit_endtime", label: "结束时间", align: "center" },
       { prop: "process_type", label: "测试类型", align: "center" },
-      { prop: "testprocess_version", label: "使用工艺版本", align: "center" },
       { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" }
     ])
 
@@ -517,6 +519,16 @@ async function getTestunitsByBatch() {
   gettingTestunits.value = false
 }
 
+const postSelectedUnits = () => {
+  // console.log(selectedUnitRows.value)
+  const selectedUnitIds = selectedUnitRows.value.map((item) => item.testunit_id)
+  postUnits(selectedUnitIds)
+    .then(() => {
+      ElMessage.success("发布成功")
+      getTestunitsByBatch()
+    })
+}
+
 // 显式暴露方法供父组件调用
 defineExpose({ getTestUnitTree })
 
@@ -550,7 +562,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
         <el-empty description="请先在左侧选择批次" />
       </el-card>
     </el-col>
-    <el-col v-else :span="19">
+    <el-col class="affix-container" v-else :span="19">
+      <el-affix target=".affix-container" :offset="120">
       <el-card class="search-wrapper" shadow="never">
         <el-form ref="searchFormRef" :inline="true" :model="searchData">
           <el-form-item label="工单号">
@@ -590,6 +603,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
           </el-form-item>
         </el-form>
       </el-card>
+      </el-affix>
+
       <el-card v-loading="gettingTestunits" shadow="never">
         <div class="toolbar-wrapper">
           <div style="display: flex; align-items: center; gap: 10px">
@@ -602,7 +617,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
               <el-text class="mx-1">{{ batchData.batchName }}</el-text>
             </div>
             <div v-show="selectedUnitRowCount > 0">
-              <el-text class="mx-1">已选择 {{ selectedUnitRowCount }} 项</el-text>
+              <el-text style="display: inline-block; margin-right: 10px">已选择 {{ selectedUnitRowCount }} 项</el-text>
+              <el-button type="primary" @click="postSelectedUnits">一键发布</el-button>
             </div>
           </div>
           <div>
@@ -612,13 +628,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
           </div>
         </div>
         <div class="table-wrapper">
+<!--          max-height="450"-->
           <TableComponent
             :column-data="headers"
             :tableData="TableData"
             selection
             @selection-change="handleUnitSelectionChange"
             stripe
-            max-height="450"
           >
             <template #testunit_status="{ row }">
               <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>

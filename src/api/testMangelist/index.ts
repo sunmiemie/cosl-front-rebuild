@@ -43,9 +43,23 @@ export const downloadOrderJson = (fileid: any) => {
     responseType: "blob"
   })
 }
-export const createTestUnitApi = (data: any) => {
+export const createTestUnitApi = (data: number[]) => {
   return request({
     url: "/test/testunit/add/",
+    method: "post",
+    data
+  })
+}
+export const postUnits = (data: any) => {
+  return request({
+    url: "/test/testunit/post/",
+    method: "post",
+    data
+  })
+}
+export const postDevUnits = (data: any) => {
+  return request({
+    url: "/test/dev-testunit/post/",
     method: "post",
     data
   })

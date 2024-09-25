@@ -83,16 +83,18 @@ const getTableData = () => {
     user: searchData.user || undefined,
     type: searchData.type || undefined,
     serial: searchData.serial || undefined
-  }).then((res) => {
-    tableData.value = res.data.list
-    paginationData.total = res.data.total
-    for (let i = 0; i < tableData.value.length; i++) {
-      tableData.value[i].link = defineLink(tableData.value[i].status, tableData.value[i].report_generated)
-    }
-    // console.log(tableData.value)
-  }).finally(() => {
-    loading.value = false
   })
+    .then((res) => {
+      tableData.value = res.data.list
+      paginationData.total = res.data.total
+      for (let i = 0; i < tableData.value.length; i++) {
+        tableData.value[i].link = defineLink(tableData.value[i].status, tableData.value[i].report_generated)
+      }
+      // console.log(tableData.value)
+    })
+    .finally(() => {
+      loading.value = false
+    })
 }
 
 // devreport/check/operate
@@ -156,8 +158,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 </script>
 
 <template>
-  <el-row>
-    <el-col :span="24">
       <el-card shadow="never" class="search-wrapper">
         <el-form ref="searchFormRef" :inline="true" :model="searchData">
           <el-form-item label="报告编号">
@@ -185,75 +185,86 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </el-form-item>
         </el-form>
       </el-card>
-      <el-card v-loading="loading" shadow="never">
-        <div class="toolbar-wrapper">
-          <div>
-            <el-text v-show="selectedRowCount > 0" class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
-          </div>
-          <div>
-            <el-tooltip content="刷新当前页">
-              <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
-            </el-tooltip>
-          </div>
+    <el-card v-loading="loading" shadow="never">
+      <div class="toolbar-wrapper">
+        <div>
+          <el-text v-show="selectedRowCount > 0" class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
         </div>
-        <div class="table-wrapper">
-          <TableComponent max-height="450" :tableData="tableData" :column-data="headers" selection @selection-change="handleSelectionChange" stripe>
-            <template #status="{ row }">
-              <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
-              <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>
-              <el-tag v-if="row['status'] === '2'" type="success"> 测试正常 </el-tag>
-              <el-tag v-if="row['status'] === '3'" type="danger"> 测试异常 </el-tag>
-              <el-tag v-if="row['status'] === '4'" type="warning"> 疑问待处理 </el-tag>
-            </template>
-
-            <template #link="{ row }">
-              <el-link v-for="i in row['link']" type="primary" class="el-link" @click="handleLink(row, i)" :key="i">
-                {{ i }}
-              </el-link>
-            </template>
-          </TableComponent>
+        <div>
+          <el-tooltip content="刷新当前页">
+            <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
+          </el-tooltip>
         </div>
-
-        <div class="pager-wrapper">
-          <el-pagination
-            background
-            :layout="paginationData.layout"
-            :page-sizes="paginationData.pageSizes"
-            :total="paginationData.total"
-            :page-size="paginationData.pageSize"
-            :currentPage="paginationData.currentPage"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
-        </div>
-
-        <el-dialog v-model="DialogCheck" :title="'提交测试工艺审核'" style="height: 45vh; width: 40vw">
-          <template #header>
-            <h2>提交测试工艺审核</h2>
+      </div>
+      <div class="table-wrapper">
+        <TableComponent
+          :tableData="tableData"
+          :column-data="headers"
+          selection
+          @selection-change="handleSelectionChange"
+          stripe
+          max-height="450"
+        >
+          <template #status="{ row }">
+            <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
+            <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>
+            <el-tag v-if="row['status'] === '2'" type="success"> 测试正常 </el-tag>
+            <el-tag v-if="row['status'] === '3'" type="danger"> 测试异常 </el-tag>
+            <el-tag v-if="row['status'] === '4'" type="warning"> 疑问待处理 </el-tag>
           </template>
-          <el-form
-            :inline="true"
-            :model="TestCheck"
-            class="demo-form-inline"
-            label-position="right"
-            style="position: relative"
-          >
-            <el-form-item label="工艺ID" style="width: 15vw">
-              <el-input v-model="TestCheck.ID" disabled />
-            </el-form-item>
-            <el-form-item label="工艺版本" style="width: 15vw">
-              <el-input v-model="TestCheck.version" disabled />
-            </el-form-item>
-            <el-form-item label="测试类型">
-              <el-input v-model="TestCheck.type" disabled />
-            </el-form-item>
 
-            <el-button type="primary" @click="DialogCheck = false" icon="Check" style="position: absolute; top: 120px; left: 41%">确认提交</el-button>
-          </el-form>
-        </el-dialog>
-      </el-card>
-    </el-col>
-  </el-row>
+          <template #link="{ row }">
+            <el-link v-for="i in row['link']" type="primary" class="el-link" @click="handleLink(row, i)" :key="i">
+              {{ i }}
+            </el-link>
+          </template>
+        </TableComponent>
+      </div>
+
+      <div class="pager-wrapper">
+        <el-pagination
+          background
+          :layout="paginationData.layout"
+          :page-sizes="paginationData.pageSizes"
+          :total="paginationData.total"
+          :page-size="paginationData.pageSize"
+          :currentPage="paginationData.currentPage"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
+
+  <el-dialog v-model="DialogCheck" :title="'提交测试工艺审核'" style="height: 45vh; width: 40vw">
+    <template #header>
+      <h2>提交测试工艺审核</h2>
+    </template>
+    <el-form
+      :inline="true"
+      :model="TestCheck"
+      class="demo-form-inline"
+      label-position="right"
+      style="position: relative"
+    >
+      <el-form-item label="工艺ID" style="width: 15vw">
+        <el-input v-model="TestCheck.ID" disabled />
+      </el-form-item>
+      <el-form-item label="工艺版本" style="width: 15vw">
+        <el-input v-model="TestCheck.version" disabled />
+      </el-form-item>
+      <el-form-item label="测试类型">
+        <el-input v-model="TestCheck.type" disabled />
+      </el-form-item>
+
+      <el-button
+        type="primary"
+        @click="DialogCheck = false"
+        icon="Check"
+        style="position: absolute; top: 120px; left: 41%"
+        >确认提交</el-button
+      >
+    </el-form>
+  </el-dialog>
 </template>
 
 <style lang="scss" scoped>

@@ -463,6 +463,8 @@ onMounted(() => {
     </el-col>
 
     <el-col v-else :span="19">
+      <div class="affix-container">
+      <el-affix target=".affix-container" :offset="120">
       <el-card shadow="never" class="search-wrapper">
         <el-form ref="searchFormRef" :inline="true" :model="searchData">
           <el-form-item prop="batchNumber" label="批次号">
@@ -480,6 +482,7 @@ onMounted(() => {
           </el-form-item>
         </el-form>
       </el-card>
+      </el-affix>
 
       <el-card v-loading="loading" shadow="never">
         <div class="toolbar-wrapper">
@@ -494,7 +497,6 @@ onMounted(() => {
             :tableData="BatchData"
             :column-data="batchHeaders"
             stripe
-            max-height="450"
           >
             <template #link="{ row }">
               <el-link type="primary" class="el-link" @click="handleLink(row, '批次详情')"> 批次详情 </el-link>
@@ -514,6 +516,7 @@ onMounted(() => {
           />
         </div>
       </el-card>
+      </div>
     </el-col>
   </el-row>
 

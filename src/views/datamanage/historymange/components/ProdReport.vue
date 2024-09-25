@@ -156,7 +156,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 
 <template>
   <el-row>
-    <el-col :span="24">
+    <el-col class="affix-container" :span="24">
+      <el-affix target=".affix-container" :offset="120">
       <el-card shadow="never" class="search-wrapper">
         <el-form ref="searchFormRef" :inline="true" :model="searchData">
           <el-form-item label="报告编号">
@@ -184,6 +185,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </el-form-item>
         </el-form>
       </el-card>
+      </el-affix>
       <el-card v-loading="loading" shadow="never">
         <div class="toolbar-wrapper">
           <div>
@@ -196,7 +198,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </div>
         </div>
         <div class="table-wrapper">
-          <TableComponent max-height="450" :tableData="TableData" :column-data="headers" selection @selection-change="handleSelectionChange" stripe>
+          <TableComponent :tableData="TableData" :column-data="headers" selection @selection-change="handleSelectionChange" stripe>
             <template #status="{ row }">
               <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
               <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>
