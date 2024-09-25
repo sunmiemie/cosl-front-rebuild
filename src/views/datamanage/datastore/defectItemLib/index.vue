@@ -202,7 +202,6 @@ const clear = () => {
 const createSecondLevelDirectory = () => {
   directoryFormRef.value?.validate((valid: boolean) => {
     if (valid) {
-      console.log(directoryFormData)
       createSecondLevelDirectoryApi({
         name: directoryFormData.secondLevelDirectoryName,
         firstLevelDirectoryId: directoryFormData.firstLevelDirectoryId

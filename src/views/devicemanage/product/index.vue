@@ -35,7 +35,7 @@
         :title="currentUpdateId === undefined ? '新增产品' : '编辑产品'"
         @close="closeProduct"
       >
-        <el-form :model="formData" :rules="formRules">
+        <el-form :model="formData" :rules="formRules" @submit.prevent>
           <el-form-item prop="name" label="产品名称" label-width="100">
             <el-input v-model="formData.name" />
           </el-form-item>

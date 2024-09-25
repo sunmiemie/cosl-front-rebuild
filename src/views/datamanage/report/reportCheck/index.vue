@@ -3017,6 +3017,7 @@ const checkFeedback = () => {
   const data = {
     id: anyObj.id,
     status: 1,
+    userId: userStore.userid,
     reason: feedbackReason.value
   }
 
