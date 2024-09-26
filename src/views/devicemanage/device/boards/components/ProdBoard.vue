@@ -6,19 +6,20 @@ import { ElMessage, ElMessageBox, ElTree, type FormInstance } from "element-plus
 import { UploadFilled } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import QrcodeVue from "qrcode.vue"
+import { usePagination, useDetailPagination } from "@/hooks/usePagination"
 import { type GetBoardData } from "@/api/board/types/board"
 import { type GetBatchData } from "@/api/batch/types/batch"
 import { getBoardDataApi } from "@/api/board"
 import { createBatchDataApi, getBatchDataApi, previewBatchDataApi } from "@/api/batch"
-import { usePagination, useDetailPagination } from "@/hooks/usePagination"
 import { getInstrumentDataApi } from "@/api/instrument"
 import { getQRcodeImgApi } from "@/api/qrcode"
+
+const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+const { paginationDetailData, handleDetailCurrentChange, handleDetailSizeChange } = useDetailPagination()
 
 const loading = ref(false)
 const detailLoading = ref(false)
 const treeLoading = ref(false)
-const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-const { paginationDetailData, handleDetailCurrentChange, handleDetailSizeChange } = useDetailPagination()
 const modelId = ref("")
 const dialogVisible = ref(false)
 const qrcodeVisible = ref(false)
@@ -231,11 +232,10 @@ const goBack = () => {
   Drawer.value = false
 }
 const handleLink = (data: any, i: string) => {
-  if (i == "二维码") {
+  if (i === "二维码") {
     qrcodeValue.value = data.seria
     qrcodeVisible.value = true
-  }
-  if (i == "批次详情") {
+  } else if (i === "批次详情") {
     Drawer.value = true
     DetailsearchData.batch = data.id
     getDetailTableData()
@@ -381,6 +381,8 @@ onMounted(() => {
       </el-card>
     </el-col>
     <el-col v-else :span="19">
+      <div class="affix-container">
+      <el-affix target=".affix-container" :offset="120">
       <el-card shadow="never" class="search-wrapper">
         <el-form ref="searchFormRef" :inline="true" :model="searchData">
           <el-form-item prop="seria" label="批次号">
@@ -398,6 +400,7 @@ onMounted(() => {
           </el-form-item>
         </el-form>
       </el-card>
+      </el-affix>
       <el-card v-loading="loading" shadow="never">
         <div class="toolbar-wrapper">
           <div>
@@ -426,6 +429,7 @@ onMounted(() => {
           />
         </div>
       </el-card>
+      </div>
     </el-col>
   </el-row>
 
@@ -509,7 +513,7 @@ onMounted(() => {
     </el-card>
   </el-drawer>
 
-  <!-- 新增/编辑弹窗 -->
+  <!-- 新增/编辑 -->
   <el-dialog
     v-model="dialogVisible"
     :title="currentUpdateId === undefined ? '新增批次' : '编辑批次'"
