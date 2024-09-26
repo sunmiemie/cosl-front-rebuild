@@ -2991,6 +2991,7 @@ const checkPass = () => {
   const blob = new Blob([jsonString], { type: "application/json" })
   const data = {
     id: anyObj.id,
+    userId: userStore.userid,
     status: !hasError.value ? 2 : 3
   }
   const formData = new FormData()
