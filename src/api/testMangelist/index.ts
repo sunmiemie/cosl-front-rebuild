@@ -43,9 +43,23 @@ export const downloadOrderJson = (fileid: any) => {
     responseType: "blob"
   })
 }
-export const createTestUnitApi = (data: any) => {
+export const createTestUnitApi = (data: number[]) => {
   return request({
     url: "/test/testunit/add/",
+    method: "post",
+    data
+  })
+}
+export const postUnits = (data: any) => {
+  return request({
+    url: "/test/testunit/post/",
+    method: "post",
+    data
+  })
+}
+export const postDevUnits = (data: any) => {
+  return request({
+    url: "/test/dev-testunit/post/",
     method: "post",
     data
   })
@@ -92,7 +106,8 @@ export const getTestMangeTable = ({
   TestStatus,
   Daterange,
   currentPage,
-  pageSize
+  pageSize,
+  batchId
 }: TestMange.inpTestMangeTableDataType): Promise<TestMange.getTestMangeTableType> => {
   return request<TestMange.getTestMangeTableType>({
     url: "/test/getTableData",
@@ -104,10 +119,28 @@ export const getTestMangeTable = ({
       TestStatus,
       Daterange,
       currentPage,
-      pageSize
+      pageSize,
+      batchId
     }
   })
 }
+
+export const getBatchesBySupplier = () =>
+  request<TestMange.getTestMangePathType>({
+    url: "/test/batches-of-supplier",
+    method: "get"
+  })
+
+export const getTestunitsByBatchApi = ({ batchId, currentPage, pageSize }) =>
+  request<TestMange.getTestMangeTableType>({
+    url: "/test/testunits-by-batch",
+    method: "get",
+    params: {
+      batchId,
+      currentPage,
+      pageSize
+    }
+  })
 
 export const getTempTestMangeTable = ({
   number,
@@ -115,6 +148,8 @@ export const getTempTestMangeTable = ({
   TestType,
   TestStatus,
   Daterange,
+  boardName,
+  boardModel,
   currentPage,
   pageSize
 }: TestMange.inpTestMangeTableDataType): Promise<TestMange.getTestMangeTableType> => {
@@ -127,6 +162,8 @@ export const getTempTestMangeTable = ({
       TestType,
       TestStatus,
       Daterange,
+      boardName,
+      boardModel,
       currentPage,
       pageSize
     }
