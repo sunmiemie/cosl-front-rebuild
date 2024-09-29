@@ -5,7 +5,7 @@ import { ElButton, ElMessage, type FormInstance } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
-import { generateReportPdfApi, getReportDataApi } from "@/api/report"
+import {generateReportPdfApi, generateTempReportPdfApi, getReportDataApi} from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 
 interface TestCheckType {
@@ -102,7 +102,6 @@ const handleLink = (data: any, i: string) => {
     link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${filePath}.pdf?id=${data.id}`
     // 在新标签页打开
     link.target = "_blank"
-    // link.setAttribute("download", data.report_filepath + ".pdf")
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -148,6 +147,69 @@ const handleSelectionChange = (val: any) => {
   selectedRows.value = val
 }
 
+const generateReports = () => {
+  let generateExists = false
+
+  selectedRows.value.forEach((item) => {
+    for (let key in item.link) {
+      if (item.link[key] === "生成") {
+        generateExists = true
+
+        generateReportPdfApi({ id: item.id })
+          .then(() => {
+            // console.log("生成报告", res)
+            ElMessage.success("报告生成成功")
+          })
+          .catch(() => {
+            ElMessage.error("报告生成失败")
+            // console.error("报告生成失败", err)
+          })
+
+        break
+      }
+    }
+  })
+
+  if (!generateExists) {
+    ElMessage.warning("没有需要生成的报告")
+  } else {
+    getTableData()
+  }
+}
+
+const downloadReports = () => {
+  let downloadExists = false
+
+  selectedRows.value.forEach((item) => {
+    for (let key in item.link) {
+      if (item.link[key] === "下载") {
+        downloadExists = true
+
+        const filePath = item.report_filepath.replace(".json", "")
+
+        fetch(`${import.meta.env.VITE_BASE_API}data/report/pdf/download/${filePath}.pdf?id=${item.id}`)
+          .then(response => response.blob())
+          .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filePath + ".pdf";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          });
+
+        break
+      }
+    }
+  })
+
+  if (!downloadExists) {
+    ElMessage.warning("没有需要下载的报告")
+  }
+}
+
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, {
   immediate: true
@@ -189,8 +251,10 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 
       <el-card v-loading="loading" shadow="never">
         <div class="toolbar-wrapper">
-          <div>
-            <el-text v-show="selectedRowCount > 0" class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
+          <div v-show="selectedRowCount > 0" style="display: flex; gap: 10px">
+            <el-text class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
+            <el-button type="warning" @click="generateReports">一键生成</el-button>
+            <el-button type="primary" @click="downloadReports">一键下载</el-button>
           </div>
           <div>
             <el-tooltip content="刷新当前页">
