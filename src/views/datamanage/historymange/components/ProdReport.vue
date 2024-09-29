@@ -102,7 +102,7 @@ const handleLink = (data: any, i: string) => {
     link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${filePath}.pdf?id=${data.id}`
     // 在新标签页打开
     link.target = "_blank"
-    link.setAttribute("download", data.report_filepath + ".pdf")
+    // link.setAttribute("download", data.report_filepath + ".pdf")
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -121,9 +121,9 @@ const handleLink = (data: any, i: string) => {
         ElMessage.success("报告生成成功")
         getTableData()
       })
-      .catch((err) => {
+      .catch(() => {
         ElMessage.error("报告生成失败")
-        console.error("报告生成失败", err)
+        // console.error("报告生成失败", err)
       })
   }
 }
@@ -158,34 +158,35 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
   <el-row>
     <el-col class="affix-container" :span="24">
       <el-affix target=".affix-container" :offset="120">
-      <el-card shadow="never" class="search-wrapper">
-        <el-form ref="searchFormRef" :inline="true" :model="searchData">
-          <el-form-item label="报告编号">
-            <el-input v-model="searchData.id" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="测试人">
-            <el-input v-model="searchData.user" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="电路板序列号">
-            <el-input v-model="searchData.serial" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="报告类型">
-            <el-select
-              v-model="searchData.type"
-              placeholder="请选择"
-              style="width: 200px"
-              @visible-change="getTestTypeData"
-            >
-              <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
-            <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
+        <el-card shadow="never" class="search-wrapper">
+          <el-form ref="searchFormRef" :inline="true" :model="searchData">
+            <el-form-item label="报告编号">
+              <el-input v-model="searchData.id" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item label="测试人">
+              <el-input v-model="searchData.user" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item label="电路板序列号">
+              <el-input v-model="searchData.serial" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item label="报告类型">
+              <el-select
+                v-model="searchData.type"
+                placeholder="请选择"
+                style="width: 200px"
+                @visible-change="getTestTypeData"
+              >
+                <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
+              <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-card>
       </el-affix>
+
       <el-card v-loading="loading" shadow="never">
         <div class="toolbar-wrapper">
           <div>
