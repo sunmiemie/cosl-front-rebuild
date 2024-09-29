@@ -492,7 +492,7 @@ onMounted(async () => {
             :underline="false"
             size="large"
             style="font-size: 18px; margin-right: 20px"
-            type="info"
+            type="primary"
             @click="questionVisible = true"
             >存在疑问
           </el-link>
