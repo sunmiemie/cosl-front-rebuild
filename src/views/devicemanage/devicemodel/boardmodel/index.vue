@@ -10,11 +10,11 @@ import TableComponent from "@/components/Table/index.vue"
 import { type GetBoardModelData } from "@/api/boardmodel/types/boardmodel"
 import { checkPermission } from "@/utils/permission"
 
-const loading = ref<boolean>(false)
+const loading = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
 //#region 增
-const dialogVisible = ref<boolean>(false)
+const dialogVisible = ref(false)
 const formRef = ref<FormInstance | null>(null)
 const formData = reactive({
   id: null,
@@ -28,8 +28,7 @@ const formRules: FormRules = reactive({
   id: [{ required: true, trigger: "blur", message: "请输入物料号" }],
   name: [{ required: true, trigger: "blur", message: "请输入型号名称" }],
   type: [{ required: true, trigger: "blur", message: "请选择类型" }],
-  model: [{ required: true, trigger: "blur", message: "请输入规格型号" }],
-  des: [{ required: true, trigger: "blur", message: "请输入描述" }]
+  model: [{ required: true, trigger: "blur", message: "请输入规格型号" }]
 })
 const handleCreate = () => {
   formRef.value?.validate((valid: boolean, fields) => {
@@ -45,6 +44,9 @@ const handleCreate = () => {
           .then(() => {
             ElMessage.success("新增成功")
             getTableData()
+          })
+          .catch((err) => {
+            ElMessage.error(err.response.data.error)
           })
           .finally(() => {
             dialogVisible.value = false
