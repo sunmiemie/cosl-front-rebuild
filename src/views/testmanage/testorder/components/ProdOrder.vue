@@ -99,7 +99,7 @@ const clearSearchData = () => {
 
 const defineLink = (status: any) => {
   switch (status) {
-    // 需要权限
+    // 发布/删除工单需要权限
     case "0":
       return { 1: "发布", 2: "删除" }
     case "1":
@@ -339,7 +339,7 @@ const submitAdd = () => {
   }).then(() => {
     // getMangeData()
     dialogVisible.value = false
-    getTestunitsByBatch()
+    getTestunits()
   })
 }
 // 测试状态
@@ -360,12 +360,12 @@ const confirm = async (value: string) => {
   if (value === "发布") {
     publicTestUnitApi({ id: postFormInfo["testunit_id"] }).then(() => {
       // getMangeData()
-      getTestunitsByBatch()
+      getTestunits()
     })
   } else {
     deleteTestUnitApi(postFormInfo["testunit_id"]).then(() => {
       // getMangeData()
-      getTestunitsByBatch()
+      getTestunits()
     })
   }
   PublicVisible.value = false
@@ -477,14 +477,7 @@ const batchData = reactive({
   batchId: "",
   batchName: ""
 })
-const handleNodeClick = (data: any) => {
-  if (data.children === undefined) {
-    // 批次号
-    batchData.batchId = data.id
-    batchData.batchName = data.label
-    getTestunitsByBatch()
-  }
-}
+
 const getTableLinkData = () => {
   for (let i = 0; i < TableData.value.length; i++) {
     TableData.value[i].link = defineLink(TableData.value[i].testunit_status)
@@ -493,11 +486,9 @@ const getTableLinkData = () => {
 
 const resetSearch = () => {
   clearSearchData()
-  getTestunitsByBatch()
+  getTestunits()
 }
-async function getTestunitsByBatch() {
-  if (batchData.batchId === "") return
-
+async function getTestunits() {
   gettingTestunits.value = true
 
   const params = JSON.parse(JSON.stringify(searchData))
@@ -508,7 +499,6 @@ async function getTestunitsByBatch() {
 
   params.currentPage = paginationData.currentPage
   params.pageSize = paginationData.pageSize
-  params.batchId = batchData.batchId
 
   const tableResult = await getTestMangeTable(params)
   TableData.value = tableResult.TableData
@@ -525,45 +515,20 @@ const postSelectedUnits = () => {
   postUnits(selectedUnitIds)
     .then(() => {
       ElMessage.success("发布成功")
-      getTestunitsByBatch()
+      getTestunits()
     })
 }
 
 // 显式暴露方法供父组件调用
-defineExpose({ getTestUnitTree })
+defineExpose({ getTestunits })
 
 /** 监听分页参数的变化 */
-watch([() => paginationData.currentPage, () => paginationData.pageSize], getTestUnitTree, { immediate: true })
-watch([() => paginationData.currentPage, () => paginationData.pageSize], getTestunitsByBatch, { immediate: false })
+watch([() => paginationData.currentPage, () => paginationData.pageSize], getTestunits, { immediate: true })
 </script>
 
 <template>
-  <el-row :gutter="20">
-    <el-col :span="5">
-      <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
-        <!-- 11 代表“添加测试工单”权限 -->
-        <template #header>
-          <el-button style="width: 100%" v-permission="['11']" icon="CirclePlus" type="primary" @click="addTest">
-            新增生产测试工单
-          </el-button>
-        </template>
-        <el-tree
-          ref="treeRef"
-          class="filter-tree"
-          :data="batchTreeData"
-          :props="defaultProps"
-          node-key="id"
-          @node-click="handleNodeClick"
-        />
-      </el-card>
-    </el-col>
-    <el-col v-if="batchData.batchId === ''" :span="19">
-      <el-card shadow="never" style="height: 100%">
-        <el-empty description="请先在左侧选择批次" />
-      </el-card>
-    </el-col>
-    <el-col class="affix-container" v-else :span="19">
-      <el-affix target=".affix-container" :offset="120">
+  <div class="affix-container">
+    <el-affix target=".affix-container" :offset="120">
       <el-card class="search-wrapper" shadow="never">
         <el-form ref="searchFormRef" :inline="true" :model="searchData">
           <el-form-item label="工单号">
@@ -598,77 +563,77 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
             />
           </el-form-item>
           <el-form-item>
-            <el-button icon="Search" type="primary" @click="getTestunitsByBatch">查询</el-button>
+            <el-button icon="Search" type="primary" @click="getTestunits">查询</el-button>
             <el-button icon="Refresh" @click="resetSearch">重置</el-button>
           </el-form-item>
         </el-form>
       </el-card>
-      </el-affix>
+    </el-affix>
 
-      <el-card v-loading="gettingTestunits" shadow="never">
-        <div class="toolbar-wrapper">
-          <div style="display: flex; align-items: center; gap: 10px">
-            <!--            <div>-->
-            <!--              <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTest"-->
-            <!--                >新增生产测试工单</el-button-->
-            <!--              >-->
-            <!--            </div>-->
-            <div>
-              <el-text class="mx-1">{{ batchData.batchName }}</el-text>
-            </div>
-            <div v-show="selectedUnitRowCount > 0">
-              <el-text style="display: inline-block; margin-right: 10px">已选择 {{ selectedUnitRowCount }} 项</el-text>
-              <el-button type="primary" @click="postSelectedUnits">一键发布</el-button>
-            </div>
+    <el-card v-loading="gettingTestunits" shadow="never">
+      <div class="toolbar-wrapper">
+        <div style="display: flex; align-items: center; gap: 10px">
+          <div>
+            <!-- 11 代表“添加测试工单”权限 -->
+            <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTest"
+              >新增生产测试工单</el-button
+            >
           </div>
           <div>
-            <el-tooltip content="刷新当前页">
-              <el-button circle icon="RefreshRight" type="primary" @click="getTestunitsByBatch" />
-            </el-tooltip>
+            <el-text class="mx-1">{{ batchData.batchName }}</el-text>
+          </div>
+          <div v-show="selectedUnitRowCount > 0">
+            <el-text style="display: inline-block; margin-right: 10px">已选择 {{ selectedUnitRowCount }} 项</el-text>
+            <el-button type="warning" @click="postSelectedUnits">一键发布</el-button>
           </div>
         </div>
-        <div class="table-wrapper">
-<!--          max-height="450"-->
-          <TableComponent
-            :column-data="headers"
-            :tableData="TableData"
-            selection
-            @selection-change="handleUnitSelectionChange"
-            stripe
-          >
-            <template #testunit_status="{ row }">
-              <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
-              <el-tag v-else-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
-              <el-tag v-else-if="row['testunit_status'] === '2'"> 测试中</el-tag>
-              <el-tag v-else-if="row['testunit_status'] === '3'" type="warning"> 测试待审核</el-tag>
-              <el-tag v-else-if="row['testunit_status'] === '4'" type="danger"> 待重做</el-tag>
-              <el-tag v-else-if="row['testunit_status'] === '5'" type="success"> 测试正常</el-tag>
-              <el-tag v-else-if="row['testunit_status'] === '6'" type="danger"> 测试异常</el-tag>
-              <el-tag v-else-if="row['testunit_status'] === '7'" type="warning"> 测试暂存</el-tag>
-              <el-tag v-else-if="row['testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
-            </template>
-            <template #link="{ row }" v-if="checkPermission(['11'])">
-              <el-link v-for="i in row['link']" class="el-link" type="primary" :key="i" @click="handleLink(row, i)">
-                {{ i }}
-              </el-link>
-            </template>
-          </TableComponent>
+        <div>
+          <el-tooltip content="刷新当前页">
+            <el-button circle icon="RefreshRight" type="primary" @click="getTestunits" />
+          </el-tooltip>
         </div>
-        <div class="pager-wrapper">
-          <el-pagination
-            :currentPage="paginationData.currentPage"
-            :layout="paginationData.layout"
-            :page-size="paginationData.pageSize"
-            :page-sizes="paginationData.pageSizes"
-            :total="paginationData.total"
-            background
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
-        </div>
-      </el-card>
-    </el-col>
-  </el-row>
+      </div>
+      <div class="table-wrapper">
+  <!--          max-height="450"-->
+        <TableComponent
+          :column-data="headers"
+          :tableData="TableData"
+          selection
+          @selection-change="handleUnitSelectionChange"
+          stripe
+        >
+          <template #testunit_status="{ row }">
+            <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
+            <el-tag v-else-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
+            <el-tag v-else-if="row['testunit_status'] === '2'"> 测试中</el-tag>
+            <el-tag v-else-if="row['testunit_status'] === '3'" type="warning"> 测试待审核</el-tag>
+            <el-tag v-else-if="row['testunit_status'] === '4'" type="danger"> 待重做</el-tag>
+            <el-tag v-else-if="row['testunit_status'] === '5'" type="success"> 测试正常</el-tag>
+            <el-tag v-else-if="row['testunit_status'] === '6'" type="danger"> 测试异常</el-tag>
+            <el-tag v-else-if="row['testunit_status'] === '7'" type="warning"> 测试暂存</el-tag>
+            <el-tag v-else-if="row['testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
+          </template>
+          <template #link="{ row }" v-if="checkPermission(['11'])">
+            <el-link v-for="i in row['link']" class="el-link" type="primary" :key="i" @click="handleLink(row, i)">
+              {{ i }}
+            </el-link>
+          </template>
+        </TableComponent>
+      </div>
+      <div class="pager-wrapper">
+        <el-pagination
+          :currentPage="paginationData.currentPage"
+          :layout="paginationData.layout"
+          :page-size="paginationData.pageSize"
+          :page-sizes="paginationData.pageSizes"
+          :total="paginationData.total"
+          background
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
+  </div>
 
   <!-- 详情 -->
   <el-drawer v-model="drawerVisible" :append-to-body="true" :with-header="false" size="1005">

@@ -29,15 +29,15 @@ const TestCheck = ref<TestCheckType>({
 
 const headers = ref([
   { prop: "id", label: "报告编号", align: "center" },
+  { prop: "product", label: "产品", align: "center" },
+  { prop: "instrument", label: "仪器", align: "center" },
+  { prop: "board_model", label: "电路板型号名称", align: "center" },
+  { prop: "boardSerial", label: "序列号", align: "center" },
   { prop: "type", label: "报告类型", align: "center" },
-  { prop: "boardSerial", label: "电路板序列号", align: "center" },
-  { prop: "instrument", label: "仪器名称", align: "center" },
-  { prop: "product", label: "所属产品", align: "center" },
-  { prop: "user", label: "测试人 ", align: "center" },
-  { prop: "testunit_id", label: "关联工单号 ", align: "center" },
+  { prop: "user", label: "测试人", align: "center" },
   { prop: "date", label: "生成时间", align: "center" },
   { prop: "status", label: "报告状态", type: "tag", align: "center" },
-  { prop: "link", label: "操作 ", type: "link" }
+  { prop: "link", label: "操作", type: "link" }
 ])
 
 const TableData = ref<any>([])
@@ -102,7 +102,6 @@ const handleLink = (data: any, i: string) => {
     link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${filePath}.pdf?id=${data.id}`
     // 在新标签页打开
     link.target = "_blank"
-    link.setAttribute("download", data.report_filepath + ".pdf")
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -121,9 +120,9 @@ const handleLink = (data: any, i: string) => {
         ElMessage.success("报告生成成功")
         getTableData()
       })
-      .catch((err) => {
+      .catch(() => {
         ElMessage.error("报告生成失败")
-        console.error("报告生成失败", err)
+        // console.error("报告生成失败", err)
       })
   }
 }
@@ -148,6 +147,69 @@ const handleSelectionChange = (val: any) => {
   selectedRows.value = val
 }
 
+const generateReports = () => {
+  let generateExists = false
+
+  selectedRows.value.forEach((item) => {
+    for (let key in item.link) {
+      if (item.link[key] === "生成") {
+        generateExists = true
+
+        generateReportPdfApi({ id: item.id })
+          .then(() => {
+            // console.log("生成报告", res)
+            ElMessage.success("报告生成成功")
+          })
+          .catch(() => {
+            ElMessage.error("报告生成失败")
+            // console.error("报告生成失败", err)
+          })
+
+        break
+      }
+    }
+  })
+
+  if (!generateExists) {
+    ElMessage.warning("没有需要生成的报告")
+  } else {
+    getTableData()
+  }
+}
+
+const downloadReports = () => {
+  let downloadExists = false
+
+  selectedRows.value.forEach((item) => {
+    for (let key in item.link) {
+      if (item.link[key] === "下载") {
+        downloadExists = true
+
+        const filePath = item.report_filepath.replace(".json", "")
+
+        fetch(`${import.meta.env.VITE_BASE_API}data/report/pdf/download/${filePath}.pdf?id=${item.id}`)
+          .then(response => response.blob())
+          .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filePath + ".pdf";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+          });
+
+        break
+      }
+    }
+  })
+
+  if (!downloadExists) {
+    ElMessage.warning("没有需要下载的报告")
+  }
+}
+
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, {
   immediate: true
@@ -158,38 +220,41 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
   <el-row>
     <el-col class="affix-container" :span="24">
       <el-affix target=".affix-container" :offset="120">
-      <el-card shadow="never" class="search-wrapper">
-        <el-form ref="searchFormRef" :inline="true" :model="searchData">
-          <el-form-item label="报告编号">
-            <el-input v-model="searchData.id" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="测试人">
-            <el-input v-model="searchData.user" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="电路板序列号">
-            <el-input v-model="searchData.serial" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="报告类型">
-            <el-select
-              v-model="searchData.type"
-              placeholder="请选择"
-              style="width: 200px"
-              @visible-change="getTestTypeData"
-            >
-              <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
-            <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
+        <el-card shadow="never" class="search-wrapper">
+          <el-form ref="searchFormRef" :inline="true" :model="searchData">
+            <el-form-item label="报告编号">
+              <el-input v-model="searchData.id" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item label="测试人">
+              <el-input v-model="searchData.user" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item label="电路板序列号">
+              <el-input v-model="searchData.serial" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item label="报告类型">
+              <el-select
+                v-model="searchData.type"
+                placeholder="请选择"
+                style="width: 200px"
+                @visible-change="getTestTypeData"
+              >
+                <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
+              </el-select>
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
+              <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-card>
       </el-affix>
+
       <el-card v-loading="loading" shadow="never">
         <div class="toolbar-wrapper">
-          <div>
-            <el-text v-show="selectedRowCount > 0" class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
+          <div v-show="selectedRowCount > 0" style="display: flex; gap: 10px">
+            <el-text class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
+            <el-button type="warning" @click="generateReports">一键生成</el-button>
+            <el-button type="primary" @click="downloadReports">一键下载</el-button>
           </div>
           <div>
             <el-tooltip content="刷新当前页">
