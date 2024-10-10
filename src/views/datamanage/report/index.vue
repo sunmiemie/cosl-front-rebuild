@@ -34,15 +34,15 @@ const onSubmit = () => {
 
 const headers1 = ref([
   { prop: "idStr", label: "报告编号", align: "center" },
+  { prop: "product", label: "产品", align: "center" },
+  { prop: "instrument", label: "仪器", align: "center" },
+  { prop: "model_or_name", label: "电路板型号名称", align: "center" },
+  { prop: "boardSerial", label: "序列号", align: "center" },
   { prop: "type", label: "报告类型", align: "center" },
-  { prop: "boardSerial", label: "电路板序列号", align: "center" },
-  { prop: "instrument", label: "仪器名称", align: "center" },
-  { prop: "product", label: "所属产品", align: "center" },
-  { prop: "user", label: "测试人 ", align: "center" },
-  { prop: "testunit_id", label: "关联工单号 ", align: "center" },
+  { prop: "user", label: "测试人", align: "center" },
   { prop: "date", label: "生成时间", align: "center" },
   { prop: "status", label: "报告状态", type: "tag", align: "center" },
-  { prop: "link", label: "操作 ", type: "link" }
+  { prop: "link", label: "操作", type: "link" }
 ])
 const TableData = ref<any>([])
 const testTypeList = ref<any>([])

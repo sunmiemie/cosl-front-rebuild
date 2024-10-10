@@ -492,7 +492,7 @@ onMounted(async () => {
             :underline="false"
             size="large"
             style="font-size: 18px; margin-right: 20px"
-            type="info"
+            type="primary"
             @click="questionVisible = true"
             >存在疑问
           </el-link>
@@ -691,7 +691,7 @@ onMounted(async () => {
         <el-table-column label="测试类型" width="150">
           <template #default="scope">
             <el-text>
-              {{ scope.row.type === "eyes" ? "3D正面测试" : scope.row.type === "eyesBak" ? "3D背面测试" : "X-Ray检测" }}
+              {{ scope.row.type }}
             </el-text>
           </template>
         </el-table-column>
