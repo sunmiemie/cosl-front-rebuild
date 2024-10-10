@@ -10,6 +10,20 @@ const openViewer = (img) => {
   picViewer.value = true
   viewerUrl.value = img
 }
+
+const changeLabelType = (item) => {
+  if (item.pass === 1 && !('warn' in item)) {
+    return 'label-success'
+  } else if (item.pass === 1 && ('warn' in item)) {
+    return 'label-warn'
+  } else if (item.pass === 2) {
+    return 'label-danger'
+  } else if (item.pass === 3) {
+    return 'label-question'
+  } else if (item.pass === 4) {
+    return 'label-danger'
+  }
+}
 </script>
 
 <template>
@@ -19,11 +33,11 @@ const openViewer = (img) => {
         <div v-if="props.previewList.json['tempTest'].length != 0">
           <template v-for="item in props.previewList.json.tempTest" :key="item.id">
             <el-descriptions :title="'名称:' + item.name" border :column="3">
-              <el-descriptions-item align="left" label="状态" :span="3">
+              <el-descriptions-item align="left" label="状态" :span="3" :class-name="changeLabelType(item)">
                 <el-space>
                   <el-text v-if="item.pass == 1" type="success">正常</el-text>
                   <el-text v-if="item.pass == 2 || item.pass == 4" type="danger">缺陷</el-text>
-                  <el-text v-if="item.pass == 3 || item.pass == 4" type="info">疑问</el-text>
+                  <el-text v-if="item.pass == 3 || item.pass == 4" type="primary">疑问</el-text>
                   <el-text v-if="'warn' in item" type="warning">制程警示</el-text>
                 </el-space>
               </el-descriptions-item>
@@ -204,5 +218,18 @@ const openViewer = (img) => {
   --el-collapse-header-bg-color: #f3f3f3;
   --el-collapse-bg-color: transparent;
   --el-collapse-content-bg-color: #f5f5ff;
+}
+
+:deep(.label-success) {
+  background: var(--el-color-success-light-7) !important;
+}
+:deep(.label-danger) {
+  background: var(--el-color-danger-light-7) !important;
+}
+:deep(.label-warn) {
+  background: var(--el-color-warning-light-7) !important;
+}
+:deep(.label-question) {
+  background: var(--el-color-primary-light-7) !important;
 }
 </style>
