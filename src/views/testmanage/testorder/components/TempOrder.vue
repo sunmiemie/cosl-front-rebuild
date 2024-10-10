@@ -512,53 +512,51 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 
 <template>
   <div class="affix-container">
-    <el-affix target=".affix-container" :offset="120">
-      <el-card class="search-wrapper" shadow="never">
-        <el-form ref="searchFormRef" :inline="true" :model="searchData">
-          <el-form-item label="工单号">
-            <el-input v-model="searchData.number" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="电路板型号">
-            <el-input v-model="searchData.boardModel" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="电路板名称">
-            <el-input v-model="searchData.boardName" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="测试名称">
-            <el-input v-model="searchData.TestName" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="测试类型">
-            <el-select
-              v-model="searchData.TestType"
-              placeholder="请选择"
-              style="width: 150px"
-              @visible-change="getTestTypeData"
-            >
-              <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="测试状态">
-            <el-select v-model="searchData.TestStatus" placeholder="请选择" style="width: 150px">
-              <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="创建时间范围">
-            <el-date-picker
-              v-model="searchData['Daterange'] as any"
-              end-placeholder="结束日期"
-              range-separator="至"
-              start-placeholder="开始日期"
-              type="daterange"
-              value-format="YYYY/MM/DD"
-            />
-          </el-form-item>
-          <el-form-item>
-            <el-button icon="Search" type="primary" @click="handleSearch">查询</el-button>
-            <el-button icon="Refresh" @click="resetSearch">重置</el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
-    </el-affix>
+    <el-card class="search-wrapper" shadow="never">
+      <el-form ref="searchFormRef" :inline="true" :model="searchData">
+        <el-form-item label="工单号">
+          <el-input v-model="searchData.number" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="电路板型号">
+          <el-input v-model="searchData.boardModel" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="电路板名称">
+          <el-input v-model="searchData.boardName" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="测试名称">
+          <el-input v-model="searchData.TestName" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="测试类型">
+          <el-select
+            v-model="searchData.TestType"
+            placeholder="请选择"
+            style="width: 150px"
+            @visible-change="getTestTypeData"
+          >
+            <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="测试状态">
+          <el-select v-model="searchData.TestStatus" placeholder="请选择" style="width: 150px">
+            <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="创建时间范围">
+          <el-date-picker
+            v-model="searchData['Daterange'] as any"
+            end-placeholder="结束日期"
+            range-separator="至"
+            start-placeholder="开始日期"
+            type="daterange"
+            value-format="YYYY/MM/DD"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button icon="Search" type="primary" @click="handleSearch">查询</el-button>
+          <el-button icon="Refresh" @click="resetSearch">重置</el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
 
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
@@ -578,13 +576,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         </div>
       </div>
       <div class="table-wrapper">
-        <!--      max-height="450"-->
         <TableComponent
           :column-data="headers"
           :tableData="TableData"
           selection
           @selection-change="handleSelectionChange"
           stripe
+          max-height="450"
         >
           <template #dev_testunit_status="{ row }">
             <el-tag v-if="row['dev_testunit_status'] === '0'" type="success"> 已创建</el-tag>

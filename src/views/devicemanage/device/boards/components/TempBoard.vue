@@ -316,7 +316,7 @@ const closedTempBoard = () => {
 
 // 打印二维码
 const getSelection = () => {
-  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "startTime" })
+  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "start_time" })
     .then((res) => {
       if (res.code === 0) {
         const imageData = res.data

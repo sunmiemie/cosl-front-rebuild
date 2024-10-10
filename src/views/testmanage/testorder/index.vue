@@ -31,7 +31,7 @@ const handleTabClick = (tab: TabsPaneContext) => {
   router.replace({ query: { ...router.currentRoute.value.query, tab: tab.props.name } })
 
   if (tab.props.name === "prod" && prodOrderComponent.value) {
-    prodOrderComponent.value.getTestUnitTree()
+    prodOrderComponent.value.getTestunits()
   } else if (tab.props.name === "temp" && tempOrderComponent.value) {
     tempOrderComponent.value.resetSearch()
   }
