@@ -5,7 +5,7 @@ import { ElButton, ElMessage, type FormInstance } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
-import {generateReportPdfApi, generateTempReportPdfApi, getReportDataApi} from "@/api/report"
+import { generateReportPdfApi, getReportDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 
 interface TestCheckType {
