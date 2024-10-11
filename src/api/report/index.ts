@@ -48,7 +48,6 @@ export function getSingleDevReportDataApi(params: any) {
 export function getReportCheckDataApi(params: {
   size: number
   serial: string | undefined
-  id: string | undefined
   currentPage: number
   type: string | undefined
   user: string | undefined

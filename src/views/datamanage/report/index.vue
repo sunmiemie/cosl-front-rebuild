@@ -58,7 +58,6 @@ const getTestTypeData = () => {
 const searchFormRef = ref<FormInstance | null>(null)
 // 查询
 const searchData = reactive({
-  id: "",
   user: "",
   type: "",
   serial: ""
@@ -76,7 +75,6 @@ const getTableData = () => {
   getReportCheckDataApi({
     currentPage: paginationData.currentPage,
     size: paginationData.pageSize,
-    id: searchData.id || undefined,
     user: searchData.user || undefined,
     type: searchData.type || undefined,
     serial: searchData.serial || undefined,
@@ -126,9 +124,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       <el-col :span="24">
         <el-card v-loading="loading" class="search-wrapper" shadow="never">
           <el-form ref="searchFormRef" :inline="true" :model="searchData">
-            <el-form-item label="报告编号">
-              <el-input v-model="searchData.id" placeholder="请输入" />
-            </el-form-item>
             <el-form-item label="测试人">
               <el-input v-model="searchData.user" placeholder="请输入" />
             </el-form-item>
@@ -148,9 +143,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             <el-form-item>
               <el-button :icon="Search" style="margin-right: 10px" type="primary" @click="handleSearch">查询</el-button>
               <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
-              <el-text style="display: inline-block; margin-left: 20px; letter-spacing: 0.5px; opacity: 0.7">
-                * 表格中的报告编号" temp- "和" prod- "是为了区分临时报告和正式报告，实际的报告编号并不包含，在查询时请不要带上它们
-              </el-text>
             </el-form-item>
           </el-form>
         </el-card>
