@@ -97,9 +97,8 @@ const getTableData = () => {
 const handleLink = (data: any, i: string) => {
   if (i === "下载") {
     const link = document.createElement("a")
-    // 去掉 .json 后缀
-    const filePath = data.report_filepath.replace(".json", "")
-    link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${filePath}.pdf?id=${data.id}`
+
+    link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${data.report_pdf_filepath}?id=${data.id}`
     // 在新标签页打开
     link.target = "_blank"
     document.body.appendChild(link)
@@ -185,15 +184,13 @@ const downloadReports = () => {
       if (item.link[key] === "下载") {
         downloadExists = true
 
-        const filePath = item.report_filepath.replace(".json", "")
-
-        fetch(`${import.meta.env.VITE_BASE_API}data/report/pdf/download/${filePath}.pdf?id=${item.id}`)
+        fetch(`${import.meta.env.VITE_BASE_API}data/report/pdf/download/${item.report_pdf_filepath}?id=${item.id}`)
           .then(response => response.blob())
           .then(blob => {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = filePath + ".pdf";
+            link.download = item.report_pdf_filepath
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
