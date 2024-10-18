@@ -1,5 +1,6 @@
 import { request } from "@/utils/service"
 import type * as TestType from "./types/report"
+import type * as TestMange from "@/api/testMangelist/types";
 
 /** 查 */
 export function getReportDataApi(params: {
@@ -14,6 +15,39 @@ export function getReportDataApi(params: {
     url: "data/report/list",
     method: "get",
     params
+  })
+}
+export function getBugReportDataApi(params: {
+  pageSize: number
+  serial: string | undefined
+  id: string | undefined
+  currentPage: number
+  user: string | undefined
+}) {
+  return request<TestType.GetBugReportResponseData>({
+    url: "data/report/bug-report-list",
+    method: "get",
+    params
+  })
+}
+export const getTransactionTree = (): Promise<TestMange.getTestMangePathType> => {
+  return request<TestMange.getTestMangePathType>({
+    url: "data/temp-transaction",
+    method: "get"
+  })
+}
+export const getboardsinfoForBugReport = (params: any) => {
+  return request<TestMange.getBordsInfoType>({
+    url: "/data/temp-transaction-boardlist",
+    method: "get",
+    params
+  })
+}
+export const generateBugReport = (data: any) => {
+  return request({
+    url: "data/report/bug-report-generate",
+    method: "post",
+    data
   })
 }
 export function getTempReportDataApi(params: {
