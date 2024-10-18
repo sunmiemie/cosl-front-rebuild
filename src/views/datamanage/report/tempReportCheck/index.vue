@@ -106,8 +106,10 @@ const errorPass = (obj) => {
     })
     if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 2) {
       reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 1
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "通过项"
     } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
       reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 3
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "疑问项"
     }
     if (errorList.value.length === 0) {
       errorVisible.value = false
@@ -168,8 +170,10 @@ const questionPass = (obj) => {
     })
     if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3) {
       reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 1
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "通过项"
     } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
       reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 2
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "缺陷项"
     }
     if (questionList.value.length === 0) {
       questionVisible.value = false
@@ -516,30 +520,17 @@ onMounted(async () => {
       </div>
       <div style="display: flex; align-items: center">
         <div v-if="!hasQuestion">
-          <el-button icon="Check" size="large" type="success" @click="handlePass" :disabled="hasWarning"
-            >审核通过</el-button
-          >
-          <el-button icon="Close" size="large" type="danger" @click="feedbackVisible = true" :disabled="hasWarning"
-            >审核未通过</el-button
-          >
+          <el-button icon="Check" size="large" type="success" @click="handlePass">审核通过</el-button>
+          <el-button icon="Close" size="large" type="danger" @click="feedbackVisible = true">审核未通过</el-button>
         </div>
         <div v-else>
-          <el-button size="large" type="warning" @click="questionDialogVisible = true" :disabled="hasWarning"
-            >? 生成疑问工单</el-button
-          >
+          <el-button size="large" type="warning" @click="questionDialogVisible = true">生成疑问工单</el-button>
         </div>
-        <el-text type="warning" v-if="hasWarning" style="margin-left: 20px">完成操作需要处理所有制程警示</el-text>
       </div>
     </el-card>
 
     <el-dialog v-model="errorVisible" title="缺陷操作" align-center width="80%">
-      <el-table
-        :data="errorList"
-        v-loading="hasWarning"
-        element-loading-svg="1"
-        element-loading-text="请先完成制程警示审核"
-        max-height="70vh"
-      >
+      <el-table :data="errorList" max-height="70vh">
         <el-table-column label="测试类型">
           <template #default="scope">
             <el-text
@@ -581,13 +572,7 @@ onMounted(async () => {
     </el-dialog>
 
     <el-dialog v-model="questionVisible" title="疑问操作" width="80%" align-center>
-      <el-table
-        :data="questionList"
-        v-loading="hasWarning"
-        element-loading-svg="1"
-        element-loading-text="请先完成制程警示审核"
-        max-height="70vh"
-      >
+      <el-table :data="questionList" max-height="70vh">
         <el-table-column label="测试类型">
           <template #default="scope">
             <el-text>
