@@ -341,13 +341,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
   <!-- 新增缺陷报告 -->
   <el-dialog v-model="dialogVisible" width="85%" @close="closeDiaLog" align-center :close-on-click-modal="false">
     <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleTabClick">
-      <el-tab-pane label="生产电路板" name="first">
+      <el-tab-pane label="正式报告" name="first">
         <ProdBoard @close-dialog="handleCloseDialog" @fetch-bug-reports="reloadTableData" @stop-adding-order="tempDialogVisible = false"
           @generate-bug-report="handleGenerateBugReport" ref="prodBoardComponent" />
       </el-tab-pane>
-      <!-- <el-tab-pane label="临时电路板" name="second">
-        <TempBoard @stop-adding-order="tempDialogVisible = false" @add-order="addOrder" ref="tempBoardComponent" />
-      </el-tab-pane> -->
+      <el-tab-pane label="临时报告" name="second">
+        <TempBoard @close-dialog="handleCloseDialog" @fetch-bug-reports="reloadTableData" @stop-adding-order="tempDialogVisible = false" @add-order="addOrder" ref="tempBoardComponent" />
+      </el-tab-pane>
     </el-tabs>
   </el-dialog>
 </template>

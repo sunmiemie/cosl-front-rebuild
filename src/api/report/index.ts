@@ -50,6 +50,13 @@ export const generateBugReport = (data: any) => {
     data
   })
 }
+export const generateDevBugReport = (data: any) => {
+  return request({
+    url: "data/report/dev-bug-report-generate",
+    method: "post",
+    data
+  })
+}
 export function getTempReportDataApi(params: {
   size: number
   serial: string | undefined

@@ -1,10 +1,15 @@
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref, onMounted, computed } from "vue"
-import { ElTree, type FormInstance, type FormRules } from "element-plus"
+import { ElMessage, ElTree, type FormInstance, type FormRules } from "element-plus"
+import type { CheckboxValueType } from 'element-plus'
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForBugReport } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import {getTransactionTree} from "@/api/report";
+import { useUserStore } from "@/store/modules/user"
+import { generateDevBugReport } from "@/api/report"
+
+const userId = useUserStore().userid
 
 const currentRow = ref<any>()
 const showFlags = ref<any>(true)
@@ -139,12 +144,71 @@ const formRules: FormRules = reactive({
   consignor: [{ required: true, trigger: "blur", message: "请输入委托人" }]
 })
 const emit = defineEmits(["add-order"])
-const handleCreate = () => {
-  searchFormRef.value?.validate((valid: boolean) => {
-    if (valid) {
-      emit("add-order", addProdBoard, selectedRows.value, orderInfo)
-    }
-  })
+// const handleCreate = () => {
+//   searchFormRef.value?.validate((valid: boolean) => {
+//     if (valid) {
+//       emit("add-order", addProdBoard, selectedRows.value, orderInfo)
+//     }
+//   })
+// }
+const handleCreate = async () => {
+  // 确保选中项和测试类型有效
+  if (selectedRows.value.length === 0 || value.value.length === 0) {
+    ElMessage.warning("请至少选择一块电路板和一个测试类型")
+    return
+  }
+
+  // 通知父组件关闭这个弹窗
+  emit("close-dialog")
+
+  try {
+    // 遍历每块电路板，为每块电路板发送包含所有测试类型的请求
+    const requests = selectedRows.value.map((board) =>
+      generateDevBugReport({
+        transactionId: Batch.value,
+        isProdBoard: board.is_prod_board,
+        boardId: board.id,
+        testTypes: value.value,
+        userId: userId
+      })
+    )
+
+    // 等待所有请求完成
+    const responses = await Promise.all(requests)
+    // console.log("所有请求已完成：", responses)
+    const successCount = responses.filter(res => res.success).length;
+    ElMessage.success(`成功生成了 ${successCount} 个缺陷报告`)
+  } catch (error) {
+    // console.log("请求失败：", error.response.data.error)
+    ElMessage.error(error.response.data.error)
+  }
+
+  emit("fetch-bug-reports")
+}
+
+// 选中所有
+const checkAll = ref(false)
+const indeterminate = ref(false)
+// 选中的测试类型
+const value = ref<CheckboxValueType[]>([])
+watch(value, (val) => {
+  if (val.length === 0) {
+    checkAll.value = false
+    indeterminate.value = false
+  } else if (val.length === testTypeList.value.length) {
+    checkAll.value = true
+    indeterminate.value = false
+  } else {
+    indeterminate.value = true
+  }
+})
+const handleCheckAll = (val: CheckboxValueType) => {
+  indeterminate.value = false
+  if (val) {
+    value.value = testTypeList.value.map((_) => _.number)
+  } else {
+    value.value = []
+  }
 }
 
 onMounted(getTempTreeData)
@@ -179,8 +243,8 @@ onMounted(getTempTreeData)
             <el-card shadow="never">
               <el-space :size="10" spacer="|">
                 <el-text>{{ CircuitBoardModel }}</el-text>
-                <el-text>批次号：{{ Batch }}</el-text>
-                <el-text>批次名称：{{ CircuitBatch }}</el-text>
+                <el-text>流水号：{{ Batch }}</el-text>
+                <el-text>流水：{{ CircuitBatch }}</el-text>
                 <el-text v-if="selectedRowCount > 0" class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
               </el-space>
             </el-card>
@@ -216,41 +280,26 @@ onMounted(getTempTreeData)
                     :rules="formRules"
                   >
                     <el-form-item label="测试类型" prop="testType">
-                      <el-select
-                        v-model="orderInfo.testType"
-                        placeholder="请选择"
-                        filterable
-                        @visible-change="getTestTypeData"
-                      >
-                        <el-option
-                          v-for="item in testTypeList"
-                          :label="item.name"
-                          :value="item.number"
-                          :key="item.id"
-                        />
+                      <el-select multiple clearable popper-class="custom-header" v-model="value" placeholder="请选择"
+                        filterable @visible-change="getTestTypeData">
+                        <template #header>
+                          <el-checkbox v-model="checkAll" :indeterminate="indeterminate" @change="handleCheckAll">
+                            选择所有
+                          </el-checkbox>
+                        </template>
+                        <el-option v-for="item in testTypeList" :label="item.name" :value="item.number"
+                          :key="item.id" />
                       </el-select>
                     </el-form-item>
-                    <el-form-item prop="testUnitType" label="测试类别">
-                      <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
-                    </el-form-item>
-                    <el-form-item prop="testUnitDesc" label="测试内容">
-                      <el-input v-model="orderInfo.testUnitDesc" type="textarea" placeholder="请输入" />
-                    </el-form-item>
-                    <el-form-item prop="consignor" label="委托人">
-                      <el-input v-model="orderInfo.consignor" placeholder="请输入" />
-                    </el-form-item>
-                    <el-form-item prop="orderNo" label="委托单号">
-                      <el-input v-model="orderInfo.orderNo" placeholder="请输入" />
-                    </el-form-item>
-                    <el-form-item>
+                    <div style="margin-top: 30px; display: flex; justify-content: flex-end; gap: 10px">
                       <el-button @click="$emit('stop-adding-order')">取消</el-button>
                       <el-button
                         type="primary"
                         @click="handleCreate"
                         :disabled="selectedRows.length <= 0"
-                      >添加工单</el-button
+                      >生成缺陷报告</el-button
                       >
-                    </el-form-item>
+                    </div>
                   </el-form>
                 </el-card>
               </el-col>
