@@ -4,6 +4,7 @@ import {ElMessage, ElTree, type FormInstance, type FormRules} from "element-plus
 import type { CheckboxValueType } from 'element-plus'
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForTempOrder, getTestMangePath } from "@/api/testMangelist"
+import { getBoardTestTypeDataApi } from "@/api/testtype"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { generateBugReport } from "@/api/report"
 import { useUserStore } from "@/store/modules/user"
