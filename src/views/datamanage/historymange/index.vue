@@ -8,6 +8,9 @@
         <el-tab-pane label="临时测试报告" name="temp">
           <TempReport ref="tempReportComponent" />
         </el-tab-pane>
+        <el-tab-pane label="缺陷报告" name="bug">
+          <BugReport ref="bugReportComponent" />
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -19,6 +22,7 @@ import { useRouter } from "vue-router"
 import { TabsPaneContext } from "element-plus"
 import ProdReport from "./components/ProdReport.vue"
 import TempReport from "./components/TempReport.vue"
+import BugReport from "./components/BugReport.vue"
 
 // 默认打开“生产测试报告”标签页
 const activeName = ref<any>("prod")

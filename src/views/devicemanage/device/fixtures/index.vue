@@ -1,4 +1,4 @@
-<!--夹具管理-->
+<!-- 夹具管理 -->
 
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
