@@ -35,7 +35,7 @@ export function getTestTypeDataApi(params: { size: number; currentPage: number; 
     params
   })
 }
-export function getBoardTestTypeDataApi(params: { size: number; currentPage: number; name?: string }) {
+export function getBoardTestTypeDataApi(params: any) {
   return request<TestType.GetTestTypeResponseData>({
     url: "test/board-testtype/list",
     method: "get",

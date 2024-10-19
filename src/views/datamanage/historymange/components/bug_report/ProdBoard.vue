@@ -87,6 +87,16 @@ const clickNode = async (data: NodeData & any, node: any) => {
   boardInfoLoading.value = false
   getTestTypeData()
 }
+// const getTestTypeData = () => {
+//   const board_ids = selectedRows.value.map((board) => parseInt(board.id, 10))
+//   getBoardTestTypeDataApi({
+//     currentPage: 1,
+//     size: 9999999,
+//     'board_ids[]': board_ids
+//   }).then((res) => {
+//     testTypeList.value = res.data.list
+//   })
+// }
 const getTestTypeData = () => {
   getTestTypeDataApi({
     currentPage: 1,
@@ -168,7 +178,6 @@ const handleCreate = async () => {
     // 遍历每块电路板，为每块电路板发送包含所有测试类型的请求
     const requests = selectedRows.value.map((board) =>
       generateBugReport({
-        isProdBoard: true,
         boardId: board.id,
         testTypes: value.value,
         userId: userId
@@ -176,13 +185,23 @@ const handleCreate = async () => {
     )
 
     // 等待所有请求完成
-    const responses = await Promise.all(requests)
-    // console.log("所有请求已完成：", responses)
-    const successCount = responses.filter(res => res.success).length;
+    const responses = await Promise.allSettled(requests)
+    const successCount = responses.filter(res => res.status === 'fulfilled' && res.value.success).length;
+    const failCount = responses.length - successCount;
+
+    // 只是使用 warning 的黄色
+    // ElMessage.warning(`成功生成了 ${successCount} 个缺陷报告，失败 ${failCount} 个`)
     ElMessage.success(`成功生成了 ${successCount} 个缺陷报告`)
+    // ElMessage.success({
+    //   message: `成功生成了 ${successCount} 个缺陷报告`,
+    //   duration: 3000
+    // })
+
+    ElMessage.error(`有 ${failCount} 个报告生成失败`)
   } catch (error) {
     // console.error("请求失败：", error)
     ElMessage.error("缺陷报告生成失败")
+    // ElMessage.error(error.response.data.error)
   }
 
   emit("fetch-bug-reports")
