@@ -5,7 +5,6 @@ import type { CheckboxValueType } from 'element-plus'
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForTempOrder, getTestMangePath } from "@/api/testMangelist"
 import { getBoardTestTypeDataApi } from "@/api/testtype"
-import { getTestTypeDataApi } from "@/api/testtype"
 import { generateBugReport } from "@/api/report"
 import { useUserStore } from "@/store/modules/user"
 
@@ -89,24 +88,22 @@ const clickNode = async (data: NodeData & any, node: any) => {
   boardInfoLoading.value = false
   getTestTypeData()
 }
+const getTestTypeData = () => {
+  const board_ids = selectedRows.value.map((board) => parseInt(board.id, 10))
+  getBoardTestTypeDataApi({
+    board_ids
+  }).then((res) => {
+    testTypeList.value = res.test_types
+  })
+}
 // const getTestTypeData = () => {
-//   const board_ids = selectedRows.value.map((board) => parseInt(board.id, 10))
-//   getBoardTestTypeDataApi({
+//   getTestTypeDataApi({
 //     currentPage: 1,
-//     size: 9999999,
-//     'board_ids[]': board_ids
+//     size: 9999999
 //   }).then((res) => {
 //     testTypeList.value = res.data.list
 //   })
 // }
-const getTestTypeData = () => {
-  getTestTypeDataApi({
-    currentPage: 1,
-    size: 9999999
-  }).then((res) => {
-    testTypeList.value = res.data.list
-  })
-}
 
 const filterText = ref("")
 const treeRef = ref<InstanceType<typeof ElTree>>()
