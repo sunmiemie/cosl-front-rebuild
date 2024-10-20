@@ -1,33 +1,17 @@
 <script lang="ts" setup>
 import { computed, reactive, ref, watch } from "vue"
-import { useRouter } from "vue-router"
-import { ElButton, ElMessage, type FormInstance, TabsPaneContext } from "element-plus"
+import { ElButton, type FormInstance, TabsPaneContext } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
-import { generateBugReport, generateReportPdfApi, getBugReportDataApi } from "@/api/report"
+import { getBugReportDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import ProdBoard from "@/views/datamanage/historymange/components/bug_report/ProdBoard.vue"
 import TempBoard from "@/views/datamanage/historymange/components/bug_report/TempBoard.vue"
 
-interface TestCheckType {
-  ID?: string
-  version?: string
-  type?: string
-}
-
-const loading = ref(false)
-
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
-const router = useRouter()
-const DialogCheck = ref(false)
-
-const TestCheck = ref<TestCheckType>({
-  ID: "",
-  version: "",
-  type: ""
-})
+const loading = ref(false)
 
 const headers = ref([
   { prop: "report_id", label: "报告编号", align: "center" },
@@ -37,18 +21,8 @@ const headers = ref([
   { prop: "created_at", label: "生成时间", align: "center" },
   { prop: "link", label: "操作", type: "link" }
 ])
-
 const TableData = ref<any>([])
 
-const testTypeList = ref<any>([])
-const getTestTypeData = () => {
-  getTestTypeDataApi({
-    currentPage: 1,
-    size: 9999999
-  }).then((res) => {
-    testTypeList.value = res.data.list
-  })
-}
 const searchFormRef = ref<FormInstance | null>(null)
 // 查询
 const searchData = reactive({
@@ -60,19 +34,8 @@ const searchData = reactive({
 const clearSearchData = () => {
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
 }
-const defineLink = (status: string, reportGenerated: number) => {
-  switch (status) {
-    case "0":
-    case "1":
-    case "4":
-      return { 1: "查看" }
-    case "2":
-    case "3":
-      if (reportGenerated == 0) return { 1: "查看", 2: "生成" }
-      else return { 1: "查看", 2: "下载" }
-  }
-}
 
+// 获取表格数据
 const getTableData = () => {
   loading.value = true
 
@@ -90,6 +53,7 @@ const getTableData = () => {
   })
 }
 
+// 刷新表格数据
 const reloadTableData = () => {
   loading.value = true
 
@@ -105,38 +69,6 @@ const reloadTableData = () => {
 
     loading.value = false
   })
-}
-
-const handleLink = (data: any, i: string) => {
-  if (i === "下载") {
-    const link = document.createElement("a")
-
-    link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${data.report_pdf_filepath}?id=${data.id}`
-    // 在新标签页打开
-    link.target = "_blank"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  } else if (i === "查看") {
-    router.push({ name: "reportView", query: data })
-  } else if (i === "生成") {
-    // const link = document.createElement("a")
-    // link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/generate-pdf`
-    // document.body.appendChild(link)
-    // link.click()
-    // document.body.removeChild(link)
-
-    generateReportPdfApi({ id: data.id })
-      .then(() => {
-        // console.log("生成报告", res)
-        ElMessage.success("报告生成成功")
-        getTableData()
-      })
-      .catch(() => {
-        ElMessage.error("报告生成失败")
-        // console.error("报告生成失败", err)
-      })
-  }
 }
 
 const handleSearch = () => {
@@ -159,36 +91,44 @@ const handleSelectionChange = (val: any) => {
   selectedRows.value = val
 }
 
-const generateReports = () => {
-  let generateExists = false
+const dialogVisible = ref(false)
+const hideDialog = () => { dialogVisible.value = false }
 
-  selectedRows.value.forEach((item) => {
-    for (let key in item.link) {
-      if (item.link[key] === "生成") {
-        generateExists = true
+const activeName = ref<any>("first")
+const prodBoardComponent = ref<InstanceType<typeof ProdBoard> | null>(null)
+const tempBoardComponent = ref<InstanceType<typeof TempBoard> | null>(null)
 
-        generateReportPdfApi({ id: item.id })
-          .then(() => {
-            // console.log("生成报告", res)
-            ElMessage.success("报告生成成功")
-          })
-          .catch(() => {
-            ElMessage.error("报告生成失败")
-            // console.error("报告生成失败", err)
-          })
-
-        break
-      }
-    }
-  })
-
-  if (!generateExists) {
-    ElMessage.warning("没有需要生成的报告")
-  } else {
-    getTableData()
+const handleTabClick = (tab: TabsPaneContext) => {
+  if (tab.props.name === "first" && prodBoardComponent.value) {
+    prodBoardComponent.value.getTreeData()
+  } else if (tab.props.name === "second" && tempBoardComponent.value) {
+    tempBoardComponent.value.getTempTreeData()
   }
 }
 
+// 新增缺陷报告
+const newBugReports = () => {
+  dialogVisible.value = true
+
+  if (activeName.value === 'first' && prodBoardComponent.value) {
+    prodBoardComponent.value.getTreeData()
+  } else if (activeName.value === 'second' && tempBoardComponent.value) {
+    tempBoardComponent.value.getTempTreeData()
+  }
+}
+
+// 下载单个报告
+const downloadReport = (data: any) => {
+  const link = document.createElement("a")
+  link.href = `${import.meta.env.VITE_BASE_API}data/report/download-bug-report/${data.file_name}?id=${data.report_id}`
+  // 在新标签页打开
+  link.target = "_blank"
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
+// 批量下载报告
 const downloadReports = () => {
   selectedRows.value.forEach((item) => {
     fetch(`${import.meta.env.VITE_BASE_API}data/report/download-bug-report/${item.file_name}?id=${item.report_id}`)
@@ -206,54 +146,12 @@ const downloadReports = () => {
   })
 }
 
-const dialogVisible = ref(false)
-const handleCloseDialog = () => { dialogVisible.value = false }
-
-const handleGenerateBugReport = async (isProdBoard, boardId, testTypes, userId) => {
-
-  try {
-    // 遍历每块电路板，为每块电路板发送包含所有测试类型的请求
-    const requests = selectedRows.value.map((board) =>
-      generateBugReport({
-        isProdBoard,
-        boardId,
-        testTypes,
-        userId
-      })
-    )
-
-    // 等待所有请求完成
-    const responses = await Promise.all(requests)
-    // console.log("所有请求已完成：", responses)
-    // ElMessage.success("成功生成了缺陷报告")
-  } catch (error) {
-    // console.error("请求失败：", error)
-    ElMessage.error("缺陷报告生成失败")
+const handleCloseDialog = () => {
+  if (activeName.value === 'first' && prodBoardComponent.value) {
+    prodBoardComponent.value.cancelGenerateReport()
+  } else if (activeName.value === 'second' && tempBoardComponent.value) {
+    tempBoardComponent.value.cancelGenerateReport()
   }
-}
-
-const activeName = ref<any>("first")
-const prodBoardComponent = ref<InstanceType<typeof ProdBoard> | null>(null)
-const tempBoardComponent = ref<InstanceType<typeof TempBoard> | null>(null)
-
-const handleTabClick = (tab: TabsPaneContext) => {
-  boardTableData.value = []
-  showFlags.value = true
-  if (tab.props.name === "first" && prodBoardComponent.value) {
-    prodBoardComponent.value.getTreeData()
-  } else if (tab.props.name === "second" && tempBoardComponent.value) {
-    tempBoardComponent.value.getTempTreeData()
-  }
-}
-
-const downloadReport = (data: any) => {
-  const link = document.createElement("a")
-  link.href = `${import.meta.env.VITE_BASE_API}data/report/download-bug-report/${data.file_name}?id=${data.report_id}`
-  // 在新标签页打开
-  link.target = "_blank"
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
 }
 
 /** 监听分页参数的变化 */
@@ -287,7 +185,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 
       <el-card v-loading="loading" shadow="never">
         <div class="toolbar-wrapper">
-          <el-button type="primary" icon="CirclePlus" @click="dialogVisible = true">新增缺陷报告</el-button>
+          <el-button type="primary" icon="CirclePlus" @click="newBugReports">新增缺陷报告</el-button>
           <div v-show="selectedRowCount > 0" style="display: flex; gap: 10px">
             <el-text class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
             <el-button type="primary" @click="downloadReports">一键下载</el-button>
@@ -313,40 +211,18 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             :total="paginationData.total" :page-size="paginationData.pageSize" :currentPage="paginationData.currentPage"
             @size-change="handleSizeChange" @current-change="handleCurrentChange" />
         </div>
-
-        <el-dialog v-model="DialogCheck" :title="'提交测试工艺审核'" style="height: 45vh; width: 40vw">
-          <template #header>
-            <h2>提交测试工艺审核</h2>
-          </template>
-          <el-form :inline="true" :model="TestCheck" class="demo-form-inline" label-position="right"
-            style="position: relative">
-            <el-form-item label="工艺ID" style="width: 15vw">
-              <el-input v-model="TestCheck.ID" disabled />
-            </el-form-item>
-            <el-form-item label="工艺版本" style="width: 15vw">
-              <el-input v-model="TestCheck.version" disabled />
-            </el-form-item>
-            <el-form-item label="测试类型">
-              <el-input v-model="TestCheck.type" disabled />
-            </el-form-item>
-
-            <el-button type="primary" @click="DialogCheck = false" icon="Check"
-              style="position: absolute; top: 120px; left: 41%">确认提交</el-button>
-          </el-form>
-        </el-dialog>
       </el-card>
     </el-col>
   </el-row>
 
   <!-- 新增缺陷报告 -->
-  <el-dialog v-model="dialogVisible" width="85%" @close="closeDiaLog" align-center :close-on-click-modal="false">
+  <el-dialog v-model="dialogVisible" width="85%" @close="handleCloseDialog" align-center :close-on-click-modal="false">
     <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleTabClick">
       <el-tab-pane label="正式报告" name="first">
-        <ProdBoard @close-dialog="handleCloseDialog" @fetch-bug-reports="reloadTableData" @stop-adding-order="tempDialogVisible = false"
-          @generate-bug-report="handleGenerateBugReport" ref="prodBoardComponent" />
+        <ProdBoard @close-dialog="hideDialog" @fetch-bug-reports="reloadTableData" ref="prodBoardComponent" />
       </el-tab-pane>
       <el-tab-pane label="临时报告" name="second">
-        <TempBoard @close-dialog="handleCloseDialog" @fetch-bug-reports="reloadTableData" @stop-adding-order="tempDialogVisible = false" @add-order="addOrder" ref="tempBoardComponent" />
+        <TempBoard @close-dialog="hideDialog" @fetch-bug-reports="reloadTableData" ref="tempBoardComponent" />
       </el-tab-pane>
     </el-tabs>
   </el-dialog>
