@@ -28,6 +28,7 @@ import BugReport from "./components/BugReport.vue"
 const activeName = ref<any>("prod")
 const prodReportComponent = ref<InstanceType<typeof ProdReport> | null>(null)
 const tempReportComponent = ref<InstanceType<typeof TempReport> | null>(null)
+const bugReportComponent = ref<InstanceType<typeof BugReport> | null>(null)
 
 const router = useRouter()
 
@@ -39,6 +40,8 @@ const handleTabClick = (tab: TabsPaneContext) => {
     prodReportComponent.value.resetSearch()
   } else if (tab.props.name === "temp" && tempReportComponent.value) {
     tempReportComponent.value.resetSearch()
+  } else if (tab.props.name === "bug" && bugReportComponent.value) {
+    bugReportComponent.value.resetSearch()
   }
 }
 
@@ -51,6 +54,8 @@ onMounted(() => {
     prodReportComponent.value.resetSearch()
   } else if (tab === "temp" && tempReportComponent.value) {
     tempReportComponent.value.resetSearch()
+  } else if (tab === "bug" && bugReportComponent.value) {
+    bugReportComponent.value.resetSearch()
   }
 })
 </script>

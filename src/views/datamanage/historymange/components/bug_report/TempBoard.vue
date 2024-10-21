@@ -4,10 +4,12 @@ import { ElMessage, ElTree, type FormInstance, type FormRules } from "element-pl
 import type { CheckboxValueType } from 'element-plus'
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForBugReport } from "@/api/report"
-import { getTestTypeDataApi } from "@/api/testtype"
+import { getDevTestTypeDataApi } from "@/api/testtype"
 import {getTransactionTree} from "@/api/report";
 import { useUserStore } from "@/store/modules/user"
 import { generateDevBugReport } from "@/api/report"
+
+const emit = defineEmits(['close-dialog', 'fetch-bug-reports'])
 
 const userId = useUserStore().userid
 
@@ -17,7 +19,6 @@ const showProcess = ref<any>(true)
 const testTypeList = ref<any>([])
 const boardInfoLoading = ref(false)
 
-const addProdBoard = false
 const selectedRows = ref<any>([])
 const addHeaders = ref([
   { prop: "id", label: "电路板ID", align: "center" },
@@ -77,7 +78,6 @@ const clickNode = async (data: NodeData & any, node: any) => {
   showFlags.value = false
   showProcess.value = true
 
-  // const result = await getboardsinfoForTempOrder({
   const result = await getboardsinfoForBugReport({
     batchId: Batch.value,
     instrumentName: CircuitBoardModel.value,
@@ -89,12 +89,21 @@ const clickNode = async (data: NodeData & any, node: any) => {
   boardInfoLoading.value = false
   getTestTypeData()
 }
+// const getTestTypeData = () => {
+//   getTestTypeDataApi({
+//     currentPage: 1,
+//     size: 9999999
+//   }).then((res) => {
+//     testTypeList.value = res.data.list
+//   })
+// }
 const getTestTypeData = () => {
-  getTestTypeDataApi({
-    currentPage: 1,
-    size: 9999999
+  const board_ids = selectedRows.value.map((board) => parseInt(board.id, 10))
+  getDevTestTypeDataApi({
+    board_ids,
+    transaction_id: Batch.value
   }).then((res) => {
-    testTypeList.value = res.data.list
+    testTypeList.value = res.test_types
   })
 }
 
@@ -120,8 +129,7 @@ const tempTreeLoading = ref(false)
 async function getTempTreeData() {
   tempTreeLoading.value = true
   try {
-    // const result = await getTempTestMangePath()
-    const result = await getTransactionTree()
+    const result = await getTransactionTree() 
     tempTreeData.value = result.Pathdata
   } catch (error) {
     console.error("Failed to fetch tree data:", error)
@@ -134,8 +142,6 @@ const clearTableSelection = () => {
     tempTableRef.value.clearSelection()
   }
 }
-// 显式暴露方法供父组件调用
-defineExpose({ getTempTreeData, clearOrderInfo, clearTableSelection })
 
 const formRules: FormRules = reactive({
   testType: [{ required: true, trigger: "blur", message: "请选择测试类型" }],
@@ -143,14 +149,8 @@ const formRules: FormRules = reactive({
   testUnitDesc: [{ required: true, trigger: "blur", message: "请输入测试内容" }],
   consignor: [{ required: true, trigger: "blur", message: "请输入委托人" }]
 })
-const emit = defineEmits(["add-order"])
-// const handleCreate = () => {
-//   searchFormRef.value?.validate((valid: boolean) => {
-//     if (valid) {
-//       emit("add-order", addProdBoard, selectedRows.value, orderInfo)
-//     }
-//   })
-// }
+// const emit = defineEmits(["add-order"])
+
 const handleCreate = async () => {
   // 确保选中项和测试类型有效
   if (selectedRows.value.length === 0 || value.value.length === 0) {
@@ -174,13 +174,18 @@ const handleCreate = async () => {
     )
 
     // 等待所有请求完成
-    const responses = await Promise.all(requests)
-    // console.log("所有请求已完成：", responses)
-    const successCount = responses.filter(res => res.success).length;
-    ElMessage.success(`成功生成了 ${successCount} 个缺陷报告`)
+    const responses = await Promise.allSettled(requests)
+    const successCount = responses.filter(res => res.status === 'fulfilled' && res.value.success).length;
+    const failCount = responses.length - successCount;
+
+    if (successCount > 0) {
+      ElMessage.success(`成功生成了 ${successCount} 个缺陷报告`)
+    }
+    if (failCount > 0) {
+      ElMessage.error(`有 ${failCount} 个报告生成失败`)
+    }
   } catch (error) {
-    // console.log("请求失败：", error.response.data.error)
-    ElMessage.error(error.response.data.error)
+    ElMessage.error("缺陷报告生成失败")
   }
 
   emit("fetch-bug-reports")
@@ -210,6 +215,16 @@ const handleCheckAll = (val: CheckboxValueType) => {
     value.value = []
   }
 }
+
+const cancelGenerateReport = () => {
+  clearTableSelection()
+  value.value = []
+  showFlags.value = true
+  emit("close-dialog")
+}
+
+// 显式暴露方法供父组件调用
+defineExpose({ getTempTreeData, clearOrderInfo, clearTableSelection, cancelGenerateReport })
 
 onMounted(getTempTreeData)
 </script>
@@ -292,7 +307,7 @@ onMounted(getTempTreeData)
                       </el-select>
                     </el-form-item>
                     <div style="margin-top: 30px; display: flex; justify-content: flex-end; gap: 10px">
-                      <el-button @click="$emit('stop-adding-order')">取消</el-button>
+                      <el-button @click="cancelGenerateReport">取消</el-button>
                       <el-button
                         type="primary"
                         @click="handleCreate"
