@@ -26,3 +26,10 @@ export function getTempBatchDataApi(params: TempBatch.GetTempBatchRequestData) {
     params
   })
 }
+
+export function getNewestBatchNumber() {
+  return request({
+    url: "equipment/temp-batch/newest-batch-number",
+    method: "get"
+  })
+}
