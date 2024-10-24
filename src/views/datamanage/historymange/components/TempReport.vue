@@ -317,8 +317,8 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <div class="toolbar-wrapper">
       <div v-show="selectedRowCount > 0" style="display: flex; gap: 10px">
         <el-text class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
-        <el-button type="warning" @click="generateReports">一键生成</el-button>
-        <el-button type="primary" @click="downloadReports">一键下载</el-button>
+        <el-button type="warning" @click="generateReports">批量生成</el-button>
+        <el-button type="primary" @click="downloadReports">批量下载</el-button>
       </div>
       <div>
         <el-tooltip content="刷新当前页">
