@@ -15,7 +15,7 @@ import {
   createTestUnitApi,
   publicTestUnitApi,
   deleteTestUnitApi,
-  getBatchesBySupplier, postUnits
+  postUnits
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
@@ -82,6 +82,7 @@ const addHeaders = ref([
   { prop: "serial_num", label: "电路板序列号", align: "center", width: "200px" },
   { prop: "available", label: "可选测试", align: "center", type: "btn" }
 ])
+
 const TableData = ref<Array<TableDataType>>([])
 
 const searchFormRef = ref<FormInstance | null>(null)
@@ -335,7 +336,8 @@ const handleUnitSelectionChange = (val: any) => {
 const submitAdd = () => {
   createTestUnitApi({
     boardList: selectedRows.value,
-    userId: userStore.userid
+    userId: userStore.userid,
+    ...orderInfo
   }).then(() => {
     // getMangeData()
     dialogVisible.value = false
@@ -427,6 +429,7 @@ const getTestTypeData = () => {
 const closeDiaLog = () => {
   showFlags.value = true
   testFlags.value = true
+  Object.keys(orderInfo).forEach((key) => (orderInfo[key] = ""))
 }
 
 const filterText = ref("")
@@ -456,21 +459,21 @@ async function getTreeData() {
   treeData.value = result.Pathdata
 }
 
-const treeLoading = ref(false)
-const batchTreeData = ref<any>([])
-const getTestUnitTree = () => {
-  treeLoading.value = true
-  getBatchesBySupplier()
-    .then((res) => {
-      batchTreeData.value = res.Pathdata
-    })
-    .catch(() => {
-      batchTreeData.value = []
-    })
-    .finally(() => {
-      treeLoading.value = false
-    })
-}
+// const treeLoading = ref(false)
+// const batchTreeData = ref<any>([])
+// const getTestUnitTree = () => {
+//   treeLoading.value = true
+//   getBatchesBySupplier()
+//     .then((res) => {
+//       batchTreeData.value = res.Pathdata
+//     })
+//     .catch(() => {
+//       batchTreeData.value = []
+//     })
+//     .finally(() => {
+//       treeLoading.value = false
+//     })
+// }
 
 const batchData = reactive({
   boardModel: "",
@@ -521,6 +524,15 @@ const postSelectedUnits = () => {
 
 // 显式暴露方法供父组件调用
 defineExpose({ getTestunits })
+
+const orderFormRef = ref<FormInstance | null>(null)
+const orderInfo = reactive<any>({
+  testUnitType: "",
+  testUnitDesc: "",
+  consignor: "",
+  orderNo: ""
+})
+
 
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTestunits, { immediate: true })
@@ -707,10 +719,10 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
     </el-footer>
   </el-drawer>
 
-  <!-- 新增生产测试 -->
+  <!-- 新增生产测试工单 -->
   <el-dialog
     v-model="dialogVisible"
-    width="85%"
+    width="95%"
     @close="closeDiaLog"
     title="新增生产测试工单"
     align-center
@@ -747,53 +759,82 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
                   </el-space>
                 </el-card>
               </div>
-              <div style="margin-top: 10px" v-show="boardInfoLoading">
-                <el-card
-                  shadow="never"
-                  style="margin-top: 10px; margin-bottom: 10px; height: 200px"
-                  v-loading="boardInfoLoading"
-                />
-              </div>
-              <div style="margin-top: 10px" v-show="!boardInfoLoading">
-                <el-card shadow="never" style="margin-top: 10px; margin-bottom: 10px">
-                  <div class="table-wrapper">
-                    <TableComponent
-                      :column-data="addHeaders"
-                      :table-data="boardTableData"
-                      selection
-                      stripe
-                      @selection-change="handleSelectionChange"
-                    >
-                      <template #available="{ row }">
-                        <div style="display: flex; align-items: center; justify-content: center">
-                          <el-checkbox
-                            :indeterminate="row['isInd']"
-                            v-model="row['checkAll']"
-                            @change="
-                              row['selectedTest'] = row['checkAll'] ? row['available'] : [];
-                              row['isInd'] = false
-                            "
-                            >全选</el-checkbox
+              <div>
+                <el-row :gutter="20">
+                  <el-col :span="15">
+                    <div style="margin-top: 10px" v-show="boardInfoLoading">
+                      <el-card
+                        shadow="never"
+                        style="margin-top: 10px; margin-bottom: 10px; height: 200px"
+                        v-loading="boardInfoLoading"
+                      />
+                    </div>
+                    <div style="margin-top: 10px" v-show="!boardInfoLoading">
+                      <el-card shadow="never" style="margin-top: 10px; margin-bottom: 10px">
+                        <div class="table-wrapper">
+                          <TableComponent
+                            :column-data="addHeaders"
+                            :table-data="boardTableData"
+                            selection
+                            stripe
+                            @selection-change="handleSelectionChange"
                           >
-                          <el-divider direction="vertical" />
-                          <el-checkbox-group v-model="row['selectedTest']">
-                            <el-checkbox
-                              v-for="item in row['available']"
-                              :value="item"
-                              :label="item.name"
-                              :key="item.id"
-                              @change="
-                                row['checkAll'] = row['selectedTest'].length === row['available'].length;
-                                row['isInd'] =
-                                  row['selectedTest'].length > 0 && row['selectedTest'].length < row['available'].length
-                              "
-                            />
-                          </el-checkbox-group>
+                            <template #available="{ row }">
+                              <div style="display: flex; align-items: center; justify-content: center">
+                                <el-checkbox
+                                  :indeterminate="row['isInd']"
+                                  v-model="row['checkAll']"
+                                  @change="
+                                    row['selectedTest'] = row['checkAll'] ? row['available'] : [];
+                                    row['isInd'] = false
+                                  "
+                                  >全选</el-checkbox
+                                >
+                                <el-divider direction="vertical" />
+                                <el-checkbox-group v-model="row['selectedTest']">
+                                  <el-checkbox
+                                    v-for="item in row['available']"
+                                    :value="item"
+                                    :label="item.name"
+                                    :key="item.id"
+                                    @change="
+                                      row['checkAll'] = row['selectedTest'].length === row['available'].length;
+                                      row['isInd'] =
+                                        row['selectedTest'].length > 0 && row['selectedTest'].length < row['available'].length
+                                    "
+                                  />
+                                </el-checkbox-group>
+                              </div>
+                            </template>
+                          </TableComponent>
                         </div>
-                      </template>
-                    </TableComponent>
-                  </div>
-                </el-card>
+                      </el-card>
+                    </div>
+                  </el-col>
+                  <el-col :span="9">
+                    <el-card shadow="never" style="margin-top: 10px">
+                      <el-form
+                        ref="orderFormRef"
+                        :model="orderInfo"
+                        label-position="left"
+                        label-width="auto"
+                      >
+                        <el-form-item label="测试类别">
+                          <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
+                        </el-form-item>
+                        <el-form-item label="测试内容">
+                          <el-input v-model="orderInfo.testUnitDesc" type="textarea" placeholder="请输入" />
+                        </el-form-item>
+                        <el-form-item label="委托人">
+                          <el-input v-model="orderInfo.consignor" placeholder="请输入" />
+                        </el-form-item>
+                        <el-form-item label="委托单号">
+                          <el-input v-model="orderInfo.orderNo" placeholder="请输入" />
+                        </el-form-item>
+                      </el-form>
+                    </el-card>
+                  </el-col>
+                </el-row>
               </div>
             </div>
           </el-card>
