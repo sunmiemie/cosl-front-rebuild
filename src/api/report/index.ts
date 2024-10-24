@@ -10,6 +10,8 @@ export function getReportDataApi(params: {
   currentPage: number
   type: string | undefined
   user: string | undefined
+  dateTimeRange: string | undefined
+  instrument: string | undefined
 }) {
   return request<TestType.GetReportResponseData>({
     url: "data/report/list",
@@ -64,6 +66,8 @@ export function getTempReportDataApi(params: {
   currentPage: number
   type: string | undefined
   user: string | undefined
+  dateTimeRange: string | undefined
+  instrument: string | undefined
 }) {
   return request<TestType.GetReportResponseData>({
     url: "data/devreport/list",

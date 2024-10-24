@@ -7,6 +7,7 @@ import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
 import { generateReportPdfApi, getReportDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
+import { getAllInstrumentsDataApi } from "@/api/instrument"
 
 interface TestCheckType {
   ID?: string
@@ -51,13 +52,20 @@ const getTestTypeData = () => {
     testTypeList.value = res.data.list
   })
 }
+const getInstrumentsData = () => {
+  getAllInstrumentsDataApi().then(res => {
+    instrumentList.value = res.data
+  })
+}
 const searchFormRef = ref<FormInstance | null>(null)
 // 查询
 const searchData = reactive({
   id: "",
   user: "",
   type: "",
-  serial: ""
+  serial: "",
+  dateTimeRange: '',
+  instrument: ''
 })
 const clearSearchData = () => {
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
@@ -77,13 +85,19 @@ const defineLink = (status: string, reportGenerated: number) => {
 
 const getTableData = () => {
   loading.value = true
+  let dateTimeRange
+  if (searchData.dateTimeRange !== "") {
+    dateTimeRange = searchData.dateTimeRange.join("-")
+  }
   getReportDataApi({
     currentPage: paginationData.currentPage,
     size: paginationData.pageSize,
     id: searchData.id || undefined,
     user: searchData.user || undefined,
     type: searchData.type || undefined,
-    serial: searchData.serial || undefined
+    serial: searchData.serial || undefined,
+    dateTimeRange: dateTimeRange || undefined,
+    instrument: searchData.instrument || undefined
   }).then((res) => {
     TableData.value = res.data.list
     paginationData.total = res.data.total
@@ -207,6 +221,38 @@ const downloadReports = () => {
   }
 }
 
+const shortcuts = [
+  {
+    text: '上周',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setDate(start.getDate() - 7)
+      return [start, end]
+    },
+  },
+  {
+    text: '上个月',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setMonth(start.getMonth() - 1)
+      return [start, end]
+    },
+  },
+  {
+    text: '过去三个月',
+    value: () => {
+      const end = new Date()
+      const start = new Date()
+      start.setMonth(start.getMonth() - 3)
+      return [start, end]
+    },
+  },
+]
+
+const instrumentList = ref<any>([])
+
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, {
   immediate: true
@@ -237,6 +283,30 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
               >
                 <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
               </el-select>
+            </el-form-item>
+            <el-form-item label="仪器名称">
+              <el-select
+                v-model="searchData.instrument"
+                filterable
+                clearable
+                placeholder="请选择"
+                style="width: 200px"
+                @visible-change="getInstrumentsData"
+              >
+                <el-option value="general" label="通用" />
+                <el-option v-for="item in instrumentList" :key="item.id" :label="item.label" :value="item.id" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="生成时间">
+              <el-date-picker
+                v-model="searchData['dateTimeRange'] as any"
+                type="datetimerange"
+                :shortcuts="shortcuts"
+                range-separator="到"
+                start-placeholder="开始时间"
+                end-placeholder="结束时间"
+                value-format="YYYY/MM/DD HH:mm:ss" 
+              />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
