@@ -13,6 +13,8 @@
   },
   "type": "module",
   "scripts": {
+    "buildproject": "vite build",
+    "previewproject": "vite preview",
     "dev": "vite",
     "build:stage": "vue-tsc --noEmit && vite build --mode staging",
     "build:prod": "vue-tsc --noEmit && vite build",
