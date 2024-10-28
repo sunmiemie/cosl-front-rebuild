@@ -9,7 +9,7 @@ import QrcodeVue from "qrcode.vue"
 import { getTempBatchInstrumentDataApi } from "@/api/instrument"
 import { CirclePlus, UploadFilled } from "@element-plus/icons-vue"
 import { getQRcodeImgApi } from "@/api/qrcode"
-import { createTempBatchDataApi, getTempBatchDataApi, previewTempBatchDataApi } from "@/api/temp-batch"
+import { createTempBatchDataApi, getNewestBatchNumber, getTempBatchDataApi, previewTempBatchDataApi } from "@/api/temp-batch"
 import { createTempBoardApi, getBatchTempBoardDataApi, updateTempBoardDataApi } from "@/api/temp-board"
 import { GetTempBoardData } from "@/api/temp-board/types/temp-board"
 import { GetTempBatchData } from "@/api/temp-batch/types/temp-batch"
@@ -403,6 +403,14 @@ const cancelInsert = () => {
   fileList.file = []
 }
 
+const newestBatchNumber = ref()
+const getBatchNumber = () => {
+  getNewestBatchNumber().then((res) => {
+    newestBatchNumber.value = res.batch_id
+  })
+}
+getBatchNumber()
+
 //#endregion
 onMounted(() => {
   /** 监听分页参数的变化 */
@@ -485,12 +493,13 @@ onMounted(() => {
       </el-affix>
 
       <el-card v-loading="loading" shadow="never">
-        <div class="toolbar-wrapper">
+        <div class="toolbar-wrapper-hint">
           <div>
             <el-tooltip content="刷新当前页">
               <el-button type="primary" icon="refresh-right" circle @click="getTableData" />
             </el-tooltip>
           </div>
+          <el-text class="mx-1" style="opacity: 0.7;">当前最大的临时批次号是：<span style="font-weight: bold">{{newestBatchNumber}}</span></el-text>
         </div>
         <div class="table-wrapper">
           <TableComponent
@@ -727,6 +736,12 @@ onMounted(() => {
 .toolbar-wrapper {
   display: flex;
   justify-content: space-between;
+  margin-bottom: 20px;
+}
+.toolbar-wrapper-hint {
+  display: flex;
+  justify-content: flex-start;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
