@@ -283,19 +283,19 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
         </el-select>
       </el-form-item>
-<!--      <el-form-item label="仪器名称">-->
-<!--        <el-select-->
-<!--          v-model="searchData.instrument"-->
-<!--          filterable-->
-<!--          clearable-->
-<!--          placeholder="请选择"-->
-<!--          style="width: 200px"-->
-<!--          @visible-change="getInstrumentsData"-->
-<!--        >-->
-<!--          <el-option value="general" label="通用" />-->
-<!--          <el-option v-for="item in instrumentList" :key="item.id" :label="item.label" :value="item.id" />-->
-<!--        </el-select>-->
-<!--      </el-form-item>-->
+      <el-form-item label="仪器名称">
+        <el-select
+          v-model="searchData.instrument"
+          filterable
+          clearable
+          placeholder="请选择"
+          style="width: 200px"
+          @visible-change="getInstrumentsData"
+        >
+          <el-option value="general" label="通用" />
+          <el-option v-for="item in instrumentList" :key="item.id" :label="item.label" :value="item.id" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="生成时间">
         <el-date-picker
           v-model="searchData['dateTimeRange'] as any"
