@@ -566,7 +566,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
           </el-button>
           <div v-show="selectedRowCount > 0">
             <el-text style="display: inline-block; margin-right: 10px">已选择 {{ selectedRowCount }} 项</el-text>
-            <el-button type="warning" @click="postSelectedUnits">一键发布</el-button>
+            <el-button type="warning" @click="postSelectedUnits">批量发布</el-button>
           </div>
         </div>
         <div>
