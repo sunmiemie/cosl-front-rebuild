@@ -516,9 +516,16 @@ onMounted(async () => {
       </div>
       <div
         v-loading="loading"
-        style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px; min-height: 200px"
+        style="
+          display: flex;
+          margin-top: 10px;
+          border: #c0c4cc 1px solid;
+          margin-bottom: 10px;
+          min-height: 200px;
+          width: 100%;
+        "
       >
-        <temp-report-preview v-if="loaded" v-model:preview-list="reportJson" style="width: 100vw" />
+        <temp-report-preview v-if="loaded" v-model:preview-list="reportJson" class="temp-view" />
       </div>
       <div style="display: flex; align-items: center">
         <div v-if="!hasQuestion">
@@ -748,3 +755,8 @@ onMounted(async () => {
     </el-dialog>
   </div>
 </template>
+<style scoped>
+.temp-view {
+  width: 100%;
+}
+</style>
