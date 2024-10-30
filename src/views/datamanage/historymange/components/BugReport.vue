@@ -1,13 +1,13 @@
 <script lang="ts" setup>
 import { computed, reactive, ref, watch } from "vue"
-import { ElButton, type FormInstance, TabsPaneContext } from "element-plus"
+import {ElButton, ElMessage, type FormInstance, TabsPaneContext} from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
-import { getBugReportDataApi } from "@/api/report"
-import { getTestTypeDataApi } from "@/api/testtype"
+import { getBugReportDataApi, setDownloadSuccessApi } from "@/api/report"
 import ProdBoard from "@/views/datamanage/historymange/components/bug_report/ProdBoard.vue"
 import TempBoard from "@/views/datamanage/historymange/components/bug_report/TempBoard.vue"
+import { downloadFile } from "@/views/datamanage/historymange/components/utils";
 
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
@@ -55,10 +55,11 @@ const getTableData = () => {
 
 // 刷新表格数据
 const reloadTableData = () => {
+  paginationData.currentPage = 1
   loading.value = true
 
   getBugReportDataApi({
-    currentPage: 1,
+    currentPage: paginationData.currentPage,
     pageSize: paginationData.pageSize,
     id: undefined,
     user: undefined,
@@ -118,32 +119,39 @@ const newBugReports = () => {
 }
 
 // 下载单个报告
-const downloadReport = (data: any) => {
-  const link = document.createElement("a")
-  link.href = `${import.meta.env.VITE_BASE_API}data/report/download-bug-report/${data.file_name}?id=${data.report_id}`
-  // 在新标签页打开
-  link.target = "_blank"
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+const downloadReport = async (data: any) => {
+  const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/download-bug-report/${data.file_name}?id=${data.report_id}`
+  const downloadSuccessful = await downloadFile(downloadUrl, data.file_name)
+
+  if (downloadSuccessful) {
+    setDownloadSuccessApi(data.report_id, {report_type: '缺陷报告'})
+      .then(() => {
+        getTableData()
+      })
+  } else {
+    ElMessage.error('下载失败')
+  }
 }
 
 // 批量下载报告
-const downloadReports = () => {
-  selectedRows.value.forEach((item) => {
-    fetch(`${import.meta.env.VITE_BASE_API}data/report/download-bug-report/${item.file_name}?id=${item.report_id}`)
-      .then((response) => response.blob())
-      .then((blob) => {
-        const url = window.URL.createObjectURL(blob)
-        const link = document.createElement("a")
-        link.href = url
-        link.download = item.file_name
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        window.URL.revokeObjectURL(url)
+const downloadReports = async () => {
+  const downloadPromises = []
+
+  for (const item of selectedRows.value) {
+    const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/download-bug-report/${item.file_name}?id=${item.report_id}`
+    const downloadPromise =  await downloadFile(downloadUrl, item.file_name)
+      .then(async (downloadSuccessful) => {
+        if (downloadSuccessful) {
+          await setDownloadSuccessApi(item.report_id, {report_type: '缺陷报告'})
+        } else {
+          ElMessage.error('下载失败')
+        }
       })
-  })
+
+    downloadPromises.push(downloadPromise)
+  }
+  await Promise.all(downloadPromises)
+  getTableData()
 }
 
 const handleCloseDialog = () => {
@@ -200,7 +208,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <TableComponent :tableData="TableData" :column-data="headers" selection
             @selection-change="handleSelectionChange" stripe>
             <template #link="{ row }">
-              <el-link type="primary" class="el-link" @click="downloadReport(row)">下载
+              <el-link :type="row['report_downloaded'] ? 'success' : 'primary'" class="el-link" @click="downloadReport(row)">下载
               </el-link>
             </template>
           </TableComponent>
