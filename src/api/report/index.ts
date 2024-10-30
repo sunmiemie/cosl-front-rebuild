@@ -52,6 +52,14 @@ export const generateBugReport = (data: any) => {
     data
   })
 }
+export const setDownloadSuccessApi = (report_id: number, report_type: string) => {
+  return request({
+    url: `data/report/set-download-success/${report_id}`,
+    method: "post",
+    data: report_type 
+  })
+}
+
 export const generateDevBugReport = (data: any) => {
   return request({
     url: "data/report/dev-bug-report-generate",

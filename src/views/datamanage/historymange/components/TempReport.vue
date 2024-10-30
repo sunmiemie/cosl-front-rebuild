@@ -5,9 +5,10 @@ import { ElButton, ElMessage, type FormInstance } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
-import { generateTempReportPdfApi, getTempReportDataApi } from "@/api/report"
+import { generateTempReportPdfApi, getTempReportDataApi, setDownloadSuccessApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getAllInstrumentsDataApi } from "@/api/instrument"
+import { downloadFile } from "@/views/datamanage/historymange/components/utils";
 
 const loading = ref(false)
 
@@ -99,41 +100,44 @@ const getTableData = () => {
       for (let i = 0; i < tableData.value.length; i++) {
         tableData.value[i].link = defineLink(tableData.value[i].status, tableData.value[i].report_generated)
       }
-      // console.log(tableData.value)
     })
     .finally(() => {
       loading.value = false
     })
 }
 
-// devreport/check/operate
-const handleLink = (data: any, i: string) => {
+const generatingReports = ref({})
+
+const handleLink = async (data: any, i: string) => {
   if (i === "下载") {
-    const link = document.createElement("a")
-    link.href = `${import.meta.env.VITE_BASE_API}data/devreport/pdf/download/${data.report_pdf_filepath}?id=${data.id}`
-    // 在新标签页打开
-    link.target = "_blank"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    const downloadUrl = `${import.meta.env.VITE_BASE_API}data/devreport/pdf/download/${data.report_pdf_filepath}?id=${data.id}`
+    const downloadSuccessful = await downloadFile(downloadUrl, data.report_pdf_filepath)
+    if (downloadSuccessful) {
+      setDownloadSuccessApi(data.id, {report_type: '临时报告'})
+        .then(() => {
+          getTableData()
+        })
+    } else {
+      ElMessage.error('下载失败')
+    }
   } else if (i === "查看") {
     router.push({ name: "tempReportView", query: data })
   } else if (i === "生成") {
-    // const link = document.createElement("a")
-    // link.href = `${import.meta.env.VITE_BASE_API}data/report/pdf/generate-pdf`
-    // document.body.appendChild(link)
-    // link.click()
-    // document.body.removeChild(link)
+    if (generatingReports.value[data.id]) {
+      return
+    }
 
+    generatingReports.value[data.id] = true
     generateTempReportPdfApi({ id: data.id })
       .then(() => {
-        // console.log("生成报告", res)
         ElMessage.success("报告生成成功")
         getTableData()
       })
-      .catch((err) => {
+      .catch(() => {
         ElMessage.error("报告生成失败")
-        console.error("报告生成失败", err)
+      })
+      .finally(() => {
+        generatingReports.value[data.id] = false
       })
   }
 }
@@ -157,24 +161,24 @@ const handleSelectionChange = (val: any) => {
   selectedRows.value = val
 }
 
-const generateReports = () => {
+const generateReports = async () => {
   let generateExists = false
+  const generatePromises = []
 
   selectedRows.value.forEach((item) => {
     for (let key in item.link) {
       if (item.link[key] === "生成") {
         generateExists = true
 
-        generateTempReportPdfApi({id: item.id})
+        const generatePromise = generateTempReportPdfApi({id: item.id})
           .then(() => {
-            // console.log("生成报告", res)
             ElMessage.success("报告生成成功")
           })
           .catch(() => {
             ElMessage.error("报告生成失败")
-            // console.error("报告生成失败", err)
           })
 
+        generatePromises.push(generatePromise)
         break
       }
     }
@@ -183,38 +187,41 @@ const generateReports = () => {
   if (!generateExists) {
     ElMessage.warning("没有需要生成的报告")
   } else {
+    await Promise.all(generatePromises)
     getTableData()
   }
 }
 
-const downloadReports = () => {
+const downloadReports = async () => {
   let downloadExists = false
+  const downloadPromises = []
 
-  selectedRows.value.forEach((item) => {
-    for (let key in item.link) {
+  for (const item of selectedRows.value) {
+    for (const key in item.link) {
       if (item.link[key] === "下载") {
         downloadExists = true
 
-        fetch(`${import.meta.env.VITE_BASE_API}data/devreport/pdf/download/${item.report_pdf_filepath}?id=${item.id}`)
-          .then(response => response.blob())
-          .then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = item.report_pdf_filepath
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-          });
+        const downloadUrl = `${import.meta.env.VITE_BASE_API}data/devreport/pdf/download/${item.report_pdf_filepath}?id=${item.id}`
+        const downloadPromise =  await downloadFile(downloadUrl, item.report_pdf_filepath)
+          .then(async (downloadSuccessful) => {
+            if (downloadSuccessful) {
+              await setDownloadSuccessApi(item.id, {report_type: '临时报告'})
+            } else {
+              ElMessage.error('下载失败')
+            }
+          })
 
+        downloadPromises.push(downloadPromise)
         break
       }
     }
-  })
+  }
 
   if (!downloadExists) {
     ElMessage.warning("没有需要下载的报告")
+  } else {
+    await Promise.all(downloadPromises)
+    getTableData()
   }
 }
 
@@ -344,7 +351,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         </template>
 
         <template #link="{ row }">
-          <el-link v-for="i in row['link']" type="primary" class="el-link" @click="handleLink(row, i)" :key="i">
+          <el-link v-for="i in row['link']" :type="i === '下载' && row['report_downloaded'] ? 'success' : 'primary'" class="el-link" @click="handleLink(row, i)" :key="i">
             {{ i }}
           </el-link>
         </template>
