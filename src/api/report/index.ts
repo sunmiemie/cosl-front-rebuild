@@ -32,6 +32,18 @@ export function getBugReportDataApi(params: {
     params
   })
 }
+export function getBatchReportDataApi(params: {
+  pageSize: number
+  currentPage: number
+  id: string | undefined
+  user: string | undefined
+}) {
+  return request<TestType.GetBatchReportResponseData>({
+    url: "data/report/batch-report-list",
+    method: "get",
+    params
+  })
+}
 export const getTransactionTree = (): Promise<TestMange.getTestMangePathType> => {
   return request<TestMange.getTestMangePathType>({
     url: "data/temp-transaction",
@@ -52,11 +64,18 @@ export const generateBugReport = (data: any) => {
     data
   })
 }
+export const generateBatchReport = (data: any) => {
+  return request({
+    url: "data/report/batch-report-generate",
+    method: "post",
+    data
+  })
+}
 export const setDownloadSuccessApi = (report_id: number, report_type: string) => {
   return request({
     url: `data/report/set-download-success/${report_id}`,
     method: "post",
-    data: report_type 
+    data: report_type
   })
 }
 
@@ -67,6 +86,14 @@ export const generateDevBugReport = (data: any) => {
     data
   })
 }
+export const generateDevBatchReport = (data: any) => {
+  return request({
+    url: "data/report/dev-batch-report-generate",
+    method: "post",
+    data
+  })
+}
+
 export function getTempReportDataApi(params: {
   size: number
   serial: string | undefined

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { reactive, ref, watch } from "vue"
+import { reactive, ref, watch, onMounted } from "vue"
 import { type FormInstance } from "element-plus"
 import { ElButton } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
@@ -9,7 +9,9 @@ import { getReportCheckDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
+import { useSettingsStore } from "@/store/modules/settings"
 
+const settingsStore = useSettingsStore()
 const loading = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
@@ -45,6 +47,18 @@ const headers1 = ref([
   { prop: "status", label: "报告状态", type: "tag", align: "center" },
   { prop: "link", label: "操作", type: "link" }
 ])
+
+// Load saved page size from localStorage
+const savedPageSize = localStorage.getItem('pageSize')
+if (savedPageSize) {
+  paginationData.pageSize = parseInt(savedPageSize)
+}
+
+// Watch for changes in page size and save to localStorage
+watch(() => paginationData.pageSize, (newSize) => {
+  localStorage.setItem('pageSize', newSize.toString())
+})
+
 const TableData = ref<any>([])
 const testTypeList = ref<any>([])
 const getTestTypeData = () => {
@@ -72,6 +86,14 @@ const defineLink = (status: string) => {
 const userId = useUserStore().userid
 const getTableData = () => {
   loading.value = true
+
+  // const { page } = router.currentRoute.value.query
+  // if (page) {
+  //   paginationData.currentPage = Number(page)
+  // }
+  // 更新每页显示多少个结果的设置
+  // settingsStore.setItemsPerPage(paginationData.pageSize)
+
   getReportCheckDataApi({
     currentPage: paginationData.currentPage,
     size: paginationData.pageSize,
@@ -82,6 +104,9 @@ const getTableData = () => {
   }).then((res) => {
     TableData.value = res.data.list
     paginationData.total = res.data.total
+
+    router.replace({ query: { ...router.currentRoute.value.query, page: res.data.currentPage } })
+
     for (let i = 0; i < TableData.value.length; i++) {
       TableData.value[i].link = defineLink(TableData.value[i].status)
     }
@@ -114,8 +139,18 @@ const resetSearch = () => {
 }
 //#endregion
 
+onMounted(() => {
+  const { page } = router.currentRoute.value.query
+  if (page) {
+    paginationData.currentPage = Number(page)
+  }
+  // 获取每页显示多少个结果的设置
+  // paginationData.pageSize = settingsStore.itemsPerPage
+  getTableData()
+})
+
 /** 监听分页参数的变化 */
-watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: true })
+watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: false })
 </script>
 
 <template>
