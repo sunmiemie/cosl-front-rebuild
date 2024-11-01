@@ -42,9 +42,23 @@ export function getBoardTestTypeDataApi(data: any) {
     data
   })
 }
+export function getBugReportTestTypeDataApi(data: any) {
+  return request({
+    url: "test/bug-report-testtype/list/",
+    method: "post",
+    data
+  })
+}
 export function getDevTestTypeDataApi(data: any) {
   return request({
     url: "test/devboard-testtype/list/",
+    method: "post",
+    data
+  })
+}
+export function getBugReportDevTestTypeDataApi(data: any) {
+  return request({
+    url: "test/dev-bug-report-testtype/list/",
     method: "post",
     data
   })

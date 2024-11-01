@@ -11,6 +11,8 @@ export interface GetReportData {
 export type GetReportResponseData = ApiResponseData<{
   list: GetReportData[]
   total: number
+  currentPage: number
+  pageSize: number
 }>
 
 export interface GetBugReportData {
@@ -23,5 +25,16 @@ export interface GetBugReportData {
 
 export type GetBugReportResponseData = ApiResponseData<{
   list: GetBugReportData[]
+  total: number
+}>
+
+export interface GetBatchReportData {
+  id: string
+  name: string
+  report_filepath: string
+  link?: any
+}
+export type GetBatchReportResponseData = ApiResponseData<{
+  list: GetBatchReportData[]
   total: number
 }>

@@ -4,7 +4,7 @@ import { ElMessage, ElTree, type FormInstance, type FormRules } from "element-pl
 import type { CheckboxValueType } from 'element-plus'
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForBugReport } from "@/api/report"
-import { getDevTestTypeDataApi } from "@/api/testtype"
+import {getBugReportDevTestTypeDataApi, getDevTestTypeDataApi} from "@/api/testtype"
 import {getTransactionTree} from "@/api/report";
 import { useUserStore } from "@/store/modules/user"
 import { generateDevBugReport } from "@/api/report"
@@ -99,7 +99,7 @@ const clickNode = async (data: NodeData & any, node: any) => {
 // }
 const getTestTypeData = () => {
   const board_ids = selectedRows.value.map((board) => parseInt(board.id, 10))
-  getDevTestTypeDataApi({
+  getBugReportDevTestTypeDataApi({
     board_ids,
     transaction_id: Batch.value
   }).then((res) => {
@@ -129,7 +129,7 @@ const tempTreeLoading = ref(false)
 async function getTempTreeData() {
   tempTreeLoading.value = true
   try {
-    const result = await getTransactionTree() 
+    const result = await getTransactionTree()
     tempTreeData.value = result.Pathdata
   } catch (error) {
     console.error("Failed to fetch tree data:", error)

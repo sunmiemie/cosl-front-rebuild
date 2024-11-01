@@ -4,7 +4,7 @@ import { ElMessage, ElTree, type FormInstance, type FormRules } from "element-pl
 import type { CheckboxValueType } from 'element-plus'
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForTempOrder, getTestMangePath } from "@/api/testMangelist"
-import { getBoardTestTypeDataApi } from "@/api/testtype"
+import {getBoardTestTypeDataApi, getBugReportTestTypeDataApi} from "@/api/testtype"
 import { generateBugReport } from "@/api/report"
 import { useUserStore } from "@/store/modules/user"
 
@@ -90,7 +90,7 @@ const clickNode = async (data: NodeData & any, node: any) => {
 }
 const getTestTypeData = () => {
   const board_ids = selectedRows.value.map((board) => parseInt(board.id, 10))
-  getBoardTestTypeDataApi({
+  getBugReportTestTypeDataApi({
     board_ids
   }).then((res) => {
     testTypeList.value = res.test_types
