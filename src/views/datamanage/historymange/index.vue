@@ -11,6 +11,9 @@
         <el-tab-pane label="缺陷报告" name="bug">
           <BugReport ref="bugReportComponent" />
         </el-tab-pane>
+        <el-tab-pane label="批次报告" name="batch">
+          <BatchReport ref="batchReportComponent" />
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -23,12 +26,14 @@ import { TabsPaneContext } from "element-plus"
 import ProdReport from "./components/ProdReport.vue"
 import TempReport from "./components/TempReport.vue"
 import BugReport from "./components/BugReport.vue"
+import BatchReport from "./components/BatchReport.vue"
 
 // 默认打开“生产测试报告”标签页
 const activeName = ref<any>("prod")
 const prodReportComponent = ref<InstanceType<typeof ProdReport> | null>(null)
 const tempReportComponent = ref<InstanceType<typeof TempReport> | null>(null)
 const bugReportComponent = ref<InstanceType<typeof BugReport> | null>(null)
+const batchReportComponent = ref<InstanceType<typeof BatchReport> | null>(null)
 
 const router = useRouter()
 
@@ -42,6 +47,8 @@ const handleTabClick = (tab: TabsPaneContext) => {
     tempReportComponent.value.resetSearch()
   } else if (tab.props.name === "bug" && bugReportComponent.value) {
     bugReportComponent.value.resetSearch()
+  } else if (tab.props.name === "batch" && batchReportComponent.value) {
+    batchReportComponent.value.resetSearch()
   }
 }
 
@@ -56,6 +63,8 @@ onMounted(() => {
     tempReportComponent.value.resetSearch()
   } else if (tab === "bug" && bugReportComponent.value) {
     bugReportComponent.value.resetSearch()
+  } else if (tab === "batch" && batchReportComponent.value) {
+    batchReportComponent.value.resetSearch()
   }
 })
 </script>
