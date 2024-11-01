@@ -47,6 +47,18 @@ const headers1 = ref([
   { prop: "status", label: "报告状态", type: "tag", align: "center" },
   { prop: "link", label: "操作", type: "link" }
 ])
+
+// Load saved page size from localStorage
+const savedPageSize = localStorage.getItem('pageSize')
+if (savedPageSize) {
+  paginationData.pageSize = parseInt(savedPageSize)
+}
+
+// Watch for changes in page size and save to localStorage
+watch(() => paginationData.pageSize, (newSize) => {
+  localStorage.setItem('pageSize', newSize.toString())
+})
+
 const TableData = ref<any>([])
 const testTypeList = ref<any>([])
 const getTestTypeData = () => {
