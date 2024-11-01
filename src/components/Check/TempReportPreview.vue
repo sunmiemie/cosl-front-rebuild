@@ -26,7 +26,7 @@ const changeLabelType = (item) => {
 </script>
 
 <template>
-  <div>
+  <div style="width: 100%">
     <el-scrollbar style="height: calc(100vh - 295px); margin-top: -1px; padding: 5px">
       <div v-if="props.previewList.json.tempTest.length != 0">
         <template v-for="item in props.previewList.json.tempTest">

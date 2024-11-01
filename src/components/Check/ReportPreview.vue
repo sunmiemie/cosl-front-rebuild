@@ -1,6 +1,6 @@
 <script setup>
-import {onMounted, ref} from "vue"
-import {Viewer} from "vexip-ui"
+import { ref } from "vue"
+import { Viewer } from "vexip-ui"
 
 const props = defineProps(["previewList"])
 const picViewer = ref(false)
@@ -9,7 +9,6 @@ const openViewer = (img) => {
   picViewer.value = true
   viewerUrl.value = img
 }
-
 </script>
 
 <template>

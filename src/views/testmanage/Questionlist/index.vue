@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
-import { ElMessage, ElMessageBox } from "element-plus"
+import { ElMessageBox } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { questionUnitDataApi, questionOperateDataApi } from "@/api/questionunit"
@@ -8,11 +8,11 @@ import {
   checkReportDataApi,
   checkReportPassApi,
   checkTempReportDataApi,
-  checkTempReportPassApi,
-  getSingleReportDataApi
+  checkTempReportPassApi
 } from "@/api/report"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
+import { ReportCheck } from "@/utils/report"
 
 const router = useRouter()
 
@@ -54,7 +54,7 @@ const defineLink = (status: string) => {
     case "1":
       return { 1: "详情" }
     case "2":
-      return { 1: "详情", 2: "查看报告" }
+      return { 1: "详情" }
   }
 }
 const getTableData = () => {
@@ -94,20 +94,28 @@ const handleLink = (data: any, i: string) => {
     prodOrTemp.value = data["prod_or_temp"]
     if (prodOrTemp.value === 0) {
       currentReportId.value = data["report_id"]
+      checkReportDataApi({ id: currentReportId.value }).then((res) => {
+        reportJson.value = JSON.parse(JSON.stringify(res.data))
+        questionOperateDataApi({ id: data["questionunit_id"] })
+          .then((res) => {
+            questionList.value = res.data
+            console.log(res.data)
+          })
+          .finally(() => {
+            questionLoading.value = false
+          })
+      })
     } else {
       currentReportId.value = data["dev_report_id"]
+      questionOperateDataApi({ id: data["questionunit_id"] })
+        .then((res) => {
+          questionList.value = res.data
+          console.log(res.data)
+        })
+        .finally(() => {
+          questionLoading.value = false
+        })
     }
-    questionOperateDataApi({ id: data["questionunit_id"] })
-      .then((res) => {
-        questionList.value = res.data
-      })
-      .finally(() => {
-        questionLoading.value = false
-      })
-  } else if (i === "查看报告") {
-    getSingleReportDataApi({ id: data["report_id"] }).then((res) => {
-      router.push({ name: "reportView", query: res.data })
-    })
   }
 }
 const handleSearch = () => {
@@ -173,742 +181,16 @@ const uploadNew = (index) => {
   }
 }
 const checkCanUpdate = () => {
-  canUpdate.value = !questionList.value.every((item) => item.pass !== undefined)
+  canUpdate.value = !questionList.value.every((item) => item.continue !== undefined)
 }
 // 疑问项操作
 // NOTE 疑问项通过
 const questionPass = (obj) => {
-  if (obj.type === "eyes") {
-    if (obj.position === "total") {
-      if (reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass === 3) {
-        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 1
-      } else if (reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass === 4) {
-        reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 2
-      }
-      reportJson.value.json.threeD.eyes.total.questionList.forEach((item, index) => {
-        if (item.id === obj.id) {
-          if (reportJson.value.json.threeD.eyes.total.questionList.length === 1) {
-            delete reportJson.value.json.threeD.eyes.total.questionList
-          } else {
-            reportJson.value.json.threeD.eyes.total.questionList.splice(index, 1)
-          }
-        }
-      })
-      if (reportJson.value.json.threeD.eyes.total.warnList !== undefined) {
-        delete reportJson.value.json.threeD.eyes.total.warnList.find((warn) => warn.id === obj.id).question
-      }
-      if (reportJson.value.json.threeD.eyes.total.errorList !== undefined) {
-        try {
-          delete reportJson.value.json.threeD.eyes.total.errorList.find((warn) => warn.id === obj.id).question
-        } catch (e) {
-          console.log(e)
-        }
-      }
-    } else if (obj.position === "area") {
-      if (obj.areaPosition === "general") {
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 3) {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
-        } else if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 4) {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-        }
-        reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.length === 1) {
-              delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList
-            } else {
-              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.splice(index, 1)
-            }
-          }
-        })
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.warnList !== undefined) {
-          delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.warnList.find(
-            (warn) => warn.id === obj.id
-          ).question
-        }
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList !== undefined) {
-          try {
-            delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find(
-              (warn) => warn.id === obj.id
-            ).question
-          } catch (e) {
-            console.log(e)
-          }
-
-        }
-      } else if (obj.areaPosition === "detail") {
-        if (
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass ===
-          3
-        ) {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 1
-        } else if (
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass ===
-          4
-        ) {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
-        }
-        reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-          (item, index) => {
-            if (item.id === obj.id) {
-              if (
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.length ===
-                1
-              ) {
-                delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-              } else {
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(
-                  index,
-                  1
-                )
-              }
-            }
-          }
-        )
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
-          delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
-            (warn) => warn.id === obj.id
-          ).question
-        }
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
-          try {
-            delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-              (warn) => warn.id === obj.id
-            ).question
-          } catch (e) {
-            console.log(e)
-          }
-        }
-      }
-    }
-  } else if (obj.type === "eyesBak") {
-    if (obj.position === "total") {
-      if (reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass === 3) {
-        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 1
-      } else if (reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass === 4) {
-        reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 2
-      }
-      reportJson.value.json.threeD.eyesBak.total.questionList.forEach((item, index) => {
-        if (item.id === obj.id) {
-          if (reportJson.value.json.threeD.eyesBak.total.questionList.length === 1) {
-            delete reportJson.value.json.threeD.eyesBak.total.questionList
-          } else {
-            reportJson.value.json.threeD.eyesBak.total.questionList.splice(index, 1)
-          }
-        }
-      })
-      if (reportJson.value.json.threeD.eyesBak.total.warnList !== undefined) {
-        delete reportJson.value.json.threeD.eyesBak.total.warnList.find((warn) => warn.id === obj.id).question
-      }
-      if (reportJson.value.json.threeD.eyesBak.total.errorList !== undefined) {
-        try {
-          delete reportJson.value.json.threeD.eyesBak.total.errorList.find((warn) => warn.id === obj.id).question
-        } catch (e) {
-          console(e)
-        }
-      }
-    } else if (obj.position === "area") {
-      if (obj.areaPosition === "general") {
-        if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 3) {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
-        } else if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 4) {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-        }
-        reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.length === 1) {
-              delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList
-            } else {
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.splice(index, 1)
-            }
-          }
-        })
-        if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList !== undefined) {
-          delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.find(
-            (warn) => warn.id === obj.id
-          ).question
-        }
-        if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList !== undefined) {
-          try {
-            delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find(
-              (warn) => warn.id === obj.id
-            ).question
-          } catch (e) {
-            console.log(e)
-          }
-        }
-      } else if (obj.areaPosition === "detail") {
-        if (
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
-            .pass === 3
-        ) {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
-            1
-        } else if (
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
-            .pass === 4
-        ) {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass =
-            2
-        }
-
-        reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-          (item, index) => {
-            if (item.id === obj.id) {
-              if (
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                  .length === 1
-              ) {
-                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-              } else {
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(
-                  index,
-                  1
-                )
-              }
-            }
-          }
-        )
-        if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
-          delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
-            (warn) => warn.id === obj.id
-          ).question
-        }
-        if (
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined
-        ) {
-          try {
-            delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-              (warn) => warn.id === obj.id
-            ).question
-          } catch (e) {
-            console.log(e)
-          }
-        }
-      }
-    }
-  } else if (obj.type === "xray") {
-    if (obj.position === "total") {
-      if (reportJson.value.json.xray.total.stepList[obj.id - 1].pass === 3) {
-        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 1
-      } else if (reportJson.value.json.xray.total.stepList[obj.id - 1].pass === 4) {
-        reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 2
-      }
-      reportJson.value.json.xray.total.questionList.forEach((item, index) => {
-        if (item.id === obj.id) {
-          if (reportJson.value.json.xray.total.questionList.length === 1) {
-            delete reportJson.value.json.xray.total.questionList
-          } else {
-            reportJson.value.json.xray.total.questionList.splice(index, 1)
-          }
-        }
-      })
-      if (reportJson.value.json.xray.total.warnList !== undefined) {
-        delete reportJson.value.json.xray.total.warnList.find((warn) => warn.id === obj.id).question
-      }
-      if (reportJson.value.json.xray.total.errorList !== undefined) {
-        try {
-          delete reportJson.value.json.xray.total.errorList.find((warn) => warn.id === obj.id).question
-        } catch (e) {
-          console.log(e)
-        }
-      }
-    } else if (obj.position === "area") {
-      if (obj.areaPosition === "general") {
-        if (reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 3) {
-          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 1
-        } else if (reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 4) {
-          reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-        }
-        reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.length === 1) {
-              delete reportJson.value.json.xray.area[obj.areaId - 1].general.questionList
-            } else {
-              reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.splice(index, 1)
-            }
-          }
-        })
-        if (reportJson.value.json.xray.area[obj.areaId - 1].general.warnList !== undefined) {
-          delete reportJson.value.json.xray.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id)
-            .question
-        }
-        if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList !== undefined) {
-          try {
-            delete reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id)
-              .question
-          } catch (e) {
-            console.log(e)
-          }
-        }
-      } else if (obj.areaPosition === "detail") {
-        if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass === 3) {
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 1
-        } else if (
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass === 4
-        ) {
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
-        }
-        reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.length === 1) {
-              delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-            } else {
-              reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(index, 1)
-            }
-          }
-        })
-        if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
-          delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
-            (warn) => warn.id === obj.id
-          ).question
-        }
-        if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
-          try {
-            delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-              (warn) => warn.id === obj.id
-            ).question
-          } catch (e) {
-            console.log(e)
-          }
-        }
-      }
-    }
-  }
+  reportJson.value = ReportCheck.reportQuestionPass(reportJson.value, obj)
 }
 // NOTE 疑问项缺陷
 const questionError = (obj) => {
-  if (obj.type === "eyes") {
-    if (obj.position === "total") {
-      if (reportJson.value.json.threeD.eyes.total.errorList === undefined) {
-        reportJson.value.json.threeD.eyes.total["errorList"] = []
-      }
-      reportJson.value.json.threeD.eyes.total.questionList.forEach((item, index) => {
-        if (item.id === obj.id) {
-          if (reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass === 3) {
-            const { question: error, ...rest } = reportJson.value.json.threeD.eyes.total.questionList[index]
-            const newObj = { error, ...rest }
-            reportJson.value.json.threeD.eyes.total.errorList.push(newObj)
-          } else if (reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass === 4) {
-            const newObj = reportJson.value.json.threeD.eyes.total.questionList[index]
-            reportJson.value.json.threeD.eyes.total.errorList.find((err) => err.id === newObj.id).error.desc +=
-              "\n" + newObj.question.desc
-            reportJson.value.json.threeD.eyes.total.errorList.find((err) => err.id === newObj.id).error.url =
-              reportJson.value.json.threeD.eyes.total.errorList
-                .find((err) => err.id === newObj.id)
-                .error.url.concat(newObj.question.url)
-          }
-          if (reportJson.value.json.threeD.eyes.total.questionList.length === 1) {
-            delete reportJson.value.json.threeD.eyes.total.questionList
-          } else {
-            reportJson.value.json.threeD.eyes.total.questionList.splice(index, 1)
-          }
-          reportJson.value.json.threeD.eyes.total.stepList[obj.id - 1].pass = 2
-        }
-      })
-      if (reportJson.value.json.threeD.eyes.total.warnList !== undefined) {
-        delete reportJson.value.json.threeD.eyes.total.warnList.find((warn) => warn.id === obj.id).question
-        reportJson.value.json.threeD.eyes.total.warnList.find((warn) => warn.id === obj.id).error =
-          reportJson.value.json.threeD.eyes.total.errorList.find((warn) => warn.id === obj.id).error
-      }
-      if (reportJson.value.json.threeD.eyes.total.errorList !== undefined) {
-        delete reportJson.value.json.threeD.eyes.total.errorList.find((warn) => warn.id === obj.id).question
-      }
-    } else if (obj.position === "area") {
-      if (obj.areaPosition === "general") {
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList === undefined) {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general["errorList"] = []
-        }
-        reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 3) {
-              const { question: error, ...rest } =
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList[index]
-              const newObj = { error, ...rest }
-              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.push(newObj)
-            } else if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 4) {
-              const newObj = reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList[index]
-              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find(
-                (err) => err.id === newObj.id
-              ).error.desc += "\n" + newObj.question.desc
-              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find(
-                (err) => err.id === newObj.id
-              ).error.url = reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList
-                .find((err) => err.id === newObj.id)
-                .error.url.concat(newObj.question.url)
-            }
-            if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.length === 1) {
-              delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList
-            } else {
-              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.questionList.splice(index, 1)
-            }
-            reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-          }
-        })
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.warnList !== undefined) {
-          delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.warnList.find(
-            (warn) => warn.id === obj.id
-          ).question
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.warnList.find(
-            (warn) => warn.id === obj.id
-          ).error = reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find(
-            (warn) => warn.id === obj.id
-          ).error
-        }
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList !== undefined) {
-          delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find(
-            (warn) => warn.id === obj.id
-          ).question
-        }
-      } else if (obj.areaPosition === "detail") {
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
-        }
-        reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-          (item, index) => {
-            if (item.id === obj.id) {
-              if (
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
-                  .pass === 3
-              ) {
-                const { question: error, ...rest } =
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
-                const newObj = { error, ...rest }
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(newObj)
-              } else if (
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
-                  .pass === 4
-              ) {
-                const newObj =
-                  reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-                  (err) => err.id === newObj.id
-                ).error.desc += "\n" + newObj.question.desc
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-                  (err) => err.id === newObj.id
-                ).error.url = reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
-                  .find((err) => err.id === newObj.id)
-                  .error.url.concat(newObj.question.url)
-              }
-              if (
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.length ===
-                1
-              ) {
-                delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-              } else {
-                reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(
-                  index,
-                  1
-                )
-              }
-              reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[
-                obj.id - 1
-              ].pass = 2
-            }
-          }
-        )
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
-          delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
-            (warn) => warn.id === obj.id
-          ).question
-          reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
-            (warn) => warn.id === obj.id
-          ).error = reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-            (warn) => warn.id === obj.id
-          ).error
-        }
-        if (reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
-          delete reportJson.value.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-            (warn) => warn.id === obj.id
-          ).question
-        }
-      }
-    }
-  } else if (obj.type === "eyesBak") {
-    if (obj.position === "total") {
-      if (reportJson.value.json.threeD.eyesBak.total.errorList === undefined) {
-        reportJson.value.json.threeD.eyesBak.total["errorList"] = []
-      }
-      reportJson.value.json.threeD.eyesBak.total.questionList.forEach((item, index) => {
-        if (item.id === obj.id) {
-          if (reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass === 3) {
-            const { question: error, ...rest } = reportJson.value.json.threeD.eyesBak.total.questionList[index]
-            const newObj = { error, ...rest }
-            reportJson.value.json.threeD.eyesBak.total.errorList.push(newObj)
-          } else if (reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass === 4) {
-            const newObj = reportJson.value.json.threeD.eyesBak.total.questionList[index]
-            reportJson.value.json.threeD.eyesBak.total.errorList.find((err) => err.id === newObj.id).error.desc +=
-              "\n" + newObj.question.desc
-            reportJson.value.json.threeD.eyesBak.total.errorList.find((err) => err.id === newObj.id).error.url =
-              reportJson.value.json.threeD.eyesBak.total.errorList
-                .find((err) => err.id === newObj.id)
-                .error.url.concat(newObj.question.url)
-          }
-          if (reportJson.value.json.threeD.eyesBak.total.questionList.length === 1) {
-            delete reportJson.value.json.threeD.eyesBak.total.questionList
-          } else {
-            reportJson.value.json.threeD.eyesBak.total.questionList.splice(index, 1)
-          }
-          reportJson.value.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 2
-        }
-      })
-      if (reportJson.value.json.threeD.eyesBak.total.warnList !== undefined) {
-        delete reportJson.value.json.threeD.eyesBak.total.warnList.find((warn) => warn.id === obj.id).question
-        reportJson.value.json.threeD.eyesBak.total.warnList.find((warn) => warn.id === obj.id).error =
-          reportJson.value.json.threeD.eyesBak.total.errorList.find((warn) => warn.id === obj.id).error
-      }
-      if (reportJson.value.json.threeD.eyesBak.total.errorList !== undefined) {
-        delete reportJson.value.json.threeD.eyesBak.total.errorList.find((warn) => warn.id === obj.id).question
-      }
-    } else if (obj.position === "area") {
-      if (obj.areaPosition === "general") {
-        if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList === undefined) {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general["errorList"] = []
-        }
-        reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 3) {
-              const { question: error, ...rest } =
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList[index]
-              const newObj = { error, ...rest }
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.push(newObj)
-            } else if (
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 4
-            ) {
-              const newObj = reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList[index]
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find(
-                (err) => err.id === newObj.id
-              ).error.desc += "\n" + newObj.question.desc
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find(
-                (err) => err.id === newObj.id
-              ).error.url = reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList
-                .find((err) => err.id === newObj.id)
-                .error.url.concat(newObj.question.url)
-            }
-            if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.length === 1) {
-              delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList
-            } else {
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.splice(index, 1)
-            }
-            reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-          }
-        })
-        if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList !== undefined) {
-          delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.find(
-            (warn) => warn.id === obj.id
-          ).question
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.find(
-            (warn) => warn.id === obj.id
-          ).error = reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find(
-            (warn) => warn.id === obj.id
-          ).error
-        }
-        if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList !== undefined) {
-          delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find(
-            (warn) => warn.id === obj.id
-          ).question
-        }
-      } else if (obj.areaPosition === "detail") {
-        if (
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined
-        ) {
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
-        }
-        reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach(
-          (item, index) => {
-            if (item.id === obj.id) {
-              if (
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
-                  .pass === 3
-              ) {
-                const { question: error, ...rest } =
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
-                const newObj = { error, ...rest }
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(
-                  newObj
-                )
-              } else if (
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1]
-                  .pass === 4
-              ) {
-                const newObj =
-                  reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-                  (err) => err.id === newObj.id
-                ).error.desc += "\n" + newObj.question.desc
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-                  (err) => err.id === newObj.id
-                ).error.url = reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[
-                  obj.detailId - 1
-                ].errorList
-                  .find((err) => err.id === newObj.id)
-                  .error.url.concat(newObj.question.url)
-              }
-              if (
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-                  .length === 1
-              ) {
-                delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-              } else {
-                reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(
-                  index,
-                  1
-                )
-              }
-              reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[
-                obj.id - 1
-              ].pass = 2
-            }
-          }
-        )
-        if (reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
-          delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
-            (warn) => warn.id === obj.id
-          ).question
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
-            (warn) => warn.id === obj.id
-          ).error = reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-            (warn) => warn.id === obj.id
-          ).error
-        }
-        if (
-          reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined
-        ) {
-          delete reportJson.value.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-            (warn) => warn.id === obj.id
-          ).question
-        }
-      }
-    }
-  } else if (obj.type === "xray") {
-    if (obj.position === "total") {
-      if (reportJson.value.json.xray.total.errorList === undefined) {
-        reportJson.value.json.xray.total["errorList"] = []
-      }
-      reportJson.value.json.xray.total.questionList.forEach((item, index) => {
-        if (item.id === obj.id) {
-          if (reportJson.value.json.xray.total.stepList[obj.id - 1].pass === 3) {
-            const { question: error, ...rest } = reportJson.value.json.xray.total.questionList[index]
-            const newObj = { error, ...rest }
-            reportJson.value.json.xray.total.errorList.push(newObj)
-          } else if (reportJson.value.json.xray.total.stepList[obj.id - 1].pass === 4) {
-            const newObj = reportJson.value.json.xray.total.questionList[index]
-            reportJson.value.json.xray.total.errorList.find((err) => err.id === newObj.id).error.desc +=
-              "\n" + newObj.question.desc
-            reportJson.value.json.xray.total.errorList.find((err) => err.id === newObj.id).error.url =
-              reportJson.value.json.xray.total.errorList
-                .find((err) => err.id === newObj.id)
-                .error.url.concat(newObj.question.url)
-          }
-          if (reportJson.value.json.xray.total.questionList.length === 1) {
-            delete reportJson.value.json.xray.total.questionList
-          } else {
-            reportJson.value.json.xray.total.questionList.splice(index, 1)
-          }
-          reportJson.value.json.xray.total.stepList[obj.id - 1].pass = 2
-        }
-      })
-      if (reportJson.value.json.xray.total.warnList !== undefined) {
-        delete reportJson.value.json.xray.total.warnList.find((warn) => warn.id === obj.id).question
-        reportJson.value.json.xray.total.warnList.find((warn) => warn.id === obj.id).error =
-          reportJson.value.json.xray.total.errorList.find((warn) => warn.id === obj.id).error
-      }
-      if (reportJson.value.json.xray.total.errorList !== undefined) {
-        delete reportJson.value.json.xray.total.errorList.find((warn) => warn.id === obj.id).question
-      }
-    } else if (obj.position === "area") {
-      if (obj.areaPosition === "general") {
-        if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList === undefined) {
-          reportJson.value.json.xray.area[obj.areaId - 1].general["errorList"] = []
-        }
-        reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 3) {
-              const { question: error, ...rest } =
-                reportJson.value.json.xray.area[obj.areaId - 1].general.questionList[index]
-              const newObj = { error, ...rest }
-              reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.push(newObj)
-            } else if (reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass === 4) {
-              const newObj = reportJson.value.json.xray.area[obj.areaId - 1].general.questionList[index]
-              reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.find(
-                (err) => err.id === newObj.id
-              ).error.desc += "\n" + newObj.question.desc
-              reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.find(
-                (err) => err.id === newObj.id
-              ).error.url = reportJson.value.json.xray.area[obj.areaId - 1].general.errorList
-                .find((err) => err.id === newObj.id)
-                .error.url.concat(newObj.question.url)
-            }
-            if (reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.length === 1) {
-              delete reportJson.value.json.xray.area[obj.areaId - 1].general.questionList
-            } else {
-              reportJson.value.json.xray.area[obj.areaId - 1].general.questionList.splice(index, 1)
-            }
-            reportJson.value.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
-          }
-        })
-        if (reportJson.value.json.xray.area[obj.areaId - 1].general.warnList !== undefined) {
-          delete reportJson.value.json.xray.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id)
-            .question
-          reportJson.value.json.xray.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id).error =
-            reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id).error
-        }
-        if (reportJson.value.json.xray.area[obj.areaId - 1].general.errorList !== undefined) {
-          delete reportJson.value.json.xray.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id)
-            .question
-        }
-      } else if (obj.areaPosition === "detail") {
-        if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList === undefined) {
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]["errorList"] = []
-        }
-        reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.forEach((item, index) => {
-          if (item.id === obj.id) {
-            if (
-              reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass === 3
-            ) {
-              const { question: error, ...rest } =
-                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
-              const newObj = { error, ...rest }
-              reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.push(newObj)
-            } else if (
-              reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass === 4
-            ) {
-              const newObj =
-                reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList[index]
-              reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-                (err) => err.id === newObj.id
-              ).error.desc += "\n" + newObj.question.desc
-              reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-                (err) => err.id === newObj.id
-              ).error.url = reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
-                .find((err) => err.id === newObj.id)
-                .error.url.concat(newObj.question.url)
-            }
-            if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.length === 1) {
-              delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList
-            } else {
-              reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.splice(index, 1)
-            }
-            reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
-          }
-        })
-        if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
-          delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
-            (warn) => warn.id === obj.id
-          ).question
-          reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
-            (warn) => warn.id === obj.id
-          ).error = reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-            (warn) => warn.id === obj.id
-          ).error
-        }
-        if (reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
-          delete reportJson.value.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
-            (warn) => warn.id === obj.id
-          ).question
-        }
-      }
-    }
-  }
+  reportJson.value = ReportCheck.reportQuestionError(reportJson.value, obj)
 }
 
 // 疑问项操作
@@ -929,7 +211,7 @@ const questionDevPass = (obj) => {
 // NOTE 疑问项缺陷
 const questionDevError = (obj) => {
   if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3) {
-    reportJson.value.json.tempTest.find((item) => item.id === obj.id)["error"] = reportJson.value.json.tempTest.find(
+    reportJson.value.json.tempTest.find((item) => item.id === obj.id)["error"] = questionList.value.find(
       (item) => item.id === obj.id
     ).question
     delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).question
@@ -943,7 +225,7 @@ const questionDevError = (obj) => {
       "\n" + reportJson.value.json.tempTest.find((item) => item.id === obj.id).question.desc
     reportJson.value.json.tempTest.find((item) => item.id === obj.id).error.url = reportJson.value.json.tempTest
       .find((item) => item.id === obj.id)
-      .error.url.concat(reportJson.value.json.tempTest.find((item) => item.id === obj.id).question.url)
+      .error.url.concat(questionList.value.find((item) => item.id === obj.id).question.url)
     delete reportJson.value.json.tempTest.find((item) => item.id === obj.id).question
     questionList.value.forEach((item, index) => {
       if (item.id === obj.id) {
@@ -962,51 +244,48 @@ const handleOperate = () => {
   }).then(() => {
     updateLoading.value = true
     if (prodOrTemp.value === 0) {
-      checkReportDataApi({ id: currentReportId.value }).then((res) => {
-        reportJson.value = JSON.parse(JSON.stringify(res.data))
-        questionList.value.forEach((item) => {
-          if (item["pass"] === true) {
-            delete item["pass"]
-            questionPass(item)
-          } else if (item["pass"] === false) {
-            delete item["pass"]
-            questionError(item)
+      questionList.value.forEach((item) => {
+        if (item["continue"] === true) {
+          delete item["continue"]
+          questionPass(item)
+        } else if (item["continue"] === false) {
+          delete item["continue"]
+          questionError(item)
+        }
+      })
+      const jsonString = JSON.stringify(reportJson.value)
+      const blob = new Blob([jsonString], { type: "application/json" })
+      const data = {
+        id: currentReportId.value,
+        status: !hasProperty(reportJson.value, "errorList") ? 2 : 3,
+        userId: userStore.userid,
+        mode: "question"
+      }
+      const formData = new FormData()
+      for (const key in data) {
+        formData.append(key, data[key])
+      }
+      formData.append("file", blob, "data.json")
+      checkReportPassApi(formData)
+        .then((res) => {
+          if (res.msg === "success") {
+            loading.value = false
+            operatorDialog.value = false
           }
         })
-        const jsonString = JSON.stringify(reportJson.value)
-        const blob = new Blob([jsonString], { type: "application/json" })
-        const data = {
-          id: currentReportId.value,
-          status: !hasProperty(reportJson.value, "errorList") ? 2 : 3,
-          userId: userStore.userid,
-          mode: "question"
-        }
-        const formData = new FormData()
-        for (const key in data) {
-          formData.append(key, data[key])
-        }
-        formData.append("file", blob, "data.json")
-        checkReportPassApi(formData)
-          .then((res) => {
-            if (res.msg === "success") {
-              loading.value = false
-              operatorDialog.value = false
-            }
-          })
-          .finally(() => {
-            getTableData()
-            updateLoading.value = false
-          })
-      })
+        .finally(() => {
+          getTableData()
+          updateLoading.value = false
+        })
     } else {
       checkTempReportDataApi({ id: currentReportId.value }).then((res) => {
         reportJson.value = JSON.parse(JSON.stringify(res.data))
         questionList.value.forEach((item) => {
-          if (item["value"] === true) {
-            delete item["value"]
+          if (item["continue"] === true) {
+            delete item["continue"]
             questionDevPass(item)
-          } else if (item["value"] === false) {
-            delete item["value"]
+          } else if (item["continue"] === false) {
+            delete item["continue"]
             questionDevError(item)
           }
         })
@@ -1208,7 +487,7 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
         </el-table-column>
         <el-table-column align="center" label="留存图片" width="550">
           <template #default="scope">
-            <div style="display: flex" v-if="scope.row['pass'] !== true">
+            <div style="display: flex" v-if="scope.row['continue'] !== true">
               <el-text style="margin-right: 5px; width: 15px">共{{ scope.row.content.question.url.length }}张</el-text>
               <el-link style="margin-left: 5px; width: 10px" :underline="false" @click="uploadNew(scope.$index)"
                 >上传新图片</el-link
@@ -1260,10 +539,10 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
         <el-table-column align="center" fixed="right" label="操作" width="150">
           <template #default="scope">
             <el-button-group is-button>
-              <el-button :type="scope.row['pass'] === true ? 'success' : ''" @click="scope.row['pass'] = true"
+              <el-button :type="scope.row['continue'] === true ? 'success' : ''" @click="scope.row['continue'] = true"
                 >通过</el-button
               >
-              <el-button :type="scope.row['pass'] === false ? 'danger' : ''" @click="scope.row['pass'] = false"
+              <el-button :type="scope.row['continue'] === false ? 'danger' : ''" @click="scope.row['continue'] = false"
                 >缺陷</el-button
               >
             </el-button-group>
@@ -1291,7 +570,7 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
         </el-table-column>
         <el-table-column align="center" label="疑问图片" width="550">
           <template #default="scope">
-            <div style="display: flex" v-if="scope.row['value'] !== true">
+            <div style="display: flex" v-if="scope.row['continue'] !== true">
               <el-text style="margin-right: 5px; width: 15px">共{{ scope.row.question.url.length }}张</el-text>
               <el-link style="margin-left: 5px; width: 10px" :underline="false" @click="uploadNew(scope.$index)"
                 >上传新图片</el-link
@@ -1343,10 +622,10 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
         <el-table-column align="center" fixed="right" label="操作" width="150">
           <template #default="scope">
             <el-button-group is-button>
-              <el-button :type="scope.row['value'] === true ? 'success' : ''" @click="scope.row['value'] = true"
+              <el-button :type="scope.row['continue'] === true ? 'success' : ''" @click="scope.row['continue'] = true"
                 >通过</el-button
               >
-              <el-button :type="scope.row['value'] === false ? 'danger' : ''" @click="scope.row['value'] = false"
+              <el-button :type="scope.row['continue'] === false ? 'danger' : ''" @click="scope.row['continue'] = false"
                 >缺陷</el-button
               >
             </el-button-group>
