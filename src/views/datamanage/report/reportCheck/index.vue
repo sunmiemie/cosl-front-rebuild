@@ -790,6 +790,7 @@ const reGetReport = () => {
     loading.value = false
     getErrorQuestionWarnList()
     reportJson.value = res.data
+    console.log(reportJson.value)
   })
 }
 onMounted(() => {
