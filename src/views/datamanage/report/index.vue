@@ -9,9 +9,7 @@ import { getReportCheckDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
-import { useSettingsStore } from "@/store/modules/settings"
 
-const settingsStore = useSettingsStore()
 const loading = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
@@ -87,13 +85,6 @@ const userId = useUserStore().userid
 const getTableData = () => {
   loading.value = true
 
-  // const { page } = router.currentRoute.value.query
-  // if (page) {
-  //   paginationData.currentPage = Number(page)
-  // }
-  // 更新每页显示多少个结果的设置
-  // settingsStore.setItemsPerPage(paginationData.pageSize)
-
   getReportCheckDataApi({
     currentPage: paginationData.currentPage,
     size: paginationData.pageSize,
@@ -121,8 +112,6 @@ const handleLink = (data: any, i: string) => {
     } else {
       router.push({name: "checkTempReport", query: data})
     }
-  } else {
-    return
   }
 }
 
@@ -144,8 +133,6 @@ onMounted(() => {
   if (page) {
     paginationData.currentPage = Number(page)
   }
-  // 获取每页显示多少个结果的设置
-  // paginationData.pageSize = settingsStore.itemsPerPage
   getTableData()
 })
 

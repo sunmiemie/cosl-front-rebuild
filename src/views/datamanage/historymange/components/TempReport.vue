@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, reactive, ref, watch } from "vue"
+import {computed, onMounted, reactive, ref, watch} from "vue"
 import { useRouter } from "vue-router"
 import { ElButton, ElMessage, type FormInstance } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
@@ -15,6 +15,15 @@ const loading = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
 const router = useRouter()
+// Load saved page size from localStorage
+const savedPageSize = localStorage.getItem('pageSize')
+if (savedPageSize) {
+  paginationData.pageSize = parseInt(savedPageSize)
+}
+// Watch for changes in page size and save to localStorage
+watch(() => paginationData.pageSize, (newSize) => {
+  localStorage.setItem('pageSize', newSize.toString())
+})
 const DialogCheck = ref(false)
 
 interface TestCheckType {
@@ -97,6 +106,7 @@ const getTableData = () => {
     .then((res) => {
       tableData.value = res.data.list
       paginationData.total = res.data.total
+      router.push({ query: { ...router.currentRoute.value.query, page: res.data.currentPage } })
       for (let i = 0; i < tableData.value.length; i++) {
         tableData.value[i].link = defineLink(tableData.value[i].status, tableData.value[i].report_generated)
       }
@@ -153,7 +163,7 @@ const resetSearch = () => {
   handleSearch()
 }
 // 显式暴露方法供父组件调用
-defineExpose({ resetSearch })
+defineExpose({ resetSearch, getTableData })
 
 const selectedRows = ref<any>([])
 const selectedRowCount = computed(() => selectedRows.value.length)
@@ -262,9 +272,17 @@ const getInstrumentsData = () => {
   })
 }
 
+onMounted(() => {
+  const { page } = router.currentRoute.value.query
+  if (page) {
+    paginationData.currentPage = Number(page)
+  }
+  getTableData()
+})
+
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, {
-  immediate: true
+  immediate: false
 })
 </script>
 

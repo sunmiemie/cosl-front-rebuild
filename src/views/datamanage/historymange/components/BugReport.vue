@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, reactive, ref, watch } from "vue"
+import {computed, onMounted, reactive, ref, watch} from "vue"
 import {ElButton, ElMessage, type FormInstance, TabsPaneContext} from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
@@ -8,8 +8,21 @@ import { getBugReportDataApi, setDownloadSuccessApi } from "@/api/report"
 import ProdBoard from "@/views/datamanage/historymange/components/bug_report/ProdBoard.vue"
 import TempBoard from "@/views/datamanage/historymange/components/bug_report/TempBoard.vue"
 import { downloadFile } from "@/views/datamanage/historymange/components/utils";
+import { useRouter } from "vue-router"
 
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+
+const router = useRouter()
+
+// Load saved page size from localStorage
+const savedPageSize = localStorage.getItem('pageSize')
+if (savedPageSize) {
+  paginationData.pageSize = parseInt(savedPageSize)
+}
+// Watch for changes in page size and save to localStorage
+watch(() => paginationData.pageSize, (newSize) => {
+  localStorage.setItem('pageSize', newSize.toString())
+})
 
 const loading = ref(false)
 
@@ -48,7 +61,8 @@ const getTableData = () => {
   }).then((res) => {
     TableData.value = res.data.list
     paginationData.total = res.data.total
-
+    router.push({ query: { ...router.currentRoute.value.query, page: res.data.currentPage } })
+    paginationData.currentPage = res.data.currentPage
     loading.value = false
   })
 }
@@ -84,7 +98,7 @@ const resetSearch = () => {
   handleSearch()
 }
 // 显式暴露方法供父组件调用
-defineExpose({ resetSearch })
+defineExpose({ resetSearch, getTableData })
 
 const selectedRows = ref<any>([])
 const selectedRowCount = computed(() => selectedRows.value.length)
@@ -162,9 +176,17 @@ const handleCloseDialog = () => {
   }
 }
 
+onMounted(() => {
+  const { page } = router.currentRoute.value.query
+  if (page) {
+    paginationData.currentPage = Number(page)
+  }
+  getTableData()
+})
+
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, {
-  immediate: true
+  immediate: false
 })
 </script>
 

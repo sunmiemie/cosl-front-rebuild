@@ -60,7 +60,7 @@ onMounted(() => {
   if (tab === "prod" && prodReportComponent.value) {
     prodReportComponent.value.resetSearch()
   } else if (tab === "temp" && tempReportComponent.value) {
-    tempReportComponent.value.resetSearch()
+    tempReportComponent.value.getTableData()
   } else if (tab === "bug" && bugReportComponent.value) {
     bugReportComponent.value.resetSearch()
   } else if (tab === "batch" && batchReportComponent.value) {
