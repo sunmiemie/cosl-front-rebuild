@@ -92,7 +92,7 @@ const getErrorQuestionWarnList = () => {
 // 缺陷项操作
 // NOTE 缺陷项通过
 const errorPass = (obj) => {
-  ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
+  ElMessageBox.confirm("设置为通过会移除该检测项,确认设置为通过吗？", "通过确认", {
     confirmButtonText: "确认",
     cancelButtonText: "取消",
     type: "warning"
@@ -105,7 +105,10 @@ const errorPass = (obj) => {
       }
     })
     if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 2) {
-      reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 1
+      reportJson.value.json.tempTest.splice(
+        reportJson.value.json.tempTest.findIndex((item) => item.id === obj.id),
+        1
+      )
       reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "通过项"
       reportJson.value.json.tempTest.find((item) => item.id === obj.id).desc = "通过"
     } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
@@ -157,7 +160,7 @@ const errorQuestion = (obj) => {
 // 疑问项操作
 // NOTE 疑问项通过
 const questionPass = (obj) => {
-  ElMessageBox.confirm("确认设置为通过吗？", "通过确认", {
+  ElMessageBox.confirm("设置为通过会移除该检测项,确认设置为通过吗？", "通过确认", {
     confirmButtonText: "确认",
     cancelButtonText: "取消",
     type: "warning"
@@ -170,9 +173,10 @@ const questionPass = (obj) => {
       }
     })
     if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3) {
-      reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 1
-      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "通过项"
-      reportJson.value.json.tempTest.find((item) => item.id === obj.id).desc = "通过"
+      reportJson.value.json.tempTest.splice(
+        reportJson.value.json.tempTest.findIndex((item) => item.id === obj.id),
+        1
+      )
     } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
       reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 2
       reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "缺陷项"
