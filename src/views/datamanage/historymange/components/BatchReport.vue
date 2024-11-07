@@ -122,12 +122,12 @@ const downloadReport = async (data: any) => {
   const downloadSuccessful = await downloadFile(downloadUrl, data.file_name)
 
   if (downloadSuccessful) {
-    setDownloadSuccessApi(data.report_id, {report_type: '批次报告'})
+    setDownloadSuccessApi(data.report_id, "批次报告")
       .then(() => {
         getTableData()
       })
   } else {
-    ElMessage.error('下载失败')
+    ElMessage.error("下载失败")
   }
 }
 
@@ -140,7 +140,7 @@ const downloadReports = async () => {
     const downloadPromise =  await downloadFile(downloadUrl, item.file_name)
       .then(async (downloadSuccessful) => {
         if (downloadSuccessful) {
-          await setDownloadSuccessApi(item.report_id, {report_type: '批次报告'})
+          await setDownloadSuccessApi(item.report_id, "批次报告")
         } else {
           ElMessage.error('下载失败')
         }

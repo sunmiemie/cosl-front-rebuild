@@ -123,12 +123,12 @@ const handleLink = async (data: any, i: string) => {
     const downloadUrl = `${import.meta.env.VITE_BASE_API}data/devreport/pdf/download/${data.report_pdf_filepath}?id=${data.id}`
     const downloadSuccessful = await downloadFile(downloadUrl, data.report_pdf_filepath)
     if (downloadSuccessful) {
-      setDownloadSuccessApi(data.id, {report_type: '临时报告'})
+      setDownloadSuccessApi(data.id, "临时报告")
         .then(() => {
           getTableData()
         })
     } else {
-      ElMessage.error('下载失败')
+      ElMessage.error("下载失败")
     }
   } else if (i === "查看") {
     router.push({ name: "tempReportView", query: data })
@@ -215,9 +215,9 @@ const downloadReports = async () => {
         const downloadPromise =  await downloadFile(downloadUrl, item.report_pdf_filepath)
           .then(async (downloadSuccessful) => {
             if (downloadSuccessful) {
-              await setDownloadSuccessApi(item.id, {report_type: '临时报告'})
+              await setDownloadSuccessApi(item.id, "临时报告")
             } else {
-              ElMessage.error('下载失败')
+              ElMessage.error("下载失败")
             }
           })
 
