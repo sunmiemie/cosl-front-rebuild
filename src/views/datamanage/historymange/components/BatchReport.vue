@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref, watch} from "vue"
-import {ElButton, ElMessage, type FormInstance, TabsPaneContext} from "element-plus"
+import { computed, onMounted, reactive, ref, watch } from "vue"
+import { ElButton, ElMessage, type FormInstance, TabsPaneContext } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
@@ -9,7 +9,6 @@ import ProdBoard from "@/views/datamanage/historymange/components/batch_report/P
 import TempBoard from "@/views/datamanage/historymange/components/batch_report/TempBoard.vue"
 import { downloadFile } from "@/views/datamanage/historymange/components/utils";
 import { useRouter } from "vue-router"
-
 
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
@@ -137,7 +136,7 @@ const downloadReports = async () => {
 
   for (const item of selectedRows.value) {
     const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/download-batch-report/${item.file_name}?id=${item.report_id}`
-    const downloadPromise =  await downloadFile(downloadUrl, item.file_name)
+    const downloadPromise = await downloadFile(downloadUrl, item.file_name)
       .then(async (downloadSuccessful) => {
         if (downloadSuccessful) {
           await setDownloadSuccessApi(item.report_id, "批次报告")
