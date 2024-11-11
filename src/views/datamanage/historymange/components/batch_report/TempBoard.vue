@@ -294,7 +294,7 @@ onMounted(getTempTreeData)
                         type="primary"
                         @click="handleCreate"
                         :disabled="selectedRows.length <= 0"
-                      >生成缺陷报告</el-button
+                      >生成批次报告</el-button
                       >
                     </div>
                   </el-form>
