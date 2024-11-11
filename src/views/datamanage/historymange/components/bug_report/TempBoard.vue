@@ -5,7 +5,7 @@ import type { CheckboxValueType } from 'element-plus'
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForBugReport } from "@/api/report"
 import {getBugReportDevTestTypeDataApi, getDevTestTypeDataApi} from "@/api/testtype"
-import {getTransactionTree} from "@/api/report";
+import { getTransactionTree } from "@/api/report";
 import { useUserStore } from "@/store/modules/user"
 import { generateDevBugReport } from "@/api/report"
 
@@ -22,7 +22,8 @@ const boardInfoLoading = ref(false)
 const selectedRows = ref<any>([])
 const addHeaders = ref([
   { prop: "id", label: "电路板ID", align: "center" },
-  { prop: "serial_num", label: "电路板序列号", align: "center" }
+  { prop: "serial_num", label: "电路板序列号", align: "center" },
+  { prop: "info", label: "电路板型号名称", align: "center" }
 ])
 
 const searchFormRef = ref<FormInstance | null>(null)

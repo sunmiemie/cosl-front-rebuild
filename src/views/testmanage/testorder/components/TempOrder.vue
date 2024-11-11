@@ -1,7 +1,7 @@
 <!-- 临时测试工单 -->
 
 <script lang="ts" setup>
-import { computed, reactive, ref, watch } from "vue"
+import {computed, h, reactive, ref, watch} from "vue"
 import { useRouter } from "vue-router"
 import { ElMessage, ElMessageBox, ElTable, ElTree, type FormInstance, TabsPaneContext } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
@@ -16,10 +16,12 @@ import {
   publishDevTestUnitApi,
   deleteDevTestUnitApi,
   postUnits,
-  postDevUnits
+  postDevUnits,
+  invalidTestUnitApi
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { checkReportDataApi, getSingleDevReportDataApi, getSingleReportDataApi } from "@/api/report"
+import {Warning} from "@element-plus/icons-vue";
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -92,19 +94,19 @@ const clearSearchData = () => {
 const defineLink = (status: any) => {
   switch (status) {
     case "0":
-      return { 1: "发布", 2: "删除" }
+      return { 1: "发布", 2: "删除", 3: "作废" }
     case "1":
-      return { 1: "详情", 2: "导出工单", 3: "导入报告" }
+      return { 1: "详情", 2: "导出工单", 3: "导入报告", 4: "作废" }
     case "2":
     case "3":
     case "4":
     case "7":
     case "8":
-      return { 1: "详情" }
+      return { 1: "详情", 2: "作废" }
     case "5":
-      return { 1: "详情", 2: "查看报告" }
+      return { 1: "详情", 2: "查看报告", 3: "作废" }
     case "6":
-      return { 1: "详情", 2: "查看报告", 3: "查看缺陷" }
+      return { 1: "详情", 2: "查看报告", 3: "查看缺陷", 4: "作废" }
   }
 }
 const getTableLinkData = () => {
@@ -151,6 +153,23 @@ const handleLink = (data: any, i: string) => {
     postVisible.value = true
     postFormInfo = data
     postOrDelete.value = "发布"
+  } else if (i === "作废") {
+    ElMessageBox.confirm("确定作废这个工单吗？", "警告", {
+      type: "warning",
+      icon: h(Warning, { style: "color: orange;" }),
+      confirmButtonText: "确认",
+      cancelButtonText: "取消",
+      confirmButtonClass: "el-button--warning",
+      cancelButtonClass: "el-button--default"
+    }).then(() => {
+      invalidTestUnitApi(data["dev_testunit_id"], "temp")
+        .then(() => {
+          getMangeData()
+        })
+        .catch((err) => {
+          ElMessage.error(err.response.data.error)
+        })
+    })
   } else if (i === "删除") {
     postVisible.value = true
     postFormInfo = data

@@ -5,13 +5,9 @@ import type { CheckboxValueType } from 'element-plus'
 import TableComponent from "@/components/Table/index.vue"
 import {generateDevBatchReport, getboardsinfoForBugReport} from "@/api/report"
 import { getDevTestTypeDataApi } from "@/api/testtype"
-import {getTransactionTree} from "@/api/report";
-// import { useUserStore } from "@/store/modules/user"
-import { generateDevBugReport } from "@/api/report"
+import { getTransactionTree } from "@/api/report"
 
-const emit = defineEmits(['close-dialog', 'fetch-batch-reports'])
-
-// const userId = useUserStore().userid
+const emit = defineEmits(["close-dialog", "fetch-batch-reports"])
 
 const currentRow = ref<any>()
 const showFlags = ref<any>(true)
@@ -22,7 +18,8 @@ const boardInfoLoading = ref(false)
 const selectedRows = ref<any>([])
 const addHeaders = ref([
   { prop: "id", label: "电路板ID", align: "center" },
-  { prop: "serial_num", label: "电路板序列号", align: "center" }
+  { prop: "serial_num", label: "电路板序列号", align: "center" },
+  { prop: "info", label: "电路板型号名称", align: "center" }
 ])
 
 const searchFormRef = ref<FormInstance | null>(null)
@@ -66,6 +63,7 @@ const clickNode = async (data: NodeData & any, node: any) => {
   if (node.data.children) {
     return
   }
+
   // 点击叶子节点，设置批次ID和型号
   boardInfoLoading.value = true
   currentRow.value = undefined
@@ -89,14 +87,7 @@ const clickNode = async (data: NodeData & any, node: any) => {
   boardInfoLoading.value = false
   getTestTypeData()
 }
-// const getTestTypeData = () => {
-//   getTestTypeDataApi({
-//     currentPage: 1,
-//     size: 9999999
-//   }).then((res) => {
-//     testTypeList.value = res.data.list
-//   })
-// }
+
 const getTestTypeData = () => {
   const board_ids = selectedRows.value.map((board) => parseInt(board.id, 10))
   getDevTestTypeDataApi({
@@ -128,6 +119,7 @@ const tempTreeLoading = ref(false)
 
 async function getTempTreeData() {
   tempTreeLoading.value = true
+
   try {
     const result = await getTransactionTree()
     tempTreeData.value = result.Pathdata
@@ -302,7 +294,7 @@ onMounted(getTempTreeData)
                         type="primary"
                         @click="handleCreate"
                         :disabled="selectedRows.length <= 0"
-                      >生成缺陷报告</el-button
+                      >生成批次报告</el-button
                       >
                     </div>
                   </el-form>

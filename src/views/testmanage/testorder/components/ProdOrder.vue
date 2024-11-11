@@ -1,9 +1,9 @@
 <!-- 生产测试工单 -->
 
 <script lang="ts" setup>
-import { reactive, ref, watch, type Ref, computed } from "vue"
+import {reactive, ref, watch, type Ref, computed, h} from "vue"
 import { useRouter } from "vue-router"
-import { ElMessage, ElTable, ElTree, type FormInstance } from "element-plus"
+import {ElMessage, ElMessageBox, ElTable, ElTree, type FormInstance} from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
 import { useUserStore } from "@/store/modules/user"
@@ -15,11 +15,14 @@ import {
   createTestUnitApi,
   publicTestUnitApi,
   deleteTestUnitApi,
-  postUnits
+  postUnits,
+  invalidTestUnitApi
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
 import { checkReportDataApi, getSingleReportDataApi } from "@/api/report"
+import {Delete, Warning} from "@element-plus/icons-vue";
+import {deleteInstrumentDataApi} from "@/api/instrument";
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -102,19 +105,19 @@ const defineLink = (status: any) => {
   switch (status) {
     // 发布/删除工单需要权限
     case "0":
-      return { 1: "发布", 2: "删除" }
+      return { 1: "发布", 2: "删除", 3: "作废" }
     case "1":
-      return { 1: "详情", 2: "导出工单", 3: "导入报告" }
+      return { 1: "详情", 2: "导出工单", 3: "导入报告", 4: "作废" }
     case "2":
     case "3":
     case "4":
     case "7":
     case "8":
-      return { 1: "详情" }
+      return { 1: "详情", 2: "作废" }
     case "5":
-      return { 1: "详情", 2: "查看报告" }
+      return { 1: "详情", 2: "查看报告", 3: "作废" }
     case "6":
-      return { 1: "详情", 2: "查看报告", 3: "查看缺陷" }
+      return { 1: "详情", 2: "查看报告", 3: "查看缺陷", 4: "作废" }
   }
 }
 
@@ -157,6 +160,23 @@ const handleLink = (data: any, i: string) => {
     PublicVisible.value = true
     postFormInfo = data
     postOrDelete.value = "发布"
+  } else if (i === "作废") {
+    ElMessageBox.confirm("确定作废这个工单吗？", "警告", {
+      type: "warning",
+      icon: h(Warning, { style: "color: orange;" }),
+      confirmButtonText: "确认",
+      cancelButtonText: "取消",
+      confirmButtonClass: "el-button--warning",
+      cancelButtonClass: "el-button--default"
+    }).then(() => {
+      invalidTestUnitApi(data["testunit_id"], "prod")
+        .then(() => {
+          getTestunits()
+        })
+        .catch((err) => {
+          ElMessage.error(err.response.data.error)
+        })
+    })
   } else if (i === "删除") {
     PublicVisible.value = true
     postFormInfo = data
@@ -505,7 +525,7 @@ async function getTestunits() {
 
   const tableResult = await getTestMangeTable(params)
   TableData.value = tableResult.TableData
-  // console.log(TableData.value)
+  console.log(TableData.value)
   getTableLinkData()
   paginationData.total = tableResult.total
 

@@ -46,7 +46,7 @@ export function getBatchReportDataApi(params: {
 }
 export const getTransactionTree = (): Promise<TestMange.getTestMangePathType> => {
   return request<TestMange.getTestMangePathType>({
-    url: "data/temp-transaction",
+    url: "data/temp-transaction-tree",
     method: "get"
   })
 }
@@ -64,6 +64,7 @@ export const generateBugReport = (data: any) => {
     data
   })
 }
+
 export const generateBatchReport = (data: any) => {
   return request({
     url: "data/report/batch-report-generate",
@@ -71,11 +72,12 @@ export const generateBatchReport = (data: any) => {
     data
   })
 }
+
 export const setDownloadSuccessApi = (report_id: number, report_type: string) => {
   return request({
     url: `data/report/set-download-success/${report_id}`,
     method: "post",
-    data: report_type
+    data: { report_type }
   })
 }
 

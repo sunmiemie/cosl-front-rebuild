@@ -19,7 +19,7 @@ const loading = ref(false)
 /** 登录表单数据 */
 const loginFormData: LoginRequestData = reactive({
   username: "admin",
-  password: "12345678",
+  password: "qwaszx.111",
   code: ""
 })
 /** 登录表单校验规则 */

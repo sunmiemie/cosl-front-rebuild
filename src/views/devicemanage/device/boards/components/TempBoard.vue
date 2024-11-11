@@ -239,7 +239,8 @@ const previewDialogVisible = ref<boolean>(false)
 const preview = reactive<any>({
   tempBoardData: [],
   testUnitData: [],
-  batches: []
+  batches: [],
+  instrumentName: ""
 })
 
 const previewLoading = ref<boolean>(false)
@@ -256,6 +257,7 @@ const generatePreview = () => {
       preview.tempBoardData = data.preview_temp_boards
       preview.testUnitData = data.preview_dev_testunit
       preview.batches = data.batches_gen
+      preview.instrumentName = data.instrument_name
       // console.log(preview.testUnitData)
 
       previewDialogVisible.value = true
@@ -277,7 +279,8 @@ const bulkImport = () => {
     username: username,
     tempBoardData: preview.tempBoardData,
     testUnitData: preview.testUnitData,
-    batches: preview.batches
+    batches: preview.batches,
+    instrumentName: preview.instrumentName
   })
     .then(() => {
       ElMessage.success("新增成功")
