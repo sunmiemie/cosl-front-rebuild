@@ -35,6 +35,7 @@ export function getTestTypeDataApi(params: { size: number; currentPage: number; 
     params
   })
 }
+// 为了方便传递列表参数，使用post请求
 export function getBoardTestTypeDataApi(data: any) {
   return request({
     url: "test/board-testtype/list/",
@@ -42,6 +43,7 @@ export function getBoardTestTypeDataApi(data: any) {
     data
   })
 }
+// 为了方便传递列表参数，使用post请求
 export function getBugReportTestTypeDataApi(data: any) {
   return request({
     url: "test/bug-report-testtype/list/",

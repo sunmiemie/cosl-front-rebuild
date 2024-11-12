@@ -141,7 +141,13 @@ export const getTestunitsByBatchApi = ({ batchId, currentPage, pageSize }) =>
       pageSize
     }
   })
-
+export const invalidTestUnitApi = (id: number, testUnitType: string) => {
+  return request({
+    url: `test/invalid-testunit/${id}`,
+    method: "post",
+    data: { type: testUnitType }
+  })
+}
 export const getTempTestMangeTable = ({
   number,
   TestName,

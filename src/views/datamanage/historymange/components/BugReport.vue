@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref, watch} from "vue"
-import {ElButton, ElMessage, type FormInstance, TabsPaneContext} from "element-plus"
+import { computed, onMounted, reactive, ref, watch } from "vue"
+import { ElButton, ElMessage, type FormInstance, TabsPaneContext } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
@@ -15,7 +15,7 @@ const { paginationData, handleCurrentChange, handleSizeChange } = usePagination(
 const router = useRouter()
 
 // Load saved page size from localStorage
-const savedPageSize = localStorage.getItem('pageSize')
+const savedPageSize = localStorage.getItem("pageSize")
 if (savedPageSize) {
   paginationData.pageSize = parseInt(savedPageSize)
 }
@@ -138,12 +138,12 @@ const downloadReport = async (data: any) => {
   const downloadSuccessful = await downloadFile(downloadUrl, data.file_name)
 
   if (downloadSuccessful) {
-    setDownloadSuccessApi(data.report_id, {report_type: '缺陷报告'})
+    setDownloadSuccessApi(data.report_id, "缺陷报告")
       .then(() => {
         getTableData()
       })
   } else {
-    ElMessage.error('下载失败')
+    ElMessage.error("下载失败")
   }
 }
 
@@ -156,7 +156,7 @@ const downloadReports = async () => {
     const downloadPromise =  await downloadFile(downloadUrl, item.file_name)
       .then(async (downloadSuccessful) => {
         if (downloadSuccessful) {
-          await setDownloadSuccessApi(item.report_id, {report_type: '缺陷报告'})
+          await setDownloadSuccessApi(item.report_id, "缺陷报告")
         } else {
           ElMessage.error('下载失败')
         }
