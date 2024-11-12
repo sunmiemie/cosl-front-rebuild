@@ -39,8 +39,8 @@
       </el-card>
       <!-- 功能性测试 -->
       <el-card v-else-if="testTypeShow === '功能性测试'" class="flex-card" style="margin: 20px">
-        <el-row>
-          <el-col :span="7">
+        <el-row :gutter="15">
+          <el-col :span="12">
             <el-text size="large">1.填写测试工艺信息</el-text>
             <el-form :model="form" style="margin: 10px 0">
               <el-form-item label="工艺名称:">
@@ -59,7 +59,7 @@
               </el-form-item>
             </el-form>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="12">
             <el-text size="large">2.选择绑定设备</el-text>
             <el-form :model="form" style="margin: 10px 0">
               <el-form-item label="绑定夹具:">
@@ -90,7 +90,9 @@
               </el-form-item>
             </el-form>
           </el-col>
-          <el-col :span="8">
+        </el-row>
+        <el-row :gutter="15" style="margin-top: 10px">
+          <el-col :span="12">
             <el-text class="mx-1" size="large">3.上传测试脚本</el-text>
             <el-upload
               v-model:file-list="fileList"
@@ -111,13 +113,30 @@
               </template>
             </el-upload>
           </el-col>
+          <el-col :span="12">
+            <el-text class="mx-1" size="large">4.上传文件</el-text>
+            <el-upload
+              multiple
+              v-model:file-list="otherFileList"
+              :auto-upload="false"
+              :on-change="handleOtherFileChange"
+              :show-file-list="true"
+              drag
+              style="margin: 10px 0"
+            >
+              <el-icon class="el-icon--upload">
+                <upload-filled />
+              </el-icon>
+              <div class="el-upload__text">拖拽文件至此或 <em>点击上传文件</em></div>
+            </el-upload>
+          </el-col>
         </el-row>
         <template #footer>
           <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id === ''">
             <el-button @click="router.push('/testmanage/testprocess')">取消</el-button>
             <el-button style="margin-left: 10px" type="primary" @click="handleAddFuncProcess">确认新增</el-button>
           </div>
-          <div style="display: flex; justify-content: flex-end" v-if="testStore.test_process_id !== ''">
+          <div style="display: flex; justify-content: flex-end" v-else>
             <el-button @click="router.push('/testmanage/testprocess')">取消</el-button>
             <el-button style="margin-left: 10px" type="primary" @click="handleUpdateFuncProcess">确认修改</el-button>
           </div>
@@ -451,6 +470,7 @@ const equipmentModelList = ref<any>([])
 const eyesFile = ref<any>(null)
 const xrayFile = ref<any>(null)
 const fileList = ref<UploadUserFile[]>([])
+const otherFileList = ref<UploadUserFile[]>([])
 const showprocessRight = ref<any>(true)
 const form = reactive<any>({
   name: "",
@@ -672,6 +692,9 @@ const handleFileChange = (file: any) => {
   xrayFile.value = file.raw
   fileList.value.push({ name: file.name, url: URL.createObjectURL(file.raw) })
 }
+const handleOtherFileChange = (file: any) => {
+  otherFileList.value.push({ name: file.name, url: URL.createObjectURL(file.raw) })
+}
 const handleAddEyesProcess = () => {
   ElMessageBox.confirm("确认提交工艺吗？", "提交确认", {
     confirmButtonText: "确认",
@@ -743,11 +766,14 @@ const handleAddFuncProcess = () => {
       testtype: form.curTypeId,
       userId: userStore.userid
     }
-    const fromData = new FormData()
+    const formData = new FormData()
     for (const key in data) {
-      fromData.append(key, data[key])
+      formData.append(key, data[key])
     }
-    uploadfuncttest(fromData).then((res) => {
+    otherFileList.value.forEach((file: any) => {
+      formData.append('otherFiles', file.raw)
+    })
+    uploadfuncttest(formData).then((res) => {
       if (res.code == 0) {
         ElMessage.success("新增成功")
         router.push("/testmanage/testprocess")
