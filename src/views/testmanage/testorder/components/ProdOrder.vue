@@ -109,15 +109,16 @@ const defineLink = (status: any) => {
     case "1":
       return { 1: "详情", 2: "导出工单", 3: "导入报告", 4: "作废" }
     case "2":
+      return { 1: "详情", 2: "作废" }
     case "3":
     case "4":
     case "7":
     case "8":
-      return { 1: "详情", 2: "作废" }
+      return { 1: "详情" }
     case "5":
-      return { 1: "详情", 2: "查看报告", 3: "作废" }
+      return { 1: "详情", 2: "查看报告" }
     case "6":
-      return { 1: "详情", 2: "查看报告", 3: "查看缺陷", 4: "作废" }
+      return { 1: "详情", 2: "查看报告", 3: "查看缺陷" }
   }
 }
 
