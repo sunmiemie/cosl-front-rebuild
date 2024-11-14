@@ -98,9 +98,9 @@ const tempBoardComponent = ref<InstanceType<typeof TempBoard> | null>(null)
 
 const handleTabClick = (tab: TabsPaneContext) => {
   if (tab.props.name === "first" && prodBoardComponent.value) {
-    prodBoardComponent.value.getTreeData()
+    prodBoardComponent.value.resetTree()
   } else if (tab.props.name === "second" && tempBoardComponent.value) {
-    tempBoardComponent.value.getTempTreeData()
+    tempBoardComponent.value.resetTree()
   }
 }
 

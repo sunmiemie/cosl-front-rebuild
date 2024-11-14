@@ -3,9 +3,11 @@ import { reactive, ref, watch, type Ref, onMounted, computed } from "vue"
 import { ElMessage, ElTree, type FormInstance, type FormRules } from "element-plus"
 import type { CheckboxValueType } from 'element-plus'
 import TableComponent from "@/components/Table/index.vue"
-import {generateDevBatchReport, getboardsinfoForBugReport} from "@/api/report"
+import { generateDevBatchReport, getboardsinfoForBugReport } from "@/api/report"
 import { getDevTestTypeDataApi } from "@/api/testtype"
 import { getTransactionTree } from "@/api/report"
+import { Search } from "@element-plus/icons-vue";
+import { getBoardDataBySn } from "@/api/board";
 
 const emit = defineEmits(["close-dialog", "fetch-batch-reports"])
 
@@ -199,14 +201,35 @@ const handleCheckAll = (val: CheckboxValueType) => {
 }
 
 const cancelGenerateReport = () => {
+  boardSerialNumber.value = ""
   clearTableSelection()
   value.value = []
   showFlags.value = true
   emit("close-dialog")
 }
 
+const boardSerialNumber = ref("")
+
+const searchSerialNumber = async () => {
+  // <el-text>{{ CircuitBoardModel }}</el-text>
+  // <el-text>流水号：{{ Batch }}</el-text>
+  // <el-text>流水：{{ CircuitBatch }}</el-text>
+  try {
+    const res = await getBoardDataBySn(boardSerialNumber.value)
+    tempTreeData.value = res.data
+  } catch (error) {
+    ElMessage.error(error.response.data.errormessage)
+  }
+}
+
+const resetTree = () => {
+  boardSerialNumber.value = ""
+  filterText.value = ""
+  getTempTreeData()
+}
+
 // 显式暴露方法供父组件调用
-defineExpose({ getTempTreeData, clearOrderInfo, clearTableSelection, cancelGenerateReport })
+defineExpose({ resetTree, getTempTreeData, clearOrderInfo, clearTableSelection, cancelGenerateReport })
 
 onMounted(getTempTreeData)
 </script>
@@ -216,7 +239,12 @@ onMounted(getTempTreeData)
     <el-col :span="6">
       <el-card shadow="never" v-loading="tempTreeLoading">
         <template #header>
-          <el-input v-model="filterText" placeholder="搜索" />
+          <div style="margin-bottom: 5px; display: flex; gap: 3px">
+            <el-input v-model="boardSerialNumber" clearable placeholder="搜索 SN 号" />
+            <el-button :disabled="boardSerialNumber.trim() === ''" @click="searchSerialNumber" type="primary" :icon="Search" style="opacity: 0.7" />
+            <el-button @click="resetTree" type="primary" style="opacity: 0.7" plain>重置</el-button>
+          </div>
+          <el-input v-model="filterText" clearable placeholder="搜索目录" />
         </template>
         <el-scrollbar max-height="600px">
           <el-tree
