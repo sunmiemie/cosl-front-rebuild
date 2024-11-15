@@ -98,9 +98,9 @@ const tempBoardComponent = ref<InstanceType<typeof TempBoard> | null>(null)
 
 const handleTabClick = (tab: TabsPaneContext) => {
   if (tab.props.name === "first" && prodBoardComponent.value) {
-    prodBoardComponent.value.getTreeData()
+    prodBoardComponent.value.resetTree()
   } else if (tab.props.name === "second" && tempBoardComponent.value) {
-    tempBoardComponent.value.getTempTreeData()
+    tempBoardComponent.value.resetTree()
   }
 }
 
@@ -117,7 +117,7 @@ const newBatchReports = () => {
 
 // 下载单个报告
 const downloadReport = async (data: any) => {
-  const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/download-batch-report/${data.file_name}?id=${data.report_id}`
+  const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/download-batch-report?id=${data.report_id}`
   const downloadSuccessful = await downloadFile(downloadUrl, data.file_name)
 
   if (downloadSuccessful) {
@@ -135,7 +135,7 @@ const downloadReports = async () => {
   const downloadPromises = []
 
   for (const item of selectedRows.value) {
-    const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/download-batch-report/${item.file_name}?id=${item.report_id}`
+    const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/download-batch-report?id=${item.report_id}`
     const downloadPromise = await downloadFile(downloadUrl, item.file_name)
       .then(async (downloadSuccessful) => {
         if (downloadSuccessful) {

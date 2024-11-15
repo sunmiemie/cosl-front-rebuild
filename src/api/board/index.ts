@@ -41,3 +41,17 @@ export function getBoardDataApi(params: {
     params
   })
 }
+
+export function getBoardDataBySn(serialNumber: string) {
+  return request({
+    url: `equipment/board/${serialNumber}`,
+    method: "get"
+  })
+}
+
+export function getProdBoardDataBySn(serialNumber: string) {
+  return request({
+    url: `equipment/prod-board/${serialNumber}`,
+    method: "get"
+  })
+}
