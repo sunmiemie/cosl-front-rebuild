@@ -3,7 +3,7 @@ import { reactive, ref, watch, type Ref, onMounted, computed } from "vue"
 import { ElTree, type FormInstance, type FormRules } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForTempOrder, getTempTestMangePath } from "@/api/testMangelist"
-import { getTestTypeDataApi } from "@/api/testtype"
+import { getTempTestTypeDataApi } from "@/api/testtype"
 
 const currentRow = ref<any>()
 const showFlags = ref<any>(true)
@@ -83,7 +83,7 @@ const clickNode = async (data: NodeData & any, node: any) => {
   getTestTypeData()
 }
 const getTestTypeData = () => {
-  getTestTypeDataApi({
+  getTempTestTypeDataApi({
     currentPage: 1,
     size: 9999999
   }).then((res) => {

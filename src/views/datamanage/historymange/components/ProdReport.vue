@@ -125,7 +125,7 @@ const generatingReports = ref({})
 
 const handleLink = async (data: any, i: string) => {
   if (i === "下载") {
-    const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${data.report_pdf_filepath}?id=${data.id}`
+    const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/pdf/download?id=${data.id}`
     const downloadSuccessful = await downloadFile(downloadUrl, data.report_pdf_filepath)
 
     if (downloadSuccessful) {
@@ -218,7 +218,7 @@ const downloadReports = async () => {
       if (item.link[key] === "下载") {
         downloadExists = true
 
-        const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/pdf/download/${item.report_pdf_filepath}?id=${item.id}`
+        const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/pdf/download?id=${item.id}`
         const downloadPromise =  await downloadFile(downloadUrl, item.report_pdf_filepath)
           .then(async (downloadSuccessful) => {
             if (downloadSuccessful) {

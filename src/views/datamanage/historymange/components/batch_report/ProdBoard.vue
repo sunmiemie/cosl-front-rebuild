@@ -6,12 +6,12 @@ import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForTempOrder, getTestMangePath } from "@/api/testMangelist"
 import { getBoardTestTypeDataApi } from "@/api/testtype"
 import { generateBatchReport } from "@/api/report"
-// import { useUserStore } from "@/store/modules/user"
+import {Search} from "@element-plus/icons-vue";
+import { getProdBoardDataBySn } from "@/api/board";
 
 // 定义可以发出的事件
 const emit = defineEmits(['close-dialog', 'fetch-batch-reports'])
 
-// const userId = useUserStore().userid
 const currentRow = ref<any>()
 const showFlags = ref<any>(true)
 const showProcess = ref<any>(true)
@@ -96,16 +96,9 @@ const getTestTypeData = () => {
     testTypeList.value = res.test_types
   })
 }
-// const getTestTypeData = () => {
-//   getTestTypeDataApi({
-//     currentPage: 1,
-//     size: 9999999
-//   }).then((res) => {
-//     testTypeList.value = res.data.list
-//   })
-// }
 
 const filterText = ref("")
+const boardSerialNumber = ref("")
 const treeRef = ref<InstanceType<typeof ElTree>>()
 
 const defaultProps = {
@@ -199,14 +192,50 @@ const handleCheckAll = (val: CheckboxValueType) => {
 }
 
 const cancelGenerateReport = () => {
+  boardSerialNumber.value = ""
+  filterText.value = ""
   clearTableSelection()
   value.value = []
   showFlags.value = true
   emit("close-dialog")
 }
 
+const searchSerialNumber = async () => {
+  // <el-text>电路板型号：{{ CircuitBoardModel }}</el-text>
+  // <el-text>批次号：{{ Batch }}</el-text>
+  // <el-text>批次名称：{{ CircuitBatch }}</el-text>
+  try {
+    const res = await getProdBoardDataBySn(boardSerialNumber.value)
+    filterText.value = res.data.batch_name
+    CircuitBoardModel.value = res.data.board_model_name
+    Batch.value = res.data.batch_id
+    CircuitBatch.value = res.data.batch_name
+    boardInfoLoading.value = true
+    showFlags.value = false
+
+    const result = await getboardsinfoForTempOrder({
+      batchId: res.data.batch_id,
+      boardModelId: res.data.boardmodel_id,
+      tempBatch: false
+    })
+
+    boardTableData.value = result.data
+    boardInfoLoading.value = false
+    getTestTypeData()
+  } catch (error) {
+    boardInfoLoading.value = false
+    ElMessage.error(error.response.data.errormessage)
+  }
+}
+
+const resetTree = () => {
+  boardSerialNumber.value = ""
+  filterText.value = ""
+  getTreeData()
+}
+
 // 显式暴露方法供父组件调用
-defineExpose({ getTreeData, clearOrderInfo, clearTableSelection, cancelGenerateReport })
+defineExpose({ resetTree, getTreeData, clearOrderInfo, clearTableSelection, cancelGenerateReport })
 
 onMounted(getTreeData)
 </script>
@@ -218,7 +247,12 @@ onMounted(getTreeData)
     <el-col :span="6">
       <el-card shadow="never" v-loading="treeLoading">
         <template #header>
-          <el-input v-model="filterText" placeholder="搜索" />
+          <div style="margin-bottom: 5px; display: flex; gap: 3px">
+            <el-input v-model="boardSerialNumber" clearable placeholder="搜索 SN 号" />
+            <el-button :disabled="boardSerialNumber.trim() === ''" @click="searchSerialNumber" type="primary" :icon="Search" style="opacity: 0.7" />
+            <el-button @click="resetTree" type="primary" style="opacity: 0.7" plain>重置</el-button>
+          </div>
+          <el-input v-model="filterText" clearable placeholder="搜索目录" />
         </template>
         <el-tree ref="treeRef" :data="treeData" :filter-node-method="filterNode" :props="defaultProps"
           default-expand-all @node-click="clickNode" />
@@ -226,7 +260,9 @@ onMounted(getTreeData)
     </el-col>
     <el-col :span="18">
       <el-card shadow="never">
-        <div v-if="showFlags">请先在左侧选择批次</div>
+        <div v-if="showFlags">
+          请先在左侧选择批次
+        </div>
         <div v-else>
           <div class="info-header">
             <el-card shadow="never">
