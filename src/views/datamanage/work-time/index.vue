@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { computed, onMounted, reactive, ref } from "vue"
-import { usePagination } from "@/hooks/usePagination"
+import { computed, onMounted, reactive, ref, watch } from "vue"
+import { usePagination, useDetailPagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { GetUserData } from "@/api/user/types/user"
 import { GetWorkTimeData } from "@/api/work-time/types/work-time"
@@ -23,6 +23,7 @@ const userTableHeaders = ref([
 const userTableData = ref<GetUserData[]>([])
 const gettingUsers = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+const { paginationDetailData, handleDetailCurrentChange, handleDetailSizeChange } = useDetailPagination()
 const getUserTableData = async () => {
   gettingUsers.value = true
 
@@ -64,9 +65,14 @@ const workTimeTableData = ref<GetWorkTimeData[]>([])
 const getWorkTimeTableData = async () => {
   gettingWorkTime.value = true
 
-  getWorkTimeDataApi({ userId: currentRow.value?.id })
+  getWorkTimeDataApi({
+    userId: currentRow.value?.id,
+    currentPage: paginationDetailData.currentPage,
+    pageSize: paginationDetailData.pageSize
+  })
     .then((res) => {
-      workTimeTableData.value = res.data
+      workTimeTableData.value = res.data.list
+      paginationDetailData.total = res.data.total
     })
     .catch(() => {
       workTimeTableData.value = []
@@ -77,6 +83,11 @@ const getWorkTimeTableData = async () => {
 }
 
 onMounted(getUserTableData)
+
+watch([() => paginationData.currentPage, () => paginationData.pageSize], getUserTableData, { immediate: true })
+watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSize], getWorkTimeTableData, {
+  immediate: true
+})
 </script>
 
 <template>
@@ -139,7 +150,18 @@ onMounted(getUserTableData)
           >
             用户名：{{ username }}
           </el-text>
-          <TableComponent :column-data="workTimeTableHeaders" :tableData="workTimeTableData" stripe />
+          <TableComponent class="table-wrapper" :column-data="workTimeTableHeaders" :tableData="workTimeTableData" stripe />
+          <el-pagination
+            class="pager-wrapper"
+            background
+            :layout="paginationDetailData.layout"
+            :page-sizes="paginationDetailData.pageSizes"
+            :total="paginationDetailData.total"
+            :page-size="paginationDetailData.pageSize"
+            :currentPage="paginationDetailData.currentPage"
+            @size-change="handleDetailSizeChange"
+            @current-change="handleDetailCurrentChange"
+          />
         </el-card>
       </el-col>
     </el-row>
