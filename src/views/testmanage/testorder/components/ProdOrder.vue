@@ -344,7 +344,6 @@ const selectedRows = ref<any>([])
 const selectedRowCount = computed(() => selectedRows.value.length)
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
-  // console.log(val)
 }
 
 const selectedUnitRows = ref<any>([])
@@ -480,22 +479,6 @@ async function getTreeData() {
   treeData.value = result.Pathdata
 }
 
-// const treeLoading = ref(false)
-// const batchTreeData = ref<any>([])
-// const getTestUnitTree = () => {
-//   treeLoading.value = true
-//   getBatchesBySupplier()
-//     .then((res) => {
-//       batchTreeData.value = res.Pathdata
-//     })
-//     .catch(() => {
-//       batchTreeData.value = []
-//     })
-//     .finally(() => {
-//       treeLoading.value = false
-//     })
-// }
-
 const batchData = reactive({
   boardModel: "",
   batchId: "",
@@ -526,7 +509,6 @@ async function getTestunits() {
 
   const tableResult = await getTestMangeTable(params)
   TableData.value = tableResult.TableData
-  console.log(TableData.value)
   getTableLinkData()
   paginationData.total = tableResult.total
 
@@ -534,7 +516,6 @@ async function getTestunits() {
 }
 
 const postSelectedUnits = () => {
-  // console.log(selectedUnitRows.value)
   const selectedUnitIds = selectedUnitRows.value.map((item) => item.testunit_id)
   postUnits(selectedUnitIds)
     .then(() => {

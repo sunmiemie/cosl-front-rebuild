@@ -17,7 +17,6 @@ import {
   submitCheck,
   deleteTestProcessApi
 } from "@/api/addprocess"
-import { checkPermission } from "@/utils/permission";
 
 const testStore = useTestStore()
 
