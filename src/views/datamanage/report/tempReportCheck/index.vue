@@ -218,6 +218,7 @@ const questionError = (obj) => {
       })
     }
     reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 2
+    reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "缺陷项"
     if (questionList.value.length === 0) {
       questionVisible.value = false
     }
@@ -241,6 +242,15 @@ const warnPass = (obj) => {
     })
     if (warnList.value.length === 0) {
       warnVisible.value = false
+    }
+    if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 1) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "合格项"
+    } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 2) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "缺陷项"
+    } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "疑问项"
+    } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 4) {
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "缺陷-疑问项"
     }
   })
 }
@@ -280,8 +290,10 @@ const warnError = (obj) => {
     }
     if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 1) {
       reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 2
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "缺陷项"
     } else if (reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass === 3) {
       reportJson.value.json.tempTest.find((item) => item.id === obj.id).pass = 4
+      reportJson.value.json.tempTest.find((item) => item.id === obj.id).name = "缺陷-疑问项"
     }
     if (warnList.value.length === 0) {
       warnVisible.value = false
