@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { reactive, ref } from "vue"
+import {reactive, ref, watch} from "vue"
 import { ElButton, ElMessage, type FormInstance, type FormRules } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
@@ -149,6 +149,8 @@ const getRoleList = () => {
     })
 }
 getRoleList()
+
+watch([() => paginationData.currentPage, () => paginationData.pageSize], getUserTableData, { immediate: true })
 </script>
 
 <template>
