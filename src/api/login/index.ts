@@ -11,10 +11,9 @@ export function loginApi(data: Login.LoginRequestData) {
 }
 
 /** 获取用户详情 */
-export function getUserInfoApi(token: string) {
+export function getUserInfoApi() {
   return request<Login.UserInfoResponseData>({
     url: "login/info",
-    method: "get",
-    params: { token }
+    method: "get"
   })
 }

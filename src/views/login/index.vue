@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { reactive, ref } from "vue"
+import {onMounted, reactive, ref} from "vue"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
 import { type FormInstance, type FormRules } from "element-plus"
@@ -7,6 +7,7 @@ import { type LoginRequestData } from "@/api/login/types/login"
 import ThemeSwitch from "@/components/ThemeSwitch/index.vue"
 import Owl from "./components/Owl.vue"
 import { useFocus } from "./hooks/useFocus"
+import { getToken, removeToken, setToken } from "@/utils/cache/cookies"
 
 const router = useRouter()
 const { isFocus, handleBlur, handleFocus } = useFocus()
@@ -51,6 +52,17 @@ const handleLogin = () => {
     }
   })
 }
+const handleSSOLogin = () => {
+  const returnUrl = encodeURIComponent(window.location.href)
+  const ssoUrl = `http://localhost:4173/#/sso?system=实验数据管理系统&type=html&redirect=${returnUrl}`
+  window.location.href = ssoUrl
+}
+onMounted(() => {
+  if (router.currentRoute.value.query.token !== undefined) {
+    setToken(router.currentRoute.value.query.token as string)
+    router.push({ path: "/" })
+  }
+})
 </script>
 
 <template>
@@ -59,7 +71,7 @@ const handleLogin = () => {
     <Owl :close-eyes="isFocus" />
     <div class="login-card">
       <div class="title">
-        <img src="@/assets/layouts/logo-text-2.png"  alt=""/>
+        <img src="@/assets/layouts/logo-text-2.png" alt="" />
       </div>
       <div class="content">
         <el-form ref="loginFormRef" :model="loginFormData" :rules="loginFormRules" @keyup.enter="handleLogin">
@@ -86,7 +98,15 @@ const handleLogin = () => {
               @focus="handleFocus"
             />
           </el-form-item>
-          <el-button :loading="loading" type="primary" size="large" @click.prevent="handleLogin">登 录</el-button>
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center">
+            <el-button :loading="loading" type="primary" size="large" @click.prevent="handleLogin">登 录</el-button>
+            <el-button :loading="loading" type="success" size="large" @click.prevent="handleSSOLogin">
+              <el-icon style="margin-right: 5px">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13.0607 8.11097L14.4749 9.52518C17.2086 12.2589 17.2086 16.691 14.4749 19.4247L14.1214 19.7782C11.3877 22.5119 6.95555 22.5119 4.22188 19.7782C1.48821 17.0446 1.48821 12.6124 4.22188 9.87874L5.6361 11.293C3.68348 13.2456 3.68348 16.4114 5.6361 18.364C7.58872 20.3166 10.7545 20.3166 12.7072 18.364L13.0607 18.0105C15.0133 16.0578 15.0133 12.892 13.0607 10.9394L11.6465 9.52518L13.0607 8.11097ZM19.7782 14.1214L18.364 12.7072C20.3166 10.7545 20.3166 7.58872 18.364 5.6361C16.4114 3.68348 13.2456 3.68348 11.293 5.6361L10.9394 5.98965C8.98678 7.94227 8.98678 11.1081 10.9394 13.0607L12.3536 14.4749L10.9394 15.8891L9.52518 14.4749C6.79151 11.7413 6.79151 7.30911 9.52518 4.57544L9.87874 4.22188C12.6124 1.48821 17.0446 1.48821 19.7782 4.22188C22.5119 6.95555 22.5119 11.3877 19.7782 14.1214Z"></path></svg>
+              </el-icon>
+              SSO登录
+            </el-button>
+          </div>
         </el-form>
       </div>
     </div>
@@ -140,6 +160,7 @@ const handleLogin = () => {
       .el-button {
         width: 100%;
         margin-top: 10px;
+        margin-left: 0;
       }
     }
   }
