@@ -1,5 +1,5 @@
 import { request } from "@/utils/service"
-import type * as BoardModel from "./types/boardmodel"
+  import type * as BoardModel from "./types/boardmodel"
 import { UnwrapNestedRefs } from "vue"
 
 export function createBoardModelDataApi(data: UnwrapNestedRefs<{ des: string; name: string; id: null; type: string }>) {

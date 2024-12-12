@@ -82,20 +82,20 @@ const resetForm = () => {
 const currentUpdateId = ref<undefined | string>(undefined)
 
 // 7 代表“新增、编辑电路板型号”权限
-const headers = checkPermission(["7"]) ?
-  ref([
-    { prop: "id", label: "电路板物料号", align: "center" },
-    { prop: "name", label: "电路板型号名称", align: "center" },
-    { prop: "model", label: "规格型号", align: "center" },
-    { prop: "type", label: "关联仪器", align: "center" },
-    { prop: "link", label: "操作", type: "link", align: "center" }
-  ]) :
-  ref([
-    { prop: "id", label: "电路板物料号", align: "center" },
-    { prop: "name", label: "电路板型号名称", align: "center" },
-    { prop: "model", label: "规格型号", align: "center" },
-    { prop: "type", label: "关联仪器", align: "center" }
-  ]);
+const headers = checkPermission(["7"])
+  ? ref([
+      { prop: "id", label: "电路板物料号", align: "center" },
+      { prop: "name", label: "电路板型号名称", align: "center" },
+      { prop: "model", label: "规格型号", align: "center" },
+      { prop: "type", label: "关联仪器", align: "center" },
+      { prop: "link", label: "操作", type: "link", align: "center" }
+    ])
+  : ref([
+      { prop: "id", label: "电路板物料号", align: "center" },
+      { prop: "name", label: "电路板型号名称", align: "center" },
+      { prop: "model", label: "规格型号", align: "center" },
+      { prop: "type", label: "关联仪器", align: "center" }
+    ])
 
 const TableData = ref<GetBoardModelData[]>([])
 const searchFormRef = ref<FormInstance | null>(null)
