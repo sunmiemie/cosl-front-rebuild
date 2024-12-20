@@ -54,7 +54,7 @@ const handleLogin = () => {
 }
 const handleSSOLogin = () => {
   const returnUrl = encodeURIComponent(window.location.href)
-  const ssoUrl = `http://localhost:3636/#/sso?system=${import.meta.env.VITE_APP_ISS}&type=html&redirect=${returnUrl}`
+  const ssoUrl = `http://166.111.188.57:3636/#/sso?system=${import.meta.env.VITE_APP_ISS}&type=html&redirect=${returnUrl}`
   window.location.href = ssoUrl
 }
 onMounted(() => {
