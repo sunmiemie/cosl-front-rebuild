@@ -47,15 +47,18 @@ const headers1 = ref([
 ])
 
 // Load saved page size from localStorage
-const savedPageSize = localStorage.getItem('pageSize')
+const savedPageSize = localStorage.getItem("pageSize")
 if (savedPageSize) {
   paginationData.pageSize = parseInt(savedPageSize)
 }
 
 // Watch for changes in page size and save to localStorage
-watch(() => paginationData.pageSize, (newSize) => {
-  localStorage.setItem('pageSize', newSize.toString())
-})
+watch(
+  () => paginationData.pageSize,
+  (newSize) => {
+    localStorage.setItem("pageSize", newSize.toString())
+  }
+)
 
 const TableData = ref<any>([])
 const testTypeList = ref<any>([])
@@ -108,9 +111,13 @@ const getTableData = () => {
 const handleLink = (data: any, i: string) => {
   if (i === "审核") {
     if (data.prod_or_temp === "正式") {
-      router.push({name: "checkReport", query: data})
+      if (data.type === "功能性测试") {
+        router.push({ name: "checkFunctionalReport", query: data })
+      } else {
+        router.push({ name: "checkReport", query: data })
+      }
     } else {
-      router.push({name: "checkTempReport", query: data})
+      router.push({ name: "checkTempReport", query: data })
     }
   }
 }

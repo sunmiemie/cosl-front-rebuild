@@ -1,6 +1,6 @@
 import { request } from "@/utils/service"
 import type * as TestType from "./types/report"
-import type * as TestMange from "@/api/testMangelist/types";
+import type * as TestMange from "@/api/testMangelist/types"
 
 /** 查 */
 export function getReportDataApi(params: {
@@ -213,6 +213,17 @@ export const generateDevQuestionUnitApi = (data: any) => {
 export const generateReportPdfApi = (params: any) => {
   return request({
     url: "data/report/pdf/generate-pdf",
+    method: "get",
+    params
+  })
+}
+
+/**
+ * 生成功能测试报告 pdf
+ */
+export const generateFunReportPdfApi = (params: any) => {
+  return request({
+    url: "data/report/pdf/generate-functional-pdf",
     method: "get",
     params
   })

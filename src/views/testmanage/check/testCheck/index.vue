@@ -1,7 +1,6 @@
 <template>
   <div class="app-container">
     <el-card class="test-check">
-      <!-- 审核测试工艺 -->
       <h2>审核测试工艺</h2>
       <el-form :inline="true" :model="anyObj" class="demo-form-inline" label-position="top" style="margin: 10px">
         <el-form-item label="工单号" style="width: 13%">
@@ -135,6 +134,7 @@
     </el-dialog>
   </div>
 </template>
+
 <script setup>
 import { ref, reactive, onMounted } from "vue"
 import ProcessPreview from "@/components/Check/ProcessPreview.vue"

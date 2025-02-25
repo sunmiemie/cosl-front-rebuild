@@ -479,7 +479,6 @@ onMounted(async () => {
 <template>
   <div class="app-container">
     <el-card class="test-check">
-      <!-- 审核测试工艺 -->
       <h2>审核测试报告</h2>
       <el-form :inline="true" :model="anyObj" class="demo-form-inline" label-position="top" style="margin: 10px">
         <el-form-item label="报告编号" style="width: 13%">

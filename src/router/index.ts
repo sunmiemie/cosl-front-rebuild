@@ -382,6 +382,16 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         }
       },
       {
+        path: "checkFunctionalReport",
+        component: () => import("@/views/datamanage/report/functional-test-report-check/index.vue"),
+        name: "checkFunctionalReport",
+        meta: {
+          title: "功能性测试报告审核",
+          keepAlive: true,
+          hidden: true
+        }
+      },
+      {
         path: "checkTempReport",
         component: () => import("@/views/datamanage/report/tempReportCheck/index.vue"),
         name: "checkTempReport",

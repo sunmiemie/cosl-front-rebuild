@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from "vue"
 import { useRoute } from "vue-router"
 import { checkReportDataApi } from "@/api/report"
 import ReportPreview from "@/components/Check/ReportPreview.vue"
+import FunctionalTestingReportPreview from "@/components/Check/FunctionalTestingReportPreview.vue"
 
 const reportJson = ref({})
 const loading = ref(false)
@@ -51,7 +52,17 @@ onMounted(() => {
         </el-form-item>
       </el-form>
       <div style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px">
-        <report-preview v-if="loaded" v-model:preview-list="reportJson" mode="preview" style="width: 100vw" />
+        <report-preview
+          v-if="loaded && anyObj.type !== '功能性测试'"
+          v-model:preview-list="reportJson"
+          mode="preview"
+          style="width: 100vw"
+        />
+        <FunctionalTestingReportPreview
+          v-else-if="loaded && anyObj.type === '功能性测试'"
+          :previewList="reportJson"
+          style="width: 100vw"
+        />
       </div>
     </el-card>
   </div>

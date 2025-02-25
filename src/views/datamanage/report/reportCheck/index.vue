@@ -1,3 +1,5 @@
+<!-- 报告审核 -->
+
 <script setup>
 import { onMounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
@@ -740,7 +742,6 @@ const handlePass = () => {
   })
 }
 const handleFeedback = () => {
-  // console.log("hiiiii")
   ElMessageBox.confirm("确认打回吗？", "确认审核", {
     confirmButtonText: "确认",
     cancelButtonText: "取消",
@@ -801,7 +802,6 @@ onMounted(() => {
   anyObj.user = route.query.user
   anyObj.date = route.query.date
   checkReportDataApi({ id: route.query.id }).then((res) => {
-    // console.log("生产测试报告", res)
     loaded.value = true
     loading.value = false
     getErrorQuestionWarnList()
@@ -814,7 +814,6 @@ onMounted(() => {
 <template>
   <div class="app-container">
     <el-card v-loading="loading" class="test-check">
-      <!-- 审核测试工艺 -->
       <h2>审核测试报告</h2>
       <el-form :inline="true" :model="anyObj" class="demo-form-inline" label-position="top" style="margin: 10px">
         <el-form-item label="报告编号" style="width: 13%">
@@ -866,7 +865,12 @@ onMounted(() => {
         <el-button icon="Refresh" v-if="reportFixed" @click="reGetReport">重置所有更改</el-button>
       </div>
       <div v-loading="loading" style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px">
-        <report-preview v-if="loaded" v-model:preview-list="reportJson" mode="check" style="width: 100vw" />
+        <report-preview
+          v-if="loaded"
+          v-model:preview-list="reportJson"
+          mode="check"
+          style="width: 100vw"
+        />
       </div>
       <div style="display: flex; align-items: center">
         <div v-if="!hasQuestion">
