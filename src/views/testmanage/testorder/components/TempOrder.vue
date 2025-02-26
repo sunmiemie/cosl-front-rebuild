@@ -338,6 +338,7 @@ const handleSearch = async () => {
   const tableResult = await getTempTestMangeTable(params)
   // 赋值
   TableData.value = tableResult.TableData
+  // console.log(TableData.value);
   paginationData.total = tableResult.total
   getTableLinkData()
 }
@@ -490,6 +491,8 @@ async function getMangeData() {
   // 调用接口
   const tableResult = await getTempTestMangeTable(params)
   TableData.value = tableResult.TableData
+  // console.log(TableData.value);
+
   loading.value = false
   paginationData.total = tableResult.total
   getTableLinkData()

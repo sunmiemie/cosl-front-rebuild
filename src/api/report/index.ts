@@ -236,3 +236,10 @@ export const generateTempReportPdfApi = (params: any) => {
     params
   })
 }
+export const generateTempReportFunPdfApi = (params: any) => {
+  return request({
+    url: "data/dev-report/pdf/generate-dev-functional-pdf",
+    method: "get",
+    params
+  })
+}

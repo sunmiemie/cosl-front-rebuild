@@ -1,14 +1,19 @@
 <script lang="ts" setup>
-import {computed, onMounted, reactive, ref, watch} from "vue"
+import { computed, onMounted, reactive, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import { ElButton, ElMessage, type FormInstance } from "element-plus"
 import { Refresh, Search } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
-import { generateTempReportPdfApi, getTempReportDataApi, setDownloadSuccessApi } from "@/api/report"
+import {
+  generateTempReportPdfApi,
+  generateTempReportFunPdfApi,
+  getTempReportDataApi,
+  setDownloadSuccessApi
+} from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getAllInstrumentsDataApi } from "@/api/instrument"
-import { downloadFile } from "@/views/datamanage/historymange/components/utils";
+import { downloadFile } from "@/views/datamanage/historymange/components/utils"
 
 const loading = ref(false)
 
@@ -16,14 +21,17 @@ const { paginationData, handleCurrentChange, handleSizeChange } = usePagination(
 
 const router = useRouter()
 // Load saved page size from localStorage
-const savedPageSize = localStorage.getItem('pageSize')
+const savedPageSize = localStorage.getItem("pageSize")
 if (savedPageSize) {
   paginationData.pageSize = parseInt(savedPageSize)
 }
 // Watch for changes in page size and save to localStorage
-watch(() => paginationData.pageSize, (newSize) => {
-  localStorage.setItem('pageSize', newSize.toString())
-})
+watch(
+  () => paginationData.pageSize,
+  (newSize) => {
+    localStorage.setItem("pageSize", newSize.toString())
+  }
+)
 const DialogCheck = ref(false)
 
 interface TestCheckType {
@@ -69,7 +77,7 @@ const searchData = reactive({
   type: "",
   serial: "",
   dateTimeRange: "",
-  instrument: ''
+  instrument: ""
 })
 const clearSearchData = () => {
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
@@ -120,14 +128,20 @@ const generatingReports = ref({})
 
 const handleLink = async (data: any, i: string) => {
   if (i === "下载") {
+    // console.log(data)
     // const downloadUrl = `${import.meta.env.VITE_BASE_API}data/devreport/pdf/download/${data.report_pdf_filepath}?id=${data.id}`
-    const downloadUrl = `${import.meta.env.VITE_BASE_API}data/devreport/pdf/download?id=${data.id}`
+    let downloadUrl
+    if (data.type !== "功能性测试") {
+      downloadUrl = `${import.meta.env.VITE_BASE_API}data/devreport/pdf/download?id=${data.id}`
+    } else {
+      downloadUrl = `${import.meta.env.VITE_BASE_API}data/dev-func-report/pdf/download?id=${data.id}`
+    }
+
     const downloadSuccessful = await downloadFile(downloadUrl, data.report_pdf_filepath)
     if (downloadSuccessful) {
-      setDownloadSuccessApi(data.id, "临时报告")
-        .then(() => {
-          getTableData()
-        })
+      setDownloadSuccessApi(data.id, "临时报告").then(() => {
+        getTableData()
+      })
     } else {
       ElMessage.error("下载失败")
     }
@@ -139,17 +153,32 @@ const handleLink = async (data: any, i: string) => {
     }
 
     generatingReports.value[data.id] = true
-    generateTempReportPdfApi({ id: data.id })
-      .then(() => {
-        ElMessage.success("报告生成成功")
-        getTableData()
-      })
-      .catch(() => {
-        ElMessage.error("报告生成失败")
-      })
-      .finally(() => {
-        generatingReports.value[data.id] = false
-      })
+    // console.log(data);
+    if (data.type !== "功能性测试") {
+      generateTempReportPdfApi({ id: data.id })
+        .then(() => {
+          ElMessage.success("报告生成成功")
+          getTableData()
+        })
+        .catch(() => {
+          ElMessage.error("报告生成失败")
+        })
+        .finally(() => {
+          generatingReports.value[data.id] = false
+        })
+    } else {
+      generateTempReportFunPdfApi({ id: data.id })
+        .then(() => {
+          ElMessage.success("报告生成成功")
+          getTableData()
+        })
+        .catch(() => {
+          ElMessage.error("报告生成失败")
+        })
+        .finally(() => {
+          generatingReports.value[data.id] = false
+        })
+    }
   }
 }
 
@@ -181,13 +210,25 @@ const generateReports = async () => {
       if (item.link[key] === "生成") {
         generateExists = true
 
-        const generatePromise = generateTempReportPdfApi({id: item.id})
-          .then(() => {
-            ElMessage.success("报告生成成功")
-          })
-          .catch(() => {
-            ElMessage.error("报告生成失败")
-          })
+        // console.log(item)
+        let generatePromise
+        if (item.type !== "功能性测试") {
+          generatePromise = generateTempReportPdfApi({ id: item.id })
+            .then(() => {
+              ElMessage.success("报告生成成功")
+            })
+            .catch(() => {
+              ElMessage.error("报告生成失败")
+            })
+        } else {
+          generatePromise = generateTempReportFunPdfApi({ id: item.id })
+            .then(() => {
+              ElMessage.success("报告生成成功")
+            })
+            .catch(() => {
+              ElMessage.error("报告生成失败")
+            })
+        }
 
         generatePromises.push(generatePromise)
         break
@@ -212,15 +253,23 @@ const downloadReports = async () => {
       if (item.link[key] === "下载") {
         downloadExists = true
 
-        const downloadUrl = `${import.meta.env.VITE_BASE_API}data/devreport/pdf/download?id=${item.id}`
-        const downloadPromise = await downloadFile(downloadUrl, item.report_pdf_filepath)
-          .then(async (downloadSuccessful) => {
+        // console.log(item)
+        let downloadUrl
+        if (item.type !== "功能性测试") {
+          downloadUrl = `${import.meta.env.VITE_BASE_API}data/devreport/pdf/download?id=${item.id}`
+        } else {
+          downloadUrl = `${import.meta.env.VITE_BASE_API}data/dev-func-report/pdf/download?id=${item.id}`
+        }
+
+        const downloadPromise = await downloadFile(downloadUrl, item.report_pdf_filepath).then(
+          async (downloadSuccessful) => {
             if (downloadSuccessful) {
               await setDownloadSuccessApi(item.id, "临时报告")
             } else {
               ElMessage.error("下载失败")
             }
-          })
+          }
+        )
 
         downloadPromises.push(downloadPromise)
         break
@@ -238,37 +287,37 @@ const downloadReports = async () => {
 
 const shortcuts = [
   {
-    text: '上周',
+    text: "上周",
     value: () => {
       const end = new Date()
       const start = new Date()
       start.setDate(start.getDate() - 7)
       return [start, end]
-    },
+    }
   },
   {
-    text: '上个月',
+    text: "上个月",
     value: () => {
       const end = new Date()
       const start = new Date()
       start.setMonth(start.getMonth() - 1)
       return [start, end]
-    },
+    }
   },
   {
-    text: '过去三个月',
+    text: "过去三个月",
     value: () => {
       const end = new Date()
       const start = new Date()
       start.setMonth(start.getMonth() - 3)
       return [start, end]
-    },
-  },
+    }
+  }
 ]
 const instrumentList = ref<any>([])
 
 const getInstrumentsData = () => {
-  getAllInstrumentsDataApi().then(res => {
+  getAllInstrumentsDataApi().then((res) => {
     instrumentList.value = res.data
   })
 }
@@ -370,7 +419,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         </template>
 
         <template #link="{ row }">
-          <el-link v-for="i in row['link']" :type="i === '下载' && row['report_downloaded'] ? 'success' : 'primary'" class="el-link" @click="handleLink(row, i)" :key="i">
+          <el-link
+            v-for="i in row['link']"
+            :type="i === '下载' && row['report_downloaded'] ? 'success' : 'primary'"
+            class="el-link"
+            @click="handleLink(row, i)"
+            :key="i"
+          >
             {{ i }}
           </el-link>
         </template>
