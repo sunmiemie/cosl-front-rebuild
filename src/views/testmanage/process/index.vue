@@ -49,7 +49,6 @@ const addTest = () => {
 
 // 提交审核
 const onSubmit = () => {
-  // console.log(TestCheck.value)
   submitCheck({ id: TestCheck.value.ID }).then((res: any) => {
     if (res.code === 0) {
       ElMessage.success("提交成功")
@@ -183,8 +182,6 @@ const getDetailTableData = () => {
 }
 //当前选中
 const CurrentVersion = (val: any, row: any) => {
-  // console.log(val)
-  // console.log(row)
   changeVersion({
     ID: row.activateId,
     version: val
@@ -215,7 +212,6 @@ const handleLinkDetail = (data: any, i: string) => {
         getDetailTableData()
         getTableData()
         ElMessage.success("删除成功")
-        // console.log(res)
       })
     })
   } else if (i === "详情") {

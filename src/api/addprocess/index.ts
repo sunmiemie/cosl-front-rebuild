@@ -59,6 +59,14 @@ export const getTestProcessList = (params: any): Promise<AddProcess.TestProcessL
   })
 }
 
+export const getAvailableFunctionalTestingProcess = (params: any): Promise<AddProcess.TestProcessListResponse> => {
+  return request({
+    url: "/test/func-process/",
+    method: "get",
+    params
+  })
+}
+
 //获取测试工艺详情数据
 export const getTestProcessDetail = (params: any): Promise<AddProcess.TestProcessDetailResponse> => {
   return request({

@@ -209,7 +209,6 @@ onMounted(() => {
   anyObj.name = route.query.testprocess_name
   anyObj.user = route.query.user_name
   anyObj.date = route.query.testprocess_date
-  console.log(route.query)
   if (anyObj.type === "目检测试") {
     loading.value = true
     checkEyesDataApi({ id: route.query.testprocess_id }).then((res) => {

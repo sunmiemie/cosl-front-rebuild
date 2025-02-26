@@ -1,14 +1,17 @@
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref, onMounted, computed } from "vue"
 import { ElTree, type FormInstance, type FormRules } from "element-plus"
+import type { CheckboxValueType } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForTempOrder, getTestMangePath } from "@/api/testMangelist"
-import { getTempTestTypeDataApi } from "@/api/testtype"
+import { getTempTestTypeForProdBoard } from "@/api/testtype"
+import { getAvailableFunctionalTestingProcess } from "@/api/addprocess"
 
 const currentRow = ref<any>()
 const showFlags = ref<any>(true)
 const showProcess = ref<any>(true)
 const testTypeList = ref<any>([])
+const functionalTestingProcessList = ref<any>([])
 const boardInfoLoading = ref(false)
 
 const addProdBoard = true
@@ -30,7 +33,8 @@ const orderInfo = reactive<any>({
   testUnitType: "",
   testUnitDesc: "",
   consignor: "",
-  orderNo: ""
+  orderNo: "",
+  testCount: ""
 })
 const clearOrderInfo = () => {
   Object.keys(orderInfo).forEach((key: any) => (orderInfo[key] = ""))
@@ -82,11 +86,18 @@ const clickNode = async (data: NodeData & any, node: any) => {
   getTestTypeData()
 }
 const getTestTypeData = () => {
-  getTempTestTypeDataApi({
+  getTempTestTypeForProdBoard({
     currentPage: 1,
     size: 9999999
   }).then((res) => {
     testTypeList.value = res.data.list
+  })
+}
+const getProcessList = () => {
+  getAvailableFunctionalTestingProcess({
+    boardModelId: CircuitBoardModelId.value
+  }).then((res) => {
+    functionalTestingProcessList.value = res.data
   })
 }
 
@@ -138,9 +149,33 @@ const emit = defineEmits(["add-order"])
 const handleCreate = () => {
   searchFormRef.value?.validate((valid: boolean) => {
     if (valid) {
-      emit("add-order", addProdBoard, selectedRows.value, orderInfo)
+      emit("add-order", addProdBoard, selectedRows.value, orderInfo, processList.value)
     }
   })
+}
+
+// 选中所有
+const checkAll = ref(false)
+const indeterminate = ref(false)
+const processList = ref<CheckboxValueType[]>([])
+watch(processList, (val) => {
+  if (val.length === 0) {
+    checkAll.value = false
+    indeterminate.value = false
+  } else if (val.length === processList.value.length) {
+    checkAll.value = true
+    indeterminate.value = false
+  } else {
+    indeterminate.value = true
+  }
+})
+const handleCheckAll = (val: CheckboxValueType) => {
+  indeterminate.value = false
+  if (val) {
+    processList.value = functionalTestingProcessList.value.map((_) => _.id)
+  } else {
+    processList.value = []
+  }
 }
 
 onMounted(getTreeData)
@@ -224,6 +259,34 @@ onMounted(getTreeData)
                         />
                       </el-select>
                     </el-form-item>
+                    <div v-show="orderInfo.testType === 1">
+                      <el-form-item label="测试工艺">
+                        <el-select
+                          multiple
+                          clearable
+                          popper-class="custom-header"
+                          v-model="processList"
+                          placeholder="请选择"
+                          filterable
+                          @visible-change="getProcessList"
+                        >
+                          <template #header>
+                            <el-checkbox v-model="checkAll" :indeterminate="indeterminate" @change="handleCheckAll">
+                              选择所有
+                            </el-checkbox>
+                          </template>
+                          <el-option
+                            v-for="item in functionalTestingProcessList"
+                            :label="item.version"
+                            :value="item.id"
+                            :key="item.id"
+                          />
+                        </el-select>
+                      </el-form-item>
+                      <el-form-item label="测试次数">
+                        <el-input type="number" v-model="orderInfo.testCount" placeholder="请输入" />
+                      </el-form-item>
+                    </div>
                     <el-form-item prop="testUnitType" label="测试类别">
                       <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
                     </el-form-item>
@@ -238,11 +301,8 @@ onMounted(getTreeData)
                     </el-form-item>
                     <el-form-item style="margin-top: 30px">
                       <el-button @click="$emit('stop-adding-order')">取消</el-button>
-                      <el-button
-                        type="primary"
-                        @click="handleCreate"
-                        :disabled="selectedRows.length <= 0"
-                        >添加工单</el-button
+                      <el-button type="primary" @click="handleCreate" :disabled="selectedRows.length <= 0"
+                      >添加工单</el-button
                       >
                     </el-form-item>
                   </el-form>

@@ -1,7 +1,7 @@
 <!-- 临时测试工单 -->
 
 <script lang="ts" setup>
-import {computed, h, reactive, ref, watch} from "vue"
+import { computed, h, reactive, ref, watch } from "vue"
 import { useRouter } from "vue-router"
 import { ElMessage, ElMessageBox, ElTable, ElTree, type FormInstance, TabsPaneContext } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
@@ -21,7 +21,7 @@ import {
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { checkReportDataApi, getSingleDevReportDataApi, getSingleReportDataApi } from "@/api/report"
-import {Warning} from "@element-plus/icons-vue";
+import { Warning } from "@element-plus/icons-vue"
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -369,9 +369,10 @@ const detailform = reactive({
 })
 
 // 确认新增
-const addOrder = (addProdBoard, selectedRows, orderInfo) => {
+const addOrder = (addProdBoard, selectedRows, orderInfo, processList) => {
   createDevTestUnitApi({
     addProdBoard,
+    processList,
     boardList: selectedRows,
     userId: userStore.userid,
     ...orderInfo
@@ -386,6 +387,7 @@ const addOrder = (addProdBoard, selectedRows, orderInfo) => {
           createDevTestUnitApi({
             force: true,
             addProdBoard,
+            processList,
             boardList: selectedRows,
             userId: userStore.userid,
             ...orderInfo

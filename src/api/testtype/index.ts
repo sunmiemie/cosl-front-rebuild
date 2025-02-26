@@ -42,6 +42,13 @@ export function getTempTestTypeDataApi(params: { size: number; currentPage: numb
     params
   })
 }
+export function getTempTestTypeForProdBoard(params: { size: number; currentPage: number; name?: string }) {
+  return request<TestType.GetTestTypeResponseData>({
+    url: "test/prod-board-temp-testtype/list",
+    method: "get",
+    params
+  })
+}
 // 为了方便传递列表参数，使用post请求
 export function getBoardTestTypeDataApi(data: any) {
   return request({
