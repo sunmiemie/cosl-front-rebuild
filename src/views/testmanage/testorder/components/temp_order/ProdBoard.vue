@@ -284,7 +284,8 @@ onMounted(getTreeData)
                         </el-select>
                       </el-form-item>
                       <el-form-item label="测试次数">
-                        <el-input type="number" v-model="orderInfo.testCount" placeholder="请输入" />
+                        <!-- <el-input type="number" v-model="orderInfo.testCount" placeholder="请输入" /> -->
+                        <el-input-number v-model="orderInfo.testCount" :min="1" />
                       </el-form-item>
                     </div>
                     <el-form-item prop="testUnitType" label="测试类别">
@@ -302,7 +303,7 @@ onMounted(getTreeData)
                     <el-form-item style="margin-top: 30px">
                       <el-button @click="$emit('stop-adding-order')">取消</el-button>
                       <el-button type="primary" @click="handleCreate" :disabled="selectedRows.length <= 0"
-                      >添加工单</el-button
+                        >添加工单</el-button
                       >
                     </el-form-item>
                   </el-form>
