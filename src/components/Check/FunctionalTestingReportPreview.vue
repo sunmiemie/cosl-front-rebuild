@@ -1,4 +1,4 @@
-<!-- 功能性测试报告预览 -->
+<!-- 功能性测试正式报告预览 -->
 
 <script setup>
 import CommpontentEcharts from "@/components/Echarts/echarts.vue"
