@@ -329,6 +329,25 @@ export const dynamicRoutes: RouteRecordRaw[] = [
           keepAlive: true,
           hidden: true
         }
+      },
+      {
+        path: "halt-hass",
+        component: () => import("@/views/testmanage/halt-hass/index.vue"),
+        name: "HaltHassProcess",
+        meta: {
+          title: "HALT-HASS工艺",
+          keepAlive: true
+        }
+      },
+      {
+        path: "halt-hass/detail/:id",
+        component: () => import("@/views/testmanage/halt-hass/detail.vue"),
+        name: "HaltHassDetail",
+        meta: {
+          title: "工艺详情",
+          keepAlive: false,
+          hidden: true
+        }
       }
     ]
   },
