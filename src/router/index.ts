@@ -137,6 +137,15 @@ export const constantRoutes: RouteRecordRaw[] = [
             }
           },
           {
+            path: "boardgroup",
+            component: () => import("@/views/devicemanage/devicemodel/boardgroup/index.vue"),
+            name: "BoardGroup",
+            meta: {
+              title: "电路板组管理",
+              keepAlive: true
+            }
+          },
+          {
             path: "fixturemodel",
             component: () => import("@/views/devicemanage/devicemodel/fixturemodel/index.vue"),
             name: "FixtureModel",
@@ -336,7 +345,8 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "HaltHassProcess",
         meta: {
           title: "HALT-HASS工艺",
-          keepAlive: true
+          keepAlive: true,
+          hidden: true // 已集成到测试工艺列表
         }
       },
       {
@@ -347,6 +357,26 @@ export const dynamicRoutes: RouteRecordRaw[] = [
           title: "工艺详情",
           keepAlive: false,
           hidden: true
+        }
+      },
+      {
+        path: "halt-hass-order",
+        component: () => import("@/views/testmanage/halt-hass-order/index.vue"),
+        name: "HaltHassOrder",
+        meta: {
+          title: "HALT-HASS工单",
+          keepAlive: true,
+          hidden: true // 已集成到测试工单列表
+        }
+      },
+      {
+        path: "halt-hass-report",
+        component: () => import("@/views/testmanage/halt-hass-report/index.vue"),
+        name: "HaltHassReport",
+        meta: {
+          title: "HALT-HASS报告审核",
+          keepAlive: true,
+          hidden: true // 已集成到报告审核页面
         }
       }
     ]

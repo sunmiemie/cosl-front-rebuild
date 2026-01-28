@@ -66,7 +66,13 @@ const fetchDetail = () => {
 
 // 返回列表
 const goBack = () => {
-  router.push("/testmanage/halt-hass")
+  // 如果是从审核页面进入的，返回审核列表
+  if (route.query.audit === 'true') {
+    router.push("/testmanage/checkprocess")
+  } else {
+    // 否则返回工艺列表
+    router.push("/testmanage/testprocess")
+  }
 }
 
 // 提交审核
@@ -106,9 +112,9 @@ const handleAudit = (pass: boolean, reason?: string) => {
   })
 }
 
-// 判断是否可以审核
+// 判断是否可以审核（需要状态为待审核 且 从审核入口进入）
 const canAudit = computed(() => {
-  return detail.value?.status === 1
+  return detail.value?.status === 1 && route.query.audit === 'true'
 })
 
 // 判断是否可提交审核

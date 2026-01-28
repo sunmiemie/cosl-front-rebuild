@@ -152,6 +152,28 @@ const handleDelete = (row: HaltHassProcessListItem) => {
   })
 }
 
+// 激活工艺
+const handleActivate = (row: HaltHassProcessListItem) => {
+  ElMessageBox.confirm(
+    `确认将工艺「${row.name} v${row.version}」设为当前激活版本？`,
+    "激活确认",
+    {
+      confirmButtonText: "确认",
+      cancelButtonText: "取消",
+      type: "info"
+    }
+  ).then(() => {
+    changeHaltHassVersion({ ID: row.id, version: row.version }).then((res: any) => {
+      if (res.code === 0) {
+        ElMessage.success("激活成功")
+        getTableData()
+      } else {
+        ElMessage.error(res.msg || "激活失败")
+      }
+    })
+  })
+}
+
 // 判断是否可删除
 const canDelete = (status: number) => {
   return status === 0 || status === 2
@@ -160,6 +182,11 @@ const canDelete = (status: number) => {
 // 判断是否可提交审核
 const canSubmit = (status: number) => {
   return status === 0 || status === 2
+}
+
+// 判断是否可激活（已通过且未激活）
+const canActivate = (row: HaltHassProcessListItem) => {
+  return row.status === 3 && row.active !== 1
 }
 
 // 监听分页变化
@@ -221,12 +248,26 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
               <el-tag :type="getStatusType(row.status)">{{ getStatusText(row.status) }}</el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="激活" align="center" width="80">
+            <template #default="{ row }">
+              <el-tag v-if="row.active === 1" type="success">已激活</el-tag>
+              <el-tag v-else type="info">未激活</el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="userName" label="创建人" align="center" width="100" />
           <el-table-column prop="createdAt" label="创建时间" align="center" width="160" />
           <el-table-column prop="auditNum" label="审核次数" align="center" width="80" />
-          <el-table-column label="操作" align="center" width="200" fixed="right">
+          <el-table-column label="操作" align="center" width="250" fixed="right">
             <template #default="{ row }">
               <el-button type="primary" link :icon="View" @click="handleView(row)">详情</el-button>
+              <el-button
+                v-if="canActivate(row)"
+                type="success"
+                link
+                @click="handleActivate(row)"
+              >
+                激活
+              </el-button>
               <el-button
                 v-if="canSubmit(row.status)"
                 type="warning"

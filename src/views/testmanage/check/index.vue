@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { reactive, ref, watch } from "vue"
+import { reactive, ref, watch, onMounted } from "vue"
 import { type FormInstance } from "element-plus"
 import { useRouter } from "vue-router"
 import { usePagination } from "@/hooks/usePagination"
@@ -13,7 +13,6 @@ const CheckDialog = ref<boolean>(false)
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
-//#region 增
 
 const userId = useUserStore().userid
 
@@ -51,12 +50,14 @@ const searchData = reactive({
   name: "",
   type: ""
 })
+
 const defineLink = (status: any) => {
   switch (status) {
     case "1":
       return { 1: "审核" }
   }
 }
+
 const getTestTypeData = () => {
   getTestTypeDataApi({
     currentPage: 1,
@@ -65,6 +66,7 @@ const getTestTypeData = () => {
     testTypeList.value = res.data.list
   })
 }
+
 const getTableData = () => {
   loading.value = true
   checkListDataApi({
@@ -84,20 +86,37 @@ const getTableData = () => {
       loading.value = false
     })
 }
+
+// 判断是否为 HALT-HASS 工艺
+const isHaltHassProcess = (row: any) => {
+  // 根据 process_type 判断是否为 HALT-HASS 类型
+  return row.process_type === "HALT-HASS测试" || row.process_type === "HALT-HASS"
+}
+
 const handleLink = (data: any, i: any) => {
   if (i === "审核") {
-    router.push({ name: "checktestlist", query: data })
+    // 判断是否为 HALT-HASS 工艺
+    if (isHaltHassProcess(data)) {
+      // HALT-HASS 工艺跳转到专门的详情页
+      router.push(`/testmanage/halt-hass/detail/${data.testprocess_id}?audit=true`)
+    } else {
+      // 普通工艺
+      router.push({ name: "checktestlist", query: data })
+    }
   }
 }
+
 const handleSearch = () => {
   paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
 }
+
 const resetSearch = () => {
   searchData.name = ""
   searchData.type = ""
   searchData.number = ""
   getTableData()
 }
+
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: true })
 </script>
@@ -147,51 +166,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </template>
         </TableComponent>
       </div>
-      <!-- 审核测试工艺 -->
-      <el-dialog v-model="CheckDialog" width="40%" class="test-check">
-        <template #header>
-          <h2>审核测试工艺</h2>
-          <el-button type="primary">功能性测试</el-button>
-        </template>
-        <el-row>
-          <el-col :span="12">
-            <el-text size="large">1.测试工艺基本信息</el-text>
-            <el-form :model="CheckInfo" label-position="left" style="margin-top: 20px">
-              <el-form-item label="工艺名称" style="width: 15vw">
-                <el-input disabled />
-              </el-form-item>
-              <el-form-item label="工艺版本" style="width: 15vw">
-                <el-input disabled />
-              </el-form-item>
-            </el-form>
-            <el-text size="large">2.所绑定设备</el-text>
-            <el-form :model="CheckEquipment">
-              <el-form-item label="绑定夹具" style="width: 15vw; margin-top: 20px">
-                <el-input disabled v-model="CheckEquipment.fixture" />
-              </el-form-item>
-              <el-form-item label="绑定主机" style="width: 15vw">
-                <el-input disabled v-model="CheckEquipment.host" />
-              </el-form-item>
-              <el-form-item label="其他设备:" style="width: 15vw">
-                <el-input disabled v-for="item in CheckEquipment.other" style="margin: 10px 0" :key="item.number">
-                  <template #prefix> {{ item.number }} 型号：{{ item.region }} </template>
-                </el-input>
-              </el-form-item>
-            </el-form>
-          </el-col>
-          <el-col :span="12">
-            <el-text size="large">3.测试脚本</el-text>
-            <div class="check-file">
-              <el-button size="small" style="margin-left: 83.4%">下载</el-button>
-            </div>
-          </el-col>
-        </el-row>
-
-        <template #footer>
-          <el-button type="success" icon="Check" size="large" style="position: absolute; left: 1vw">审核通过</el-button>
-          <el-button type="danger" size="large" icon="Close">审核未通过</el-button>
-        </template>
-      </el-dialog>
       <div class="pager-wrapper">
         <el-pagination
           background
@@ -205,6 +179,52 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         />
       </div>
     </el-card>
+
+    <!-- 审核测试工艺对话框 (普通工艺) -->
+    <el-dialog v-model="CheckDialog" width="40%" class="test-check">
+      <template #header>
+        <h2>审核测试工艺</h2>
+        <el-button type="primary">功能性测试</el-button>
+      </template>
+      <el-row>
+        <el-col :span="12">
+          <el-text size="large">1.测试工艺基本信息</el-text>
+          <el-form :model="CheckInfo" label-position="left" style="margin-top: 20px">
+            <el-form-item label="工艺名称" style="width: 15vw">
+              <el-input disabled />
+            </el-form-item>
+            <el-form-item label="工艺版本" style="width: 15vw">
+              <el-input disabled />
+            </el-form-item>
+          </el-form>
+          <el-text size="large">2.所绑定设备</el-text>
+          <el-form :model="CheckEquipment">
+            <el-form-item label="绑定夹具" style="width: 15vw; margin-top: 20px">
+              <el-input disabled v-model="CheckEquipment.fixture" />
+            </el-form-item>
+            <el-form-item label="绑定主机" style="width: 15vw">
+              <el-input disabled v-model="CheckEquipment.host" />
+            </el-form-item>
+            <el-form-item label="其他设备:" style="width: 15vw">
+              <el-input disabled v-for="item in CheckEquipment.other" style="margin: 10px 0" :key="item.number">
+                <template #prefix> {{ item.number }} 型号：{{ item.region }} </template>
+              </el-input>
+            </el-form-item>
+          </el-form>
+        </el-col>
+        <el-col :span="12">
+          <el-text size="large">3.测试脚本</el-text>
+          <div class="check-file">
+            <el-button size="small" style="margin-left: 83.4%">下载</el-button>
+          </div>
+        </el-col>
+      </el-row>
+
+      <template #footer>
+        <el-button type="success" icon="Check" size="large" style="position: absolute; left: 1vw">审核通过</el-button>
+        <el-button type="danger" size="large" icon="Close">审核未通过</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

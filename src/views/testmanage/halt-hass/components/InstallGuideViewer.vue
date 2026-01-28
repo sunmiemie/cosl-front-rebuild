@@ -2,29 +2,26 @@
 
 <script lang="ts" setup>
 import { ref } from "vue"
-import type { InstallGuide, InstallGuideStep } from "@/api/halt-hass/types"
+import type { InstallGuide } from "@/api/halt-hass/types"
 
 defineProps<{
   installGuide: InstallGuide
 }>()
 
 const currentStep = ref(0)
-
-const isImage = (mediaType: string) => mediaType === "image"
-const isVideo = (mediaType: string) => mediaType === "video"
 </script>
 
 <template>
   <div class="install-guide-viewer">
     <div class="guide-header">
-      <h3>{{ installGuide.title || "安装指导" }}</h3>
+      <h3>安装指导</h3>
     </div>
 
     <el-steps :active="currentStep" finish-status="success" align-center class="guide-steps">
       <el-step
         v-for="(step, index) in installGuide.steps"
-        :key="index"
-        :title="`步骤 ${step.stepNo || index + 1}`"
+        :key="step.id || index"
+        :title="`步骤 ${index + 1}`"
         :description="step.title"
         @click="currentStep = index"
         style="cursor: pointer"
@@ -35,23 +32,27 @@ const isVideo = (mediaType: string) => mediaType === "video"
       <el-card shadow="hover">
         <template #header>
           <div class="step-header">
-            <span class="step-number">步骤 {{ installGuide.steps[currentStep]?.stepNo || currentStep + 1 }}</span>
+            <span class="step-number">步骤 {{ currentStep + 1 }}</span>
             <span class="step-title">{{ installGuide.steps[currentStep]?.title }}</span>
           </div>
         </template>
 
-        <!-- 媒体内容 -->
-        <div v-if="installGuide.steps[currentStep]?.mediaUrl" class="media-content">
+        <!-- 图片内容 -->
+        <div v-if="installGuide.steps[currentStep]?.images?.length > 0" class="media-content">
           <el-image
-            v-if="isImage(installGuide.steps[currentStep]?.mediaType)"
-            :src="installGuide.steps[currentStep]?.mediaUrl"
+            v-for="(img, imgIndex) in installGuide.steps[currentStep].images"
+            :key="imgIndex"
+            :src="img"
             fit="contain"
-            :preview-src-list="[installGuide.steps[currentStep]?.mediaUrl]"
+            :preview-src-list="installGuide.steps[currentStep].images"
             class="step-image"
           />
+        </div>
+
+        <!-- 视频内容 -->
+        <div v-if="installGuide.steps[currentStep]?.video" class="media-content">
           <video
-            v-else-if="isVideo(installGuide.steps[currentStep]?.mediaType)"
-            :src="installGuide.steps[currentStep]?.mediaUrl"
+            :src="installGuide.steps[currentStep].video"
             controls
             class="step-video"
           />
@@ -59,7 +60,7 @@ const isVideo = (mediaType: string) => mediaType === "video"
 
         <!-- 文字描述 -->
         <div class="step-description">
-          <p>{{ installGuide.steps[currentStep]?.description || "暂无描述" }}</p>
+          <p>{{ installGuide.steps[currentStep]?.content || "暂无描述" }}</p>
         </div>
 
         <!-- 导航按钮 -->
@@ -123,6 +124,10 @@ const isVideo = (mediaType: string) => mediaType === "video"
     .media-content {
       margin-bottom: 16px;
       text-align: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
 
       .step-image {
         max-width: 100%;

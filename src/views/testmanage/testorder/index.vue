@@ -8,6 +8,9 @@
         <el-tab-pane label="临时测试工单" name="temp">
           <TempOrder ref="tempOrderComponent" />
         </el-tab-pane>
+        <el-tab-pane label="HALT-HASS 工单" name="halt-hass">
+          <HaltHassOrder ref="haltHassOrderComponent" />
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -19,10 +22,12 @@ import { useRouter } from "vue-router"
 import { TabsPaneContext } from "element-plus"
 import ProdOrder from "./components/ProdOrder.vue"
 import TempOrder from "./components/TempOrder.vue"
+import HaltHassOrder from "./components/HaltHassOrder.vue"
 
 const activeName = ref<any>("prod")
 const prodOrderComponent = ref<InstanceType<typeof ProdOrder> | null>(null)
 const tempOrderComponent = ref<InstanceType<typeof TempOrder> | null>(null)
+const haltHassOrderComponent = ref<InstanceType<typeof HaltHassOrder> | null>(null)
 
 const router = useRouter()
 
@@ -34,6 +39,8 @@ const handleTabClick = (tab: TabsPaneContext) => {
     prodOrderComponent.value.getTestunits()
   } else if (tab.props.name === "temp" && tempOrderComponent.value) {
     tempOrderComponent.value.resetSearch()
+  } else if (tab.props.name === "halt-hass" && haltHassOrderComponent.value) {
+    haltHassOrderComponent.value.refresh()
   }
 }
 

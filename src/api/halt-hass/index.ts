@@ -100,7 +100,7 @@ export const submitHaltHassToCheck = (data: { id: number }) => {
 export const checkHaltHassPass = (data: { id: number; pass: boolean; user: number; reason?: string }) => {
   return request({
     url: "/test/check/pass/",
-    method: "post",
+    method: "put",
     data
   })
 }
@@ -113,5 +113,125 @@ export const changeHaltHassVersion = (params: { ID: number; version: number }) =
     url: "/test/addprocess/versionupdate/",
     method: "get",
     params
+  })
+}
+
+// ==================== HALT-HASS 工单 API ====================
+
+/**
+ * 获取 HALT-HASS 工单列表
+ */
+export const getHaltHassOrderList = (params: {
+  page?: number
+  pageSize?: number
+  status?: string
+  orderNo?: string
+}): Promise<HaltHass.HaltHassOrderListResponse> => {
+  return request({
+    url: "/test/halt-hass/order/list/",
+    method: "get",
+    params
+  })
+}
+
+/**
+ * 获取 HALT-HASS 工单详情
+ */
+export const getHaltHassOrderDetail = (orderId: number): Promise<HaltHass.HaltHassOrderDetailResponse> => {
+  return request({
+    url: `/test/halt-hass/order/detail/${orderId}/`,
+    method: "get"
+  })
+}
+
+/**
+ * 创建 HALT-HASS 工单
+ */
+export const createHaltHassOrder = (data: HaltHass.HaltHassOrderCreateParams) => {
+  return request({
+    url: "/test/halt-hass/order/create/",
+    method: "post",
+    data
+  })
+}
+
+/**
+ * 发布 HALT-HASS 工单
+ */
+export const publishHaltHassOrder = (orderId: number) => {
+  return request({
+    url: `/test/halt-hass/order/publish/${orderId}/`,
+    method: "post"
+  })
+}
+
+/**
+ * 删除 HALT-HASS 工单
+ */
+export const deleteHaltHassOrder = (orderId: number) => {
+  return request({
+    url: `/test/halt-hass/order/delete/${orderId}/`,
+    method: "delete"
+  })
+}
+
+/**
+ * 获取批次下指定型号的电路板列表（HALT-HASS 专用）
+ */
+export const getHaltHassBoardsInfo = (params: { batchId: string | number; boardModelId: number }) => {
+  return request<{ code: number; data: Array<{ id: number; serial_num: string }> }>({
+    url: "/test/halt-hass/order/boards-by-batch/",
+    method: "get",
+    params
+  })
+}
+
+// ==================== HALT-HASS 报告 API ====================
+
+/**
+ * 获取 HALT-HASS 报告列表
+ */
+export const getHaltHassReportList = (params: {
+  page?: number
+  pageSize?: number
+  reviewStatus?: string
+  orderNo?: string
+}): Promise<HaltHass.HaltHassReportListResponse> => {
+  return request({
+    url: "/test/halt-hass/report/list/",
+    method: "get",
+    params
+  })
+}
+
+/**
+ * 获取 HALT-HASS 报告详情
+ */
+export const getHaltHassReportDetail = (reportId: number): Promise<HaltHass.HaltHassReportDetailResponse> => {
+  return request({
+    url: `/test/halt-hass/report/detail/${reportId}/`,
+    method: "get"
+  })
+}
+
+/**
+ * 审核通过报告
+ */
+export const approveHaltHassReport = (reportId: number, data: { reviewerId: number; comment?: string }) => {
+  return request({
+    url: `/test/halt-hass/report/approve/${reportId}/`,
+    method: "post",
+    data
+  })
+}
+
+/**
+ * 审核打回报告
+ */
+export const rejectHaltHassReport = (reportId: number, data: { reviewerId: number; reason: string }) => {
+  return request({
+    url: `/test/halt-hass/report/reject/${reportId}/`,
+    method: "post",
+    data
   })
 }

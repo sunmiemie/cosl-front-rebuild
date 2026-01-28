@@ -392,6 +392,20 @@
           </div>
         </template>
       </el-card>
+      <!--HALT-HASS测试-->
+      <el-card v-else-if="testTypeShow === 'HALT-HASS测试'" style="margin: 20px">
+        <el-result icon="info" title="HALT-HASS 工艺">
+          <template #sub-title>
+            <p>HALT-HASS 工艺需要在 COSL Operator 客户端进行创建和编辑</p>
+            <p style="color: #909399; font-size: 13px; margin-top: 10px">
+              请使用 Tauri 客户端的"工艺编辑 - HALT HASS工艺"功能进行操作
+            </p>
+          </template>
+          <template #extra>
+            <el-button @click="router.push('/testmanage/testprocess')">返回工艺列表</el-button>
+          </template>
+        </el-result>
+      </el-card>
       <!--其他通用测试-->
       <el-card v-else>
         <el-empty description="待开发..." />
