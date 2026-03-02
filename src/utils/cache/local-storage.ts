@@ -6,10 +6,20 @@ import { type ThemeName } from "@/hooks/useTheme"
 import { type TagView } from "@/store/modules/tags-view"
 import { type LayoutSettings } from "@/config/layouts"
 
+/** 旧版本或手工修改留下的无效缓存不应阻止页面初始化。 */
+const readJsonCache = (key: string): unknown => {
+  try {
+    const json = localStorage.getItem(key)
+    return json ? JSON.parse(json) : null
+  } catch {
+    return null
+  }
+}
+
 //#region 系统布局配置
 export const getConfigLayout = () => {
-  const json = localStorage.getItem(CacheKey.CONFIG_LAYOUT)
-  return json ? (JSON.parse(json) as LayoutSettings) : null
+  const value = readJsonCache(CacheKey.CONFIG_LAYOUT)
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? (value as LayoutSettings) : null
 }
 export const setConfigLayout = (settings: LayoutSettings) => {
   localStorage.setItem(CacheKey.CONFIG_LAYOUT, JSON.stringify(settings))
@@ -39,20 +49,26 @@ export const setActiveThemeName = (themeName: ThemeName) => {
 
 //#region 标签栏
 export const getVisitedViews = () => {
-  const json = localStorage.getItem(CacheKey.VISITED_VIEWS)
-  return JSON.parse(json ?? "[]") as TagView[]
+  const value = readJsonCache(CacheKey.VISITED_VIEWS)
+  return Array.isArray(value)
+    ? value.filter(
+        (view): view is TagView => view !== null && typeof view === "object" && typeof view.path === "string"
+      )
+    : []
 }
 export const setVisitedViews = (views: TagView[]) => {
-  views.forEach((view) => {
+  const cacheViews = views.map((view) => {
     // 删除不必要的属性，防止 JSON.stringify 处理到循环引用
-    delete view.matched
-    delete view.redirectedFrom
+    const copy = { ...view }
+    delete copy.matched
+    delete copy.redirectedFrom
+    return copy
   })
-  localStorage.setItem(CacheKey.VISITED_VIEWS, JSON.stringify(views))
+  localStorage.setItem(CacheKey.VISITED_VIEWS, JSON.stringify(cacheViews))
 }
 export const getCachedViews = () => {
-  const json = localStorage.getItem(CacheKey.CACHED_VIEWS)
-  return JSON.parse(json ?? "[]") as string[]
+  const value = readJsonCache(CacheKey.CACHED_VIEWS)
+  return Array.isArray(value) ? value.filter((view): view is string => typeof view === "string") : []
 }
 export const setCachedViews = (views: string[]) => {
   localStorage.setItem(CacheKey.CACHED_VIEWS, JSON.stringify(views))
