@@ -27,7 +27,11 @@ const defaultPaginationData: DefaultPaginationData = {
 
 export function usePagination(initialPaginationData: PaginationData = {}) {
   /** 合并分页参数 */
-  const paginationData = reactive({ ...defaultPaginationData, ...initialPaginationData })
+  const paginationData = reactive({
+    ...defaultPaginationData,
+    ...initialPaginationData,
+    pageSizes: [...(initialPaginationData.pageSizes ?? defaultPaginationData.pageSizes)]
+  })
   /** 改变当前页码 */
   const handleCurrentChange = (value: number) => {
     paginationData.currentPage = value
@@ -35,6 +39,7 @@ export function usePagination(initialPaginationData: PaginationData = {}) {
   /** 改变页面大小 */
   const handleSizeChange = (value: number) => {
     paginationData.pageSize = value
+    paginationData.currentPage = 1
   }
 
   return { paginationData, handleCurrentChange, handleSizeChange }
@@ -42,7 +47,11 @@ export function usePagination(initialPaginationData: PaginationData = {}) {
 
 export function useDetailPagination(initialPaginationData: PaginationData = {}) {
   /** 合并分页参数 */
-  const paginationDetailData = reactive({ ...defaultPaginationData, ...initialPaginationData })
+  const paginationDetailData = reactive({
+    ...defaultPaginationData,
+    ...initialPaginationData,
+    pageSizes: [...(initialPaginationData.pageSizes ?? defaultPaginationData.pageSizes)]
+  })
   /** 改变当前页码 */
   const handleDetailCurrentChange = (value: number) => {
     paginationDetailData.currentPage = value
@@ -50,6 +59,7 @@ export function useDetailPagination(initialPaginationData: PaginationData = {}) 
   /** 改变页面大小 */
   const handleDetailSizeChange = (value: number) => {
     paginationDetailData.pageSize = value
+    paginationDetailData.currentPage = 1
   }
 
   return { paginationDetailData, handleDetailCurrentChange, handleDetailSizeChange }
