@@ -14,6 +14,15 @@
         <el-tab-pane label="水循环报告" name="water-cycle">
           <WaterCycleReport ref="waterCycleReportComponent" />
         </el-tab-pane>
+        <el-tab-pane label="高温箱报告" name="high-temp">
+          <HighTemperatureReport ref="highTempReportComponent" />
+        </el-tab-pane>
+        <el-tab-pane label="振动台报告" name="vibration">
+          <VibrationReport ref="vibrationReportComponent" />
+        </el-tab-pane>
+        <el-tab-pane label="高温高压报告" name="high-pressure">
+          <VibrationReport ref="highPressureReportComponent" />
+        </el-tab-pane>
         <el-tab-pane label="缺陷报告" name="bug">
           <BugReport ref="bugReportComponent" />
         </el-tab-pane>
@@ -35,6 +44,9 @@ import BugReport from "./components/BugReport.vue"
 import BatchReport from "./components/BatchReport.vue"
 import HaltHassReport from "./components/HaltHassReport.vue"
 import WaterCycleReport from "./components/WaterCycleReport.vue"
+import HighTemperatureReport from "./components/HighTemperatureReport.vue"
+import VibrationReport from "./components/VibrationReport.vue"
+import HighPressureReport from "./components/HighPressureReport.vue"
 
 // 默认打开"生产测试报告"标签页
 const activeName = ref<any>("prod")
@@ -44,6 +56,9 @@ const bugReportComponent = ref<InstanceType<typeof BugReport> | null>(null)
 const batchReportComponent = ref<InstanceType<typeof BatchReport> | null>(null)
 const haltHassReportComponent = ref<InstanceType<typeof HaltHassReport> | null>(null)
 const waterCycleReportComponent = ref<InstanceType<typeof WaterCycleReport> | null>(null)
+const highTempReportComponent = ref<InstanceType<typeof HighTemperatureReport> | null>(null)
+const vibrationReportComponent = ref<InstanceType<typeof VibrationReport> | null>(null)
+const highPressureReportComponent = ref<InstanceType<typeof HighPressureReport> | null>(null)
 
 const router = useRouter()
 
@@ -63,6 +78,12 @@ const handleTabClick = (tab: TabsPaneContext) => {
     batchReportComponent.value.resetSearch()
   } else if (tab.props.name === "water-cycle" && waterCycleReportComponent.value) {
     waterCycleReportComponent.value.resetSearch()
+  } else if (tab.props.name === "high-temp" && highTempReportComponent.value) {
+    highTempReportComponent.value.resetSearch()
+  } else if (tab.props.name === "vibration" && vibrationReportComponent.value) {
+    vibrationReportComponent.value.resetSearch()
+  } else if (tab.props.name === "high-pressure" && highPressureReportComponent.value) {
+    highPressureReportComponent.value.resetSearch()
   }
 }
 
@@ -83,6 +104,13 @@ onMounted(() => {
     batchReportComponent.value.resetSearch()
   } else if (tab === "water-cycle" && waterCycleReportComponent.value) {
     waterCycleReportComponent.value.resetSearch()
+  } else if (tab === "high-temp" && highTempReportComponent.value) {
+    highTempReportComponent.value.resetSearch()
+  } else if (tab === "vibration" && vibrationReportComponent.value) {
+    vibrationReportComponent.value.resetSearch()
+  } else if (tab === "high-pressure" && highPressureReportComponent.value) {
+    highPressureReportComponent.value.resetSearch()
   }
+
 })
 </script>

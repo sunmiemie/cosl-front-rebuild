@@ -33,10 +33,12 @@
 
       <div class="table-wrapper">
         <el-table :data="tableData" stripe border style="width: 100%">
-          <el-table-column prop="taskNumber" label="任务单号" width="180" align="center" />
+          <el-table-column prop="orderNo" label="工单编号" width="160" align="center" />
+          <el-table-column prop="type" label="类型" width="120" align="center" />
           <el-table-column prop="applicant" label="申请人" min-width="120" align="center" />
           <el-table-column prop="deviceName" label="设备名称" min-width="150" align="center" />
-          <el-table-column prop="flowProcess" label="流程长度" min-width="120" align="center" />
+          <el-table-column prop="level" label="振动量级" width="120" align="center" />
+          <el-table-column prop="duration" label="时长(分)" width="100" align="center" />
           <el-table-column prop="status" label="状态" width="100" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">{{ row.statusText || row.status }}</el-tag>
@@ -66,75 +68,33 @@
 
     <el-dialog v-model="createDialogVisible" title="创建 振动台 工单" width="700px" :close-on-click-modal="false">
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="测试台" prop="testPlatform">
-              <el-select v-model="createForm.testPlatform" placeholder="请选择测试台" style="width: 100%">
-                <el-option label="振动台测试台" value="振动台测试台" />
-                <el-option label="电动振动台" value="电动振动台" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="测试日期" prop="testDate">
-              <el-date-picker v-model="createForm.testDate" type="date" placeholder="选择日期" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="开始时间" prop="startTime">
-              <el-time-picker v-model="createForm.startTime" placeholder="选择时间" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="结束时间" prop="endTime">
-              <el-time-picker v-model="createForm.endTime" placeholder="选择时间" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="设备名称" prop="deviceName">
-          <el-input v-model="createForm.deviceName" placeholder="如：卫星姿控仪" />
-        </el-form-item>
-        <el-form-item label="设备编号" prop="deviceNumber">
-          <el-input v-model="createForm.deviceNumber" placeholder="如：01" />
-        </el-form-item>
-        <el-form-item label="任务单号" prop="taskNumber">
-          <el-input v-model="createForm.taskNumber" placeholder="如：2025521" />
-        </el-form-item>
-
-        <el-form-item label="流程长度" prop="flowProcess">
-          <el-select v-model="createForm.flowProcess" placeholder="请选择流程长度" style="width: 100%">
-            <el-option v-for="p in FLOW_PROCESSES" :key="p.id" :label="p.name" :value="p.value" />
+        <el-form-item label="工单类型" prop="type">
+          <el-select v-model="createForm.type" placeholder="请选择工单类型" style="width: 100%">
+            <el-option label="预实验" value="预实验" />
+            <el-option label="正式测试" value="正式测试" />
           </el-select>
         </el-form-item>
-
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="是否调压" prop="needPressureTest">
-              <el-select v-model="createForm.needPressureTest" style="width: 100%">
-                <el-option label="否" value="no" />
-                <el-option label="是" value="yes" />
-              </el-select>
+            <el-form-item label="申请人" prop="applicant">
+              <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="是否指令下传" prop="needCommandTransfer">
-              <el-select v-model="createForm.needCommandTransfer" style="width: 100%">
-                <el-option label="否" value="no" />
-                <el-option label="是" value="yes" />
-              </el-select>
+            <el-form-item label="申请人电话" prop="phone">
+              <el-input v-model="createForm.phone" placeholder="138****0000" />
             </el-form-item>
           </el-col>
         </el-row>
-
-        <el-form-item label="申请人" prop="applicant">
-          <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
+        <el-form-item label="测试设备" prop="deviceName">
+          <el-select v-model="createForm.deviceName" placeholder="请选择测试设备" style="width: 100%">
+            <el-option label="卫星姿控仪" value="卫星姿控仪" />
+            <el-option label="导航控制器" value="导航控制器" />
+            <el-option label="传感器模块" value="传感器模块" />
+          </el-select>
         </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="createForm.remark" type="textarea" rows="3" placeholder="请输入备注" />
+        <el-form-item label="测试目的" prop="purpose">
+          <el-input v-model="createForm.purpose" type="textarea" rows="3" placeholder="描述本次测试的目的..." />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -189,10 +149,12 @@ const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
 const loading = ref(false)
 
 type Row = {
-  taskNumber: string
+  orderNo: string
+  type: string
   applicant: string
   deviceName: string
-  flowProcess: string
+  level: string
+  duration: number
   status: string | number
   statusText?: string
   testDate?: string
@@ -204,30 +166,19 @@ const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
 const createForm = reactive({
-  testPlatform: "振动台测试台",
-  testDate: new Date().toISOString().split("T")[0] as any,
-  startTime: "" as any,
-  endTime: "" as any,
-  deviceName: "",
-  deviceNumber: "",
-  taskNumber: "",
-  flowProcess: "",
-  needPressureTest: "no",
-  needCommandTransfer: "no",
-  applicant: "",
-  remark: ""
+  type: '预实验',
+  applicant: '',
+  phone: '',
+  deviceName: '',
+  purpose: ''
 })
 
 const createRules = {
-  testPlatform: [{ required: true, message: "请选择测试台", trigger: "change" }],
-  testDate: [{ required: true, message: "请选择测试日期", trigger: "change" }],
-  startTime: [{ required: true, message: "请选择开始时间", trigger: "change" }],
-  endTime: [{ required: true, message: "请选择结束时间", trigger: "change" }],
-  deviceName: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
-  deviceNumber: [{ required: true, message: "请输入设备编号", trigger: "blur" }],
-  taskNumber: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
-  flowProcess: [{ required: true, message: "请选择流程长度", trigger: "change" }],
-  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }]
+  type: [{ required: true, message: '请选择工单类型', trigger: 'change' }],
+  applicant: [{ required: true, message: '请输入申请人', trigger: 'blur' }],
+  phone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }],
+  deviceName: [{ required: true, message: '请选择测试设备', trigger: 'change' }],
+  purpose: [{ required: true, message: '请输入测试目的', trigger: 'blur' }]
 }
 
 const canCreate = computed(() => {
@@ -296,20 +247,7 @@ const handleCurrentChange = (page: number) => {
 }
 
 const showCreateDialog = () => {
-  Object.assign(createForm, {
-    testPlatform: "振动台测试台",
-    testDate: new Date().toISOString().split("T")[0],
-    startTime: "",
-    endTime: "",
-    deviceName: "",
-    deviceNumber: "",
-    taskNumber: "",
-    flowProcess: "",
-    needPressureTest: "no",
-    needCommandTransfer: "no",
-    applicant: "",
-    remark: ""
-  })
+  Object.assign(createForm, { type: '预实验', applicant: '', phone: '', deviceName: '', purpose: '' })
   createDialogVisible.value = true
 }
 

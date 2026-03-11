@@ -66,64 +66,33 @@
     </el-card>
 
     <el-dialog v-model="createDialogVisible" title="创建 高温高压井 工单" width="700px" :close-on-click-modal="false">
-      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="140px">
+        <el-form-item label="工单编号（自动生成）" prop="orderNo">
+          <el-input v-model="createForm.orderNo" placeholder="WO-2024-005" readonly />
+        </el-form-item>
+        <el-form-item label="容器类型" prop="containerType">
+          <el-select v-model="createForm.containerType" placeholder="请选择容器类型" style="width: 100%">
+            <el-option label="250L 容器" value="250L容器" />
+            <el-option label="480L 容器" value="480L容器" />
+          </el-select>
+        </el-form-item>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="测试台" prop="testPlatform">
-              <el-select v-model="createForm.testPlatform" placeholder="请选择测试台" style="width: 100%">
-                <el-option label="高温高压井测试台" value="高温高压井测试台" />
-                <el-option label="高温测试台" value="高温测试台" />
-              </el-select>
+            <el-form-item label="目标温度" prop="targetTemp">
+              <el-input v-model="createForm.targetTemp" placeholder="例如: 180°C" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="测试日期" prop="testDate">
-              <el-date-picker v-model="createForm.testDate" type="date" placeholder="选择日期" style="width: 100%" />
+            <el-form-item label="目标压力" prop="targetPressure">
+              <el-input v-model="createForm.targetPressure" placeholder="例如: 15MPa" />
             </el-form-item>
           </el-col>
         </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="开始时间" prop="startTime">
-              <el-time-picker v-model="createForm.startTime" placeholder="选择时间" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="结束时间" prop="endTime">
-              <el-time-picker v-model="createForm.endTime" placeholder="选择时间" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-form-item label="设备名称" prop="deviceName">
-          <el-input v-model="createForm.deviceName" placeholder="如：导向短节" />
+        <el-form-item label="保温保压时间" prop="holdTime">
+          <el-input v-model="createForm.holdTime" placeholder="例如: 120min" />
         </el-form-item>
-        <el-form-item label="设备编号" prop="deviceNumber">
-          <el-input v-model="createForm.deviceNumber" placeholder="如：01" />
-        </el-form-item>
-        <el-form-item label="任务单号" prop="taskNumber">
-          <el-input v-model="createForm.taskNumber" placeholder="如：2025521" />
-        </el-form-item>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="目标温度(°C)" prop="targetTemp">
-              <el-input v-model="createForm.targetTemp" placeholder="如：180" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="目标压力(MPa)" prop="targetPressure">
-              <el-input v-model="createForm.targetPressure" placeholder="如：15" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
         <el-form-item label="申请人" prop="applicant">
-          <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
-        </el-form-item>
-        <el-form-item label="备注">
-          <el-input v-model="createForm.remark" type="textarea" rows="3" placeholder="请输入备注" />
+          <el-input v-model="createForm.applicant" placeholder="申请人姓名" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -188,43 +157,29 @@ const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
 const createForm = reactive({
-  testPlatform: "高温高压井测试台",
-  testDate: new Date().toISOString().split("T")[0] as any,
-  startTime: "" as any,
-  endTime: "" as any,
-  deviceName: "",
-  deviceNumber: "",
-  taskNumber: "",
-  targetTemp: "",
-  targetPressure: "",
-  applicant: "",
-  remark: ""
+  orderNo: '',
+  containerType: '250L容器',
+  targetTemp: '',
+  targetPressure: '',
+  holdTime: '',
+  applicant: ''
 })
 
 const createRules = {
-  testPlatform: [{ required: true, message: "请选择测试台", trigger: "change" }],
-  testDate: [{ required: true, message: "请选择测试日期", trigger: "change" }],
-  startTime: [{ required: true, message: "请选择开始时间", trigger: "change" }],
-  endTime: [{ required: true, message: "请选择结束时间", trigger: "change" }],
-  deviceName: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
-  deviceNumber: [{ required: true, message: "请输入设备编号", trigger: "blur" }],
-  taskNumber: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
-  targetTemp: [{ required: true, message: "请输入目标温度", trigger: "blur" }],
-  targetPressure: [{ required: true, message: "请输入目标压力", trigger: "blur" }],
-  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }]
+  orderNo: [{ required: true, message: '请确认工单编号', trigger: 'blur' }],
+  containerType: [{ required: true, message: '请选择容器类型', trigger: 'change' }],
+  targetTemp: [{ required: true, message: '请输入目标温度', trigger: 'blur' }],
+  targetPressure: [{ required: true, message: '请输入目标压力', trigger: 'blur' }],
+  holdTime: [{ required: true, message: '请输入保温保压时间', trigger: 'blur' }],
+  applicant: [{ required: true, message: '请输入申请人', trigger: 'blur' }]
 }
 
 const canCreate = computed(() => {
   return !!(
-    createForm.testPlatform &&
-    createForm.testDate &&
-    createForm.startTime &&
-    createForm.endTime &&
-    createForm.deviceName &&
-    createForm.deviceNumber &&
-    createForm.taskNumber &&
+    createForm.containerType &&
     createForm.targetTemp &&
     createForm.targetPressure &&
+    createForm.holdTime &&
     createForm.applicant
   )
 })
@@ -282,17 +237,12 @@ const handleCurrentChange = (page: number) => {
 
 const showCreateDialog = () => {
   Object.assign(createForm, {
-    testPlatform: "高温高压井测试台",
-    testDate: new Date().toISOString().split("T")[0],
-    startTime: "",
-    endTime: "",
-    deviceName: "",
-    deviceNumber: "",
-    taskNumber: "",
-    targetTemp: "",
-    targetPressure: "",
-    applicant: "",
-    remark: ""
+    orderNo: `WO-${new Date().getFullYear()}-005`,
+    containerType: '250L容器',
+    targetTemp: '',
+    targetPressure: '',
+    holdTime: '',
+    applicant: ''
   })
   createDialogVisible.value = true
 }
