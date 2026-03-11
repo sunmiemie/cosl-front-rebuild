@@ -10,12 +10,7 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px">
-            <el-option
-              v-for="item in statusOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
+            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -29,9 +24,7 @@
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" icon="CirclePlus" @click="showCreateDialog">
-            新增 HALT-HASS 工单
-          </el-button>
+          <el-button type="primary" icon="CirclePlus" @click="showCreateDialog"> 新增 HALT-HASS 工单 </el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -45,12 +38,12 @@
           <el-table-column prop="orderNo" label="工单号" width="180" align="center" />
           <el-table-column prop="boardGroup" label="电路板组" min-width="150" align="center">
             <template #default="{ row }">
-              {{ row.boardGroup?.name || '-' }}
+              {{ row.boardGroup?.name || "-" }}
             </template>
           </el-table-column>
           <el-table-column prop="process" label="工艺" min-width="150" align="center">
             <template #default="{ row }">
-              {{ row.process?.name || '-' }}
+              {{ row.process?.name || "-" }}
               <el-tag v-if="row.process?.version" size="small" type="info" style="margin-left: 4px">
                 v{{ row.process.version }}
               </el-tag>
@@ -65,12 +58,12 @@
           <el-table-column prop="createdAt" label="创建时间" width="170" align="center" />
           <el-table-column prop="startedAt" label="开始时间" width="170" align="center">
             <template #default="{ row }">
-              {{ row.startedAt || '-' }}
+              {{ row.startedAt || "-" }}
             </template>
           </el-table-column>
           <el-table-column prop="completedAt" label="完成时间" width="170" align="center">
             <template #default="{ row }">
-              {{ row.completedAt || '-' }}
+              {{ row.completedAt || "-" }}
             </template>
           </el-table-column>
           <el-table-column label="操作" width="180" align="center" fixed="right">
@@ -108,18 +101,18 @@
                 style="width: 100%"
                 @change="handleBoardGroupChange"
               >
-                <el-option
-                  v-for="item in boardGroupList"
-                  :key="item.id"
-                  :label="item.name"
-                  :value="item.id"
-                />
+                <el-option v-for="item in boardGroupList" :key="item.id" :label="item.name" :value="item.id" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="工艺" prop="processId">
-              <el-select v-model="createForm.processId" placeholder="请选择工艺" style="width: 100%" :disabled="!createForm.boardGroupId">
+              <el-select
+                v-model="createForm.processId"
+                placeholder="请选择工艺"
+                style="width: 100%"
+                :disabled="!createForm.boardGroupId"
+              >
                 <el-option
                   v-for="item in processList"
                   :key="item.id"
@@ -161,7 +154,9 @@
                   <div class="board-header">
                     <span>需选择电路板（共 {{ selectedBoardGroup.boards.length }} 种型号）</span>
                     <el-tag type="success" v-if="allBoardsSelected">已完成</el-tag>
-                    <el-tag type="warning" v-else>{{ selectedBoardsCount }}/{{ selectedBoardGroup.boards.length }}</el-tag>
+                    <el-tag type="warning" v-else
+                      >{{ selectedBoardsCount }}/{{ selectedBoardGroup.boards.length }}</el-tag
+                    >
                   </div>
                 </template>
 
@@ -241,16 +236,16 @@
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.statusText }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="电路板组">{{ currentOrder.boardGroup?.name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="电路板组">{{ currentOrder.boardGroup?.name || "-" }}</el-descriptions-item>
         <el-descriptions-item label="工艺">
-          {{ currentOrder.process?.name || '-' }}
+          {{ currentOrder.process?.name || "-" }}
           <span v-if="currentOrder.process?.version">(v{{ currentOrder.process.version }})</span>
         </el-descriptions-item>
         <el-descriptions-item label="电路板数量">{{ currentOrder.boardCount }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ currentOrder.createdAt }}</el-descriptions-item>
-        <el-descriptions-item label="开始时间">{{ currentOrder.startedAt || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="完成时间">{{ currentOrder.completedAt || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentOrder.remark || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="开始时间">{{ currentOrder.startedAt || "-" }}</el-descriptions-item>
+        <el-descriptions-item label="完成时间">{{ currentOrder.completedAt || "-" }}</el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">{{ currentOrder.remark || "-" }}</el-descriptions-item>
         <el-descriptions-item label="反馈理由" :span="2" v-if="currentOrder.feedbackReason">
           <el-text type="danger">{{ currentOrder.feedbackReason }}</el-text>
         </el-descriptions-item>
@@ -264,7 +259,7 @@
           </el-table-column>
           <el-table-column prop="serial" label="序列号" />
           <el-table-column prop="boardModel" label="型号">
-            <template #default="{ row }">{{ row.boardModel?.name || '-' }}</template>
+            <template #default="{ row }">{{ row.boardModel?.name || "-" }}</template>
           </el-table-column>
           <el-table-column prop="scannedAt" label="扫描时间" width="170" />
         </el-table>
@@ -347,7 +342,7 @@ const selectedBoardGroup = ref<BoardGroup | null>(null)
 // 批次树相关
 const treeRef = ref<InstanceType<typeof ElTree>>()
 const treeData = ref<any[]>([])
-const originalTreeData = ref<any[]>([])  // 原始树数据
+const originalTreeData = ref<any[]>([]) // 原始树数据
 const treeLoading = ref(false)
 const treeFilterText = ref("")
 const treeProps = {
@@ -370,7 +365,7 @@ const boardOptionsLoading = reactive<Record<number, boolean>>({})
 const selectedBoardsCount = computed(() => Object.keys(selectedBoards).length)
 const allBoardsSelected = computed(() => {
   if (!selectedBoardGroup.value) return false
-  return selectedBoardGroup.value.boards.every(board => selectedBoards[board.id])
+  return selectedBoardGroup.value.boards.every((board) => selectedBoards[board.id])
 })
 const canCreate = computed(() => {
   return createForm.boardGroupId && createForm.processId && allBoardsSelected.value
@@ -448,12 +443,12 @@ const filterTreeByBoardGroup = (boardGroup: BoardGroup) => {
   if (!originalTreeData.value.length) return
 
   // 获取电路板组中的所有型号ID（转为字符串以匹配树节点 id）
-  const boardModelIds = new Set(boardGroup.boards.map(b => String(b.id)))
+  const boardModelIds = new Set(boardGroup.boards.map((b) => String(b.id)))
 
   // 递归过滤树，只保留匹配的型号节点及其子节点（批次）
   const filterTree = (nodes: any[]): any[] => {
     return nodes
-      .map(node => {
+      .map((node) => {
         // 检查是否是型号节点（有 id 且在 boardModelIds 中）
         if (node.id && boardModelIds.has(String(node.id))) {
           // 保留整个节点及其所有子节点
@@ -470,7 +465,7 @@ const filterTreeByBoardGroup = (boardGroup: BoardGroup) => {
 
         return null
       })
-      .filter(node => node !== null)
+      .filter((node) => node !== null)
   }
 
   treeData.value = filterTree(originalTreeData.value)
@@ -511,9 +506,9 @@ const showCreateDialog = async () => {
   selectedBoardGroup.value = null
 
   // 清空电路板选择
-  Object.keys(selectedBoards).forEach(key => delete selectedBoards[Number(key)])
-  Object.keys(boardSelections).forEach(key => delete boardSelections[Number(key)])
-  Object.keys(boardOptions).forEach(key => delete boardOptions[Number(key)])
+  Object.keys(selectedBoards).forEach((key) => delete selectedBoards[Number(key)])
+  Object.keys(boardSelections).forEach((key) => delete boardSelections[Number(key)])
+  Object.keys(boardOptions).forEach((key) => delete boardOptions[Number(key)])
 
   currentBatchId.value = null
   currentBoardModelId.value = null
@@ -530,12 +525,12 @@ const handleBoardGroupChange = async (boardGroupId: number) => {
   createForm.processId = null
   processList.value = []
   selectedBoardGroup.value = null
-  treeData.value = originalTreeData.value  // 重置树数据
+  treeData.value = originalTreeData.value // 重置树数据
 
   // 清空电路板选择
-  Object.keys(selectedBoards).forEach(key => delete selectedBoards[Number(key)])
-  Object.keys(boardSelections).forEach(key => delete boardSelections[Number(key)])
-  Object.keys(boardOptions).forEach(key => delete boardOptions[Number(key)])
+  Object.keys(selectedBoards).forEach((key) => delete selectedBoards[Number(key)])
+  Object.keys(boardSelections).forEach((key) => delete boardSelections[Number(key)])
+  Object.keys(boardOptions).forEach((key) => delete boardOptions[Number(key)])
 
   if (!boardGroupId) return
 
@@ -544,10 +539,10 @@ const handleBoardGroupChange = async (boardGroupId: number) => {
     const res = await getHaltHassVersionList({ boardGroupId: String(boardGroupId) })
     if (res.code === 0) {
       // 筛选审核通过的工艺（status === 3）
-      processList.value = res.data.filter(item => item.status === 3)
+      processList.value = res.data.filter((item) => item.status === 3)
 
       // 默认选择当前激活的工艺
-      const activeProcess = processList.value.find(item => item.active === 1)
+      const activeProcess = processList.value.find((item) => item.active === 1)
       if (activeProcess) {
         createForm.processId = activeProcess.id
       }
@@ -581,14 +576,12 @@ const handleTreeNodeClick = async (data: any, node: any) => {
   currentBoardModelId.value = parentBoardModelId ? Number(parentBoardModelId) : null
   currentBatchInfo.value = {
     name: data.label,
-    boardModelName: node.parent?.data?.label || ''
+    boardModelName: node.parent?.data?.label || ""
   }
 
   // 检查当前批次对应的型号是否在选中的电路板组中
   if (selectedBoardGroup.value && currentBoardModelId.value) {
-    const matchingModel = selectedBoardGroup.value.boards.find(
-      board => board.id === currentBoardModelId.value
-    )
+    const matchingModel = selectedBoardGroup.value.boards.find((board) => board.id === currentBoardModelId.value)
     if (matchingModel && !selectedBoards[matchingModel.id]) {
       // 自动加载该型号的电路板
       await loadBoardsForModel(matchingModel.id)
@@ -626,7 +619,7 @@ const loadBoardsForModel = async (boardModelId: number) => {
 const handleBoardSelect = (boardModelId: number, boardId: number) => {
   if (!boardId) return
 
-  const board = boardOptions[boardModelId]?.find(b => b.id === boardId)
+  const board = boardOptions[boardModelId]?.find((b) => b.id === boardId)
   if (board) {
     selectedBoards[boardModelId] = {
       id: board.id,

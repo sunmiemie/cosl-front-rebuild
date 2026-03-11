@@ -11,6 +11,18 @@
         <el-tab-pane label="HALT-HASS 工单" name="halt-hass">
           <HaltHassOrder ref="haltHassOrderComponent" />
         </el-tab-pane>
+        <el-tab-pane label="水循环工单" name="water-cycle">
+          <WaterCycleOrder ref="waterCycleOrderComponent" />
+        </el-tab-pane>
+        <el-tab-pane label="高温箱工单" name="high-temp">
+          <HighTemperatureOrder ref="highTempOrderComponent" />
+        </el-tab-pane>
+        <el-tab-pane label="振动台工单" name="vibration">
+          <VibrationOrder ref="vibrationOrderComponent" />
+        </el-tab-pane>
+        <el-tab-pane label="高温高压井工单" name="high-temp-pressure">
+          <HighTemperaturePressureOrder ref="highTempPressureOrderComponent" />
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -23,11 +35,19 @@ import { TabsPaneContext } from "element-plus"
 import ProdOrder from "./components/ProdOrder.vue"
 import TempOrder from "./components/TempOrder.vue"
 import HaltHassOrder from "./components/HaltHassOrder.vue"
+import WaterCycleOrder from "./components/WaterCycleOrder.vue"
+import HighTemperatureOrder from "./components/HighTemperatureOrder.vue"
+import VibrationOrder from "./components/VibrationOrder.vue"
+import HighTemperaturePressureOrder from "./components/HighTemperaturePressureOrder.vue"
 
 const activeName = ref<any>("prod")
 const prodOrderComponent = ref<InstanceType<typeof ProdOrder> | null>(null)
 const tempOrderComponent = ref<InstanceType<typeof TempOrder> | null>(null)
 const haltHassOrderComponent = ref<InstanceType<typeof HaltHassOrder> | null>(null)
+const waterCycleOrderComponent = ref<InstanceType<typeof WaterCycleOrder> | null>(null)
+const highTempOrderComponent = ref<InstanceType<typeof HighTemperatureOrder> | null>(null)
+const vibrationOrderComponent = ref<InstanceType<typeof VibrationOrder> | null>(null)
+const highTempPressureOrderComponent = ref<InstanceType<typeof HighTemperaturePressureOrder> | null>(null)
 
 const router = useRouter()
 
@@ -41,6 +61,14 @@ const handleTabClick = (tab: TabsPaneContext) => {
     tempOrderComponent.value.resetSearch()
   } else if (tab.props.name === "halt-hass" && haltHassOrderComponent.value) {
     haltHassOrderComponent.value.refresh()
+  } else if (tab.props.name === "water-cycle" && waterCycleOrderComponent.value) {
+    waterCycleOrderComponent.value.refresh?.()
+  } else if (tab.props.name === "high-temp" && highTempOrderComponent.value) {
+    highTempOrderComponent.value.refresh?.()
+  } else if (tab.props.name === "vibration" && vibrationOrderComponent.value) {
+    vibrationOrderComponent.value.refresh?.()
+  } else if (tab.props.name === "high-temp-pressure" && highTempPressureOrderComponent.value) {
+    highTempPressureOrderComponent.value.refresh?.()
   }
 }
 

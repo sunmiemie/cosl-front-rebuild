@@ -367,7 +367,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                 </el-select>
               </el-form-item>
               <el-form-item>
-                <el-button :icon="Search" style="margin-right: 10px" type="primary" @click="handleSearch">查询</el-button>
+                <el-button :icon="Search" style="margin-right: 10px" type="primary" @click="handleSearch"
+                  >查询</el-button
+                >
                 <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
               </el-form-item>
             </el-form>
@@ -419,7 +421,12 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             <div class="search-wrapper">
               <el-form :inline="true" :model="haltHassSearchData">
                 <el-form-item label="工单号">
-                  <el-input v-model="haltHassSearchData.orderNo" placeholder="请输入工单号" clearable style="width: 200px" />
+                  <el-input
+                    v-model="haltHassSearchData.orderNo"
+                    placeholder="请输入工单号"
+                    clearable
+                    style="width: 200px"
+                  />
                 </el-form-item>
                 <el-form-item>
                   <el-button :icon="Search" type="primary" @click="handleHaltHassSearch">查询</el-button>
@@ -444,7 +451,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                 <el-table-column prop="id" label="报告ID" width="80" align="center" />
                 <el-table-column prop="order" label="工单号" width="180" align="center">
                   <template #default="{ row }">
-                    {{ row.order?.orderNo || '-' }}
+                    {{ row.order?.orderNo || "-" }}
                   </template>
                 </el-table-column>
                 <el-table-column prop="result" label="测试结果" width="100" align="center">
@@ -521,19 +528,29 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         <el-tab-pane label="基本信息" name="info">
           <el-descriptions :column="2" border>
             <el-descriptions-item label="报告ID">{{ haltHassCurrentReport.id }}</el-descriptions-item>
-            <el-descriptions-item label="工单号">{{ haltHassCurrentReport.order?.orderNo || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="工单号">{{
+              haltHassCurrentReport.order?.orderNo || "-"
+            }}</el-descriptions-item>
             <el-descriptions-item label="测试结果">
-              <el-tag :type="getResultType(haltHassCurrentReport.result)">{{ haltHassCurrentReport.resultText }}</el-tag>
+              <el-tag :type="getResultType(haltHassCurrentReport.result)">{{
+                haltHassCurrentReport.resultText
+              }}</el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="审核状态">
               <el-tag type="warning">待审核</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="电路板组">{{ haltHassCurrentReport.order?.boardGroup?.name || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="电路板组">{{
+              haltHassCurrentReport.order?.boardGroup?.name || "-"
+            }}</el-descriptions-item>
             <el-descriptions-item label="工艺">
-              {{ haltHassCurrentReport.order?.process?.name || '-' }}
-              <span v-if="haltHassCurrentReport.order?.process?.version">(v{{ haltHassCurrentReport.order.process.version }})</span>
+              {{ haltHassCurrentReport.order?.process?.name || "-" }}
+              <span v-if="haltHassCurrentReport.order?.process?.version"
+                >(v{{ haltHassCurrentReport.order.process.version }})</span
+              >
             </el-descriptions-item>
-            <el-descriptions-item label="电路板数量">{{ haltHassCurrentReport.order?.boardCount || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="电路板数量">{{
+              haltHassCurrentReport.order?.boardCount || "-"
+            }}</el-descriptions-item>
             <el-descriptions-item label="提交时间">{{ haltHassCurrentReport.createdAt }}</el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
@@ -562,13 +579,18 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
               </el-col>
             </el-row>
 
-            <el-table :data="haltHassCurrentReport.reportJson.flowchartResult.nodeResults" size="small" border style="margin-top: 20px">
+            <el-table
+              :data="haltHassCurrentReport.reportJson.flowchartResult.nodeResults"
+              size="small"
+              border
+              style="margin-top: 20px"
+            >
               <el-table-column prop="nodeId" label="节点ID" width="120" />
               <el-table-column prop="nodeName" label="节点名称" min-width="150" />
               <el-table-column prop="status" label="状态" width="100" align="center">
                 <template #default="{ row }">
                   <el-tag :type="row.status === 'success' ? 'success' : 'danger'">
-                    {{ row.status === 'success' ? '成功' : '失败' }}
+                    {{ row.status === "success" ? "成功" : "失败" }}
                   </el-tag>
                 </template>
               </el-table-column>
@@ -589,16 +611,24 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             <el-table-column type="index" label="序号" width="60" align="center" />
             <el-table-column prop="serial" label="序列号" />
             <el-table-column prop="boardModelName" label="型号">
-              <template #default="{ row }">{{ row.boardModelName || '-' }}</template>
+              <template #default="{ row }">{{ row.boardModelName || "-" }}</template>
             </el-table-column>
           </el-table>
 
           <div style="margin-top: 20px">
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="测试开始时间">{{ formatTime(haltHassCurrentReport.reportJson?.startTime) }}</el-descriptions-item>
-              <el-descriptions-item label="测试结束时间">{{ formatTime(haltHassCurrentReport.reportJson?.endTime) }}</el-descriptions-item>
-              <el-descriptions-item label="测试时长">{{ formatDuration(haltHassCurrentReport.reportJson?.duration) }}</el-descriptions-item>
-              <el-descriptions-item label="备注">{{ haltHassCurrentReport.reportJson?.remark || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="测试开始时间">{{
+                formatTime(haltHassCurrentReport.reportJson?.startTime)
+              }}</el-descriptions-item>
+              <el-descriptions-item label="测试结束时间">{{
+                formatTime(haltHassCurrentReport.reportJson?.endTime)
+              }}</el-descriptions-item>
+              <el-descriptions-item label="测试时长">{{
+                formatDuration(haltHassCurrentReport.reportJson?.duration)
+              }}</el-descriptions-item>
+              <el-descriptions-item label="备注">{{
+                haltHassCurrentReport.reportJson?.remark || "-"
+              }}</el-descriptions-item>
             </el-descriptions>
           </div>
         </el-tab-pane>

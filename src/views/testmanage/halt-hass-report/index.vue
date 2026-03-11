@@ -14,12 +14,7 @@
         </el-form-item>
         <el-form-item label="审核状态">
           <el-select v-model="searchForm.reviewStatus" placeholder="全部状态" clearable style="width: 150px">
-            <el-option
-              v-for="item in reviewStatusOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
+            <el-option v-for="item in reviewStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -33,7 +28,7 @@
         <el-table-column prop="id" label="报告ID" width="80" align="center" />
         <el-table-column prop="order" label="工单号" width="180" align="center">
           <template #default="{ row }">
-            {{ row.order?.orderNo || '-' }}
+            {{ row.order?.orderNo || "-" }}
           </template>
         </el-table-column>
         <el-table-column prop="result" label="测试结果" width="100" align="center">
@@ -49,12 +44,12 @@
         <el-table-column prop="createdAt" label="提交时间" width="170" align="center" />
         <el-table-column prop="reviewTime" label="审核时间" width="170" align="center">
           <template #default="{ row }">
-            {{ row.reviewTime || '-' }}
+            {{ row.reviewTime || "-" }}
           </template>
         </el-table-column>
         <el-table-column prop="reviewComment" label="审核意见" min-width="200">
           <template #default="{ row }">
-            {{ row.reviewComment || '-' }}
+            {{ row.reviewComment || "-" }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="180" align="center" fixed="right">
@@ -87,22 +82,26 @@
         <el-tab-pane label="基本信息" name="info">
           <el-descriptions :column="2" border>
             <el-descriptions-item label="报告ID">{{ currentReport.id }}</el-descriptions-item>
-            <el-descriptions-item label="工单号">{{ currentReport.order?.orderNo || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="工单号">{{ currentReport.order?.orderNo || "-" }}</el-descriptions-item>
             <el-descriptions-item label="测试结果">
               <el-tag :type="getResultType(currentReport.result)">{{ currentReport.resultText }}</el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="审核状态">
-              <el-tag :type="getReviewStatusType(currentReport.reviewStatus)">{{ currentReport.reviewStatusText }}</el-tag>
+              <el-tag :type="getReviewStatusType(currentReport.reviewStatus)">{{
+                currentReport.reviewStatusText
+              }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="电路板组">{{ currentReport.order?.boardGroup?.name || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="电路板组">{{
+              currentReport.order?.boardGroup?.name || "-"
+            }}</el-descriptions-item>
             <el-descriptions-item label="工艺">
-              {{ currentReport.order?.process?.name || '-' }}
+              {{ currentReport.order?.process?.name || "-" }}
               <span v-if="currentReport.order?.process?.version">(v{{ currentReport.order.process.version }})</span>
             </el-descriptions-item>
-            <el-descriptions-item label="电路板数量">{{ currentReport.order?.boardCount || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="电路板数量">{{ currentReport.order?.boardCount || "-" }}</el-descriptions-item>
             <el-descriptions-item label="提交时间">{{ currentReport.createdAt }}</el-descriptions-item>
-            <el-descriptions-item label="审核时间">{{ currentReport.reviewTime || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="审核意见">{{ currentReport.reviewComment || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="审核时间">{{ currentReport.reviewTime || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="审核意见">{{ currentReport.reviewComment || "-" }}</el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
 
@@ -130,13 +129,18 @@
               </el-col>
             </el-row>
 
-            <el-table :data="currentReport.reportJson.flowchartResult.nodeResults" size="small" border style="margin-top: 20px">
+            <el-table
+              :data="currentReport.reportJson.flowchartResult.nodeResults"
+              size="small"
+              border
+              style="margin-top: 20px"
+            >
               <el-table-column prop="nodeId" label="节点ID" width="120" />
               <el-table-column prop="nodeName" label="节点名称" min-width="150" />
               <el-table-column prop="status" label="状态" width="100" align="center">
                 <template #default="{ row }">
                   <el-tag :type="row.status === 'success' ? 'success' : 'danger'">
-                    {{ row.status === 'success' ? '成功' : '失败' }}
+                    {{ row.status === "success" ? "成功" : "失败" }}
                   </el-tag>
                 </template>
               </el-table-column>
@@ -157,16 +161,22 @@
             <el-table-column type="index" label="序号" width="60" align="center" />
             <el-table-column prop="serial" label="序列号" />
             <el-table-column prop="boardModelName" label="型号">
-              <template #default="{ row }">{{ row.boardModelName || '-' }}</template>
+              <template #default="{ row }">{{ row.boardModelName || "-" }}</template>
             </el-table-column>
           </el-table>
 
           <div style="margin-top: 20px">
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="测试开始时间">{{ formatTime(currentReport.reportJson?.startTime) }}</el-descriptions-item>
-              <el-descriptions-item label="测试结束时间">{{ formatTime(currentReport.reportJson?.endTime) }}</el-descriptions-item>
-              <el-descriptions-item label="测试时长">{{ formatDuration(currentReport.reportJson?.duration) }}</el-descriptions-item>
-              <el-descriptions-item label="备注">{{ currentReport.reportJson?.remark || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="测试开始时间">{{
+                formatTime(currentReport.reportJson?.startTime)
+              }}</el-descriptions-item>
+              <el-descriptions-item label="测试结束时间">{{
+                formatTime(currentReport.reportJson?.endTime)
+              }}</el-descriptions-item>
+              <el-descriptions-item label="测试时长">{{
+                formatDuration(currentReport.reportJson?.duration)
+              }}</el-descriptions-item>
+              <el-descriptions-item label="备注">{{ currentReport.reportJson?.remark || "-" }}</el-descriptions-item>
             </el-descriptions>
           </div>
         </el-tab-pane>
@@ -183,12 +193,7 @@
     <el-dialog v-model="rejectDialogVisible" title="打回报告" width="500px">
       <el-form :model="rejectForm" label-width="80px">
         <el-form-item label="打回理由" required>
-          <el-input
-            v-model="rejectForm.reason"
-            type="textarea"
-            rows="4"
-            placeholder="请输入打回理由"
-          />
+          <el-input v-model="rejectForm.reason" type="textarea" rows="4" placeholder="请输入打回理由" />
         </el-form-item>
       </el-form>
       <template #footer>

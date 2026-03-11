@@ -18,12 +18,7 @@
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px">
-            <el-option
-              v-for="item in statusOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
+            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -37,12 +32,12 @@
         <el-table-column prop="orderNo" label="工单号" width="180" align="center" />
         <el-table-column prop="boardGroup" label="电路板组" min-width="150" align="center">
           <template #default="{ row }">
-            {{ row.boardGroup?.name || '-' }}
+            {{ row.boardGroup?.name || "-" }}
           </template>
         </el-table-column>
         <el-table-column prop="process" label="工艺" min-width="150" align="center">
           <template #default="{ row }">
-            {{ row.process?.name || '-' }}
+            {{ row.process?.name || "-" }}
             <el-tag v-if="row.process?.version" size="small" type="info" style="margin-left: 4px">
               v{{ row.process.version }}
             </el-tag>
@@ -57,12 +52,12 @@
         <el-table-column prop="createdAt" label="创建时间" width="170" align="center" />
         <el-table-column prop="startedAt" label="开始时间" width="170" align="center">
           <template #default="{ row }">
-            {{ row.startedAt || '-' }}
+            {{ row.startedAt || "-" }}
           </template>
         </el-table-column>
         <el-table-column prop="completedAt" label="完成时间" width="170" align="center">
           <template #default="{ row }">
-            {{ row.completedAt || '-' }}
+            {{ row.completedAt || "-" }}
           </template>
         </el-table-column>
         <el-table-column label="操作" width="180" align="center" fixed="right">
@@ -98,12 +93,7 @@
             style="width: 100%"
             @change="handleBoardGroupChange"
           >
-            <el-option
-              v-for="item in boardGroupList"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id"
-            />
+            <el-option v-for="item in boardGroupList" :key="item.id" :label="item.name" :value="item.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="工艺" prop="processId">
@@ -136,16 +126,16 @@
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.statusText }}</el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="电路板组">{{ currentOrder.boardGroup?.name || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="电路板组">{{ currentOrder.boardGroup?.name || "-" }}</el-descriptions-item>
         <el-descriptions-item label="工艺">
-          {{ currentOrder.process?.name || '-' }}
+          {{ currentOrder.process?.name || "-" }}
           <span v-if="currentOrder.process?.version">(v{{ currentOrder.process.version }})</span>
         </el-descriptions-item>
         <el-descriptions-item label="电路板数量">{{ currentOrder.boardCount }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ currentOrder.createdAt }}</el-descriptions-item>
-        <el-descriptions-item label="开始时间">{{ currentOrder.startedAt || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="完成时间">{{ currentOrder.completedAt || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentOrder.remark || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="开始时间">{{ currentOrder.startedAt || "-" }}</el-descriptions-item>
+        <el-descriptions-item label="完成时间">{{ currentOrder.completedAt || "-" }}</el-descriptions-item>
+        <el-descriptions-item label="备注" :span="2">{{ currentOrder.remark || "-" }}</el-descriptions-item>
         <el-descriptions-item label="反馈理由" :span="2" v-if="currentOrder.feedbackReason">
           <el-text type="danger">{{ currentOrder.feedbackReason }}</el-text>
         </el-descriptions-item>
@@ -159,7 +149,7 @@
           </el-table-column>
           <el-table-column prop="serial" label="序列号" />
           <el-table-column prop="boardModel" label="型号">
-            <template #default="{ row }">{{ row.boardModel?.name || '-' }}</template>
+            <template #default="{ row }">{{ row.boardModel?.name || "-" }}</template>
           </el-table-column>
           <el-table-column prop="scannedAt" label="扫描时间" width="170" />
         </el-table>
@@ -335,7 +325,7 @@ const handleBoardGroupChange = async (boardGroupId: number) => {
     const res = await getHaltHassVersionList({ boardGroupId: String(boardGroupId) })
     if (res.code === 0) {
       // 只显示激活的工艺
-      processList.value = res.data.filter(item => item.active === 1)
+      processList.value = res.data.filter((item) => item.active === 1)
     }
   } catch (e) {
     console.error(e)
