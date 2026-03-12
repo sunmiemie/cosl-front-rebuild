@@ -23,6 +23,9 @@
         <el-tab-pane label="高温高压井工单" name="high-temp-pressure">
           <HighTemperaturePressureOrder ref="highTempPressureOrderComponent" />
         </el-tab-pane>
+        <el-tab-pane label="模拟井工单" name="simulation">
+          <SimulationOrder ref="simulationOrderComponent" />
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -39,6 +42,7 @@ import WaterCycleOrder from "./components/WaterCycleOrder.vue"
 import HighTemperatureOrder from "./components/HighTemperatureOrder.vue"
 import VibrationOrder from "./components/VibrationOrder.vue"
 import HighTemperaturePressureOrder from "./components/HighTemperaturePressureOrder.vue"
+import SimulationOrder from "./components/SimulationOrder.vue"
 
 const activeName = ref<any>("prod")
 const prodOrderComponent = ref<InstanceType<typeof ProdOrder> | null>(null)
@@ -48,6 +52,7 @@ const waterCycleOrderComponent = ref<InstanceType<typeof WaterCycleOrder> | null
 const highTempOrderComponent = ref<InstanceType<typeof HighTemperatureOrder> | null>(null)
 const vibrationOrderComponent = ref<InstanceType<typeof VibrationOrder> | null>(null)
 const highTempPressureOrderComponent = ref<InstanceType<typeof HighTemperaturePressureOrder> | null>(null)
+const simulationOrderComponent = ref<InstanceType<typeof SimulationOrder> | null>(null)
 
 const router = useRouter()
 
@@ -69,6 +74,8 @@ const handleTabClick = (tab: TabsPaneContext) => {
     vibrationOrderComponent.value.refresh?.()
   } else if (tab.props.name === "high-temp-pressure" && highTempPressureOrderComponent.value) {
     highTempPressureOrderComponent.value.refresh?.()
+  } else if (tab.props.name === "simulation" && simulationOrderComponent.value) {
+    simulationOrderComponent.value.refresh?.()
   }
 }
 

@@ -8,6 +8,12 @@
         <el-tab-pane label="临时测试报告" name="temp">
           <TempReport ref="tempReportComponent" />
         </el-tab-pane>
+        <el-tab-pane label="缺陷报告" name="bug">
+          <BugReport ref="bugReportComponent" />
+        </el-tab-pane>
+        <el-tab-pane label="批次报告" name="batch">
+          <BatchReport ref="batchReportComponent" />
+        </el-tab-pane>
         <el-tab-pane label="HALT-HASS 报告" name="halt-hass">
           <HaltHassReport ref="haltHassReportComponent" />
         </el-tab-pane>
@@ -22,12 +28,6 @@
         </el-tab-pane>
         <el-tab-pane label="高温高压报告" name="high-pressure">
           <VibrationReport ref="highPressureReportComponent" />
-        </el-tab-pane>
-        <el-tab-pane label="缺陷报告" name="bug">
-          <BugReport ref="bugReportComponent" />
-        </el-tab-pane>
-        <el-tab-pane label="批次报告" name="batch">
-          <BatchReport ref="batchReportComponent" />
         </el-tab-pane>
       </el-tabs>
     </el-card>

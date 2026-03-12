@@ -1,5 +1,3 @@
-<!-- 高温高压井 工单 -->
-
 <template>
   <div class="affix-container">
     <el-card class="search-wrapper" shadow="never">
@@ -45,8 +43,9 @@
           </el-table-column>
           <el-table-column label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
-              <el-link type="primary" class="el-link" @click="handleDetail(row)">编辑</el-link>
-              <el-link type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
+              <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
+              <el-link v-if="row.status === 0" type="success" class="el-link" @click="handlePublish(row)">发布</el-link>
+              <el-link v-if="row.status === 0" type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
             </template>
           </el-table-column>
         </el-table>
@@ -101,22 +100,24 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailDialogVisible" title="工单详情" width="700px">
-      <el-descriptions :column="2" border v-if="currentOrder">
-        <el-descriptions-item label="任务单号">{{ currentOrder.taskNumber }}</el-descriptions-item>
-        <el-descriptions-item label="申请人">{{ currentOrder.applicant }}</el-descriptions-item>
-        <el-descriptions-item label="设备名称">{{ currentOrder.deviceName }}</el-descriptions-item>
-        <el-descriptions-item label="目标温度(°C)">{{ currentOrder.targetTemp }}</el-descriptions-item>
-        <el-descriptions-item label="目标压力(MPa)">{{ currentOrder.targetPressure }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(currentOrder.status)">{{
-            currentOrder.statusText || currentOrder.status
-          }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="测试日期">{{ currentOrder.testDate }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentOrder.remark || "-" }}</el-descriptions-item>
-      </el-descriptions>
-    </el-dialog>
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="600px">
+      <div v-if="currentOrder" style="padding: 0 20px">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="任务单号">{{ currentOrder.taskNumber }}</el-descriptions-item>
+          <el-descriptions-item label="申请人">{{ currentOrder.applicant }}</el-descriptions-item>
+          <el-descriptions-item label="设备名称">{{ currentOrder.deviceName }}</el-descriptions-item>
+          <el-descriptions-item label="目标温度(°C)">{{ currentOrder.targetTemp }}</el-descriptions-item>
+          <el-descriptions-item label="目标压力(MPa)">{{ currentOrder.targetPressure }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="getStatusType(currentOrder.status)">{{
+              currentOrder.statusText || currentOrder.status
+            }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="测试日期">{{ currentOrder.testDate }}</el-descriptions-item>
+          <el-descriptions-item label="备注">{{ currentOrder.remark || "-" }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
@@ -157,21 +158,21 @@ const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
 const createForm = reactive({
-  orderNo: '',
-  containerType: '250L容器',
-  targetTemp: '',
-  targetPressure: '',
-  holdTime: '',
-  applicant: ''
+  orderNo: "",
+  containerType: "250L容器",
+  targetTemp: "",
+  targetPressure: "",
+  holdTime: "",
+  applicant: ""
 })
 
 const createRules = {
-  orderNo: [{ required: true, message: '请确认工单编号', trigger: 'blur' }],
-  containerType: [{ required: true, message: '请选择容器类型', trigger: 'change' }],
-  targetTemp: [{ required: true, message: '请输入目标温度', trigger: 'blur' }],
-  targetPressure: [{ required: true, message: '请输入目标压力', trigger: 'blur' }],
-  holdTime: [{ required: true, message: '请输入保温保压时间', trigger: 'blur' }],
-  applicant: [{ required: true, message: '请输入申请人', trigger: 'blur' }]
+  orderNo: [{ required: true, message: "请确认工单编号", trigger: "blur" }],
+  containerType: [{ required: true, message: "请选择容器类型", trigger: "change" }],
+  targetTemp: [{ required: true, message: "请输入目标温度", trigger: "blur" }],
+  targetPressure: [{ required: true, message: "请输入目标压力", trigger: "blur" }],
+  holdTime: [{ required: true, message: "请输入保温保压时间", trigger: "blur" }],
+  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }]
 }
 
 const canCreate = computed(() => {
@@ -206,12 +207,74 @@ const getStatusType = (status: number | string) => {
 const getList = async () => {
   loading.value = true
   try {
-    tableData.value = []
-    pagination.total = 0
+    /* 注释掉实际接口调用
+    const res = await getHighTemperaturePressureOrderList({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      taskNumber: searchForm.taskNumber || undefined,
+      status: searchForm.status || undefined
+    })
+    if (res && res.code === 0 && res.data) {
+      tableData.value = res.data.list || []
+      pagination.total = res.data.total || 0
+    }
+    */
+
+    // 使用假数据演示，并添加本地过滤逻辑
+    setTimeout(() => {
+      const allMockData = [
+        {
+          taskNumber: "HP-20240312-001",
+          applicant: "张三",
+          deviceName: "250L 高压容器",
+          targetTemp: "180",
+          targetPressure: "15",
+          status: 0,
+          statusText: "已创建",
+          testDate: "2024-03-12",
+          remark: "高温高压测试-1"
+        },
+        {
+          taskNumber: "HP-20240312-002",
+          applicant: "李四",
+          deviceName: "480L 高压容器",
+          targetTemp: "200",
+          targetPressure: "25",
+          status: 1,
+          statusText: "待领取",
+          testDate: "2024-03-12",
+          remark: "压力稳定性测试"
+        },
+        {
+          taskNumber: "HP-20240312-003",
+          applicant: "王五",
+          deviceName: "250L 高压容器",
+          targetTemp: "150",
+          targetPressure: "10",
+          status: 2,
+          statusText: "测试中",
+          testDate: "2024-03-12",
+          remark: "密封性检查"
+        }
+      ]
+
+      // 执行搜索过滤
+      let filteredData = allMockData
+      if (searchForm.taskNumber) {
+        filteredData = filteredData.filter((item) => item.taskNumber.includes(searchForm.taskNumber))
+      }
+      if (searchForm.status !== "" && searchForm.status !== undefined) {
+        filteredData = filteredData.filter((item) => String(item.status) === String(searchForm.status))
+      }
+
+      tableData.value = filteredData as any
+      pagination.total = filteredData.length
+      loading.value = false
+    }, 500)
   } catch (e) {
-    ElMessage.error("获取列表失败")
-  } finally {
+    console.error(e)
     loading.value = false
+    ElMessage.error("获取列表失败")
   }
 }
 
@@ -238,11 +301,11 @@ const handleCurrentChange = (page: number) => {
 const showCreateDialog = () => {
   Object.assign(createForm, {
     orderNo: `WO-${new Date().getFullYear()}-005`,
-    containerType: '250L容器',
-    targetTemp: '',
-    targetPressure: '',
-    holdTime: '',
-    applicant: ''
+    containerType: "250L容器",
+    targetTemp: "",
+    targetPressure: "",
+    holdTime: "",
+    applicant: ""
   })
   createDialogVisible.value = true
 }
@@ -253,12 +316,15 @@ const handleCreate = async () => {
     if (!valid) return
     createLoading.value = true
     try {
-      ElMessage.success("创建成功")
-      createDialogVisible.value = false
-      getList()
+      // 模拟创建成功
+      setTimeout(() => {
+        ElMessage.success("创建成功 (演示)")
+        createDialogVisible.value = false
+        createLoading.value = false
+        getList()
+      }, 500)
     } catch {
       ElMessage.error("创建失败")
-    } finally {
       createLoading.value = false
     }
   })
@@ -271,10 +337,34 @@ const handleDetail = (row: Row) => {
 const handleDelete = async (row: Row) => {
   await ElMessageBox.confirm("确定要删除该工单吗？", "确认删除", { type: "warning" })
   try {
-    ElMessage.success("删除成功")
-    getList()
+    // 模拟删除成功
+    ElMessage.success("删除成功 (演示)")
+    tableData.value = tableData.value.filter((item) => item.taskNumber !== row.taskNumber)
+    pagination.total -= 1
   } catch {
-    ElMessage.error("删除失败")
+    // 取消删除
+  }
+}
+const handlePublish = async (row: Row) => {
+  await ElMessageBox.confirm("确定要发布该工单吗？发布后将可被测试人员领取。", "确认发布", { type: "warning" })
+  try {
+    /* 注释掉实际接口调用
+    const res = await publishHighTemperaturePressureOrder(row.id)
+    if (res.code === 0) {
+      ElMessage.success("发布成功")
+      getList()
+    } else {
+      ElMessage.error(res.msg || "发布失败")
+    }
+    */
+
+    // 模拟发布成功
+    ElMessage.success("发布成功 (演示)")
+    row.status = 1
+    row.statusText = "待领取"
+  } catch (e) {
+    console.error(e)
+    ElMessage.error("发布失败")
   }
 }
 

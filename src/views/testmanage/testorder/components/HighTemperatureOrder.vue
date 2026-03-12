@@ -44,8 +44,9 @@
           </el-table-column>
           <el-table-column label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
-              <el-link type="primary" class="el-link" @click="handleDetail(row)">编辑</el-link>
-              <el-link type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
+              <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
+              <el-link v-if="row.status === 0" type="success" class="el-link" @click="handlePublish(row)">发布</el-link>
+              <el-link v-if="row.status === 0" type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
             </template>
           </el-table-column>
         </el-table>
@@ -84,29 +85,24 @@
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="开始时间" prop="startTime">
-              <el-time-picker v-model="createForm.startTime" placeholder="选择时间" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="结束时间" prop="endTime">
-              <el-time-picker v-model="createForm.endTime" placeholder="选择时间" style="width: 100%" />
+            <el-form-item label="运行时间(min)" prop="runTime">
+              <el-input-number v-model="createForm.runTime" placeholder="运行时间" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-form-item label="设备名称" prop="deviceName">
-          <el-input v-model="createForm.deviceName" placeholder="如：导向短节" />
+          <el-input v-model="createForm.deviceName" />
         </el-form-item>
         <el-form-item label="设备编号" prop="deviceNumber">
-          <el-input v-model="createForm.deviceNumber" placeholder="如：01" />
+          <el-input v-model="createForm.deviceNumber" />
         </el-form-item>
         <el-form-item label="任务单号" prop="taskNumber">
-          <el-input v-model="createForm.taskNumber" placeholder="如：2025521" />
+          <el-input v-model="createForm.taskNumber" />
         </el-form-item>
 
         <el-form-item label="目标温度(°C)" prop="targetTemp">
-          <el-input v-model="createForm.targetTemp" placeholder="如：180" />
+          <el-input v-model="createForm.targetTemp" />
         </el-form-item>
 
         <el-form-item label="申请人" prop="applicant">
@@ -122,21 +118,23 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailDialogVisible" title="工单详情" width="700px">
-      <el-descriptions :column="2" border v-if="currentOrder">
-        <el-descriptions-item label="任务单号">{{ currentOrder.taskNumber }}</el-descriptions-item>
-        <el-descriptions-item label="申请人">{{ currentOrder.applicant }}</el-descriptions-item>
-        <el-descriptions-item label="设备名称">{{ currentOrder.deviceName }}</el-descriptions-item>
-        <el-descriptions-item label="目标温度(°C)">{{ currentOrder.targetTemp }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(currentOrder.status)">{{
-            currentOrder.statusText || currentOrder.status
-          }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="测试日期">{{ currentOrder.testDate }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentOrder.remark || "-" }}</el-descriptions-item>
-      </el-descriptions>
-    </el-dialog>
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="600px">
+      <div v-if="currentOrder" style="padding: 0 20px">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="任务单号">{{ currentOrder.taskNumber }}</el-descriptions-item>
+          <el-descriptions-item label="申请人">{{ currentOrder.applicant }}</el-descriptions-item>
+          <el-descriptions-item label="设备名称">{{ currentOrder.deviceName }}</el-descriptions-item>
+          <el-descriptions-item label="目标温度(°C)">{{ currentOrder.targetTemp }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="getStatusType(currentOrder.status)">{{
+              currentOrder.statusText || currentOrder.status
+            }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="测试日期">{{ currentOrder.testDate }}</el-descriptions-item>
+          <el-descriptions-item label="备注">{{ currentOrder.remark || "-" }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
@@ -144,6 +142,16 @@
 import { ref, reactive, onMounted, computed } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
 
+import { useUserStore } from "@/store/modules/user"
+import {
+  getHighTemperatureOrderList,
+  getHighTemperatureOrderDetail,
+  createHighTemperatureOrder,
+  publishHighTemperatureOrder,
+  deleteHighTemperatureOrder
+} from "@/api/high-temperature"
+//api接口函数名称
+import type { HighTemperatureOrderListItem, HighTemperatureOrderDetail } from "@/api/high-temperature/types"
 const statusOptions = [
   { value: "0", label: "已创建" },
   { value: "1", label: "待领取" },
@@ -160,26 +168,15 @@ const searchForm = reactive({ taskNumber: "", status: "" })
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
 const loading = ref(false)
 
-type Row = {
-  taskNumber: string
-  applicant: string
-  deviceName: string
-  targetTemp: string
-  status: string | number
-  statusText?: string
-  testDate?: string
-  remark?: string
-}
-const tableData = ref<Row[]>([])
+const tableData = ref<HighTemperatureOrderListItem[]>([])
 
 const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
 const createForm = reactive({
   testPlatform: "高温箱测试台",
-  testDate: new Date().toISOString().split("T")[0] as any,
-  startTime: "" as any,
-  endTime: "" as any,
+  testDate: new Date(),
+  runTime: 0,
   deviceName: "",
   deviceNumber: "",
   taskNumber: "",
@@ -191,8 +188,7 @@ const createForm = reactive({
 const createRules = {
   testPlatform: [{ required: true, message: "请选择测试台", trigger: "change" }],
   testDate: [{ required: true, message: "请选择测试日期", trigger: "change" }],
-  startTime: [{ required: true, message: "请选择开始时间", trigger: "change" }],
-  endTime: [{ required: true, message: "请选择结束时间", trigger: "change" }],
+  runTime: [{ required: true, message: "请输入运行时间", trigger: "change" }],
   deviceName: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
   deviceNumber: [{ required: true, message: "请输入设备编号", trigger: "blur" }],
   taskNumber: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
@@ -204,8 +200,7 @@ const canCreate = computed(() => {
   return !!(
     createForm.testPlatform &&
     createForm.testDate &&
-    createForm.startTime &&
-    createForm.endTime &&
+    createForm.runTime &&
     createForm.deviceName &&
     createForm.deviceNumber &&
     createForm.taskNumber &&
@@ -215,7 +210,7 @@ const canCreate = computed(() => {
 })
 
 const detailDialogVisible = ref(false)
-const currentOrder = ref<Row | null>(null)
+const currentOrder = ref<HighTemperatureOrderDetail | null>(null)
 
 const getStatusType = (status: number | string) => {
   const map: Record<string, string> = {
@@ -236,11 +231,71 @@ const getStatusType = (status: number | string) => {
 const getList = async () => {
   loading.value = true
   try {
-    tableData.value = []
-    pagination.total = 0
+    /* 注释掉实际接口调用
+    const res = await getHighTemperatureOrderList({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      taskNumber: searchForm.taskNumber || undefined,
+      status: searchForm.status || undefined
+    })
+    if (res && res.code === 0 && res.data) {
+      tableData.value = res.data.list || []
+      pagination.total = res.data.total || 0
+    } else {
+      ElMessage.error(res?.msg || "获取列表失败")
+    }
+    */
+
+    // 使用假数据演示，并添加本地过滤逻辑
+    setTimeout(() => {
+      const allMockData = [
+        {
+          id: 1,
+          taskNumber: "HT-20240312-001",
+          applicant: "张三",
+          deviceName: "高温箱-01",
+          targetTemp: "150",
+          status: 0,
+          statusText: "已创建",
+          testDate: "2024-03-12"
+        },
+        {
+          id: 2,
+          taskNumber: "HT-20240312-002",
+          applicant: "李四",
+          deviceName: "高温箱-02",
+          targetTemp: "180",
+          status: 1,
+          statusText: "待领取",
+          testDate: "2024-03-12"
+        },
+        {
+          id: 3,
+          taskNumber: "HT-20240312-003",
+          applicant: "王五",
+          deviceName: "高温高压仓-A1",
+          targetTemp: "200",
+          status: 2,
+          statusText: "测试中",
+          testDate: "2024-03-12"
+        }
+      ]
+
+      // 执行搜索过滤
+      let filteredData = allMockData
+      if (searchForm.taskNumber) {
+        filteredData = filteredData.filter((item) => item.taskNumber.includes(searchForm.taskNumber))
+      }
+      if (searchForm.status !== "" && searchForm.status !== undefined) {
+        filteredData = filteredData.filter((item) => String(item.status) === String(searchForm.status))
+      }
+
+      tableData.value = filteredData as any
+      pagination.total = filteredData.length
+      loading.value = false
+    }, 500)
   } catch (e) {
-    ElMessage.error("获取列表失败")
-  } finally {
+    console.error("Fetch list error:", e)
     loading.value = false
   }
 }
@@ -268,9 +323,8 @@ const handleCurrentChange = (page: number) => {
 const showCreateDialog = () => {
   Object.assign(createForm, {
     testPlatform: "高温箱测试台",
-    testDate: new Date().toISOString().split("T")[0],
-    startTime: "",
-    endTime: "",
+    testDate: new Date(),
+    runTime: 0,
     deviceName: "",
     deviceNumber: "",
     taskNumber: "",
@@ -287,35 +341,113 @@ const handleCreate = async () => {
     if (!valid) return
     createLoading.value = true
     try {
-      ElMessage.success("创建成功")
-      createDialogVisible.value = false
-      getList()
-    } catch {
+      /* 注释掉实际接口调用
+      const submitData = {
+        ...createForm,
+        testDate: createForm.testDate instanceof Date
+          ? createForm.testDate.toISOString().split('T')[0]
+          : createForm.testDate
+      }
+      const res = await createHighTemperatureOrder(submitData)
+      if (res && res.code === 0) {
+        ElMessage.success("创建成功")
+        createDialogVisible.value = false
+        getList()
+      } else {
+        ElMessage.error(res?.msg || "创建失败")
+      }
+      */
+
+      // 模拟创建成功
+      setTimeout(() => {
+        ElMessage.success("创建成功 (演示)")
+        createDialogVisible.value = false
+        getList()
+        createLoading.value = false
+      }, 500)
+    } catch (e: any) {
+      console.error("Create order error:", e)
       ElMessage.error("创建失败")
-    } finally {
       createLoading.value = false
     }
   })
 }
-
-const handleDetail = (row: Row) => {
-  currentOrder.value = row
-  detailDialogVisible.value = true
-}
-const handleDelete = async (row: Row) => {
-  await ElMessageBox.confirm("确定要删除该工单吗？", "确认删除", { type: "warning" })
+// 查看详情
+const handleDetail = async (row: HighTemperatureOrderListItem) => {
   try {
-    ElMessage.success("删除成功")
-    getList()
-  } catch {
-    ElMessage.error("删除失败")
+    /* 注释掉实际接口调用
+    const res = await getHighTemperatureOrderDetail(row.id)
+    if (res.code === 0) {
+      currentOrder.value = res.data
+      detailDialogVisible.value = true
+    }
+    */
+
+    // 使用假数据演示
+    currentOrder.value = {
+      ...row,
+      deviceNumber: "DEV-HT-999",
+      testPlatform: "高温箱测试台",
+      runTime: 120,
+      remark: "演示用备注：该设备运行稳定",
+      feedbackReason: ""
+    } as any
+    detailDialogVisible.value = true
+  } catch (e) {
+    console.error(e)
+    ElMessage.error("获取详情失败")
   }
 }
 
+const handlePublish = async (row: HighTemperatureOrderListItem) => {
+  await ElMessageBox.confirm("确定要发布该工单吗？发布后将可被测试人员领取。", "确认发布", { type: "warning" })
+  try {
+    /* 注释掉实际接口调用
+    const res = await publishHighTemperatureOrder(row.id)
+    if (res.code === 0) {
+      ElMessage.success("发布成功")
+      getList()
+    } else {
+      ElMessage.error(res.msg || "发布失败")
+    }
+    */
+
+    // 模拟发布成功
+    ElMessage.success("发布成功 (演示)")
+    row.status = 1
+    row.statusText = "待领取"
+  } catch (e) {
+    console.error(e)
+    ElMessage.error("发布失败")
+  }
+}
+
+const handleDelete = async (row: HighTemperatureOrderListItem) => {
+  await ElMessageBox.confirm("确定要删除该工单吗？", "确认删除", { type: "warning" })
+  try {
+    /* 注释掉实际接口调用
+    const res = await deleteHighTemperatureOrder(row.id)
+    if (res.code === 0) {
+      ElMessage.success("删除成功")
+      getList()
+    } else {
+      ElMessage.error(res.msg || "删除失败")
+    }
+    */
+
+    // 模拟删除成功
+    ElMessage.success("删除成功 (演示)")
+    tableData.value = tableData.value.filter((item) => item.id !== row.id)
+    pagination.total -= 1
+  } catch (e) {
+    console.error(e)
+    ElMessage.error("删除失败")
+  }
+}
+defineExpose({ refresh: getList })
 onMounted(() => {
   getList()
 })
-defineExpose({ refresh: getList })
 </script>
 
 <style scoped>

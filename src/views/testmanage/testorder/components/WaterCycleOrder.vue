@@ -44,8 +44,9 @@
           </el-table-column>
           <el-table-column label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
-              <el-link type="primary" class="el-link" @click="handleDetail(row)">编辑</el-link>
-              <el-link type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
+              <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
+              <el-link v-if="row.status === 0" type="success" class="el-link" @click="handlePublish(row)">发布</el-link>
+              <el-link v-if="row.status === 0" type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
             </template>
           </el-table-column>
         </el-table>
@@ -143,62 +144,43 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailDialogVisible" title="工单详情" width="700px">
-      <el-descriptions :column="2" border v-if="currentOrder">
-        <el-descriptions-item label="工单号">{{ currentOrder.orderNo }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.statusText }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="电路板组">{{ currentOrder.boardGroup?.name || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="工艺">
-          {{ currentOrder.process?.name || "-" }}
-          <span v-if="currentOrder.process?.version">(v{{ currentOrder.process.version }})</span>
-        </el-descriptions-item>
-        <el-descriptions-item label="电路板数量">{{ currentOrder.boardCount }}</el-descriptions-item>
-        <el-descriptions-item label="创建时间">{{ currentOrder.createdAt }}</el-descriptions-item>
-        <el-descriptions-item label="开始时间">{{ currentOrder.startedAt || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="完成时间">{{ currentOrder.completedAt || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentOrder.remark || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="反馈理由" :span="2" v-if="currentOrder.feedbackReason">
-          <el-text type="danger">{{ currentOrder.feedbackReason }}</el-text>
-        </el-descriptions-item>
-      </el-descriptions>
-
-      <div v-if="currentOrder?.scannedBoards?.length" style="margin-top: 20px">
-        <h4>已扫描电路板</h4>
-        <el-table :data="currentOrder.scannedBoards" size="small" border>
-          <el-table-column prop="scanOrder" label="序号" width="60" align="center">
-            <template #default="{ row }">{{ row.scanOrder + 1 }}</template>
-          </el-table-column>
-          <el-table-column prop="serial" label="序列号" />
-          <el-table-column prop="boardModel" label="型号">
-            <template #default="{ row }">{{ row.boardModel?.name || "-" }}</template>
-          </el-table-column>
-          <el-table-column prop="scannedAt" label="扫描时间" width="170" />
-        </el-table>
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="600px">
+      <div v-if="currentOrder" style="padding: 0 20px">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="工单号">{{ currentOrder.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.statusText }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="工艺">
+            {{ currentOrder.process?.name || "-" }}
+            <span v-if="currentOrder.process?.version">(v{{ currentOrder.process.version }})</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="创建时间">{{ currentOrder.createdAt }}</el-descriptions-item>
+          <el-descriptions-item label="开始时间">{{ currentOrder.startedAt || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="完成时间">{{ currentOrder.completedAt || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="备注">{{ currentOrder.remark || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="反馈理由" v-if="currentOrder.feedbackReason">
+            <el-text type="danger">{{ currentOrder.feedbackReason }}</el-text>
+          </el-descriptions-item>
+        </el-descriptions>
       </div>
-    </el-dialog>
+    </el-drawer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, defineExpose, computed, watch } from "vue"
-import { ElMessage, ElMessageBox, ElTree, type FormInstance } from "element-plus"
+import { ref, reactive, onMounted, defineExpose, computed } from "vue"
+import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
 import { Cpu } from "@element-plus/icons-vue"
 import { useUserStore } from "@/store/modules/user"
 import {
-  getHaltHassOrderList,
-  getHaltHassOrderDetail,
-  createHaltHassOrder,
-  publishHaltHassOrder,
-  deleteHaltHassOrder,
-  getHaltHassVersionList,
-  getHaltHassBoardsInfo
-} from "@/api/halt-hass"
-import { getBoardGroupListApi, getBoardGroupDetailApi } from "@/api/boardgroup"
-import { getTestMangePath } from "@/api/testMangelist"
-import type { HaltHassOrderListItem, HaltHassOrderDetail } from "@/api/halt-hass/types"
-import type { BoardGroup, BoardModelItem } from "@/api/boardgroup/types/boardgroup"
+  getWaterCycleOrderList,
+  getWaterCycleOrderDetail,
+  publishWaterCycleOrder,
+  deleteWaterCycleOrder
+} from "@/api/water-cycle"
+//api接口函数名称
+import type { WaterCycleOrderListItem, WaterCycleOrderDetail } from "@/api/water-cycle/types"
 
 const userStore = useUserStore()
 
@@ -234,8 +216,7 @@ const searchForm = reactive({ taskNumber: "", status: "" })
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
 
 const loading = ref(false)
-const tableData = ref<HaltHassOrderListItem[]>([])
-const boardGroupList = ref<BoardGroup[]>([])
+const tableData = ref<WaterCycleOrderListItem[]>([])
 const processList = ref<any[]>([])
 
 const createDialogVisible = ref(false)
@@ -268,35 +249,13 @@ const createRules = {
   applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }]
 }
 
-const selectedBoardGroup = ref<BoardGroup | null>(null)
-
-const treeRef = ref<InstanceType<typeof ElTree>>()
-const treeData = ref<any[]>([])
-const originalTreeData = ref<any[]>([])
-const treeLoading = ref(false)
-const treeFilterText = ref("")
-const treeProps = { children: "children", label: "label" }
-
-const currentBatchId = ref<string | null>(null)
-const currentBoardModelId = ref<number | null>(null)
-const currentBatchInfo = ref<{ name: string; boardModelName: string } | null>(null)
-
-const selectedBoards = reactive<Record<number, { id: number; serial: string }>>({})
-const boardSelections = reactive<Record<number, number | null>>({})
-const boardOptions = reactive<Record<number, any[]>>({})
-const boardOptionsLoading = reactive<Record<number, boolean>>({})
-
-const selectedBoardsCount = computed(() => Object.keys(selectedBoards).length)
-const allBoardsSelected = computed(() => {
-  if (!selectedBoardGroup.value) return false
-  return selectedBoardGroup.value.boards.every((board) => selectedBoards[board.id])
-})
 const canCreate = computed(() => {
-  return createForm.boardGroupId && createForm.processId && allBoardsSelected.value
+  // 只校验表单基础必填项是否填写
+  return !!(createForm.taskNumber && createForm.deviceName && createForm.flowProcess && createForm.applicant)
 })
 
 const detailDialogVisible = ref(false)
-const currentOrder = ref<HaltHassOrderDetail | null>(null)
+const currentOrder = ref<WaterCycleOrderDetail | null>(null)
 
 const getStatusType = (status: number) => {
   const map: Record<number, string> = {
@@ -316,7 +275,8 @@ const getStatusType = (status: number) => {
 const getList = async () => {
   loading.value = true
   try {
-    const res = await getHaltHassOrderList({
+    /* 注释掉实际接口调用
+    const res = await getWaterCycleOrderList({
       page: pagination.page,
       pageSize: pagination.pageSize,
       taskNumber: searchForm.taskNumber || undefined,
@@ -326,60 +286,60 @@ const getList = async () => {
       tableData.value = res.data.list
       pagination.total = res.data.total
     }
+    */
+
+    // 使用假数据演示，并添加本地过滤逻辑
+    setTimeout(() => {
+      const allMockData = [
+        {
+          id: 1,
+          taskNumber: "TASK-20240312-001",
+          applicant: "张三",
+          deviceName: "水循环测试系统-01",
+          flowProcess: "440",
+          status: 0,
+          statusText: "已创建",
+          createdAt: "2024-03-12 10:00:00"
+        },
+        {
+          id: 2,
+          taskNumber: "TASK-20240312-002",
+          applicant: "李四",
+          deviceName: "高压水循环设备-A2",
+          flowProcess: "877",
+          status: 1,
+          statusText: "待领取",
+          createdAt: "2024-03-12 11:30:00"
+        },
+        {
+          id: 3,
+          taskNumber: "TASK-20240312-003",
+          applicant: "王五",
+          deviceName: "水循环系统-01",
+          flowProcess: "1766",
+          status: 2,
+          statusText: "测试中",
+          createdAt: "2024-03-12 09:15:00"
+        }
+      ]
+
+      // 执行搜索过滤
+      let filteredData = allMockData
+      if (searchForm.taskNumber) {
+        filteredData = filteredData.filter((item) => item.taskNumber.includes(searchForm.taskNumber))
+      }
+      if (searchForm.status !== "" && searchForm.status !== undefined) {
+        filteredData = filteredData.filter((item) => String(item.status) === String(searchForm.status))
+      }
+
+      tableData.value = filteredData as any
+      pagination.total = filteredData.length
+      loading.value = false
+    }, 500)
   } catch (e) {
     console.error(e)
-  } finally {
     loading.value = false
   }
-}
-
-const getBoardGroups = async () => {
-  try {
-    const res = await getBoardGroupListApi({ page: 1, pageSize: 1000 })
-    if (res.code === 0) {
-      boardGroupList.value = res.data.list || []
-    }
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-const getTreeData = async () => {
-  treeLoading.value = true
-  try {
-    const result = await getTestMangePath()
-    originalTreeData.value = result.Pathdata || []
-    treeData.value = originalTreeData.value
-  } catch (e) {
-    console.error(e)
-  } finally {
-    treeLoading.value = false
-  }
-}
-
-const filterTreeByBoardGroup = (boardGroup: BoardGroup) => {
-  if (!originalTreeData.value.length) return
-
-  const boardModelIds = new Set(boardGroup.boards.map((b) => String(b.id)))
-
-  const filterTree = (nodes: any[]): any[] => {
-    return nodes
-      .map((node) => {
-        if (node.id && boardModelIds.has(String(node.id))) {
-          return { ...node }
-        }
-        if (node.children && node.children.length > 0) {
-          const filteredChildren = filterTree(node.children)
-          if (filteredChildren.length > 0) {
-            return { ...node, children: filteredChildren }
-          }
-        }
-        return null
-      })
-      .filter((node) => node !== null)
-  }
-
-  treeData.value = filterTree(originalTreeData.value)
 }
 
 const handleSearch = () => {
@@ -423,98 +383,6 @@ const showCreateDialog = async () => {
   createDialogVisible.value = true
 }
 
-const handleBoardGroupChange = async (boardGroupId: number) => {
-  createForm.processId = null
-  processList.value = []
-  selectedBoardGroup.value = null
-  treeData.value = originalTreeData.value
-
-  Object.keys(selectedBoards).forEach((key) => delete selectedBoards[Number(key)])
-  Object.keys(boardSelections).forEach((key) => delete boardSelections[Number(key)])
-  Object.keys(boardOptions).forEach((key) => delete boardOptions[Number(key)])
-
-  if (!boardGroupId) return
-
-  try {
-    const res = await getHaltHassVersionList({ boardGroupId: String(boardGroupId) })
-    if (res.code === 0) {
-      processList.value = res.data.filter((item) => item.status === 3)
-
-      const activeProcess = processList.value.find((item) => item.active === 1)
-      if (activeProcess) {
-        createForm.processId = activeProcess.id
-      }
-    }
-
-    const detailRes = await getBoardGroupDetailApi(boardGroupId)
-    if (detailRes.code === 0) {
-      selectedBoardGroup.value = detailRes.data
-      filterTreeByBoardGroup(detailRes.data)
-    }
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-const filterTreeNode = (value: string, data: any) => {
-  if (!value) return true
-  return data.label.toLowerCase().includes(value.toLowerCase())
-}
-
-const handleTreeNodeClick = async (data: any, node: any) => {
-  if (data.children && data.children.length > 0) return
-
-  currentBatchId.value = data.id
-  const parentBoardModelId = node.parent?.data?.id
-  currentBoardModelId.value = parentBoardModelId ? Number(parentBoardModelId) : null
-  currentBatchInfo.value = { name: data.label, boardModelName: node.parent?.data?.label || "" }
-
-  if (selectedBoardGroup.value && currentBoardModelId.value) {
-    const matchingModel = selectedBoardGroup.value.boards.find((board) => board.id === currentBoardModelId.value)
-    if (matchingModel && !selectedBoards[matchingModel.id]) {
-      await loadBoardsForModel(matchingModel.id)
-    }
-  }
-}
-
-const loadBoardsForModel = async (boardModelId: number) => {
-  if (!currentBatchId.value) {
-    ElMessage.warning("请先在左侧选择批次")
-    return
-  }
-
-  boardOptionsLoading[boardModelId] = true
-  try {
-    const result = await getHaltHassBoardsInfo({ batchId: currentBatchId.value, boardModelId })
-    boardOptions[boardModelId] = result.data || []
-    if (result.data?.length === 0) {
-      ElMessage.info("该批次下没有此工单的水循环任务")
-    }
-  } catch (e) {
-    console.error(e)
-    ElMessage.error("获取水循环工单列表失败")
-  } finally {
-    boardOptionsLoading[boardModelId] = false
-  }
-}
-
-const handleBoardSelect = (boardModelId: number, boardId: number) => {
-  if (!boardId) return
-  const board = boardOptions[boardModelId]?.find((b) => b.id === boardId)
-  if (board) {
-    selectedBoards[boardModelId] = { id: board.id, serial: board.serial_num }
-  }
-}
-
-const clearBoardSelection = (boardModelId: number) => {
-  delete selectedBoards[boardModelId]
-  boardSelections[boardModelId] = null
-}
-
-watch(treeFilterText, (val) => {
-  treeRef.value?.filter(val)
-})
-
 const handleCreate = async () => {
   if (!createFormRef.value) return
   await createFormRef.value.validate(async (valid) => {
@@ -532,46 +400,75 @@ const handleCreate = async () => {
     }
   })
 }
-
-const handleDetail = async (row: HaltHassOrderListItem) => {
+// 查看详情
+const handleDetail = async (row: WaterCycleOrderListItem) => {
   try {
-    const res = await getHaltHassOrderDetail(row.id)
+    /* 注释掉实际接口调用
+    const res = await getWaterCycleOrderDetail(row.id)
     if (res.code === 0) {
       currentOrder.value = res.data
       detailDialogVisible.value = true
     }
+    */
+
+    // 使用假数据演示
+    currentOrder.value = {
+      ...row,
+      orderNo: row.taskNumber,
+      process: { id: 101, name: "标准水循环测试工艺", version: "1.2" },
+      boardCount: 4,
+      startedAt: row.status >= 2 ? "2024-03-12 14:00:00" : "-",
+      completedAt: "-",
+      remark: "这是一个演示用的备注信息",
+      feedbackReason: ""
+    } as any
+    detailDialogVisible.value = true
   } catch (e) {
     console.error(e)
     ElMessage.error("获取详情失败")
   }
 }
 
-const handlePublish = async (row: HaltHassOrderListItem) => {
+const handlePublish = async (row: WaterCycleOrderListItem) => {
   await ElMessageBox.confirm("确定要发布该工单吗？发布后将可被测试人员领取。", "确认发布", { type: "warning" })
   try {
-    const res = await publishHaltHassOrder(row.id)
+    /* 注释掉实际接口调用
+    const res = await publishWaterCycleOrder(row.id)
     if (res.code === 0) {
       ElMessage.success("发布成功")
       getList()
     } else {
       ElMessage.error(res.msg || "发布失败")
     }
+    */
+
+    // 模拟发布成功
+    ElMessage.success("发布成功 (演示)")
+    row.status = 1
+    row.statusText = "待领取"
   } catch (e) {
     console.error(e)
     ElMessage.error("发布失败")
   }
 }
 
-const handleDelete = async (row: HaltHassOrderListItem) => {
+const handleDelete = async (row: WaterCycleOrderListItem) => {
   await ElMessageBox.confirm("确定要删除该工单吗？", "确认删除", { type: "warning" })
   try {
-    const res = await deleteHaltHassOrder(row.id)
+    /* 注释掉实际接口调用
+    const res = await deleteWaterCycleOrder(row.id)
     if (res.code === 0) {
       ElMessage.success("删除成功")
       getList()
     } else {
       ElMessage.error(res.msg || "删除失败")
     }
+    */
+
+    // 模拟删除成功
+    ElMessage.success("删除成功 (演示)")
+    tableData.value = tableData.value.filter((item) => item.id !== row.id)
+    pagination.total -= 1
   } catch (e) {
     console.error(e)
     ElMessage.error("删除失败")
@@ -582,7 +479,6 @@ defineExpose({ refresh: getList })
 
 onMounted(() => {
   getList()
-  getBoardGroups()
 })
 </script>
 
@@ -607,69 +503,5 @@ onMounted(() => {
 }
 .el-link {
   margin-right: 8px;
-}
-.board-selection-area {
-  margin-top: 16px;
-}
-.tree-card {
-  height: 450px;
-  overflow: hidden;
-}
-.tree-card :deep(.el-card__body) {
-  height: calc(100% - 60px);
-  overflow-y: auto;
-}
-.board-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.board-models-list {
-  max-height: 350px;
-  overflow-y: auto;
-}
-.board-model-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
-  margin-bottom: 10px;
-  transition: all 0.2s;
-}
-.board-model-item:hover {
-  border-color: #409eff;
-}
-.board-model-item.is-selected {
-  background-color: #f0f9eb;
-  border-color: #67c23a;
-}
-.model-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.model-icon {
-  font-size: 18px;
-  color: #409eff;
-}
-.model-name {
-  font-weight: 500;
-}
-.model-code {
-  color: #909399;
-  font-size: 12px;
-}
-.model-selection {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.batch-info {
-  margin-top: 12px;
-  padding: 8px 12px;
-  background: #f4f4f5;
-  border-radius: 4px;
 }
 </style>

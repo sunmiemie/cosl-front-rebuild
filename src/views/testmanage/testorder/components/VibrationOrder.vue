@@ -44,10 +44,11 @@
               <el-tag :type="getStatusType(row.status)">{{ row.statusText || row.status }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="160" align="center" fixed="right">
+         <el-table-column label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
-              <el-link type="primary" class="el-link" @click="handleDetail(row)">编辑</el-link>
-              <el-link type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
+              <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
+              <el-link v-if="row.status === 0" type="success" class="el-link" @click="handlePublish(row)">发布</el-link>
+              <el-link v-if="row.status === 0" type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
             </template>
           </el-table-column>
         </el-table>
@@ -103,21 +104,25 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailDialogVisible" title="工单详情" width="700px">
-      <el-descriptions :column="2" border v-if="currentOrder">
-        <el-descriptions-item label="任务单号">{{ currentOrder.taskNumber }}</el-descriptions-item>
-        <el-descriptions-item label="申请人">{{ currentOrder.applicant }}</el-descriptions-item>
-        <el-descriptions-item label="设备名称">{{ currentOrder.deviceName }}</el-descriptions-item>
-        <el-descriptions-item label="流程长度">{{ currentOrder.flowProcess }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="getStatusType(currentOrder.status)">{{
-            currentOrder.statusText || currentOrder.status
-          }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="测试日期">{{ currentOrder.testDate }}</el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentOrder.remark || "-" }}</el-descriptions-item>
-      </el-descriptions>
-    </el-dialog>
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="600px">
+      <div v-if="currentOrder" style="padding: 0 20px">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="工单编号">{{ currentOrder.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="类型">{{ currentOrder.type }}</el-descriptions-item>
+          <el-descriptions-item label="申请人">{{ currentOrder.applicant }}</el-descriptions-item>
+          <el-descriptions-item label="设备名称">{{ currentOrder.deviceName }}</el-descriptions-item>
+          <el-descriptions-item label="振动量级">{{ currentOrder.level }}</el-descriptions-item>
+          <el-descriptions-item label="时长(分)">{{ currentOrder.duration }}</el-descriptions-item>
+          <el-descriptions-item label="状态">
+            <el-tag :type="getStatusType(currentOrder.status)">{{
+              currentOrder.statusText || currentOrder.status
+            }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="测试日期">{{ currentOrder.testDate || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="备注">{{ currentOrder.remark || "-" }}</el-descriptions-item>
+        </el-descriptions>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
@@ -166,37 +171,27 @@ const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
 const createForm = reactive({
-  type: '预实验',
-  applicant: '',
-  phone: '',
-  deviceName: '',
-  purpose: ''
+  type: "预实验",
+  applicant: "",
+  phone: "",
+  deviceName: "",
+  purpose: ""
 })
 
 const createRules = {
-  type: [{ required: true, message: '请选择工单类型', trigger: 'change' }],
-  applicant: [{ required: true, message: '请输入申请人', trigger: 'blur' }],
-  phone: [{ required: true, message: '请输入联系电话', trigger: 'blur' }],
-  deviceName: [{ required: true, message: '请选择测试设备', trigger: 'change' }],
-  purpose: [{ required: true, message: '请输入测试目的', trigger: 'blur' }]
+  type: [{ required: true, message: "请选择工单类型", trigger: "change" }],
+  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }],
+  phone: [{ required: true, message: "请输入联系电话", trigger: "blur" }],
+  deviceName: [{ required: true, message: "请选择测试设备", trigger: "change" }],
+  purpose: [{ required: true, message: "请输入测试目的", trigger: "blur" }]
 }
 
 const canCreate = computed(() => {
-  return !!(
-    createForm.testPlatform &&
-    createForm.testDate &&
-    createForm.startTime &&
-    createForm.endTime &&
-    createForm.deviceName &&
-    createForm.deviceNumber &&
-    createForm.taskNumber &&
-    createForm.flowProcess &&
-    createForm.applicant
-  )
+  return !!(createForm.type && createForm.applicant && createForm.phone && createForm.deviceName && createForm.purpose)
 })
 
 const detailDialogVisible = ref(false)
-const currentOrder = ref<Row | null>(null)
+const currentOrder = ref<VibrationOrderDetail | null>(null)
 
 const getStatusType = (status: number | string) => {
   const map: Record<string, string> = {
@@ -217,12 +212,64 @@ const getStatusType = (status: number | string) => {
 const getList = async () => {
   loading.value = true
   try {
-    tableData.value = []
-    pagination.total = 0
+    // 模拟接口延迟，并添加本地过滤逻辑
+    setTimeout(() => {
+      const allMockData = [
+        {
+          orderNo: "VB-20240312-001",
+          type: "预实验",
+          applicant: "张三",
+          deviceName: "卫星姿控仪",
+          level: "5.0g",
+          duration: 30,
+          status: 0,
+          statusText: "已创建",
+          testDate: "2024-03-12",
+          remark: "初步振动测试"
+        },
+        {
+          orderNo: "VB-20240312-002",
+          type: "正式测试",
+          applicant: "李四",
+          deviceName: "导航控制器",
+          level: "10.0g",
+          duration: 60,
+          status: 1,
+          statusText: "待领取",
+          testDate: "2024-03-12",
+          remark: "全量级振动测试"
+        },
+        {
+          orderNo: "VB-20240312-003",
+          type: "正式测试",
+          applicant: "王五",
+          deviceName: "传感器模块",
+          level: "7.5g",
+          duration: 45,
+          status: 2,
+          statusText: "测试中",
+          testDate: "2024-03-12",
+          remark: "环境适应性测试"
+        }
+      ]
+
+      // 执行搜索过滤
+      let filteredData = allMockData
+      if (searchForm.taskNumber) {
+        filteredData = filteredData.filter((item) => item.orderNo.includes(searchForm.taskNumber))
+      }
+      if (searchForm.status !== "" && searchForm.status !== undefined) {
+        filteredData = filteredData.filter((item) => String(item.status) === String(searchForm.status))
+      }
+
+      tableData.value = filteredData
+      pagination.total = filteredData.length
+      loading.value = false
+    }, 500)
   } catch (e) {
-    ElMessage.error("获取列表失败")
-  } finally {
+    console.error(e)
     loading.value = false
+    ElMessage.error("获取列表失败")
   }
 }
 
@@ -247,7 +294,7 @@ const handleCurrentChange = (page: number) => {
 }
 
 const showCreateDialog = () => {
-  Object.assign(createForm, { type: '预实验', applicant: '', phone: '', deviceName: '', purpose: '' })
+  Object.assign(createForm, { type: "预实验", applicant: "", phone: "", deviceName: "", purpose: "" })
   createDialogVisible.value = true
 }
 
@@ -257,12 +304,15 @@ const handleCreate = async () => {
     if (!valid) return
     createLoading.value = true
     try {
-      ElMessage.success("创建成功")
-      createDialogVisible.value = false
-      getList()
+      // 模拟创建延迟
+      setTimeout(() => {
+        ElMessage.success("创建成功 (演示)")
+        createDialogVisible.value = false
+        createLoading.value = false
+        getList()
+      }, 500)
     } catch {
       ElMessage.error("创建失败")
-    } finally {
       createLoading.value = false
     }
   })
@@ -275,13 +325,36 @@ const handleDetail = (row: Row) => {
 const handleDelete = async (row: Row) => {
   await ElMessageBox.confirm("确定要删除该工单吗？", "确认删除", { type: "warning" })
   try {
-    ElMessage.success("删除成功")
-    getList()
+    // 模拟删除操作
+    ElMessage.success("删除成功 (演示)")
+    tableData.value = tableData.value.filter((item) => item.orderNo !== row.orderNo)
+    pagination.total -= 1
   } catch {
-    ElMessage.error("删除失败")
+    // 取消删除
   }
 }
+const handlePublish = async (row: HighTemperatureOrderListItem) => {
+  await ElMessageBox.confirm("确定要发布该工单吗？发布后将可被测试人员领取。", "确认发布", { type: "warning" })
+  try {
+    /* 注释掉实际接口调用
+    const res = await publishHighTemperatureOrder(row.id)
+    if (res.code === 0) {
+      ElMessage.success("发布成功")
+      getList()
+    } else {
+      ElMessage.error(res.msg || "发布失败")
+    }
+    */
 
+    // 模拟发布成功
+    ElMessage.success("发布成功 (演示)")
+    row.status = 1
+    row.statusText = "待领取"
+  } catch (e) {
+    console.error(e)
+    ElMessage.error("发布失败")
+  }
+}
 defineExpose({ refresh: getList })
 onMounted(() => {
   getList()
