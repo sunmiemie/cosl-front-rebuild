@@ -22,7 +22,9 @@
       <el-table-column prop="tester" label="测试人员" min-width="120" align="center" />
       <el-table-column label="操作" width="120" align="center" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="handleDetail(row)">详情</el-button>
+          <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
+          <el-link type="success" class="el-link" @click="handleDownload(row)">下载</el-link>
+          <el-link type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
         </template>
       </el-table-column>
     </el-table>
@@ -53,7 +55,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, defineExpose } from "vue"
-import { ElMessage } from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
 
 const searchForm = reactive({
   taskNumber: "",
@@ -67,17 +69,75 @@ const pagination = reactive({
 })
 
 const loading = ref(false)
-type Row = { reportNo: string; taskNumber: string; testDate: string; tester: string; remark?: string }
+type Row = {
+  id: number
+  reportNo: string
+  taskNumber: string
+  testDate: string
+  tester: string
+  status: number
+  statusText?: string
+  remark?: string
+}
+const allReports = ref<Row[]>([])
 const tableData = ref<Row[]>([])
 
 const detailDialogVisible = ref(false)
 const currentReport = ref<Row | null>(null)
 
+const initMockReports = () => {
+  if (allReports.value.length) return
+  allReports.value = [
+    {
+      id: 1,
+      reportNo: "WC-RPT-20240312-001",
+      taskNumber: "TASK-20240312-001",
+      testDate: "2024-03-12",
+      tester: "张三",
+      status: 0,
+      statusText: "未发布",
+      remark: "演示报告"
+    },
+    {
+      id: 2,
+      reportNo: "WC-RPT-20240312-002",
+      taskNumber: "TASK-20240312-002",
+      testDate: "2024-03-12",
+      tester: "李四",
+      status: 1,
+      statusText: "已发布"
+    },
+    {
+      id: 3,
+      reportNo: "WC-RPT-20240312-003",
+      taskNumber: "TASK-20240312-003",
+      testDate: "2024-03-13",
+      tester: "王五",
+      status: 0,
+      statusText: "未发布",
+      remark: "待复核"
+    }
+  ]
+}
+
 const getList = async () => {
   loading.value = true
   try {
-    tableData.value = []
-    pagination.total = 0
+    initMockReports()
+
+    let filtered = allReports.value
+    if (searchForm.taskNumber) {
+      filtered = filtered.filter((r) => r.taskNumber.includes(searchForm.taskNumber))
+    }
+    if (searchForm.tester) {
+      filtered = filtered.filter((r) => r.tester.includes(searchForm.tester))
+    }
+
+    pagination.total = filtered.length
+
+    const start = (pagination.page - 1) * pagination.pageSize
+    const end = start + pagination.pageSize
+    tableData.value = filtered.slice(start, end)
   } catch (e) {
     console.error(e)
     ElMessage.error("获取列表失败")
@@ -111,6 +171,44 @@ const handleDetail = (row: Row) => {
   detailDialogVisible.value = true
 }
 
+const handleDownload = (row: Row) => {
+  const payload = {
+    reportNo: row.reportNo,
+    taskNumber: row.taskNumber,
+    testDate: row.testDate,
+    tester: row.tester,
+    remark: row.remark || "",
+    exportedAt: new Date().toISOString()
+  }
+  // 模拟下载
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `${row.reportNo}.json`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+
+  URL.revokeObjectURL(url)
+  ElMessage.success("下载开始")
+}
+
+const handleDelete = async (row: Row) => {
+  await ElMessageBox.confirm("确定要删除该报告吗？", "确认删除", { type: "warning" })
+  allReports.value = allReports.value.filter((r) => r.id !== row.id)
+  if (currentReport.value?.id === row.id) {
+    detailDialogVisible.value = false
+    currentReport.value = null
+  }
+  ElMessage.success("删除成功")
+  if ((pagination.page - 1) * pagination.pageSize >= Math.max(0, allReports.value.length)) {
+    pagination.page = Math.max(1, pagination.page - 1)
+  }
+  getList()
+}
+
 defineExpose({ resetSearch: handleReset })
 
 onMounted(() => {
@@ -126,5 +224,8 @@ onMounted(() => {
   margin-top: 12px;
   display: flex;
   justify-content: flex-end;
+}
+.el-link {
+  margin-right: 8px;
 }
 </style>

@@ -27,7 +27,7 @@
           <VibrationReport ref="vibrationReportComponent" />
         </el-tab-pane>
         <el-tab-pane label="高温高压报告" name="high-pressure">
-          <VibrationReport ref="highPressureReportComponent" />
+          <HighTemperaturePressureReport ref="HighTemperaturePressureReportComponent" />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -46,7 +46,7 @@ import HaltHassReport from "./components/HaltHassReport.vue"
 import WaterCycleReport from "./components/WaterCycleReport.vue"
 import HighTemperatureReport from "./components/HighTemperatureReport.vue"
 import VibrationReport from "./components/VibrationReport.vue"
-import HighPressureReport from "./components/HighPressureReport.vue"
+import HighTemperaturePressureReport from "./components/HighTemperaturePressureReport.vue"
 
 // 默认打开"生产测试报告"标签页
 const activeName = ref<any>("prod")
@@ -58,7 +58,7 @@ const haltHassReportComponent = ref<InstanceType<typeof HaltHassReport> | null>(
 const waterCycleReportComponent = ref<InstanceType<typeof WaterCycleReport> | null>(null)
 const highTempReportComponent = ref<InstanceType<typeof HighTemperatureReport> | null>(null)
 const vibrationReportComponent = ref<InstanceType<typeof VibrationReport> | null>(null)
-const highPressureReportComponent = ref<InstanceType<typeof HighPressureReport> | null>(null)
+const HighTemperaturePressureReportComponent = ref<InstanceType<typeof HighTemperaturePressureReport> | null>(null)
 
 const router = useRouter()
 
@@ -82,8 +82,8 @@ const handleTabClick = (tab: TabsPaneContext) => {
     highTempReportComponent.value.resetSearch()
   } else if (tab.props.name === "vibration" && vibrationReportComponent.value) {
     vibrationReportComponent.value.resetSearch()
-  } else if (tab.props.name === "high-pressure" && highPressureReportComponent.value) {
-    highPressureReportComponent.value.resetSearch()
+  } else if (tab.props.name === "high-pressure" && HighTemperaturePressureReportComponent.value) {
+    HighTemperaturePressureReportComponent.value.resetSearch()
   }
 }
 
@@ -108,9 +108,8 @@ onMounted(() => {
     highTempReportComponent.value.resetSearch()
   } else if (tab === "vibration" && vibrationReportComponent.value) {
     vibrationReportComponent.value.resetSearch()
-  } else if (tab === "high-pressure" && highPressureReportComponent.value) {
-    highPressureReportComponent.value.resetSearch()
+  } else if (tab === "high-pressure" && HighTemperaturePressureReportComponent.value) {
+    HighTemperaturePressureReportComponent.value.resetSearch()
   }
-
 })
 </script>
