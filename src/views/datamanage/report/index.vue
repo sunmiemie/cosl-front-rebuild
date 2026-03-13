@@ -17,6 +17,12 @@ import {
 } from "@/api/halt-hass"
 import type { HaltHassReportListItem, HaltHassReportDetail } from "@/api/halt-hass/types"
 
+import HaltHassReportReview from "./components/HaltHassReportReview.vue"
+import WaterCycleReportReview from "./components/WaterCycleReportReview.vue"
+import HighTempBoxReportReview from "./components/HighTempBoxReportReview.vue"
+import VibrationTableReportReview from "./components/VibrationTableReportReview.vue"
+import HighTempHighPressureReportReview from "./components/HighTempHighPressureReportReview.vue"
+
 const loading = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
@@ -24,6 +30,12 @@ const DialogCheck = ref(false)
 
 // Tab 切换
 const activeTab = ref("normal")
+
+const haltHassReviewRef = ref<InstanceType<typeof HaltHassReportReview> | null>(null)
+const waterCycleReviewRef = ref<InstanceType<typeof WaterCycleReportReview> | null>(null)
+const highTempBoxReviewRef = ref<InstanceType<typeof HighTempBoxReportReview> | null>(null)
+const vibrationReviewRef = ref<InstanceType<typeof VibrationTableReportReview> | null>(null)
+const hthpReviewRef = ref<InstanceType<typeof HighTempHighPressureReportReview> | null>(null)
 
 interface TestCheckType {
   ID?: string
@@ -303,6 +315,892 @@ const handleReject = async () => {
   }
 }
 
+type WaterCycleReviewStatus = 0 | 1 | 2
+
+interface WaterCyclePoint {
+  time: string
+  temperature: number
+  pressure: number
+  flow: number
+}
+
+interface WaterCycleCycle {
+  cycleNo: number
+  targetTemp: string
+  holdMinutes: number
+  ok: boolean
+  remark?: string
+}
+
+interface WaterCycleReport {
+  id: number
+  taskNo: string
+  deviceName: string
+  applicant: string
+  result: number
+  resultText: string
+  reviewStatus: WaterCycleReviewStatus
+  createdAt: string
+  reportJson: {
+    startTime: string
+    endTime: string
+    duration: number
+    remark?: string
+    points: WaterCyclePoint[]
+    cycles: WaterCycleCycle[]
+  }
+  reviewReason?: string
+}
+
+const waterCycleLoading = ref(false)
+const waterCycleTableData = ref<WaterCycleReport[]>([])
+const waterCyclePagination = reactive({ currentPage: 1, pageSize: 10, total: 0 })
+const waterCycleSearchData = reactive({ taskNo: "" })
+
+const waterCycleDetailVisible = ref(false)
+const waterCycleCurrentReport = ref<WaterCycleReport | null>(null)
+const waterCycleActiveTab = ref("info")
+
+const waterCycleRejectDialogVisible = ref(false)
+const waterCycleRejectReason = ref("")
+const waterCycleRejectingReportId = ref<number | null>(null)
+
+const waterCycleAllReports = ref<WaterCycleReport[]>([])
+
+const ensureWaterCycleMockData = () => {
+  if (waterCycleAllReports.value.length) return
+
+  const pad2 = (n: number) => String(n).padStart(2, "0")
+  const fmt = (d: Date) => {
+    const y = d.getFullYear()
+    const m = pad2(d.getMonth() + 1)
+    const day = pad2(d.getDate())
+    const hh = pad2(d.getHours())
+    const mm = pad2(d.getMinutes())
+    const ss = pad2(d.getSeconds())
+    return `${y}-${m}-${day} ${hh}:${mm}:${ss}`
+  }
+
+  const base = new Date()
+  const devices = ["水循环机-01", "水循环机-02", "水循环机-03"]
+  const applicants = ["张三", "李四", "王五", "赵六"]
+
+  const mkPoints = (start: Date, count: number): WaterCyclePoint[] => {
+    const points: WaterCyclePoint[] = []
+    for (let i = 0; i < count; i++) {
+      const t = new Date(start.getTime() + i * 60_000)
+      points.push({
+        time: fmt(t),
+        temperature: Number((35 + Math.sin(i / 3) * 4 + (i % 5) * 0.3).toFixed(2)),
+        pressure: Number((1.4 + Math.cos(i / 4) * 0.18 + (i % 7) * 0.01).toFixed(3)),
+        flow: Number((18 + Math.sin(i / 5) * 1.2 + (i % 6) * 0.2).toFixed(2))
+      })
+    }
+    return points
+  }
+
+  const list: WaterCycleReport[] = []
+  for (let i = 0; i < 18; i++) {
+    const start = new Date(base.getTime() - (i + 1) * 3_600_000)
+    const end = new Date(start.getTime() + (45 + (i % 6) * 10) * 60_000)
+
+    const result = i % 7 === 0 ? 2 : i % 11 === 0 ? 3 : 1
+    const resultText = result === 1 ? "正常" : result === 2 ? "异常" : "疑问"
+
+    list.push({
+      id: 2000 + i,
+      taskNo: `WC-${base.getFullYear()}${pad2(base.getMonth() + 1)}-${pad2(i + 1)}${pad2((i % 30) + 1)}`,
+      deviceName: devices[i % devices.length],
+      applicant: applicants[i % applicants.length],
+      result,
+      resultText,
+      reviewStatus: 0,
+      createdAt: fmt(new Date(start.getTime() + 5 * 60_000)),
+      reportJson: {
+        startTime: fmt(start),
+        endTime: fmt(end),
+        duration: Math.floor((end.getTime() - start.getTime()) / 1000),
+        remark: i % 4 === 0 ? "运行过程中观察到短时波动" : "-",
+        points: mkPoints(start, 12 + (i % 8)),
+        cycles: [
+          {
+            cycleNo: 1,
+            targetTemp: "35→45",
+            holdMinutes: 15,
+            ok: result !== 2,
+            remark: result === 2 ? "升温阶段波动超限" : "-"
+          },
+          { cycleNo: 2, targetTemp: "45→35", holdMinutes: 15, ok: true, remark: "-" }
+        ]
+      }
+    })
+  }
+
+  waterCycleAllReports.value = list
+}
+
+const getWaterCycleTableData = () => {
+  ensureWaterCycleMockData()
+  waterCycleLoading.value = true
+
+  const keyword = waterCycleSearchData.taskNo.trim().toLowerCase()
+  const filtered = waterCycleAllReports.value.filter((r) => {
+    if (r.reviewStatus !== 0) return false
+    if (!keyword) return true
+    return r.taskNo.toLowerCase().includes(keyword)
+  })
+
+  waterCyclePagination.total = filtered.length
+  const start = (waterCyclePagination.currentPage - 1) * waterCyclePagination.pageSize
+  waterCycleTableData.value = filtered.slice(start, start + waterCyclePagination.pageSize)
+
+  waterCycleLoading.value = false
+}
+
+const handleWaterCycleSearch = () => {
+  waterCyclePagination.currentPage = 1
+  getWaterCycleTableData()
+}
+
+const resetWaterCycleSearch = () => {
+  waterCycleSearchData.taskNo = ""
+  handleWaterCycleSearch()
+}
+
+const handleWaterCycleSizeChange = (size: number) => {
+  waterCyclePagination.pageSize = size
+  waterCyclePagination.currentPage = 1
+  getWaterCycleTableData()
+}
+
+const handleWaterCycleCurrentChange = (page: number) => {
+  waterCyclePagination.currentPage = page
+  getWaterCycleTableData()
+}
+
+const handleWaterCycleDetail = (row: WaterCycleReport) => {
+  waterCycleCurrentReport.value = waterCycleAllReports.value.find((r) => r.id === row.id) || null
+  waterCycleActiveTab.value = "info"
+  waterCycleDetailVisible.value = true
+}
+
+const handleWaterCycleApprove = async (report: WaterCycleReport) => {
+  await ElMessageBox.confirm("确定要通过该报告的审核吗？", "确认通过", { type: "success" })
+
+  const target = waterCycleAllReports.value.find((r) => r.id === report.id)
+  if (!target) return
+  target.reviewStatus = 1
+
+  ElMessage.success("审核通过成功")
+  waterCycleDetailVisible.value = false
+  getWaterCycleTableData()
+}
+
+const showWaterCycleRejectDialog = (report: WaterCycleReport) => {
+  waterCycleRejectingReportId.value = report.id
+  waterCycleRejectReason.value = ""
+  waterCycleRejectDialogVisible.value = true
+}
+
+const handleWaterCycleReject = () => {
+  if (!waterCycleRejectReason.value.trim()) {
+    ElMessage.warning("请填写打回原因")
+    return
+  }
+
+  const target = waterCycleAllReports.value.find((r) => r.id === waterCycleRejectingReportId.value)
+  if (!target) return
+
+  target.reviewStatus = 2
+  target.reviewReason = waterCycleRejectReason.value
+
+  ElMessage.success("已打回")
+  waterCycleRejectDialogVisible.value = false
+  waterCycleDetailVisible.value = false
+  getWaterCycleTableData()
+}
+
+type HighTempReviewStatus = 0 | 1 | 2
+
+interface HighTempPoint {
+  time: string
+  setTemp: number
+  actualTemp: number
+  humidity: number
+}
+
+interface HighTempStep {
+  stepNo: number
+  setTemp: number
+  holdMinutes: number
+  ok: boolean
+  remark?: string
+}
+
+interface HighTempReport {
+  id: number
+  taskNo: string
+  deviceName: string
+  applicant: string
+  result: number
+  resultText: string
+  reviewStatus: HighTempReviewStatus
+  createdAt: string
+  reportJson: {
+    startTime: string
+    endTime: string
+    duration: number
+    remark?: string
+    points: HighTempPoint[]
+    steps: HighTempStep[]
+    summary: {
+      maxTemp: number
+      minTemp: number
+      avgTemp: number
+      avgHumidity: number
+    }
+  }
+  reviewReason?: string
+}
+
+const highTempLoading = ref(false)
+const highTempTableData = ref<HighTempReport[]>([])
+const highTempPagination = reactive({ currentPage: 1, pageSize: 10, total: 0 })
+const highTempSearchData = reactive({ taskNo: "" })
+
+const highTempDetailVisible = ref(false)
+const highTempCurrentReport = ref<HighTempReport | null>(null)
+const highTempActiveTab = ref("info")
+
+const highTempRejectDialogVisible = ref(false)
+const highTempRejectReason = ref("")
+const highTempRejectingReportId = ref<number | null>(null)
+
+const highTempAllReports = ref<HighTempReport[]>([])
+
+const ensureHighTempMockData = () => {
+  if (highTempAllReports.value.length) return
+
+  const pad2 = (n: number) => String(n).padStart(2, "0")
+  const fmt = (d: Date) => {
+    const y = d.getFullYear()
+    const m = pad2(d.getMonth() + 1)
+    const day = pad2(d.getDate())
+    const hh = pad2(d.getHours())
+    const mm = pad2(d.getMinutes())
+    const ss = pad2(d.getSeconds())
+    return `${y}-${m}-${day} ${hh}:${mm}:${ss}`
+  }
+
+  const base = new Date()
+  const devices = ["高温箱-01", "高温箱-02", "高温箱-03"]
+  const applicants = ["张三", "李四", "王五", "赵六"]
+
+  const mkPoints = (start: Date, count: number, baseSet: number): HighTempPoint[] => {
+    const points: HighTempPoint[] = []
+    for (let i = 0; i < count; i++) {
+      const t = new Date(start.getTime() + i * 60_000)
+      const setTemp = baseSet + (i < Math.floor(count / 2) ? 0 : 5)
+      const actualTemp = Number((setTemp + Math.sin(i / 4) * 1.2 + (i % 6) * 0.12 - 0.3).toFixed(2))
+      const humidity = Number((40 + Math.cos(i / 5) * 6 + (i % 7) * 0.4).toFixed(1))
+      points.push({ time: fmt(t), setTemp, actualTemp, humidity })
+    }
+    return points
+  }
+
+  const calcAvg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / Math.max(1, arr.length)
+
+  const list: HighTempReport[] = []
+  for (let i = 0; i < 18; i++) {
+    const start = new Date(base.getTime() - (i + 1) * 4_200_000)
+    const end = new Date(start.getTime() + (60 + (i % 6) * 15) * 60_000)
+
+    const result = i % 8 === 0 ? 2 : i % 13 === 0 ? 3 : 1
+    const resultText = result === 1 ? "正常" : result === 2 ? "异常" : "疑问"
+
+    const baseSet = 70 + (i % 3) * 10
+    const points = mkPoints(start, 14 + (i % 9), baseSet)
+    const temps = points.map((p) => p.actualTemp)
+    const hums = points.map((p) => p.humidity)
+
+    const maxTemp = Number(Math.max(...temps).toFixed(2))
+    const minTemp = Number(Math.min(...temps).toFixed(2))
+    const avgTemp = Number(calcAvg(temps).toFixed(2))
+    const avgHumidity = Number(calcAvg(hums).toFixed(1))
+
+    list.push({
+      id: 3000 + i,
+      taskNo: `HTB-${base.getFullYear()}${pad2(base.getMonth() + 1)}-${pad2(i + 1)}${pad2((i % 30) + 1)}`,
+      deviceName: devices[i % devices.length],
+      applicant: applicants[i % applicants.length],
+      result,
+      resultText,
+      reviewStatus: 0,
+      createdAt: fmt(new Date(start.getTime() + 8 * 60_000)),
+      reportJson: {
+        startTime: fmt(start),
+        endTime: fmt(end),
+        duration: Math.floor((end.getTime() - start.getTime()) / 1000),
+        remark: i % 5 === 0 ? "升温段温控存在轻微超调" : "-",
+        points,
+        steps: [
+          {
+            stepNo: 1,
+            setTemp: baseSet,
+            holdMinutes: 30,
+            ok: result !== 2,
+            remark: result === 2 ? "温度偏差超限" : "-"
+          },
+          { stepNo: 2, setTemp: baseSet + 5, holdMinutes: 30, ok: true, remark: "-" }
+        ],
+        summary: { maxTemp, minTemp, avgTemp, avgHumidity }
+      }
+    })
+  }
+
+  highTempAllReports.value = list
+}
+
+const getHighTempTableData = () => {
+  ensureHighTempMockData()
+  highTempLoading.value = true
+
+  const keyword = highTempSearchData.taskNo.trim().toLowerCase()
+  const filtered = highTempAllReports.value.filter((r) => {
+    if (r.reviewStatus !== 0) return false
+    if (!keyword) return true
+    return r.taskNo.toLowerCase().includes(keyword)
+  })
+
+  highTempPagination.total = filtered.length
+  const start = (highTempPagination.currentPage - 1) * highTempPagination.pageSize
+  highTempTableData.value = filtered.slice(start, start + highTempPagination.pageSize)
+
+  highTempLoading.value = false
+}
+
+const handleHighTempSearch = () => {
+  highTempPagination.currentPage = 1
+  getHighTempTableData()
+}
+
+const resetHighTempSearch = () => {
+  highTempSearchData.taskNo = ""
+  handleHighTempSearch()
+}
+
+const handleHighTempSizeChange = (size: number) => {
+  highTempPagination.pageSize = size
+  highTempPagination.currentPage = 1
+  getHighTempTableData()
+}
+
+const handleHighTempCurrentChange = (page: number) => {
+  highTempPagination.currentPage = page
+  getHighTempTableData()
+}
+
+const handleHighTempDetail = (row: HighTempReport) => {
+  highTempCurrentReport.value = highTempAllReports.value.find((r) => r.id === row.id) || null
+  highTempActiveTab.value = "info"
+  highTempDetailVisible.value = true
+}
+
+const handleHighTempApprove = async (report: HighTempReport) => {
+  await ElMessageBox.confirm("确定要通过该报告的审核吗？", "确认通过", { type: "success" })
+
+  const target = highTempAllReports.value.find((r) => r.id === report.id)
+  if (!target) return
+  target.reviewStatus = 1
+
+  ElMessage.success("审核通过成功")
+  highTempDetailVisible.value = false
+  getHighTempTableData()
+}
+
+const showHighTempRejectDialog = (report: HighTempReport) => {
+  highTempRejectingReportId.value = report.id
+  highTempRejectReason.value = ""
+  highTempRejectDialogVisible.value = true
+}
+
+const handleHighTempReject = () => {
+  if (!highTempRejectReason.value.trim()) {
+    ElMessage.warning("请填写打回原因")
+    return
+  }
+
+  const target = highTempAllReports.value.find((r) => r.id === highTempRejectingReportId.value)
+  if (!target) return
+
+  target.reviewStatus = 2
+  target.reviewReason = highTempRejectReason.value
+
+  ElMessage.success("已打回")
+  highTempRejectDialogVisible.value = false
+  highTempDetailVisible.value = false
+  getHighTempTableData()
+}
+
+type VibrationReviewStatus = 0 | 1 | 2
+
+interface VibrationPoint {
+  time: string
+  setFreq: number
+  setAccel: number
+  actualAccel: number
+  displacement: number
+}
+
+interface VibrationStep {
+  stepNo: number
+  freqRange: string
+  holdMinutes: number
+  ok: boolean
+  remark?: string
+}
+
+interface VibrationReport {
+  id: number
+  taskNo: string
+  deviceName: string
+  applicant: string
+  result: number
+  resultText: string
+  reviewStatus: VibrationReviewStatus
+  createdAt: string
+  reportJson: {
+    startTime: string
+    endTime: string
+    duration: number
+    remark?: string
+    points: VibrationPoint[]
+    steps: VibrationStep[]
+    summary: {
+      maxAccel: number
+      rmsAccel: number
+      maxDisp: number
+    }
+  }
+  reviewReason?: string
+}
+
+const vibrationLoading = ref(false)
+const vibrationTableData = ref<VibrationReport[]>([])
+const vibrationPagination = reactive({ currentPage: 1, pageSize: 10, total: 0 })
+const vibrationSearchData = reactive({ taskNo: "" })
+
+const vibrationDetailVisible = ref(false)
+const vibrationCurrentReport = ref<VibrationReport | null>(null)
+const vibrationActiveTab = ref("info")
+
+const vibrationRejectDialogVisible = ref(false)
+const vibrationRejectReason = ref("")
+const vibrationRejectingReportId = ref<number | null>(null)
+
+const vibrationAllReports = ref<VibrationReport[]>([])
+
+const ensureVibrationMockData = () => {
+  if (vibrationAllReports.value.length) return
+
+  const pad2 = (n: number) => String(n).padStart(2, "0")
+  const fmt = (d: Date) => {
+    const y = d.getFullYear()
+    const m = pad2(d.getMonth() + 1)
+    const day = pad2(d.getDate())
+    const hh = pad2(d.getHours())
+    const mm = pad2(d.getMinutes())
+    const ss = pad2(d.getSeconds())
+    return `${y}-${m}-${day} ${hh}:${mm}:${ss}`
+  }
+
+  const base = new Date()
+  const devices = ["振动台-01", "振动台-02"]
+  const applicants = ["张三", "李四", "王五", "赵六"]
+
+  const mkPoints = (start: Date, count: number, baseAccel: number): VibrationPoint[] => {
+    const points: VibrationPoint[] = []
+    for (let i = 0; i < count; i++) {
+      const t = new Date(start.getTime() + i * 60_000)
+      const setFreq = 10 + ((i * 7) % 190)
+      const setAccel = baseAccel
+      const actualAccel = Number((setAccel + Math.sin(i / 3) * 0.25 + (i % 5) * 0.03 - 0.08).toFixed(3))
+      const omega = 2 * Math.PI * Math.max(1, setFreq)
+      const displacement = Number(((actualAccel / (omega * omega)) * 1000).toFixed(6))
+      points.push({ time: fmt(t), setFreq, setAccel, actualAccel, displacement })
+    }
+    return points
+  }
+
+  const rms = (arr: number[]) => {
+    const meanSquare = arr.reduce((s, v) => s + v * v, 0) / Math.max(1, arr.length)
+    return Math.sqrt(meanSquare)
+  }
+
+  const list: VibrationReport[] = []
+  for (let i = 0; i < 18; i++) {
+    const start = new Date(base.getTime() - (i + 1) * 3_000_000)
+    const end = new Date(start.getTime() + (50 + (i % 6) * 12) * 60_000)
+
+    const result = i % 9 === 0 ? 2 : i % 14 === 0 ? 3 : 1
+    const resultText = result === 1 ? "正常" : result === 2 ? "异常" : "疑问"
+
+    const baseAccel = Number((2.5 + (i % 3) * 0.3).toFixed(2))
+    const points = mkPoints(start, 16 + (i % 8), baseAccel)
+
+    const maxAccel = Number(Math.max(...points.map((p) => p.actualAccel)).toFixed(3))
+    const rmsAccel = Number(rms(points.map((p) => p.actualAccel)).toFixed(3))
+    const maxDisp = Number(Math.max(...points.map((p) => p.displacement)).toFixed(6))
+
+    list.push({
+      id: 4000 + i,
+      taskNo: `VT-${base.getFullYear()}${pad2(base.getMonth() + 1)}-${pad2(i + 1)}${pad2((i % 30) + 1)}`,
+      deviceName: devices[i % devices.length],
+      applicant: applicants[i % applicants.length],
+      result,
+      resultText,
+      reviewStatus: 0,
+      createdAt: fmt(new Date(start.getTime() + 6 * 60_000)),
+      reportJson: {
+        startTime: fmt(start),
+        endTime: fmt(end),
+        duration: Math.floor((end.getTime() - start.getTime()) / 1000),
+        remark: i % 4 === 0 ? "扫频段出现瞬态尖峰" : "-",
+        points,
+        steps: [
+          {
+            stepNo: 1,
+            freqRange: "10-80Hz",
+            holdMinutes: 20,
+            ok: result !== 2,
+            remark: result === 2 ? "加速度超限" : "-"
+          },
+          { stepNo: 2, freqRange: "80-200Hz", holdMinutes: 20, ok: true, remark: "-" }
+        ],
+        summary: { maxAccel, rmsAccel, maxDisp }
+      }
+    })
+  }
+
+  vibrationAllReports.value = list
+}
+
+const getVibrationTableData = () => {
+  ensureVibrationMockData()
+  vibrationLoading.value = true
+
+  const keyword = vibrationSearchData.taskNo.trim().toLowerCase()
+  const filtered = vibrationAllReports.value.filter((r) => {
+    if (r.reviewStatus !== 0) return false
+    if (!keyword) return true
+    return r.taskNo.toLowerCase().includes(keyword)
+  })
+
+  vibrationPagination.total = filtered.length
+  const start = (vibrationPagination.currentPage - 1) * vibrationPagination.pageSize
+  vibrationTableData.value = filtered.slice(start, start + vibrationPagination.pageSize)
+
+  vibrationLoading.value = false
+}
+
+const handleVibrationSearch = () => {
+  vibrationPagination.currentPage = 1
+  getVibrationTableData()
+}
+
+const resetVibrationSearch = () => {
+  vibrationSearchData.taskNo = ""
+  handleVibrationSearch()
+}
+
+const handleVibrationSizeChange = (size: number) => {
+  vibrationPagination.pageSize = size
+  vibrationPagination.currentPage = 1
+  getVibrationTableData()
+}
+
+const handleVibrationCurrentChange = (page: number) => {
+  vibrationPagination.currentPage = page
+  getVibrationTableData()
+}
+
+const handleVibrationDetail = (row: VibrationReport) => {
+  vibrationCurrentReport.value = vibrationAllReports.value.find((r) => r.id === row.id) || null
+  vibrationActiveTab.value = "info"
+  vibrationDetailVisible.value = true
+}
+
+const handleVibrationApprove = async (report: VibrationReport) => {
+  await ElMessageBox.confirm("确定要通过该报告的审核吗？", "确认通过", { type: "success" })
+
+  const target = vibrationAllReports.value.find((r) => r.id === report.id)
+  if (!target) return
+  target.reviewStatus = 1
+
+  ElMessage.success("审核通过成功")
+  vibrationDetailVisible.value = false
+  getVibrationTableData()
+}
+
+const showVibrationRejectDialog = (report: VibrationReport) => {
+  vibrationRejectingReportId.value = report.id
+  vibrationRejectReason.value = ""
+  vibrationRejectDialogVisible.value = true
+}
+
+const handleVibrationReject = () => {
+  if (!vibrationRejectReason.value.trim()) {
+    ElMessage.warning("请填写打回原因")
+    return
+  }
+
+  const target = vibrationAllReports.value.find((r) => r.id === vibrationRejectingReportId.value)
+  if (!target) return
+
+  target.reviewStatus = 2
+  target.reviewReason = vibrationRejectReason.value
+
+  ElMessage.success("已打回")
+  vibrationRejectDialogVisible.value = false
+  vibrationDetailVisible.value = false
+  getVibrationTableData()
+}
+
+type HthpReviewStatus = 0 | 1 | 2
+
+interface HthpPoint {
+  time: string
+  setTemp: number
+  actualTemp: number
+  setPressure: number
+  actualPressure: number
+}
+
+interface HthpStep {
+  stepNo: number
+  setTemp: number
+  setPressure: number
+  holdMinutes: number
+  ok: boolean
+  remark?: string
+}
+
+interface HthpReport {
+  id: number
+  taskNo: string
+  deviceName: string
+  applicant: string
+  result: number
+  resultText: string
+  reviewStatus: HthpReviewStatus
+  createdAt: string
+  reportJson: {
+    startTime: string
+    endTime: string
+    duration: number
+    remark?: string
+    points: HthpPoint[]
+    steps: HthpStep[]
+    summary: {
+      maxTemp: number
+      maxPressure: number
+      avgTemp: number
+      avgPressure: number
+    }
+  }
+  reviewReason?: string
+}
+
+const hthpLoading = ref(false)
+const hthpTableData = ref<HthpReport[]>([])
+const hthpPagination = reactive({ currentPage: 1, pageSize: 10, total: 0 })
+const hthpSearchData = reactive({ taskNo: "" })
+
+const hthpDetailVisible = ref(false)
+const hthpCurrentReport = ref<HthpReport | null>(null)
+const hthpActiveTab = ref("info")
+
+const hthpRejectDialogVisible = ref(false)
+const hthpRejectReason = ref("")
+const hthpRejectingReportId = ref<number | null>(null)
+
+const hthpAllReports = ref<HthpReport[]>([])
+
+const ensureHthpMockData = () => {
+  if (hthpAllReports.value.length) return
+
+  const pad2 = (n: number) => String(n).padStart(2, "0")
+  const fmt = (d: Date) => {
+    const y = d.getFullYear()
+    const m = pad2(d.getMonth() + 1)
+    const day = pad2(d.getDate())
+    const hh = pad2(d.getHours())
+    const mm = pad2(d.getMinutes())
+    const ss = pad2(d.getSeconds())
+    return `${y}-${m}-${day} ${hh}:${mm}:${ss}`
+  }
+
+  const base = new Date()
+  const devices = ["高温高压舱-01", "高温高压舱-02"]
+  const applicants = ["张三", "李四", "王五", "赵六"]
+
+  const mkPoints = (start: Date, count: number, setTempBase: number, setPressureBase: number): HthpPoint[] => {
+    const points: HthpPoint[] = []
+    for (let i = 0; i < count; i++) {
+      const t = new Date(start.getTime() + i * 60_000)
+      const setTemp = setTempBase + (i < Math.floor(count / 2) ? 0 : 10)
+      const setPressure = setPressureBase + (i < Math.floor(count / 2) ? 0 : 0.8)
+      const actualTemp = Number((setTemp + Math.sin(i / 4) * 1.4 + (i % 5) * 0.12 - 0.4).toFixed(2))
+      const actualPressure = Number((setPressure + Math.cos(i / 5) * 0.06 + (i % 6) * 0.004 - 0.01).toFixed(3))
+      points.push({ time: fmt(t), setTemp, actualTemp, setPressure, actualPressure })
+    }
+    return points
+  }
+
+  const calcAvg = (arr: number[]) => arr.reduce((s, v) => s + v, 0) / Math.max(1, arr.length)
+
+  const list: HthpReport[] = []
+  for (let i = 0; i < 18; i++) {
+    const start = new Date(base.getTime() - (i + 1) * 3_600_000)
+    const end = new Date(start.getTime() + (70 + (i % 6) * 10) * 60_000)
+
+    const result = i % 9 === 0 ? 2 : i % 15 === 0 ? 3 : 1
+    const resultText = result === 1 ? "正常" : result === 2 ? "异常" : "疑问"
+
+    const setTempBase = 120 + (i % 3) * 10
+    const setPressureBase = Number((8.0 + (i % 3) * 0.5).toFixed(1))
+
+    const points = mkPoints(start, 14 + (i % 10), setTempBase, setPressureBase)
+    const temps = points.map((p) => p.actualTemp)
+    const pressures = points.map((p) => p.actualPressure)
+
+    const maxTemp = Number(Math.max(...temps).toFixed(2))
+    const maxPressure = Number(Math.max(...pressures).toFixed(3))
+    const avgTemp = Number(calcAvg(temps).toFixed(2))
+    const avgPressure = Number(calcAvg(pressures).toFixed(3))
+
+    list.push({
+      id: 5000 + i,
+      taskNo: `HTHP-${base.getFullYear()}${pad2(base.getMonth() + 1)}-${pad2(i + 1)}${pad2((i % 30) + 1)}`,
+      deviceName: devices[i % devices.length],
+      applicant: applicants[i % applicants.length],
+      result,
+      resultText,
+      reviewStatus: 0,
+      createdAt: fmt(new Date(start.getTime() + 7 * 60_000)),
+      reportJson: {
+        startTime: fmt(start),
+        endTime: fmt(end),
+        duration: Math.floor((end.getTime() - start.getTime()) / 1000),
+        remark: i % 4 === 0 ? "升压阶段存在轻微波动" : "-",
+        points,
+        steps: [
+          {
+            stepNo: 1,
+            setTemp: setTempBase,
+            setPressure: setPressureBase,
+            holdMinutes: 30,
+            ok: result !== 2,
+            remark: result === 2 ? "压力偏差超限" : "-"
+          },
+          {
+            stepNo: 2,
+            setTemp: setTempBase + 10,
+            setPressure: Number((setPressureBase + 0.8).toFixed(1)),
+            holdMinutes: 30,
+            ok: true,
+            remark: "-"
+          }
+        ],
+        summary: { maxTemp, maxPressure, avgTemp, avgPressure }
+      }
+    })
+  }
+
+  hthpAllReports.value = list
+}
+
+const getHthpTableData = () => {
+  ensureHthpMockData()
+  hthpLoading.value = true
+
+  const keyword = hthpSearchData.taskNo.trim().toLowerCase()
+  const filtered = hthpAllReports.value.filter((r) => {
+    if (r.reviewStatus !== 0) return false
+    if (!keyword) return true
+    return r.taskNo.toLowerCase().includes(keyword)
+  })
+
+  hthpPagination.total = filtered.length
+  const start = (hthpPagination.currentPage - 1) * hthpPagination.pageSize
+  hthpTableData.value = filtered.slice(start, start + hthpPagination.pageSize)
+
+  hthpLoading.value = false
+}
+
+const handleHthpSearch = () => {
+  hthpPagination.currentPage = 1
+  getHthpTableData()
+}
+
+const resetHthpSearch = () => {
+  hthpSearchData.taskNo = ""
+  handleHthpSearch()
+}
+
+const handleHthpSizeChange = (size: number) => {
+  hthpPagination.pageSize = size
+  hthpPagination.currentPage = 1
+  getHthpTableData()
+}
+
+const handleHthpCurrentChange = (page: number) => {
+  hthpPagination.currentPage = page
+  getHthpTableData()
+}
+
+const handleHthpDetail = (row: HthpReport) => {
+  hthpCurrentReport.value = hthpAllReports.value.find((r) => r.id === row.id) || null
+  hthpActiveTab.value = "info"
+  hthpDetailVisible.value = true
+}
+
+const handleHthpApprove = async (report: HthpReport) => {
+  await ElMessageBox.confirm("确定要通过该报告的审核吗？", "确认通过", { type: "success" })
+
+  const target = hthpAllReports.value.find((r) => r.id === report.id)
+  if (!target) return
+  target.reviewStatus = 1
+
+  ElMessage.success("审核通过成功")
+  hthpDetailVisible.value = false
+  getHthpTableData()
+}
+
+const showHthpRejectDialog = (report: HthpReport) => {
+  hthpRejectingReportId.value = report.id
+  hthpRejectReason.value = ""
+  hthpRejectDialogVisible.value = true
+}
+
+const handleHthpReject = () => {
+  if (!hthpRejectReason.value.trim()) {
+    ElMessage.warning("请填写打回原因")
+    return
+  }
+
+  const target = hthpAllReports.value.find((r) => r.id === hthpRejectingReportId.value)
+  if (!target) return
+
+  target.reviewStatus = 2
+  target.reviewReason = hthpRejectReason.value
+
+  ElMessage.success("已打回")
+  hthpRejectDialogVisible.value = false
+  hthpDetailVisible.value = false
+  getHthpTableData()
+}
+
 // 格式化时间
 const formatTime = (time?: string) => {
   if (!time) return "-"
@@ -320,22 +1218,54 @@ const formatDuration = (duration?: number) => {
 // Tab 切换处理
 const handleTabClick = (tab: TabsPaneContext) => {
   router.replace({ query: { ...router.currentRoute.value.query, tab: tab.props.name } })
-  if (tab.props.name === "halt-hass") {
-    getHaltHassTableData()
+
+  if (tab.props.name === "halt-hass" && haltHassReviewRef.value) {
+    haltHassReviewRef.value.resetSearch()
+  }
+  if (tab.props.name === "water-cycle" && waterCycleReviewRef.value) {
+    waterCycleReviewRef.value.resetSearch()
+  }
+  if (tab.props.name === "high-temp-box" && highTempBoxReviewRef.value) {
+    highTempBoxReviewRef.value.resetSearch()
+  }
+  if (tab.props.name === "vibration-table" && vibrationReviewRef.value) {
+    vibrationReviewRef.value.resetSearch()
+  }
+  if (tab.props.name === "high-temp-high-pressure" && hthpReviewRef.value) {
+    hthpReviewRef.value.resetSearch()
   }
 }
 
 onMounted(() => {
   const { page, tab } = router.currentRoute.value.query
-  if (tab === "halt-hass") {
-    activeTab.value = "halt-hass"
-    getHaltHassTableData()
-  } else {
-    if (page) {
-      paginationData.currentPage = Number(page)
-    }
-    getTableData()
+
+  if (tab) activeTab.value = tab
+
+  if (tab === "halt-hass" && haltHassReviewRef.value) {
+    haltHassReviewRef.value.resetSearch()
+    return
   }
+  if (tab === "water-cycle" && waterCycleReviewRef.value) {
+    waterCycleReviewRef.value.resetSearch()
+    return
+  }
+  if (tab === "high-temp-box" && highTempBoxReviewRef.value) {
+    highTempBoxReviewRef.value.resetSearch()
+    return
+  }
+  if (tab === "vibration-table" && vibrationReviewRef.value) {
+    vibrationReviewRef.value.resetSearch()
+    return
+  }
+  if (tab === "high-temp-high-pressure" && hthpReviewRef.value) {
+    hthpReviewRef.value.resetSearch()
+    return
+  }
+
+  if (page) {
+    paginationData.currentPage = Number(page)
+  }
+  getTableData()
 })
 
 /** 监听分页参数的变化 */
@@ -416,79 +1346,23 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 
         <!-- HALT-HASS 报告审核 Tab -->
         <el-tab-pane label="HALT-HASS 报告审核" name="halt-hass">
-          <el-card v-loading="haltHassLoading" shadow="never">
-            <!-- 搜索区域 -->
-            <div class="search-wrapper">
-              <el-form :inline="true" :model="haltHassSearchData">
-                <el-form-item label="工单号">
-                  <el-input
-                    v-model="haltHassSearchData.orderNo"
-                    placeholder="请输入工单号"
-                    clearable
-                    style="width: 200px"
-                  />
-                </el-form-item>
-                <el-form-item>
-                  <el-button :icon="Search" type="primary" @click="handleHaltHassSearch">查询</el-button>
-                  <el-button :icon="Refresh" @click="resetHaltHassSearch">重置</el-button>
-                </el-form-item>
-              </el-form>
-            </div>
+          <HaltHassReportReview ref="haltHassReviewRef" />
+        </el-tab-pane>
 
-            <!-- 工具栏 -->
-            <div class="toolbar-wrapper">
-              <div />
-              <div>
-                <el-tooltip content="刷新当前页">
-                  <el-button type="primary" icon="RefreshRight" circle @click="getHaltHassTableData" />
-                </el-tooltip>
-              </div>
-            </div>
+        <el-tab-pane label="水循环报告审核" name="water-cycle">
+          <WaterCycleReportReview ref="waterCycleReviewRef" />
+        </el-tab-pane>
 
-            <!-- 表格 -->
-            <div class="table-wrapper">
-              <el-table :data="haltHassTableData" stripe border>
-                <el-table-column prop="id" label="报告ID" width="80" align="center" />
-                <el-table-column prop="order" label="工单号" width="180" align="center">
-                  <template #default="{ row }">
-                    {{ row.order?.orderNo || "-" }}
-                  </template>
-                </el-table-column>
-                <el-table-column prop="result" label="测试结果" width="100" align="center">
-                  <template #default="{ row }">
-                    <el-tag :type="getResultType(row.result)">{{ row.resultText }}</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column label="审核状态" width="100" align="center">
-                  <template #default>
-                    <el-tag type="warning">待审核</el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="createdAt" label="提交时间" width="170" align="center" />
-                <el-table-column label="操作" width="200" align="center" fixed="right">
-                  <template #default="{ row }">
-                    <el-button type="primary" link :icon="View" @click="handleHaltHassDetail(row)">详情</el-button>
-                    <el-button type="success" link :icon="Check" @click="handleApprove(row)">通过</el-button>
-                    <el-button type="danger" link :icon="Close" @click="showRejectDialog(row)">打回</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </div>
+        <el-tab-pane label="高温箱报告审核" name="high-temp-box">
+          <HighTempBoxReportReview ref="highTempBoxReviewRef" />
+        </el-tab-pane>
 
-            <!-- 分页 -->
-            <div class="pager-wrapper">
-              <el-pagination
-                background
-                layout="total, sizes, prev, pager, next, jumper"
-                :page-sizes="[10, 20, 50, 100]"
-                :total="haltHassPagination.total"
-                :page-size="haltHassPagination.pageSize"
-                :current-page="haltHassPagination.currentPage"
-                @size-change="handleHaltHassSizeChange"
-                @current-change="handleHaltHassCurrentChange"
-              />
-            </div>
-          </el-card>
+        <el-tab-pane label="振动台报告审核" name="vibration-table">
+          <VibrationTableReportReview ref="vibrationReviewRef" />
+        </el-tab-pane>
+
+        <el-tab-pane label="高温高压报告审核" name="high-temp-high-pressure">
+          <HighTempHighPressureReportReview ref="hthpReviewRef" />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -656,6 +1530,398 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       <template #footer>
         <el-button @click="rejectDialogVisible = false">取消</el-button>
         <el-button type="danger" @click="handleReject">确认打回</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="waterCycleDetailVisible" title="报告审核" width="900px">
+      <el-tabs v-model="waterCycleActiveTab" v-if="waterCycleCurrentReport">
+        <el-tab-pane label="基本信息" name="info">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="报告ID">{{ waterCycleCurrentReport.id }}</el-descriptions-item>
+            <el-descriptions-item label="工单号">{{ waterCycleCurrentReport.taskNo }}</el-descriptions-item>
+            <el-descriptions-item label="设备">{{ waterCycleCurrentReport.deviceName }}</el-descriptions-item>
+            <el-descriptions-item label="申请人">{{ waterCycleCurrentReport.applicant }}</el-descriptions-item>
+            <el-descriptions-item label="测试结果">
+              <el-tag :type="getResultType(waterCycleCurrentReport.result)">{{
+                waterCycleCurrentReport.resultText
+              }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="审核状态"><el-tag type="warning">待审核</el-tag></el-descriptions-item>
+            <el-descriptions-item label="测试开始时间">{{
+              formatTime(waterCycleCurrentReport.reportJson.startTime)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="测试结束时间">{{
+              formatTime(waterCycleCurrentReport.reportJson.endTime)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="测试时长">{{
+              formatDuration(waterCycleCurrentReport.reportJson.duration)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="备注">{{
+              waterCycleCurrentReport.reportJson.remark || "-"
+            }}</el-descriptions-item>
+          </el-descriptions>
+        </el-tab-pane>
+
+        <el-tab-pane label="采集数据" name="points">
+          <el-table :data="waterCycleCurrentReport.reportJson.points" size="small" border>
+            <el-table-column prop="time" label="时间" min-width="170" />
+            <el-table-column prop="temperature" label="温度(°C)" width="120" align="center" />
+            <el-table-column prop="pressure" label="压力(MPa)" width="120" align="center" />
+            <el-table-column prop="flow" label="流量(L/min)" width="130" align="center" />
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane label="循环阶段" name="cycles">
+          <el-table :data="waterCycleCurrentReport.reportJson.cycles" size="small" border>
+            <el-table-column prop="cycleNo" label="阶段" width="80" align="center" />
+            <el-table-column prop="targetTemp" label="目标温度区间" min-width="140" align="center" />
+            <el-table-column prop="holdMinutes" label="保持时长(min)" width="130" align="center" />
+            <el-table-column label="结果" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.ok ? 'success' : 'danger'">{{ row.ok ? "通过" : "异常" }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="remark" label="备注" min-width="180" />
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+
+      <template #footer>
+        <el-button @click="waterCycleDetailVisible = false">关闭</el-button>
+        <el-button type="danger" :icon="Close" @click="showWaterCycleRejectDialog(waterCycleCurrentReport!)"
+          >打回</el-button
+        >
+        <el-button type="success" :icon="Check" @click="handleWaterCycleApprove(waterCycleCurrentReport!)"
+          >通过</el-button
+        >
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="waterCycleRejectDialogVisible" title="打回报告" width="500px">
+      <el-form>
+        <el-form-item label="打回原因" required>
+          <el-input
+            v-model="waterCycleRejectReason"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入打回原因，该原因将发送给测试人员"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="waterCycleRejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="handleWaterCycleReject">确认打回</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="highTempDetailVisible" title="报告审核" width="900px">
+      <el-tabs v-model="highTempActiveTab" v-if="highTempCurrentReport">
+        <el-tab-pane label="基本信息" name="info">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="报告ID">{{ highTempCurrentReport.id }}</el-descriptions-item>
+            <el-descriptions-item label="工单号">{{ highTempCurrentReport.taskNo }}</el-descriptions-item>
+            <el-descriptions-item label="设备">{{ highTempCurrentReport.deviceName }}</el-descriptions-item>
+            <el-descriptions-item label="申请人">{{ highTempCurrentReport.applicant }}</el-descriptions-item>
+            <el-descriptions-item label="测试结果">
+              <el-tag :type="getResultType(highTempCurrentReport.result)">{{
+                highTempCurrentReport.resultText
+              }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="审核状态"><el-tag type="warning">待审核</el-tag></el-descriptions-item>
+            <el-descriptions-item label="测试开始时间">{{
+              formatTime(highTempCurrentReport.reportJson.startTime)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="测试结束时间">{{
+              formatTime(highTempCurrentReport.reportJson.endTime)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="测试时长">{{
+              formatDuration(highTempCurrentReport.reportJson.duration)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="备注">{{
+              highTempCurrentReport.reportJson.remark || "-"
+            }}</el-descriptions-item>
+          </el-descriptions>
+        </el-tab-pane>
+
+        <el-tab-pane label="温湿度概览" name="summary">
+          <el-row :gutter="20" class="summary-row">
+            <el-col :span="6">
+              <div class="summary-card">
+                <div class="summary-label">平均温度(°C)</div>
+                <div class="summary-value">{{ highTempCurrentReport.reportJson.summary.avgTemp }}</div>
+              </div>
+            </el-col>
+            <el-col :span="6">
+              <div class="summary-card success">
+                <div class="summary-label">最高温度(°C)</div>
+                <div class="summary-value">{{ highTempCurrentReport.reportJson.summary.maxTemp }}</div>
+              </div>
+            </el-col>
+            <el-col :span="6">
+              <div class="summary-card danger">
+                <div class="summary-label">最低温度(°C)</div>
+                <div class="summary-value">{{ highTempCurrentReport.reportJson.summary.minTemp }}</div>
+              </div>
+            </el-col>
+            <el-col :span="6">
+              <div class="summary-card">
+                <div class="summary-label">平均湿度(%)</div>
+                <div class="summary-value">{{ highTempCurrentReport.reportJson.summary.avgHumidity }}</div>
+              </div>
+            </el-col>
+          </el-row>
+
+          <el-table :data="highTempCurrentReport.reportJson.points" size="small" border style="margin-top: 10px">
+            <el-table-column prop="time" label="时间" min-width="170" />
+            <el-table-column prop="setTemp" label="设定温度(°C)" width="130" align="center" />
+            <el-table-column prop="actualTemp" label="实际温度(°C)" width="130" align="center" />
+            <el-table-column prop="humidity" label="湿度(%)" width="110" align="center" />
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane label="程序步骤" name="steps">
+          <el-table :data="highTempCurrentReport.reportJson.steps" size="small" border>
+            <el-table-column prop="stepNo" label="步骤" width="80" align="center" />
+            <el-table-column prop="setTemp" label="设定温度(°C)" width="140" align="center" />
+            <el-table-column prop="holdMinutes" label="保持时长(min)" width="140" align="center" />
+            <el-table-column label="结果" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.ok ? 'success' : 'danger'">{{ row.ok ? "通过" : "异常" }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="remark" label="备注" min-width="180" />
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+
+      <template #footer>
+        <el-button @click="highTempDetailVisible = false">关闭</el-button>
+        <el-button type="danger" :icon="Close" @click="showHighTempRejectDialog(highTempCurrentReport!)"
+          >打回</el-button
+        >
+        <el-button type="success" :icon="Check" @click="handleHighTempApprove(highTempCurrentReport!)">通过</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="highTempRejectDialogVisible" title="打回报告" width="500px">
+      <el-form>
+        <el-form-item label="打回原因" required>
+          <el-input
+            v-model="highTempRejectReason"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入打回原因，该原因将发送给测试人员"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="highTempRejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="handleHighTempReject">确认打回</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="vibrationDetailVisible" title="报告审核" width="900px">
+      <el-tabs v-model="vibrationActiveTab" v-if="vibrationCurrentReport">
+        <el-tab-pane label="基本信息" name="info">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="报告ID">{{ vibrationCurrentReport.id }}</el-descriptions-item>
+            <el-descriptions-item label="工单号">{{ vibrationCurrentReport.taskNo }}</el-descriptions-item>
+            <el-descriptions-item label="设备">{{ vibrationCurrentReport.deviceName }}</el-descriptions-item>
+            <el-descriptions-item label="申请人">{{ vibrationCurrentReport.applicant }}</el-descriptions-item>
+            <el-descriptions-item label="测试结果">
+              <el-tag :type="getResultType(vibrationCurrentReport.result)">{{
+                vibrationCurrentReport.resultText
+              }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="审核状态"><el-tag type="warning">待审核</el-tag></el-descriptions-item>
+            <el-descriptions-item label="测试开始时间">{{
+              formatTime(vibrationCurrentReport.reportJson.startTime)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="测试结束时间">{{
+              formatTime(vibrationCurrentReport.reportJson.endTime)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="测试时长">{{
+              formatDuration(vibrationCurrentReport.reportJson.duration)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="备注">{{
+              vibrationCurrentReport.reportJson.remark || "-"
+            }}</el-descriptions-item>
+          </el-descriptions>
+        </el-tab-pane>
+
+        <el-tab-pane label="扫频概览" name="summary">
+          <el-row :gutter="20" class="summary-row">
+            <el-col :span="8">
+              <div class="summary-card">
+                <div class="summary-label">最大加速度(g)</div>
+                <div class="summary-value">{{ vibrationCurrentReport.reportJson.summary.maxAccel }}</div>
+              </div>
+            </el-col>
+            <el-col :span="8">
+              <div class="summary-card success">
+                <div class="summary-label">RMS加速度(g)</div>
+                <div class="summary-value">{{ vibrationCurrentReport.reportJson.summary.rmsAccel }}</div>
+              </div>
+            </el-col>
+            <el-col :span="8">
+              <div class="summary-card danger">
+                <div class="summary-label">最大位移(mm)</div>
+                <div class="summary-value">{{ vibrationCurrentReport.reportJson.summary.maxDisp }}</div>
+              </div>
+            </el-col>
+          </el-row>
+
+          <el-table :data="vibrationCurrentReport.reportJson.points" size="small" border style="margin-top: 10px">
+            <el-table-column prop="time" label="时间" min-width="170" />
+            <el-table-column prop="setFreq" label="设定频率(Hz)" width="130" align="center" />
+            <el-table-column prop="setAccel" label="设定加速度(g)" width="140" align="center" />
+            <el-table-column prop="actualAccel" label="实际加速度(g)" width="140" align="center" />
+            <el-table-column prop="displacement" label="位移(mm)" width="120" align="center" />
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane label="测试步骤" name="steps">
+          <el-table :data="vibrationCurrentReport.reportJson.steps" size="small" border>
+            <el-table-column prop="stepNo" label="步骤" width="80" align="center" />
+            <el-table-column prop="freqRange" label="频率范围" width="140" align="center" />
+            <el-table-column prop="holdMinutes" label="保持时长(min)" width="140" align="center" />
+            <el-table-column label="结果" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.ok ? 'success' : 'danger'">{{ row.ok ? "通过" : "异常" }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="remark" label="备注" min-width="180" />
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+
+      <template #footer>
+        <el-button @click="vibrationDetailVisible = false">关闭</el-button>
+        <el-button type="danger" :icon="Close" @click="showVibrationRejectDialog(vibrationCurrentReport!)"
+          >打回</el-button
+        >
+        <el-button type="success" :icon="Check" @click="handleVibrationApprove(vibrationCurrentReport!)"
+          >通过</el-button
+        >
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="vibrationRejectDialogVisible" title="打回报告" width="500px">
+      <el-form>
+        <el-form-item label="打回原因" required>
+          <el-input
+            v-model="vibrationRejectReason"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入打回原因，该原因将发送给测试人员"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="vibrationRejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="handleVibrationReject">确认打回</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="hthpDetailVisible" title="报告审核" width="900px">
+      <el-tabs v-model="hthpActiveTab" v-if="hthpCurrentReport">
+        <el-tab-pane label="基本信息" name="info">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="报告ID">{{ hthpCurrentReport.id }}</el-descriptions-item>
+            <el-descriptions-item label="工单号">{{ hthpCurrentReport.taskNo }}</el-descriptions-item>
+            <el-descriptions-item label="设备">{{ hthpCurrentReport.deviceName }}</el-descriptions-item>
+            <el-descriptions-item label="申请人">{{ hthpCurrentReport.applicant }}</el-descriptions-item>
+            <el-descriptions-item label="测试结果">
+              <el-tag :type="getResultType(hthpCurrentReport.result)">{{ hthpCurrentReport.resultText }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="审核状态"><el-tag type="warning">待审核</el-tag></el-descriptions-item>
+            <el-descriptions-item label="测试开始时间">{{
+              formatTime(hthpCurrentReport.reportJson.startTime)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="测试结束时间">{{
+              formatTime(hthpCurrentReport.reportJson.endTime)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="测试时长">{{
+              formatDuration(hthpCurrentReport.reportJson.duration)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="备注">{{ hthpCurrentReport.reportJson.remark || "-" }}</el-descriptions-item>
+          </el-descriptions>
+        </el-tab-pane>
+
+        <el-tab-pane label="温压概览" name="summary">
+          <el-row :gutter="20" class="summary-row">
+            <el-col :span="6">
+              <div class="summary-card">
+                <div class="summary-label">平均温度(°C)</div>
+                <div class="summary-value">{{ hthpCurrentReport.reportJson.summary.avgTemp }}</div>
+              </div>
+            </el-col>
+            <el-col :span="6">
+              <div class="summary-card success">
+                <div class="summary-label">最高温度(°C)</div>
+                <div class="summary-value">{{ hthpCurrentReport.reportJson.summary.maxTemp }}</div>
+              </div>
+            </el-col>
+            <el-col :span="6">
+              <div class="summary-card">
+                <div class="summary-label">平均压力(MPa)</div>
+                <div class="summary-value">{{ hthpCurrentReport.reportJson.summary.avgPressure }}</div>
+              </div>
+            </el-col>
+            <el-col :span="6">
+              <div class="summary-card danger">
+                <div class="summary-label">最高压力(MPa)</div>
+                <div class="summary-value">{{ hthpCurrentReport.reportJson.summary.maxPressure }}</div>
+              </div>
+            </el-col>
+          </el-row>
+
+          <el-table :data="hthpCurrentReport.reportJson.points" size="small" border style="margin-top: 10px">
+            <el-table-column prop="time" label="时间" min-width="170" />
+            <el-table-column prop="setTemp" label="设定温度(°C)" width="130" align="center" />
+            <el-table-column prop="actualTemp" label="实际温度(°C)" width="130" align="center" />
+            <el-table-column prop="setPressure" label="设定压力(MPa)" width="130" align="center" />
+            <el-table-column prop="actualPressure" label="实际压力(MPa)" width="130" align="center" />
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane label="程序步骤" name="steps">
+          <el-table :data="hthpCurrentReport.reportJson.steps" size="small" border>
+            <el-table-column prop="stepNo" label="步骤" width="80" align="center" />
+            <el-table-column prop="setTemp" label="设定温度(°C)" width="140" align="center" />
+            <el-table-column prop="setPressure" label="设定压力(MPa)" width="140" align="center" />
+            <el-table-column prop="holdMinutes" label="保持时长(min)" width="140" align="center" />
+            <el-table-column label="结果" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag :type="row.ok ? 'success' : 'danger'">{{ row.ok ? "通过" : "异常" }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="remark" label="备注" min-width="180" />
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+
+      <template #footer>
+        <el-button @click="hthpDetailVisible = false">关闭</el-button>
+        <el-button type="danger" :icon="Close" @click="showHthpRejectDialog(hthpCurrentReport!)">打回</el-button>
+        <el-button type="success" :icon="Check" @click="handleHthpApprove(hthpCurrentReport!)">通过</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="hthpRejectDialogVisible" title="打回报告" width="500px">
+      <el-form>
+        <el-form-item label="打回原因" required>
+          <el-input
+            v-model="hthpRejectReason"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入打回原因，该原因将发送给测试人员"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="hthpRejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="handleHthpReject">确认打回</el-button>
       </template>
     </el-dialog>
   </div>
