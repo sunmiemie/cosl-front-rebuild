@@ -3,7 +3,9 @@ import { removeConfigLayout } from "@/utils/cache/local-storage"
 
 /** 格式化时间 */
 export const formatDateTime = (time: string | number | Date) => {
-  return time ? dayjs(new Date(time)).format("YYYY-MM-DD HH:mm:ss") : "N/A"
+  if (time === null || time === undefined || time === "") return "N/A"
+  const date = dayjs(new Date(time))
+  return date.isValid() ? date.format("YYYY-MM-DD HH:mm:ss") : "N/A"
 }
 
 /** 用 JS 获取全局 css 变量 */
