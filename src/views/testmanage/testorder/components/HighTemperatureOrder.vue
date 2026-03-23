@@ -141,8 +141,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
-
-import { useUserStore } from "@/store/modules/user"
 import {
   getHighTemperatureOrderList,
   getHighTemperatureOrderDetail,
@@ -231,7 +229,6 @@ const getStatusType = (status: number | string) => {
 const getList = async () => {
   loading.value = true
   try {
-    /* 注释掉实际接口调用
     const res = await getHighTemperatureOrderList({
       page: pagination.page,
       pageSize: pagination.pageSize,
@@ -244,58 +241,9 @@ const getList = async () => {
     } else {
       ElMessage.error(res?.msg || "获取列表失败")
     }
-    */
-
-    // 使用假数据演示，并添加本地过滤逻辑
-    setTimeout(() => {
-      const allMockData = [
-        {
-          id: 1,
-          taskNumber: "HT-20240312-001",
-          applicant: "张三",
-          deviceName: "高温箱-01",
-          targetTemp: "150",
-          status: 0,
-          statusText: "已创建",
-          testDate: "2024-03-12"
-        },
-        {
-          id: 2,
-          taskNumber: "HT-20240312-002",
-          applicant: "李四",
-          deviceName: "高温箱-02",
-          targetTemp: "180",
-          status: 1,
-          statusText: "待领取",
-          testDate: "2024-03-12"
-        },
-        {
-          id: 3,
-          taskNumber: "HT-20240312-003",
-          applicant: "王五",
-          deviceName: "高温高压仓-A1",
-          targetTemp: "200",
-          status: 2,
-          statusText: "测试中",
-          testDate: "2024-03-12"
-        }
-      ]
-
-      // 执行搜索过滤
-      let filteredData = allMockData
-      if (searchForm.taskNumber) {
-        filteredData = filteredData.filter((item) => item.taskNumber.includes(searchForm.taskNumber))
-      }
-      if (searchForm.status !== "" && searchForm.status !== undefined) {
-        filteredData = filteredData.filter((item) => String(item.status) === String(searchForm.status))
-      }
-
-      tableData.value = filteredData as any
-      pagination.total = filteredData.length
-      loading.value = false
-    }, 500)
   } catch (e) {
-    console.error("Fetch list error:", e)
+    console.error(e)
+  } finally {
     loading.value = false
   }
 }
@@ -341,14 +289,7 @@ const handleCreate = async () => {
     if (!valid) return
     createLoading.value = true
     try {
-      /* 注释掉实际接口调用
-      const submitData = {
-        ...createForm,
-        testDate: createForm.testDate instanceof Date
-          ? createForm.testDate.toISOString().split('T')[0]
-          : createForm.testDate
-      }
-      const res = await createHighTemperatureOrder(submitData)
+      const res = await createHighTemperatureOrder(createForm)
       if (res && res.code === 0) {
         ElMessage.success("创建成功")
         createDialogVisible.value = false
@@ -356,18 +297,10 @@ const handleCreate = async () => {
       } else {
         ElMessage.error(res?.msg || "创建失败")
       }
-      */
-
-      // 模拟创建成功
-      setTimeout(() => {
-        ElMessage.success("创建成功 (演示)")
-        createDialogVisible.value = false
-        getList()
-        createLoading.value = false
-      }, 500)
     } catch (e: any) {
-      console.error("Create order error:", e)
+      console.error(e)
       ElMessage.error("创建失败")
+    } finally {
       createLoading.value = false
     }
   })
@@ -375,24 +308,13 @@ const handleCreate = async () => {
 // 查看详情
 const handleDetail = async (row: HighTemperatureOrderListItem) => {
   try {
-    /* 注释掉实际接口调用
     const res = await getHighTemperatureOrderDetail(row.id)
     if (res.code === 0) {
       currentOrder.value = res.data
       detailDialogVisible.value = true
+    } else {
+      ElMessage.error(res?.msg || "获取详情失败")
     }
-    */
-
-    // 使用假数据演示
-    currentOrder.value = {
-      ...row,
-      deviceNumber: "DEV-HT-999",
-      testPlatform: "高温箱测试台",
-      runTime: 120,
-      remark: "演示用备注：该设备运行稳定",
-      feedbackReason: ""
-    } as any
-    detailDialogVisible.value = true
   } catch (e) {
     console.error(e)
     ElMessage.error("获取详情失败")
@@ -402,7 +324,6 @@ const handleDetail = async (row: HighTemperatureOrderListItem) => {
 const handlePublish = async (row: HighTemperatureOrderListItem) => {
   await ElMessageBox.confirm("确定要发布该工单吗？发布后将可被测试人员领取。", "确认发布", { type: "warning" })
   try {
-    /* 注释掉实际接口调用
     const res = await publishHighTemperatureOrder(row.id)
     if (res.code === 0) {
       ElMessage.success("发布成功")
@@ -410,12 +331,6 @@ const handlePublish = async (row: HighTemperatureOrderListItem) => {
     } else {
       ElMessage.error(res.msg || "发布失败")
     }
-    */
-
-    // 模拟发布成功
-    ElMessage.success("发布成功 (演示)")
-    row.status = 1
-    row.statusText = "待领取"
   } catch (e) {
     console.error(e)
     ElMessage.error("发布失败")
@@ -425,7 +340,6 @@ const handlePublish = async (row: HighTemperatureOrderListItem) => {
 const handleDelete = async (row: HighTemperatureOrderListItem) => {
   await ElMessageBox.confirm("确定要删除该工单吗？", "确认删除", { type: "warning" })
   try {
-    /* 注释掉实际接口调用
     const res = await deleteHighTemperatureOrder(row.id)
     if (res.code === 0) {
       ElMessage.success("删除成功")
@@ -433,12 +347,6 @@ const handleDelete = async (row: HighTemperatureOrderListItem) => {
     } else {
       ElMessage.error(res.msg || "删除失败")
     }
-    */
-
-    // 模拟删除成功
-    ElMessage.success("删除成功 (演示)")
-    tableData.value = tableData.value.filter((item) => item.id !== row.id)
-    pagination.total -= 1
   } catch (e) {
     console.error(e)
     ElMessage.error("删除失败")

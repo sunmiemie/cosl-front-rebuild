@@ -44,7 +44,7 @@
               <el-tag :type="getStatusType(row.status)">{{ row.statusText || row.status }}</el-tag>
             </template>
           </el-table-column>
-         <el-table-column label="操作" width="160" align="center" fixed="right">
+          <el-table-column label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
               <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
               <el-link v-if="row.status === 0" type="success" class="el-link" @click="handlePublish(row)">发布</el-link>
@@ -75,18 +75,12 @@
             <el-option label="正式测试" value="正式测试" />
           </el-select>
         </el-form-item>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="申请人" prop="applicant">
-              <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="申请人电话" prop="phone">
-              <el-input v-model="createForm.phone" placeholder="138****0000" />
-            </el-form-item>
-          </el-col>
-        </el-row>
+        <el-form-item label="工单编号" prop="orderNo">
+          <el-input v-model="createForm.orderNo" placeholder="例如 VB-20240312-001" />
+        </el-form-item>
+        <el-form-item label="申请人" prop="applicant">
+          <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
+        </el-form-item>
         <el-form-item label="测试设备" prop="deviceName">
           <el-select v-model="createForm.deviceName" placeholder="请选择测试设备" style="width: 100%">
             <el-option label="卫星姿控仪" value="卫星姿控仪" />
@@ -94,8 +88,23 @@
             <el-option label="传感器模块" value="传感器模块" />
           </el-select>
         </el-form-item>
-        <el-form-item label="测试目的" prop="purpose">
-          <el-input v-model="createForm.purpose" type="textarea" rows="3" placeholder="描述本次测试的目的..." />
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="振动量级" prop="level">
+              <el-input v-model="createForm.level" placeholder="例如 5.0g" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="振动时长(分)" prop="duration">
+              <el-input-number v-model="createForm.duration" :min="1" :step="5" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-form-item label="测试日期" prop="testDate">
+          <el-date-picker v-model="createForm.testDate" type="date" placeholder="选择日期" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="备注" prop="remark">
+          <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -129,6 +138,14 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, defineExpose, computed } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
+
+import {
+  getVibrationTableOrderList,
+  getVibrationTableOrderDetail,
+  createVibrationTableOrder,
+  publishVibrationTableOrder,
+  deleteVibrationTableOrder
+} from "@/api/vibration-table"
 
 const statusOptions = [
   { value: "0", label: "已创建" },
@@ -167,34 +184,49 @@ type Row = {
 }
 const tableData = ref<Row[]>([])
 
+type VibrationOrderDetail = Row
+
 const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
 const createForm = reactive({
   type: "预实验",
+  orderNo: "",
   applicant: "",
-  phone: "",
   deviceName: "",
-  purpose: ""
+  level: "",
+  duration: 30,
+  testDate: new Date(),
+  remark: ""
 })
 
 const createRules = {
   type: [{ required: true, message: "请选择工单类型", trigger: "change" }],
+  orderNo: [{ required: true, message: "请输入工单编号", trigger: "blur" }],
   applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }],
-  phone: [{ required: true, message: "请输入联系电话", trigger: "blur" }],
   deviceName: [{ required: true, message: "请选择测试设备", trigger: "change" }],
-  purpose: [{ required: true, message: "请输入测试目的", trigger: "blur" }]
+  level: [{ required: true, message: "请输入振动量级", trigger: "blur" }],
+  duration: [{ required: true, message: "请输入时长", trigger: "change" }]
 }
 
 const canCreate = computed(() => {
-  return !!(createForm.type && createForm.applicant && createForm.phone && createForm.deviceName && createForm.purpose)
+  return !!(
+    createForm.type &&
+    createForm.orderNo &&
+    createForm.applicant &&
+    createForm.deviceName &&
+    createForm.level &&
+    createForm.duration
+  )
 })
 
 const detailDialogVisible = ref(false)
 const currentOrder = ref<VibrationOrderDetail | null>(null)
 
-const getStatusType = (status: number | string) => {
-  const map: Record<string, string> = {
+type TagType = "" | "success" | "warning" | "info" | "primary" | "danger"
+
+const getStatusType = (status: number | string): TagType => {
+  const map: Record<string, TagType> = {
     "0": "info",
     "1": "warning",
     "2": "primary",
@@ -209,67 +241,35 @@ const getStatusType = (status: number | string) => {
   return map[key] || ""
 }
 
+const formatDate = (date: Date) => {
+  return date.toISOString().split("T")[0]
+}
+
+const generateOrderNo = () => {
+  const now = new Date()
+  return `VB-${formatDate(now).replaceAll("-", "")}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`
+}
+
 const getList = async () => {
   loading.value = true
   try {
-    // 模拟接口延迟，并添加本地过滤逻辑
-    setTimeout(() => {
-      const allMockData = [
-        {
-          orderNo: "VB-20240312-001",
-          type: "预实验",
-          applicant: "张三",
-          deviceName: "卫星姿控仪",
-          level: "5.0g",
-          duration: 30,
-          status: 0,
-          statusText: "已创建",
-          testDate: "2024-03-12",
-          remark: "初步振动测试"
-        },
-        {
-          orderNo: "VB-20240312-002",
-          type: "正式测试",
-          applicant: "李四",
-          deviceName: "导航控制器",
-          level: "10.0g",
-          duration: 60,
-          status: 1,
-          statusText: "待领取",
-          testDate: "2024-03-12",
-          remark: "全量级振动测试"
-        },
-        {
-          orderNo: "VB-20240312-003",
-          type: "正式测试",
-          applicant: "王五",
-          deviceName: "传感器模块",
-          level: "7.5g",
-          duration: 45,
-          status: 2,
-          statusText: "测试中",
-          testDate: "2024-03-12",
-          remark: "环境适应性测试"
-        }
-      ]
-
-      // 执行搜索过滤
-      let filteredData = allMockData
-      if (searchForm.taskNumber) {
-        filteredData = filteredData.filter((item) => item.orderNo.includes(searchForm.taskNumber))
-      }
-      if (searchForm.status !== "" && searchForm.status !== undefined) {
-        filteredData = filteredData.filter((item) => String(item.status) === String(searchForm.status))
-      }
-
-      tableData.value = filteredData
-      pagination.total = filteredData.length
-      loading.value = false
-    }, 500)
+    const res = await getVibrationTableOrderList({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      taskNumber: searchForm.taskNumber || undefined,
+      status: searchForm.status || undefined
+    })
+    if (res && res.code === 0 && res.data) {
+      tableData.value = res.data.list || []
+      pagination.total = res.data.total || 0
+    } else {
+      ElMessage.error(res?.msg || "获取列表失败")
+    }
   } catch (e) {
     console.error(e)
-    loading.value = false
     ElMessage.error("获取列表失败")
+  } finally {
+    loading.value = false
   }
 }
 
@@ -294,7 +294,16 @@ const handleCurrentChange = (page: number) => {
 }
 
 const showCreateDialog = () => {
-  Object.assign(createForm, { type: "预实验", applicant: "", phone: "", deviceName: "", purpose: "" })
+  Object.assign(createForm, {
+    type: "预实验",
+    orderNo: generateOrderNo(),
+    applicant: "",
+    deviceName: "",
+    level: "",
+    duration: 30,
+    testDate: new Date(),
+    remark: ""
+  })
   createDialogVisible.value = true
 }
 
@@ -304,52 +313,60 @@ const handleCreate = async () => {
     if (!valid) return
     createLoading.value = true
     try {
-      // 模拟创建延迟
-      setTimeout(() => {
-        ElMessage.success("创建成功 (演示)")
+      const res = await createVibrationTableOrder(createForm)
+      if (res && res.code === 0) {
+        ElMessage.success("创建成功")
         createDialogVisible.value = false
-        createLoading.value = false
         getList()
-      }, 500)
+      } else {
+        ElMessage.error(res?.msg || "创建失败")
+      }
     } catch {
       ElMessage.error("创建失败")
+    } finally {
       createLoading.value = false
     }
   })
 }
 
-const handleDetail = (row: Row) => {
-  currentOrder.value = row
-  detailDialogVisible.value = true
+const handleDetail = async (row: Row) => {
+  try {
+    const res = await getVibrationTableOrderDetail(row.id)
+    if (res && res.code === 0) {
+      currentOrder.value = res.data
+      detailDialogVisible.value = true
+    } else {
+      ElMessage.error(res?.msg || "获取详情失败")
+    }
+  } catch (e) {
+    console.error(e)
+    ElMessage.error("获取详情失败")
+  }
 }
 const handleDelete = async (row: Row) => {
   await ElMessageBox.confirm("确定要删除该工单吗？", "确认删除", { type: "warning" })
   try {
-    // 模拟删除操作
-    ElMessage.success("删除成功 (演示)")
-    tableData.value = tableData.value.filter((item) => item.orderNo !== row.orderNo)
-    pagination.total -= 1
+    const res = await deleteVibrationTableOrder(row.id)
+    if (res && res.code === 0) {
+      ElMessage.success("删除成功")
+      getList()
+    } else {
+      ElMessage.error(res?.msg || "删除失败")
+    }
   } catch {
     // 取消删除
   }
 }
-const handlePublish = async (row: HighTemperatureOrderListItem) => {
+const handlePublish = async (row: Row) => {
   await ElMessageBox.confirm("确定要发布该工单吗？发布后将可被测试人员领取。", "确认发布", { type: "warning" })
   try {
-    /* 注释掉实际接口调用
-    const res = await publishHighTemperatureOrder(row.id)
-    if (res.code === 0) {
+    const res = await publishVibrationTableOrder(row.id)
+    if (res && res.code === 0) {
       ElMessage.success("发布成功")
       getList()
     } else {
-      ElMessage.error(res.msg || "发布失败")
+      ElMessage.error(res?.msg || "发布失败")
     }
-    */
-
-    // 模拟发布成功
-    ElMessage.success("发布成功 (演示)")
-    row.status = 1
-    row.statusText = "待领取"
   } catch (e) {
     console.error(e)
     ElMessage.error("发布失败")

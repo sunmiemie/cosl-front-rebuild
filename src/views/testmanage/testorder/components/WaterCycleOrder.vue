@@ -33,13 +33,13 @@
 
       <div class="table-wrapper">
         <el-table :data="tableData" stripe border style="width: 100%">
-          <el-table-column prop="taskNumber" label="任务单号" width="180" align="center" />
+          <el-table-column prop="task_number" label="任务单号" width="180" align="center" />
           <el-table-column prop="applicant" label="申请人" min-width="120" align="center" />
-          <el-table-column prop="deviceName" label="设备名称" min-width="150" align="center" />
-          <el-table-column prop="flowProcess" label="流程长度" min-width="120" align="center" />
+          <el-table-column prop="device_name" label="设备名称" min-width="150" align="center" />
+          <el-table-column prop="flow_process" label="流程长度" min-width="120" align="center" />
           <el-table-column prop="status" label="状态" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)">{{ row.statusText || row.status }}</el-tag>
+              <el-tag :type="getStatusType(row.status)">{{ row.status_text || row.status }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column label="操作" width="160" align="center" fixed="right">
@@ -69,61 +69,77 @@
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="测试台" prop="testPlatform">
-              <el-select v-model="createForm.testPlatform" placeholder="请选择测试台" style="width: 100%">
+            <el-form-item label="测试台" prop="test_platform">
+              <el-select v-model="createForm.test_platform" placeholder="请选择测试台" style="width: 100%">
                 <el-option label="水循环测试台" value="水循环测试台" />
                 <el-option label="高压水循环测试台" value="高压水循环测试台" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="测试日期" prop="testDate">
-              <el-date-picker v-model="createForm.testDate" type="date" placeholder="选择日期" style="width: 100%" />
+            <el-form-item label="测试日期" prop="test_date">
+              <el-date-picker
+                v-model="createForm.test_date"
+                type="date"
+                placeholder="选择日期"
+                style="width: 100%"
+                value-format="YYYY-MM-DD"
+              />
             </el-form-item>
           </el-col>
         </el-row>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="开始时间" prop="startTime">
-              <el-time-picker v-model="createForm.startTime" placeholder="选择时间" style="width: 100%" />
+            <el-form-item label="开始时间" prop="start_time">
+              <el-time-picker
+                v-model="createForm.start_time"
+                placeholder="选择时间"
+                style="width: 100%"
+                value-format="HH:mm:ss"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="结束时间" prop="endTime">
-              <el-time-picker v-model="createForm.endTime" placeholder="选择时间" style="width: 100%" />
+            <el-form-item label="结束时间" prop="end_time">
+              <el-time-picker
+                v-model="createForm.end_time"
+                placeholder="选择时间"
+                style="width: 100%"
+                value-format="HH:mm:ss"
+              />
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="设备名称" prop="deviceName">
-          <el-input v-model="createForm.deviceName" />
+        <el-form-item label="设备名称" prop="device_name">
+          <el-input v-model="createForm.device_name" />
         </el-form-item>
-        <el-form-item label="设备编号" prop="deviceNumber">
-          <el-input v-model="createForm.deviceNumber" />
+        <el-form-item label="设备编号" prop="device_number">
+          <el-input v-model="createForm.device_number" />
         </el-form-item>
-        <el-form-item label="任务单号" prop="taskNumber">
-          <el-input v-model="createForm.taskNumber" />
+        <el-form-item label="任务单号" prop="task_number">
+          <el-input v-model="createForm.task_number" />
         </el-form-item>
 
-        <el-form-item label="流程长度" prop="flowProcess">
-          <el-select v-model="createForm.flowProcess" placeholder="请选择流程长度" style="width: 100%">
+        <el-form-item label="流程长度" prop="flow_process">
+          <el-select v-model="createForm.flow_process" placeholder="请选择流程长度" style="width: 100%">
             <el-option v-for="p in FLOW_PROCESSES" :key="p.id" :label="p.name" :value="p.value" />
           </el-select>
         </el-form-item>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="是否调压" prop="needPressureTest">
-              <el-select v-model="createForm.needPressureTest" style="width: 100%">
+            <el-form-item label="是否调压" prop="need_pressure_test">
+              <el-select v-model="createForm.need_pressure_test" style="width: 100%">
                 <el-option label="否" value="no" />
                 <el-option label="是" value="yes" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="是否指令下传" prop="needCommandTransfer">
-              <el-select v-model="createForm.needCommandTransfer" style="width: 100%">
+            <el-form-item label="是否指令下传" prop="need_command_transfer">
+              <el-select v-model="createForm.need_command_transfer" style="width: 100%">
                 <el-option label="否" value="no" />
                 <el-option label="是" value="yes" />
               </el-select>
@@ -147,21 +163,20 @@
     <el-drawer v-model="detailDialogVisible" title="工单详情" size="600px">
       <div v-if="currentOrder" style="padding: 0 20px">
         <el-descriptions :column="1" border>
-          <el-descriptions-item label="工单号">{{ currentOrder.orderNo }}</el-descriptions-item>
+          <el-descriptions-item label="任务单号">{{ currentOrder.task_number }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.statusText }}</el-tag>
+            <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.status_text }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="工艺">
-            {{ currentOrder.process?.name || "-" }}
-            <span v-if="currentOrder.process?.version">(v{{ currentOrder.process.version }})</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ currentOrder.createdAt }}</el-descriptions-item>
-          <el-descriptions-item label="开始时间">{{ currentOrder.startedAt || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="完成时间">{{ currentOrder.completedAt || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试台">{{ currentOrder.test_platform }}</el-descriptions-item>
+          <el-descriptions-item label="设备名称">{{ currentOrder.device_name }}</el-descriptions-item>
+          <el-descriptions-item label="设备编号">{{ currentOrder.device_number }}</el-descriptions-item>
+          <el-descriptions-item label="流程长度">{{ currentOrder.flow_process }}</el-descriptions-item>
+          <el-descriptions-item label="申请人">{{ currentOrder.applicant }}</el-descriptions-item>
+          <el-descriptions-item label="测试日期">{{ currentOrder.test_date }}</el-descriptions-item>
+          <el-descriptions-item label="开始时间">{{ currentOrder.start_time }}</el-descriptions-item>
+          <el-descriptions-item label="结束时间">{{ currentOrder.end_time }}</el-descriptions-item>
+          <el-descriptions-item label="创建时间">{{ currentOrder.created_at }}</el-descriptions-item>
           <el-descriptions-item label="备注">{{ currentOrder.remark || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="反馈理由" v-if="currentOrder.feedbackReason">
-            <el-text type="danger">{{ currentOrder.feedbackReason }}</el-text>
-          </el-descriptions-item>
         </el-descriptions>
       </div>
     </el-drawer>
@@ -174,10 +189,11 @@ import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
 import { Cpu } from "@element-plus/icons-vue"
 import { useUserStore } from "@/store/modules/user"
 import {
-  getWaterCycleOrderList,
-  getWaterCycleOrderDetail,
-  publishWaterCycleOrder,
-  deleteWaterCycleOrder
+  getWaterCycleOrderListApi,
+  createWaterCycleOrderApi,
+  getWaterCycleOrderDetailApi,
+  deleteWaterCycleOrderApi,
+  publishWaterCycleOrderApi
 } from "@/api/water-cycle"
 //api接口函数名称
 import type { WaterCycleOrderListItem, WaterCycleOrderDetail } from "@/api/water-cycle/types"
@@ -223,60 +239,60 @@ const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
 const createForm = reactive({
-  testPlatform: "水循环测试台",
-  testDate: new Date().toISOString().split("T")[0] as any,
-  startTime: "" as any,
-  endTime: "" as any,
-  deviceName: "",
-  deviceNumber: "",
-  taskNumber: "",
-  flowProcess: "",
-  needPressureTest: "no",
-  needCommandTransfer: "no",
+  test_platform: "水循环测试台",
+  test_date: new Date().toISOString().split("T")[0] as any,
+  start_time: "" as any,
+  end_time: "" as any,
+  device_name: "",
+  device_number: "",
+  task_number: "",
+  flow_process: "",
+  need_pressure_test: "no",
+  need_command_transfer: "no",
   applicant: "",
   remark: ""
 })
 
 const createRules = {
-  testPlatform: [{ required: true, message: "请选择测试台", trigger: "change" }],
-  testDate: [{ required: true, message: "请选择测试日期", trigger: "change" }],
-  startTime: [{ required: true, message: "请选择开始时间", trigger: "change" }],
-  endTime: [{ required: true, message: "请选择结束时间", trigger: "change" }],
-  deviceName: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
-  deviceNumber: [{ required: true, message: "请输入设备编号", trigger: "blur" }],
-  taskNumber: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
-  flowProcess: [{ required: true, message: "请选择流程长度", trigger: "change" }],
+  test_platform: [{ required: true, message: "请选择测试台", trigger: "change" }],
+  test_date: [{ required: true, message: "请选择测试日期", trigger: "change" }],
+  start_time: [{ required: true, message: "请选择开始时间", trigger: "change" }],
+  end_time: [{ required: true, message: "请选择结束时间", trigger: "change" }],
+  device_name: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
+  device_number: [{ required: true, message: "请输入设备编号", trigger: "blur" }],
+  task_number: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
+  flow_process: [{ required: true, message: "请选择流程长度", trigger: "change" }],
   applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }]
 }
 
 const canCreate = computed(() => {
   // 只校验表单基础必填项是否填写
-  return !!(createForm.taskNumber && createForm.deviceName && createForm.flowProcess && createForm.applicant)
+  return !!(createForm.task_number && createForm.device_name && createForm.flow_process && createForm.applicant)
 })
 
 const detailDialogVisible = ref(false)
-const currentOrder = ref<WaterCycleOrderDetail | null>(null)
+const currentOrder = ref<any | null>(null)
 
-const getStatusType = (status: number) => {
-  const map: Record<number, string> = {
-    0: "info",
-    1: "warning",
-    2: "primary",
-    3: "",
-    4: "danger",
-    5: "success",
-    6: "danger",
-    7: "info",
-    8: "warning"
+const getStatusType = (status: number | string) => {
+  const map: Record<string, string> = {
+    "0": "info",
+    "1": "warning",
+    "2": "primary",
+    "3": "",
+    "4": "danger",
+    "5": "success",
+    "6": "danger",
+    "7": "info",
+    "8": "warning"
   }
-  return map[status] || ""
+  const key = String(status)
+  return map[key] || ""
 }
 
 const getList = async () => {
   loading.value = true
   try {
-    /* 注释掉实际接口调用
-    const res = await getWaterCycleOrderList({
+    const res = await getWaterCycleOrderListApi({
       page: pagination.page,
       pageSize: pagination.pageSize,
       taskNumber: searchForm.taskNumber || undefined,
@@ -286,58 +302,9 @@ const getList = async () => {
       tableData.value = res.data.list
       pagination.total = res.data.total
     }
-    */
-
-    // 使用假数据演示，并添加本地过滤逻辑
-    setTimeout(() => {
-      const allMockData = [
-        {
-          id: 1,
-          taskNumber: "TASK-20240312-001",
-          applicant: "张三",
-          deviceName: "水循环测试系统-01",
-          flowProcess: "440",
-          status: 0,
-          statusText: "已创建",
-          createdAt: "2024-03-12 10:00:00"
-        },
-        {
-          id: 2,
-          taskNumber: "TASK-20240312-002",
-          applicant: "李四",
-          deviceName: "高压水循环设备-A2",
-          flowProcess: "877",
-          status: 1,
-          statusText: "待领取",
-          createdAt: "2024-03-12 11:30:00"
-        },
-        {
-          id: 3,
-          taskNumber: "TASK-20240312-003",
-          applicant: "王五",
-          deviceName: "水循环系统-01",
-          flowProcess: "1766",
-          status: 2,
-          statusText: "测试中",
-          createdAt: "2024-03-12 09:15:00"
-        }
-      ]
-
-      // 执行搜索过滤
-      let filteredData = allMockData
-      if (searchForm.taskNumber) {
-        filteredData = filteredData.filter((item) => item.taskNumber.includes(searchForm.taskNumber))
-      }
-      if (searchForm.status !== "" && searchForm.status !== undefined) {
-        filteredData = filteredData.filter((item) => String(item.status) === String(searchForm.status))
-      }
-
-      tableData.value = filteredData as any
-      pagination.total = filteredData.length
-      loading.value = false
-    }, 500)
   } catch (e) {
     console.error(e)
+  } finally {
     loading.value = false
   }
 }
@@ -367,16 +334,16 @@ const handleCurrentChange = (page: number) => {
 
 const showCreateDialog = async () => {
   Object.assign(createForm, {
-    testPlatform: "水循环测试台",
-    testDate: new Date().toISOString().split("T")[0],
-    startTime: "",
-    endTime: "",
-    deviceName: "",
-    deviceNumber: "",
-    taskNumber: "",
-    flowProcess: "",
-    needPressureTest: "no",
-    needCommandTransfer: "no",
+    test_platform: "水循环测试台",
+    test_date: new Date().toISOString().split("T")[0],
+    start_time: "",
+    end_time: "",
+    device_name: "",
+    device_number: "",
+    task_number: "",
+    flow_process: "",
+    need_pressure_test: "no",
+    need_command_transfer: "no",
     applicant: "",
     remark: ""
   })
@@ -389,6 +356,7 @@ const handleCreate = async () => {
     if (!valid) return
     createLoading.value = true
     try {
+      await createWaterCycleOrderApi(createForm)
       ElMessage.success("创建成功")
       createDialogVisible.value = false
       getList()
@@ -401,74 +369,45 @@ const handleCreate = async () => {
   })
 }
 // 查看详情
-const handleDetail = async (row: WaterCycleOrderListItem) => {
+const handleDetail = async (row: any) => {
   try {
-    /* 注释掉实际接口调用
-    const res = await getWaterCycleOrderDetail(row.id)
+    const res = await getWaterCycleOrderDetailApi(row.id)
     if (res.code === 0) {
       currentOrder.value = res.data
       detailDialogVisible.value = true
     }
-    */
-
-    // 使用假数据演示
-    currentOrder.value = {
-      ...row,
-      orderNo: row.taskNumber,
-      process: { id: 101, name: "标准水循环测试工艺", version: "1.2" },
-      boardCount: 4,
-      startedAt: row.status >= 2 ? "2024-03-12 14:00:00" : "-",
-      completedAt: "-",
-      remark: "这是一个演示用的备注信息",
-      feedbackReason: ""
-    } as any
-    detailDialogVisible.value = true
   } catch (e) {
     console.error(e)
     ElMessage.error("获取详情失败")
   }
 }
 
-const handlePublish = async (row: WaterCycleOrderListItem) => {
+const handlePublish = async (row: any) => {
   await ElMessageBox.confirm("确定要发布该工单吗？发布后将可被测试人员领取。", "确认发布", { type: "warning" })
   try {
-    /* 注释掉实际接口调用
-    const res = await publishWaterCycleOrder(row.id)
+    const res = await publishWaterCycleOrderApi(row.id)
     if (res.code === 0) {
       ElMessage.success("发布成功")
       getList()
     } else {
       ElMessage.error(res.msg || "发布失败")
     }
-    */
-
-    // 模拟发布成功
-    ElMessage.success("发布成功 (演示)")
-    row.status = 1
-    row.statusText = "待领取"
   } catch (e) {
     console.error(e)
     ElMessage.error("发布失败")
   }
 }
 
-const handleDelete = async (row: WaterCycleOrderListItem) => {
+const handleDelete = async (row: any) => {
   await ElMessageBox.confirm("确定要删除该工单吗？", "确认删除", { type: "warning" })
   try {
-    /* 注释掉实际接口调用
-    const res = await deleteWaterCycleOrder(row.id)
+    const res = await deleteWaterCycleOrderApi(row.id)
     if (res.code === 0) {
       ElMessage.success("删除成功")
       getList()
     } else {
       ElMessage.error(res.msg || "删除失败")
     }
-    */
-
-    // 模拟删除成功
-    ElMessage.success("删除成功 (演示)")
-    tableData.value = tableData.value.filter((item) => item.id !== row.id)
-    pagination.total -= 1
   } catch (e) {
     console.error(e)
     ElMessage.error("删除失败")

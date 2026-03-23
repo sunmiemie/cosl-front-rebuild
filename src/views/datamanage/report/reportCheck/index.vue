@@ -865,12 +865,7 @@ onMounted(() => {
         <el-button icon="Refresh" v-if="reportFixed" @click="reGetReport">重置所有更改</el-button>
       </div>
       <div v-loading="loading" style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px">
-        <report-preview
-          v-if="loaded"
-          v-model:preview-list="reportJson"
-          mode="check"
-          style="width: 100vw"
-        />
+        <report-preview v-if="loaded" v-model:preview-list="reportJson" mode="check" style="width: 100vw" />
       </div>
       <div style="display: flex; align-items: center">
         <div v-if="!hasQuestion">

@@ -182,7 +182,7 @@ export interface HaltHassOrderDetail {
   orderNo: string
   boardGroup: HaltHassOrderBoardGroup | null
   boardsInGroup: BoardModelInGroup[]
-  process: HaltHassOrderProcess & { content?: string } | null
+  process: (HaltHassOrderProcess & { content?: string }) | null
   boardCount: number
   boardSerials: string[]
   scannedBoards: ScannedBoard[]
