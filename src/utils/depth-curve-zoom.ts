@@ -10,6 +10,9 @@ export const getDepthCurveTimeRange = (timestamps: Iterable<unknown>): DepthCurv
   let end = Number.NEGATIVE_INFINITY
 
   for (const timestamp of timestamps) {
+    // 空值、布尔值和对象不能作为时间点，避免 Number 转换产生伪造的零时间戳。
+    if (typeof timestamp !== "number" && typeof timestamp !== "string") continue
+    if (typeof timestamp === "string" && timestamp.trim() === "") continue
     const value = Number(timestamp)
     if (!Number.isFinite(value)) continue
     start = Math.min(start, value)

@@ -15,6 +15,14 @@ describe("depth curve time zoom", () => {
     expect(getDepthCurveTimeRange([undefined, Number.NaN])).toBeNull()
   })
 
+  it("ignores missing and non-numeric timestamp values instead of inventing epoch points", () => {
+    expect(getDepthCurveTimeRange([null, "", "  ", false, true, [], 600_000, "900000"])).toEqual({
+      start: 600_000,
+      end: 900_000
+    })
+    expect(getDepthCurveTimeRange([null, "", false, {}])).toBeNull()
+  })
+
   it("zooms by twenty percent around the current center", () => {
     expect(resizeDepthCurveTimeRange({ start: 0, end: 1_000_000 }, { start: 0, end: 1_000_000 }, 0.8)).toEqual({
       start: 100_000,
