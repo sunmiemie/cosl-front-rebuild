@@ -204,9 +204,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button v-permission="['7']" type="primary" icon="CirclePlus" @click="handleAdd">
-            新增电路板组
-          </el-button>
+          <el-button v-permission="['7']" type="primary" icon="CirclePlus" @click="handleAdd"> 新增电路板组 </el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">

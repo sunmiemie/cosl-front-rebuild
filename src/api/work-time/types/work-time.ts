@@ -3,4 +3,7 @@ export interface GetWorkTimeData {
   work_time: string
 }
 
-export type GetWorkTimeResponseData = ApiResponseData<GetWorkTimeData[]>
+export type GetWorkTimeResponseData = ApiResponseData<{
+  list: GetWorkTimeData[]
+  total: number
+}>

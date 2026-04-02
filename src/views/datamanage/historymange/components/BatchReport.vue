@@ -7,7 +7,7 @@ import { usePagination } from "@/hooks/usePagination"
 import { getBatchReportDataApi, setDownloadSuccessApi } from "@/api/report"
 import ProdBoard from "@/views/datamanage/historymange/components/batch_report/ProdBoard.vue"
 import TempBoard from "@/views/datamanage/historymange/components/batch_report/TempBoard.vue"
-import { downloadFile } from "@/views/datamanage/historymange/components/utils";
+import { downloadFile } from "@/views/datamanage/historymange/components/utils"
 import { useRouter } from "vue-router"
 
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
@@ -15,14 +15,17 @@ const { paginationData, handleCurrentChange, handleSizeChange } = usePagination(
 const router = useRouter()
 
 // Load saved page size from localStorage
-const savedPageSize = localStorage.getItem('pageSize')
+const savedPageSize = localStorage.getItem("pageSize")
 if (savedPageSize) {
   paginationData.pageSize = parseInt(savedPageSize)
 }
 // Watch for changes in page size and save to localStorage
-watch(() => paginationData.pageSize, (newSize) => {
-  localStorage.setItem('pageSize', newSize.toString())
-})
+watch(
+  () => paginationData.pageSize,
+  (newSize) => {
+    localStorage.setItem("pageSize", newSize.toString())
+  }
+)
 
 const loading = ref(false)
 
@@ -90,7 +93,9 @@ const handleSelectionChange = (val: any) => {
 }
 
 const dialogVisible = ref(false)
-const hideDialog = () => { dialogVisible.value = false }
+const hideDialog = () => {
+  dialogVisible.value = false
+}
 
 const activeName = ref<any>("first")
 const prodBoardComponent = ref<InstanceType<typeof ProdBoard> | null>(null)
@@ -108,9 +113,9 @@ const handleTabClick = (tab: TabsPaneContext) => {
 const newBatchReports = () => {
   dialogVisible.value = true
 
-  if (activeName.value === 'first' && prodBoardComponent.value) {
+  if (activeName.value === "first" && prodBoardComponent.value) {
     prodBoardComponent.value.getTreeData()
-  } else if (activeName.value === 'second' && tempBoardComponent.value) {
+  } else if (activeName.value === "second" && tempBoardComponent.value) {
     tempBoardComponent.value.getTempTreeData()
   }
 }
@@ -121,10 +126,9 @@ const downloadReport = async (data: any) => {
   const downloadSuccessful = await downloadFile(downloadUrl, data.file_name)
 
   if (downloadSuccessful) {
-    setDownloadSuccessApi(data.report_id, "批次报告")
-      .then(() => {
-        getTableData()
-      })
+    setDownloadSuccessApi(data.report_id, "批次报告").then(() => {
+      getTableData()
+    })
   } else {
     ElMessage.error("下载失败")
   }
@@ -136,14 +140,13 @@ const downloadReports = async () => {
 
   for (const item of selectedRows.value) {
     const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/download-batch-report?id=${item.report_id}`
-    const downloadPromise = await downloadFile(downloadUrl, item.file_name)
-      .then(async (downloadSuccessful) => {
-        if (downloadSuccessful) {
-          await setDownloadSuccessApi(item.report_id, "批次报告")
-        } else {
-          ElMessage.error('下载失败')
-        }
-      })
+    const downloadPromise = await downloadFile(downloadUrl, item.file_name).then(async (downloadSuccessful) => {
+      if (downloadSuccessful) {
+        await setDownloadSuccessApi(item.report_id, "批次报告")
+      } else {
+        ElMessage.error("下载失败")
+      }
+    })
 
     downloadPromises.push(downloadPromise)
   }
@@ -152,9 +155,9 @@ const downloadReports = async () => {
 }
 
 const handleCloseDialog = () => {
-  if (activeName.value === 'first' && prodBoardComponent.value) {
+  if (activeName.value === "first" && prodBoardComponent.value) {
     prodBoardComponent.value.cancelGenerateReport()
-  } else if (activeName.value === 'second' && tempBoardComponent.value) {
+  } else if (activeName.value === "second" && tempBoardComponent.value) {
     tempBoardComponent.value.cancelGenerateReport()
   }
 }
@@ -207,19 +210,35 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </div>
         </div>
         <div class="table-wrapper">
-          <TableComponent :tableData="TableData" :column-data="headers" selection
-            @selection-change="handleSelectionChange" stripe>
+          <TableComponent
+            :tableData="TableData"
+            :column-data="headers"
+            selection
+            @selection-change="handleSelectionChange"
+            stripe
+          >
             <template #link="{ row }">
-              <el-link :type="row['report_downloaded'] ? 'success' : 'primary'" class="el-link" @click="downloadReport(row)">下载
+              <el-link
+                :type="row['report_downloaded'] ? 'success' : 'primary'"
+                class="el-link"
+                @click="downloadReport(row)"
+                >下载
               </el-link>
             </template>
           </TableComponent>
         </div>
 
         <div class="pager-wrapper">
-          <el-pagination background :layout="paginationData.layout" :page-sizes="paginationData.pageSizes"
-            :total="paginationData.total" :page-size="paginationData.pageSize" :currentPage="paginationData.currentPage"
-            @size-change="handleSizeChange" @current-change="handleCurrentChange" />
+          <el-pagination
+            background
+            :layout="paginationData.layout"
+            :page-sizes="paginationData.pageSizes"
+            :total="paginationData.total"
+            :page-size="paginationData.pageSize"
+            :currentPage="paginationData.currentPage"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
         </div>
       </el-card>
     </el-col>

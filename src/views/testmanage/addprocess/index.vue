@@ -785,7 +785,7 @@ const handleAddFuncProcess = () => {
       formData.append(key, data[key])
     }
     otherFileList.value.forEach((file: any) => {
-      formData.append('otherFiles', file.raw)
+      formData.append("otherFiles", file.raw)
     })
     uploadfuncttest(formData).then((res) => {
       if (res.code == 0) {

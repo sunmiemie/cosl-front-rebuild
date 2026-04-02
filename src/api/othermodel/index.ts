@@ -28,10 +28,10 @@ export function updateOtherModelDataApi(data: { name: string; id: null; seria: s
 
 /** 查 */
 export function getOtherModelDataApi(params: {
-  size: number;
-  name: string | undefined;
-  currentPage: number;
-  seria: string | undefined;
+  size: number
+  name: string | undefined
+  currentPage: number
+  seria: string | undefined
   type: string | undefined
 }) {
   return request<Equipment.GetEquipmentResponseData>({

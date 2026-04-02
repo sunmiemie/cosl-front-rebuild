@@ -205,7 +205,7 @@ const generateReports = async () => {
 
   selectedRows.value.forEach((item) => {
     // console.log(item)
-    for (let key in item.link) {
+    for (const key in item.link) {
       if (item.link[key] === "生成") {
         generateExists = true
 

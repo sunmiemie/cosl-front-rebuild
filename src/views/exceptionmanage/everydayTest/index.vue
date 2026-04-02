@@ -41,7 +41,7 @@ const getDaily = async (currentMonth?: any) => {
     .then((res) => {
       inspectionData.value = res.inspections
       // 判断inspectionData.value对象内部的待巡检是否是当天，如果不是当前全部变为已过期tag 红色
-      for (let key in inspectionData.value) {
+      for (const key in inspectionData.value) {
         if (inspectionData.value[key] == "待巡检" && key != currentTime()) {
           inspectionData.value[key] = "已过期"
         }
@@ -93,8 +93,18 @@ onMounted(() => {
           <el-card class="c-padding">
             <div class="c-card">
               <div>
-                <el-tag v-if="inspectionData[data.day]" class="c-tag" :type="inspectionData[data.day] === '待巡检' ? 'warning' : inspectionData[data.day] === '异常' || inspectionData[data.day] === '已过期' ? 'danger' : 'success'
-                  ">{{ inspectionData[data.day] }}</el-tag>
+                <el-tag
+                  v-if="inspectionData[data.day]"
+                  class="c-tag"
+                  :type="
+                    inspectionData[data.day] === '待巡检'
+                      ? 'warning'
+                      : inspectionData[data.day] === '异常' || inspectionData[data.day] === '已过期'
+                        ? 'danger'
+                        : 'success'
+                  "
+                  >{{ inspectionData[data.day] }}</el-tag
+                >
               </div>
               <div>
                 <!-- <el-button class="c-button">...</el-button> -->
@@ -102,14 +112,26 @@ onMounted(() => {
                   <el-button class="c-button"> ...</el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item v-if="inspectionData[data.day] === '待巡检'"
-                        @click="dropdownSelct(data.day, '填写巡检报告')">填写巡检报告</el-dropdown-item>
-                      <el-dropdown-item v-if="inspectionData[data.day] === '已巡检' || inspectionData[data.day] === '异常'"
-                        @click="dropdownSelct(data.day, '查看报告')">查看报告</el-dropdown-item>
-                      <el-dropdown-item v-if="inspectionData[data.day] === '已巡检'"
-                        @click="dropdownSelct(data.day, '导出报告')">导出报告</el-dropdown-item>
-                      <el-dropdown-item v-if="inspectionData[data.day] === '异常'"
-                        @click="dropdownSelct(data.day, '查看故障工单')">查看故障工单</el-dropdown-item>
+                      <el-dropdown-item
+                        v-if="inspectionData[data.day] === '待巡检'"
+                        @click="dropdownSelct(data.day, '填写巡检报告')"
+                        >填写巡检报告</el-dropdown-item
+                      >
+                      <el-dropdown-item
+                        v-if="inspectionData[data.day] === '已巡检' || inspectionData[data.day] === '异常'"
+                        @click="dropdownSelct(data.day, '查看报告')"
+                        >查看报告</el-dropdown-item
+                      >
+                      <el-dropdown-item
+                        v-if="inspectionData[data.day] === '已巡检'"
+                        @click="dropdownSelct(data.day, '导出报告')"
+                        >导出报告</el-dropdown-item
+                      >
+                      <el-dropdown-item
+                        v-if="inspectionData[data.day] === '异常'"
+                        @click="dropdownSelct(data.day, '查看故障工单')"
+                        >查看故障工单</el-dropdown-item
+                      >
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>

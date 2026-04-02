@@ -154,15 +154,11 @@ const handleDelete = (row: HaltHassProcessListItem) => {
 
 // 激活工艺
 const handleActivate = (row: HaltHassProcessListItem) => {
-  ElMessageBox.confirm(
-    `确认将工艺「${row.name} v${row.version}」设为当前激活版本？`,
-    "激活确认",
-    {
-      confirmButtonText: "确认",
-      cancelButtonText: "取消",
-      type: "info"
-    }
-  ).then(() => {
+  ElMessageBox.confirm(`确认将工艺「${row.name} v${row.version}」设为当前激活版本？`, "激活确认", {
+    confirmButtonText: "确认",
+    cancelButtonText: "取消",
+    type: "info"
+  }).then(() => {
     changeHaltHassVersion({ ID: row.id, version: row.version }).then((res: any) => {
       if (res.code === 0) {
         ElMessage.success("激活成功")
@@ -260,29 +256,11 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-table-column label="操作" align="center" width="250" fixed="right">
             <template #default="{ row }">
               <el-button type="primary" link :icon="View" @click="handleView(row)">详情</el-button>
-              <el-button
-                v-if="canActivate(row)"
-                type="success"
-                link
-                @click="handleActivate(row)"
-              >
-                激活
-              </el-button>
-              <el-button
-                v-if="canSubmit(row.status)"
-                type="warning"
-                link
-                @click="handleSubmitCheck(row)"
-              >
+              <el-button v-if="canActivate(row)" type="success" link @click="handleActivate(row)"> 激活 </el-button>
+              <el-button v-if="canSubmit(row.status)" type="warning" link @click="handleSubmitCheck(row)">
                 提交审核
               </el-button>
-              <el-button
-                v-if="canDelete(row.status)"
-                type="danger"
-                link
-                :icon="Delete"
-                @click="handleDelete(row)"
-              >
+              <el-button v-if="canDelete(row.status)" type="danger" link :icon="Delete" @click="handleDelete(row)">
                 删除
               </el-button>
             </template>

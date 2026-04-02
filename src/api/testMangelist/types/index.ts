@@ -1,4 +1,4 @@
-import {UnwrapRef} from "vue";
+import { UnwrapRef } from "vue"
 
 type pathType = Array<{
   id: string

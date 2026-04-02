@@ -25,7 +25,7 @@ export interface GetBoardModelData {
   id: string
   name: string
   batch: string
-  des: string,
+  des: string
   instrument_data: Array<any>
 }
 

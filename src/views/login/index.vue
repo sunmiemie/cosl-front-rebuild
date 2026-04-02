@@ -2,7 +2,7 @@
 import { onMounted, reactive, ref } from "vue"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
-import {ElMessage, type FormInstance, type FormRules} from "element-plus"
+import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { type LoginRequestData } from "@/api/login/types/login"
 import ThemeSwitch from "@/components/ThemeSwitch/index.vue"
 import Owl from "./components/Owl.vue"

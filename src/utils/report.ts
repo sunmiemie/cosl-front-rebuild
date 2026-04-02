@@ -2084,4 +2084,3 @@ export class ReportCheck {
     }
   }
 }
-

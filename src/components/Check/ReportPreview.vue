@@ -45,13 +45,13 @@ const openViewer = (img) => {
               { title: '对面弓曲度', pass: props.previewList.json.plane['rightPass'] }
             ]"
           >
-            <el-table-column label="检测项" prop="title"/>
+            <el-table-column label="检测项" prop="title" />
             <el-table-column align="right" label="结果" prop="pass">
               <template #default="scope">
                 <el-text
                   v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
                   :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
-                >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                  >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                 </el-text>
                 <el-text v-if="scope.row.pass == 4" type="danger"> 不通过</el-text>
                 <el-text v-if="scope.row.pass == 4" type="info"> 疑问</el-text>
@@ -92,7 +92,7 @@ const openViewer = (img) => {
             border
             stripe
           >
-            <el-table-column label="检测项名称" prop="name" width="300"/>
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="缺陷描述">
               <template #default="scope">
                 <el-text>{{ scope.row.error.desc }}</el-text>
@@ -126,13 +126,13 @@ const openViewer = (img) => {
                   </template>
                   <el-text>检测项</el-text>
                   <el-table :data="props.previewList.json.threeD.eyes.total.stepList" border stripe>
-                    <el-table-column label="检测项" prop="name"/>
+                    <el-table-column label="检测项" prop="name" />
                     <el-table-column align="right" label="结果" prop="pass">
                       <template #default="scope">
                         <el-text
                           v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
                           :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
-                        >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                          >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                         </el-text>
                         <el-text v-if="scope.row.pass == 4" type="danger"> 不通过</el-text>
                         <el-text v-if="scope.row.pass == 4" type="info"> 疑问</el-text>
@@ -169,7 +169,7 @@ const openViewer = (img) => {
                     border
                     stripe
                   >
-                    <el-table-column label="留存项" prop="name" width="300"/>
+                    <el-table-column label="留存项" prop="name" width="300" />
                     <el-table-column align="right" label="结果" prop="save">
                       <template #default="scope">
                         <div style="display: flex">
@@ -207,8 +207,8 @@ const openViewer = (img) => {
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="缺陷描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.error.desc }}</el-text>
@@ -239,7 +239,7 @@ const openViewer = (img) => {
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="疑问描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.question.desc }}</el-text>
@@ -270,7 +270,7 @@ const openViewer = (img) => {
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="制程警示描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.warn.desc }}</el-text>
@@ -306,13 +306,13 @@ const openViewer = (img) => {
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="item.general.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
                               v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
                               :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
-                            >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                              >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                             </el-text>
                             <el-text v-if="scope.row.pass == 4" type="danger"> 不通过</el-text>
                             <el-text v-if="scope.row.pass == 4" type="info"> 疑问</el-text>
@@ -338,7 +338,7 @@ const openViewer = (img) => {
                       </el-table>
                       <el-text v-if="item.general.picList != 0">留存项</el-text>
                       <el-table v-if="item.general.picList != 0" :data="item.general.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <div style="display: flex">
@@ -368,7 +368,7 @@ const openViewer = (img) => {
                       <el-text v-if="item.general.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="item.general.errorList != undefined" :data="item.general.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -399,7 +399,7 @@ const openViewer = (img) => {
                         border
                         stripe
                       >
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -425,7 +425,7 @@ const openViewer = (img) => {
                       </el-table>
                       <el-text v-if="item.general.warnList != undefined">制程警示</el-text>
                       <el-table v-if="item.general.warnList != undefined" :data="item.general.warnList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="制程警示描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.warn.desc }}</el-text>
@@ -456,13 +456,13 @@ const openViewer = (img) => {
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="point.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
                               v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
                               :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
-                            >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                              >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                             </el-text>
                             <el-text v-if="scope.row.pass == 4" type="danger"> 不通过</el-text>
                             <el-text v-if="scope.row.pass == 4" type="info"> 疑问</el-text>
@@ -488,7 +488,7 @@ const openViewer = (img) => {
                       </el-table>
                       <el-text v-if="point.picList.length != 0">留存项</el-text>
                       <el-table v-if="point.picList.length != 0" :data="point.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <div style="display: flex">
@@ -518,7 +518,7 @@ const openViewer = (img) => {
                       <el-text v-if="point.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="point.errorList != undefined" :data="point.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -545,7 +545,7 @@ const openViewer = (img) => {
                       <el-text v-if="point.questionList != undefined">疑问项</el-text>
 
                       <el-table v-if="point.questionList != undefined" :data="point.questionList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -572,7 +572,7 @@ const openViewer = (img) => {
                       <el-text v-if="point.warnList != undefined">制程警示</el-text>
 
                       <el-table v-if="point.warnList != undefined" :data="point.warnList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="制程警示描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.warn.desc }}</el-text>
@@ -612,13 +612,13 @@ const openViewer = (img) => {
                   </template>
                   <el-text>检测项</el-text>
                   <el-table :data="props.previewList.json.threeD.eyesBak.total.stepList" border stripe>
-                    <el-table-column label="检测项" prop="name"/>
+                    <el-table-column label="检测项" prop="name" />
                     <el-table-column align="right" label="结果" prop="pass">
                       <template #default="scope">
                         <el-text
                           v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
                           :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
-                        >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                          >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                         </el-text>
                         <el-text v-if="scope.row.pass == 4" type="danger"> 不通过</el-text>
                         <el-text v-if="scope.row.pass == 4" type="info"> 疑问</el-text>
@@ -656,7 +656,7 @@ const openViewer = (img) => {
                     border
                     stripe
                   >
-                    <el-table-column label="留存项" prop="name" width="300"/>
+                    <el-table-column label="留存项" prop="name" width="300" />
                     <el-table-column align="right" label="结果" prop="save">
                       <template #default="scope">
                         <div style="display: flex">
@@ -696,7 +696,7 @@ const openViewer = (img) => {
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="缺陷描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.error.desc }}</el-text>
@@ -721,7 +721,7 @@ const openViewer = (img) => {
                     </el-table-column>
                   </el-table>
                   <el-text v-if="props.previewList.json.threeD.eyesBak.total.questionList !== undefined"
-                  >疑问项
+                    >疑问项
                   </el-text>
 
                   <el-table
@@ -730,7 +730,7 @@ const openViewer = (img) => {
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="疑问描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.question.desc }}</el-text>
@@ -762,7 +762,7 @@ const openViewer = (img) => {
                     border
                     stripe
                   >
-                    <el-table-column label="检测项名称" prop="name" width="300"/>
+                    <el-table-column label="检测项名称" prop="name" width="300" />
                     <el-table-column label="制程警示描述">
                       <template #default="scope">
                         <el-text>{{ scope.row.warn.desc }}</el-text>
@@ -798,13 +798,13 @@ const openViewer = (img) => {
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="item.general.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
                               v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
                               :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
-                            >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                              >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                             </el-text>
                             <el-text v-if="scope.row.pass == 4" type="danger"> 不通过</el-text>
                             <el-text v-if="scope.row.pass == 4" type="info"> 疑问</el-text>
@@ -831,7 +831,7 @@ const openViewer = (img) => {
                       <el-text v-if="item.general.picList.length != 0">留存项</el-text>
 
                       <el-table v-if="item.general.picList.length != 0" :data="item.general.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <div style="display: flex">
@@ -861,7 +861,7 @@ const openViewer = (img) => {
                       <el-text v-if="item.general.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="item.general.errorList != undefined" :data="item.general.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -893,7 +893,7 @@ const openViewer = (img) => {
                         border
                         stripe
                       >
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -920,7 +920,7 @@ const openViewer = (img) => {
                       <el-text v-if="item.general.warnList != undefined">制程警示</el-text>
 
                       <el-table v-if="item.general.warnList != undefined" :data="item.general.warnList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="制程警示描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.warn.desc }}</el-text>
@@ -951,13 +951,13 @@ const openViewer = (img) => {
                       </template>
                       <el-text>检测项</el-text>
                       <el-table :data="point.stepList" border stripe>
-                        <el-table-column label="检测项" prop="name"/>
+                        <el-table-column label="检测项" prop="name" />
                         <el-table-column align="right" label="结果" prop="pass">
                           <template #default="scope">
                             <el-text
                               v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
                               :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
-                            >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                              >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                             </el-text>
                             <el-text v-if="scope.row.pass == 4" type="danger"> 不通过</el-text>
                             <el-text v-if="scope.row.pass == 4" type="info"> 疑问</el-text>
@@ -984,7 +984,7 @@ const openViewer = (img) => {
                       <el-text v-if="point.picList.length != 0">留存项</el-text>
 
                       <el-table v-if="point.picList.length != 0" :data="point.picList" border stripe>
-                        <el-table-column label="留存项" prop="name" width="300"/>
+                        <el-table-column label="留存项" prop="name" width="300" />
                         <el-table-column align="right" label="结果" prop="save">
                           <template #default="scope">
                             <div style="display: flex">
@@ -1014,7 +1014,7 @@ const openViewer = (img) => {
                       <el-text v-if="point.errorList != undefined">缺陷项</el-text>
 
                       <el-table v-if="point.errorList != undefined" :data="point.errorList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="缺陷描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1041,7 +1041,7 @@ const openViewer = (img) => {
                       <el-text v-if="point.questionList != undefined">疑问项</el-text>
 
                       <el-table v-if="point.questionList != undefined" :data="point.questionList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="疑问描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1068,7 +1068,7 @@ const openViewer = (img) => {
                       <el-text v-if="point.warnList != undefined">制程警示</el-text>
 
                       <el-table v-if="point.warnList != undefined" :data="point.warnList" border stripe>
-                        <el-table-column label="检测项名称" prop="name" width="300"/>
+                        <el-table-column label="检测项名称" prop="name" width="300" />
                         <el-table-column label="制程警示描述">
                           <template #default="scope">
                             <el-text>{{ scope.row.warn.desc }}</el-text>
@@ -1107,16 +1107,16 @@ const openViewer = (img) => {
           </template>
           <el-text>检测项</el-text>
           <el-table :data="props.previewList.json.xray.total.stepList" border stripe>
-            <el-table-column label="检测项" prop="name"/>
+            <el-table-column label="检测项" prop="name" />
             <el-table-column align="right" label="结果" prop="pass">
               <template #default="scope">
                 <el-text :type="scope.row.pass == 3 ? 'warning' : scope.row.pass == 1 ? 'success' : 'danger'"
-                >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                  >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                 </el-text>
                 <el-text
                   v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
                   :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
-                >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                  >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                 </el-text>
                 <el-text v-if="scope.row.pass == 4" type="danger"> 不通过</el-text>
                 <el-text v-if="scope.row.pass == 4" type="info"> 疑问</el-text>
@@ -1153,7 +1153,7 @@ const openViewer = (img) => {
             border
             stripe
           >
-            <el-table-column label="留存项" prop="name" width="300"/>
+            <el-table-column label="留存项" prop="name" width="300" />
             <el-table-column align="right" label="结果" prop="save">
               <template #default="scope">
                 <div style="display: flex">
@@ -1193,7 +1193,7 @@ const openViewer = (img) => {
             border
             stripe
           >
-            <el-table-column label="检测项名称" prop="name" width="300"/>
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="缺陷描述">
               <template #default="scope">
                 <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1225,7 +1225,7 @@ const openViewer = (img) => {
             border
             stripe
           >
-            <el-table-column label="检测项名称" prop="name" width="300"/>
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="疑问描述">
               <template #default="scope">
                 <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1257,7 +1257,7 @@ const openViewer = (img) => {
             border
             stripe
           >
-            <el-table-column label="检测项名称" prop="name" width="300"/>
+            <el-table-column label="检测项名称" prop="name" width="300" />
             <el-table-column label="制程警示描述">
               <template #default="scope">
                 <el-text>{{ scope.row.warn.desc }}</el-text>
@@ -1293,13 +1293,13 @@ const openViewer = (img) => {
               </template>
               <el-text>检测项</el-text>
               <el-table :data="item.general.stepList" border stripe>
-                <el-table-column label="检测项" prop="name"/>
+                <el-table-column label="检测项" prop="name" />
                 <el-table-column align="right" label="结果" prop="pass">
                   <template #default="scope">
                     <el-text
                       v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
                       :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
-                    >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                      >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                     </el-text>
                     <el-text v-if="scope.row.pass == 4" type="danger"> 不通过</el-text>
                     <el-text v-if="scope.row.pass == 4" type="info"> 疑问</el-text>
@@ -1324,7 +1324,7 @@ const openViewer = (img) => {
               </el-table>
               <el-text v-if="item.general.picList != 0">留存项</el-text>
               <el-table v-if="item.general.picList != 0" :data="item.general.picList" border stripe>
-                <el-table-column label="留存项" prop="name" width="300"/>
+                <el-table-column label="留存项" prop="name" width="300" />
                 <el-table-column align="right" label="结果" prop="save">
                   <template #default="scope">
                     <div style="display: flex">
@@ -1354,7 +1354,7 @@ const openViewer = (img) => {
               <el-text v-if="item.general.errorList != undefined">缺陷项</el-text>
 
               <el-table v-if="item.general.errorList != undefined" :data="item.general.errorList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="缺陷描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1381,7 +1381,7 @@ const openViewer = (img) => {
               <el-text v-if="item.general.questionList != undefined">疑问项</el-text>
 
               <el-table v-if="item.general.questionList != undefined" :data="item.general.questionList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="疑问描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1408,7 +1408,7 @@ const openViewer = (img) => {
               <el-text v-if="item.general.warnList != undefined">制程警示</el-text>
 
               <el-table v-if="item.general.warnList != undefined" :data="item.general.warnList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="制程警示描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.warn.desc }}</el-text>
@@ -1439,13 +1439,13 @@ const openViewer = (img) => {
               </template>
               <el-text>检测项</el-text>
               <el-table :data="point.stepList" border stripe>
-                <el-table-column label="检测项" prop="name"/>
+                <el-table-column label="检测项" prop="name" />
                 <el-table-column align="right" label="结果" prop="pass">
                   <template #default="scope">
                     <el-text
                       v-if="scope.row.pass == 3 || scope.row.pass == 2 || scope.row.pass == 1"
                       :type="scope.row.pass == 3 ? 'info' : scope.row.pass == 1 ? 'success' : 'danger'"
-                    >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
+                      >{{ scope.row.pass == 3 ? "疑问" : scope.row.pass == 1 ? "通过" : "不通过" }}
                     </el-text>
                     <el-text v-if="scope.row.pass == 4" type="danger"> 不通过</el-text>
                     <el-text v-if="scope.row.pass == 4" type="info"> 疑问</el-text>
@@ -1472,7 +1472,7 @@ const openViewer = (img) => {
               <el-text v-if="point.picList.length != 0">留存项</el-text>
 
               <el-table v-if="point.picList.length != 0" :data="point.picList" border stripe>
-                <el-table-column label="留存项" prop="name" width="300"/>
+                <el-table-column label="留存项" prop="name" width="300" />
                 <el-table-column align="right" label="结果" prop="save">
                   <template #default="scope">
                     <div style="display: flex">
@@ -1502,7 +1502,7 @@ const openViewer = (img) => {
               <el-text v-if="point.errorList != undefined">缺陷项</el-text>
 
               <el-table v-if="point.errorList != undefined" :data="point.errorList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="缺陷描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.error.desc }}</el-text>
@@ -1528,7 +1528,7 @@ const openViewer = (img) => {
               </el-table>
               <el-text v-if="point.questionList != undefined">疑问项</el-text>
               <el-table v-if="point.questionList != undefined" :data="point.questionList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="疑问描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.question.desc }}</el-text>
@@ -1554,7 +1554,7 @@ const openViewer = (img) => {
               </el-table>
               <el-text v-if="point.warnList != undefined">制程警示</el-text>
               <el-table v-if="point.warnList != undefined" :data="point.warnList" border stripe>
-                <el-table-column label="检测项名称" prop="name" width="300"/>
+                <el-table-column label="检测项名称" prop="name" width="300" />
                 <el-table-column label="制程警示描述">
                   <template #default="scope">
                     <el-text>{{ scope.row.warn.desc }}</el-text>
@@ -1585,7 +1585,7 @@ const openViewer = (img) => {
     </el-scrollbar>
     <el-dialog v-model="picViewer" align-center center width="70%">
       <Viewer height="600">
-        <img :src="viewerUrl" alt=""/>
+        <img :src="viewerUrl" alt="" />
       </Viewer>
     </el-dialog>
   </div>

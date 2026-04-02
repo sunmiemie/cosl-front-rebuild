@@ -17,11 +17,7 @@ import {
   submitCheck,
   deleteTestProcessApi
 } from "@/api/addprocess"
-import {
-  getHaltHassProcessList,
-  deleteHaltHassProcess,
-  submitHaltHassToCheck
-} from "@/api/halt-hass"
+import { getHaltHassProcessList, deleteHaltHassProcess, submitHaltHassToCheck } from "@/api/halt-hass"
 import type { HaltHassProcessListItem } from "@/api/halt-hass/types"
 
 const testStore = useTestStore()
@@ -464,7 +460,9 @@ onMounted(() => {
               <el-card v-else v-loading="loading" shadow="never">
                 <div class="toolbar-wrapper">
                   <div>
-                    <el-button v-permission="['12']" :icon="CirclePlus" type="primary" @click="addTest">新增流程</el-button>
+                    <el-button v-permission="['12']" :icon="CirclePlus" type="primary" @click="addTest"
+                      >新增流程</el-button
+                    >
                   </div>
                   <div>
                     <el-tooltip content="刷新当前页">
@@ -507,11 +505,26 @@ onMounted(() => {
             <div class="search-wrapper">
               <el-form :inline="true" :model="haltHassSearchData">
                 <el-form-item label="工艺名称">
-                  <el-input v-model="haltHassSearchData.name" placeholder="请输入工艺名称" clearable style="width: 200px" />
+                  <el-input
+                    v-model="haltHassSearchData.name"
+                    placeholder="请输入工艺名称"
+                    clearable
+                    style="width: 200px"
+                  />
                 </el-form-item>
                 <el-form-item label="状态">
-                  <el-select v-model="haltHassSearchData.status" placeholder="请选择状态" clearable style="width: 120px">
-                    <el-option v-for="item in haltHassStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
+                  <el-select
+                    v-model="haltHassSearchData.status"
+                    placeholder="请选择状态"
+                    clearable
+                    style="width: 120px"
+                  >
+                    <el-option
+                      v-for="item in haltHassStatusOptions"
+                      :key="item.value"
+                      :label="item.label"
+                      :value="item.value"
+                    />
                   </el-select>
                 </el-form-item>
                 <el-form-item>
@@ -618,9 +631,7 @@ onMounted(() => {
             <el-input v-model="searchData.version" placeholder="请输入" />
           </el-form-item>
           <el-form-item>
-            <el-button :icon="Search" style="margin-right: 10px" type="primary" @click="handleSearch"
-              >查询
-            </el-button>
+            <el-button :icon="Search" style="margin-right: 10px" type="primary" @click="handleSearch">查询 </el-button>
             <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
           </el-form-item>
         </el-form>
@@ -640,12 +651,7 @@ onMounted(() => {
               <el-tag v-if="row.status === 3" type="success"> 可使用</el-tag>
             </template>
             <template #link="{ row }">
-              <el-link
-                v-for="i in row.link"
-                class="el-link"
-                type="primary"
-                @click="handleLinkDetail(row, i)"
-                :key="i"
+              <el-link v-for="i in row.link" class="el-link" type="primary" @click="handleLinkDetail(row, i)" :key="i"
                 >{{ i }}
               </el-link>
             </template>

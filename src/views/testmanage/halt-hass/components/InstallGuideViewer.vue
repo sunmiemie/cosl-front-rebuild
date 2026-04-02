@@ -51,11 +51,7 @@ const currentStep = ref(0)
 
         <!-- 视频内容 -->
         <div v-if="installGuide.steps[currentStep]?.video" class="media-content">
-          <video
-            :src="installGuide.steps[currentStep].video"
-            controls
-            class="step-video"
-          />
+          <video :src="installGuide.steps[currentStep].video" controls class="step-video" />
         </div>
 
         <!-- 文字描述 -->
@@ -67,11 +63,7 @@ const currentStep = ref(0)
         <div class="step-navigation">
           <el-button :disabled="currentStep === 0" @click="currentStep--">上一步</el-button>
           <span class="step-indicator">{{ currentStep + 1 }} / {{ installGuide.steps.length }}</span>
-          <el-button
-            :disabled="currentStep === installGuide.steps.length - 1"
-            type="primary"
-            @click="currentStep++"
-          >
+          <el-button :disabled="currentStep === installGuide.steps.length - 1" type="primary" @click="currentStep++">
             下一步
           </el-button>
         </div>

@@ -7,7 +7,7 @@ import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
-import { checkPermission } from "@/utils/permission";
+import { checkPermission } from "@/utils/permission"
 
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
@@ -59,15 +59,16 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = checkPermission(['10']) ? ref<any>([
-  { prop: "id", label: "设备类型ID", align: "center" },
-  { prop: "name", label: "设备类型名称", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "center" }
-]) :
-  ref<any>([
-    { prop: "id", label: "设备类型ID", align: "center" },
-    { prop: "name", label: "设备类型名称", align: "center" }
-  ]);
+const headers = checkPermission(["10"])
+  ? ref<any>([
+      { prop: "id", label: "设备类型ID", align: "center" },
+      { prop: "name", label: "设备类型名称", align: "center" },
+      { prop: "link", label: "操作", type: "link", align: "center" }
+    ])
+  : ref<any>([
+      { prop: "id", label: "设备类型ID", align: "center" },
+      { prop: "name", label: "设备类型名称", align: "center" }
+    ])
 
 const TableData = ref<any>([])
 const searchFormRef = ref<FormInstance | null>(null)
@@ -138,7 +139,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button v-permission="['10']" type="primary" :icon="CirclePlus" @click="dialogVisible = true">新增设备类型</el-button>
+          <el-button v-permission="['10']" type="primary" :icon="CirclePlus" @click="dialogVisible = true"
+            >新增设备类型</el-button
+          >
         </div>
         <div>
           <el-tooltip content="刷新当前页">

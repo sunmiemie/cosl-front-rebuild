@@ -63,17 +63,18 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = checkPermission(['9']) ? ref([
-  { prop: "psimodel_id", label: "主机型号ID", align: "center" },
-  { prop: "psimodel_name", label: "主机型号名称", align: "center" },
-  { prop: "supplier", label: "供应商", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "center" }
-]) :
-  ref([
-    { prop: "psimodel_id", label: "主机型号ID", align: "center" },
-    { prop: "psimodel_name", label: "主机型号名称", align: "center" },
-    { prop: "supplier", label: "供应商", align: "center" }
-  ]);
+const headers = checkPermission(["9"])
+  ? ref([
+      { prop: "psimodel_id", label: "主机型号ID", align: "center" },
+      { prop: "psimodel_name", label: "主机型号名称", align: "center" },
+      { prop: "supplier", label: "供应商", align: "center" },
+      { prop: "link", label: "操作", type: "link", align: "center" }
+    ])
+  : ref([
+      { prop: "psimodel_id", label: "主机型号ID", align: "center" },
+      { prop: "psimodel_name", label: "主机型号名称", align: "center" },
+      { prop: "supplier", label: "供应商", align: "center" }
+    ])
 
 const TableData = ref([])
 

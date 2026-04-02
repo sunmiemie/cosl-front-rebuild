@@ -4,12 +4,7 @@ import { ElMessageBox } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { questionUnitDataApi, questionOperateDataApi } from "@/api/questionunit"
-import {
-  checkReportDataApi,
-  checkReportPassApi,
-  checkTempReportDataApi,
-  checkTempReportPassApi
-} from "@/api/report"
+import { checkReportDataApi, checkReportPassApi, checkTempReportDataApi, checkTempReportPassApi } from "@/api/report"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
 import { ReportCheck } from "@/utils/report"

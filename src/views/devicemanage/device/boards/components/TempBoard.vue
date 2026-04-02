@@ -9,7 +9,12 @@ import QrcodeVue from "qrcode.vue"
 import { getTempBatchInstrumentDataApi } from "@/api/instrument"
 import { CirclePlus, UploadFilled } from "@element-plus/icons-vue"
 import { getQRcodeImgApi } from "@/api/qrcode"
-import { createTempBatchDataApi, getNewestBatchNumber, getTempBatchDataApi, previewTempBatchDataApi } from "@/api/temp-batch"
+import {
+  createTempBatchDataApi,
+  getNewestBatchNumber,
+  getTempBatchDataApi,
+  previewTempBatchDataApi
+} from "@/api/temp-batch"
 import { createTempBoardApi, getBatchTempBoardDataApi, updateTempBoardDataApi } from "@/api/temp-board"
 import { GetTempBoardData } from "@/api/temp-board/types/temp-board"
 import { GetTempBatchData } from "@/api/temp-batch/types/temp-batch"
@@ -319,8 +324,8 @@ const closedTempBoard = () => {
 
 // 打印二维码
 const getSelection = () => {
-  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "start_time" })
-    .then((res) => {
+  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "start_time" }).then(
+    (res) => {
       if (res.code === 0) {
         const imageData = res.data
         const printWindow = window.open("", "_blank")
@@ -475,59 +480,57 @@ onMounted(() => {
 
     <el-col v-else :span="19">
       <div class="affix-container">
-      <el-affix target=".affix-container" :offset="120">
-      <el-card shadow="never" class="search-wrapper">
-        <el-form ref="searchFormRef" :inline="true" :model="searchData">
-          <el-form-item prop="batchNumber" label="批次号">
-            <el-input v-model="searchData.batchId" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item prop="name" label="批次名称">
-            <el-input v-model="searchData.batchName" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item prop="supplier" label="供应商">
-            <el-input v-model="searchData.supplier" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" icon="search" @click="handleSearch">查询</el-button>
-            <el-button icon="refresh" @click="resetSearch">重置</el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
-      </el-affix>
+        <el-affix target=".affix-container" :offset="120">
+          <el-card shadow="never" class="search-wrapper">
+            <el-form ref="searchFormRef" :inline="true" :model="searchData">
+              <el-form-item prop="batchNumber" label="批次号">
+                <el-input v-model="searchData.batchId" placeholder="请输入" />
+              </el-form-item>
+              <el-form-item prop="name" label="批次名称">
+                <el-input v-model="searchData.batchName" placeholder="请输入" />
+              </el-form-item>
+              <el-form-item prop="supplier" label="供应商">
+                <el-input v-model="searchData.supplier" placeholder="请输入" />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" icon="search" @click="handleSearch">查询</el-button>
+                <el-button icon="refresh" @click="resetSearch">重置</el-button>
+              </el-form-item>
+            </el-form>
+          </el-card>
+        </el-affix>
 
-      <el-card v-loading="loading" shadow="never">
-        <div class="toolbar-wrapper-hint">
-          <div>
-            <el-tooltip content="刷新当前页">
-              <el-button type="primary" icon="refresh-right" circle @click="getTableData" />
-            </el-tooltip>
+        <el-card v-loading="loading" shadow="never">
+          <div class="toolbar-wrapper-hint">
+            <div>
+              <el-tooltip content="刷新当前页">
+                <el-button type="primary" icon="refresh-right" circle @click="getTableData" />
+              </el-tooltip>
+            </div>
+            <el-text class="mx-1" style="opacity: 0.7"
+              >当前最大的临时批次号是：<span style="font-weight: bold">{{ newestBatchNumber }}</span></el-text
+            >
           </div>
-          <el-text class="mx-1" style="opacity: 0.7;">当前最大的临时批次号是：<span style="font-weight: bold">{{newestBatchNumber}}</span></el-text>
-        </div>
-        <div class="table-wrapper">
-          <TableComponent
-            :tableData="BatchData"
-            :column-data="batchHeaders"
-            stripe
-          >
-            <template #link="{ row }">
-              <el-link type="primary" class="el-link" @click="handleLink(row, '批次详情')"> 批次详情 </el-link>
-            </template>
-          </TableComponent>
-        </div>
-        <div class="pager-wrapper">
-          <el-pagination
-            background
-            :layout="paginationData.layout"
-            :page-sizes="paginationData.pageSizes"
-            :total="paginationData.total"
-            :page-size="paginationData.pageSize"
-            :currentPage="paginationData.currentPage"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
-        </div>
-      </el-card>
+          <div class="table-wrapper">
+            <TableComponent :tableData="BatchData" :column-data="batchHeaders" stripe>
+              <template #link="{ row }">
+                <el-link type="primary" class="el-link" @click="handleLink(row, '批次详情')"> 批次详情 </el-link>
+              </template>
+            </TableComponent>
+          </div>
+          <div class="pager-wrapper">
+            <el-pagination
+              background
+              :layout="paginationData.layout"
+              :page-sizes="paginationData.pageSizes"
+              :total="paginationData.total"
+              :page-size="paginationData.pageSize"
+              :currentPage="paginationData.currentPage"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
+        </el-card>
       </div>
     </el-col>
   </el-row>

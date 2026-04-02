@@ -1,15 +1,15 @@
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref, onMounted, computed } from "vue"
 import { ElMessage, ElTree, type FormInstance, type FormRules } from "element-plus"
-import type { CheckboxValueType } from 'element-plus'
+import type { CheckboxValueType } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForBugReport } from "@/api/report"
-import {getBugReportDevTestTypeDataApi, getDevTestTypeDataApi} from "@/api/testtype"
-import { getTransactionTree } from "@/api/report";
+import { getBugReportDevTestTypeDataApi, getDevTestTypeDataApi } from "@/api/testtype"
+import { getTransactionTree } from "@/api/report"
 import { useUserStore } from "@/store/modules/user"
 import { generateDevBugReport } from "@/api/report"
 
-const emit = defineEmits(['close-dialog', 'fetch-bug-reports'])
+const emit = defineEmits(["close-dialog", "fetch-bug-reports"])
 
 const userId = useUserStore().userid
 
@@ -176,8 +176,8 @@ const handleCreate = async () => {
 
     // 等待所有请求完成
     const responses = await Promise.allSettled(requests)
-    const successCount = responses.filter(res => res.status === 'fulfilled' && res.value.success).length;
-    const failCount = responses.length - successCount;
+    const successCount = responses.filter((res) => res.status === "fulfilled" && res.value.success).length
+    const failCount = responses.length - successCount
 
     if (successCount > 0) {
       ElMessage.success(`成功生成了 ${successCount} 个缺陷报告`)
@@ -296,24 +296,32 @@ onMounted(getTempTreeData)
                     :rules="formRules"
                   >
                     <el-form-item label="测试类型" prop="testType">
-                      <el-select multiple clearable popper-class="custom-header" v-model="value" placeholder="请选择"
-                        filterable @visible-change="getTestTypeData">
+                      <el-select
+                        multiple
+                        clearable
+                        popper-class="custom-header"
+                        v-model="value"
+                        placeholder="请选择"
+                        filterable
+                        @visible-change="getTestTypeData"
+                      >
                         <template #header>
                           <el-checkbox v-model="checkAll" :indeterminate="indeterminate" @change="handleCheckAll">
                             选择所有
                           </el-checkbox>
                         </template>
-                        <el-option v-for="item in testTypeList" :label="item.name" :value="item.number"
-                          :key="item.id" />
+                        <el-option
+                          v-for="item in testTypeList"
+                          :label="item.name"
+                          :value="item.number"
+                          :key="item.id"
+                        />
                       </el-select>
                     </el-form-item>
                     <div style="margin-top: 30px; display: flex; justify-content: flex-end; gap: 10px">
                       <el-button @click="cancelGenerateReport">取消</el-button>
-                      <el-button
-                        type="primary"
-                        @click="handleCreate"
-                        :disabled="selectedRows.length <= 0"
-                      >生成缺陷报告</el-button
+                      <el-button type="primary" @click="handleCreate" :disabled="selectedRows.length <= 0"
+                        >生成缺陷报告</el-button
                       >
                     </div>
                   </el-form>

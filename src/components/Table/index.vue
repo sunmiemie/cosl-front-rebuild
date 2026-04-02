@@ -1,32 +1,8 @@
 <script>
-import { getCurrentInstance, ref, toRefs } from "vue"
-//checkbox点击事件
-const instance = getCurrentInstance()
-const multipleSelection = ref([])
-const checkNumber = ref(0)
-//取消勾选事件
-const toggleSelection = () => {
-  const ultipleTabInstance = toRefs(instance.refs.table)
-  ultipleTabInstance.clearSelection.value()
-}
-//勾选checkbox事件
-const handleSelectionChange = (val) => {
-  multipleSelection.value = val
-  checkNumber.value = multipleSelection.value.length
-}
+import { defineComponent } from "vue"
 
-export default {
+export default defineComponent({
   name: "TableComponent",
-  methods: {
-    handleSelectionChange,
-    toggleSelection,
-    // 不要删，需要用到这个函数，在父组件中取消选中表格的每一行
-    clearSelection() {
-      if (this.$refs.table) {
-        this.$refs.table.clearSelection()
-      }
-    }
-  },
   props: {
     columnData: {
       type: Array,
@@ -39,9 +15,40 @@ export default {
     refValue: String,
     selection: Boolean,
     border: Boolean,
-    stripe: Boolean
+    stripe: Boolean,
+    rowKey: {
+      type: [String, Function],
+      default: (row) => row.id || row.date || row.index
+    }
+  },
+  emits: ["selection-change", "current-change"],
+  data() {
+    return {
+      multipleSelection: [],
+      checkNumber: 0
+    }
+  },
+  methods: {
+    handleSelectionChange(val) {
+      this.multipleSelection = val
+      this.checkNumber = val.length
+      this.$emit("selection-change", val)
+    },
+    handleCurrentChange(val) {
+      this.$emit("current-change", val)
+    },
+    toggleSelection() {
+      if (this.$refs.table) {
+        this.$refs.table.clearSelection()
+      }
+    },
+    clearSelection() {
+      if (this.$refs.table) {
+        this.$refs.table.clearSelection()
+      }
+    }
   }
-}
+})
 </script>
 
 <template>
@@ -50,16 +57,14 @@ export default {
     :data="tableData"
     :border="border"
     :stripe="stripe"
-    :row-key="
-      (row) => {
-        return row.id
-      }
-    "
+    :row-key="rowKey"
+    v-bind="$attrs"
     @selection-change="handleSelectionChange"
+    @current-change="handleCurrentChange"
   >
     <!-- columnData属性列 -->
     <el-table-column v-if="selection" type="selection" width="30" align="center" :fixed="'left'" />
-    <template v-for="item in columnData" :key="item.id">
+    <template v-for="item in columnData" :key="item.prop || item.label">
       <el-table-column
         v-if="item.type === 'link'"
         :label="item.label"

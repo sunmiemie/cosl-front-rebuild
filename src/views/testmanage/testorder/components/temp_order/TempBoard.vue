@@ -241,11 +241,8 @@ onMounted(getTempTreeData)
                     </el-form-item>
                     <el-form-item>
                       <el-button @click="$emit('stop-adding-order')">取消</el-button>
-                      <el-button
-                        type="primary"
-                        @click="handleCreate"
-                        :disabled="selectedRows.length <= 0"
-                      >添加工单</el-button
+                      <el-button type="primary" @click="handleCreate" :disabled="selectedRows.length <= 0"
+                        >添加工单</el-button
                       >
                     </el-form-item>
                   </el-form>

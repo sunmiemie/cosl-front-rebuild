@@ -102,7 +102,13 @@
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="井深(m)" prop="well_depth">
-              <el-input-number v-model="createForm.well_depth" :precision="2" :step="0.1" :min="0" style="width: 100%" />
+              <el-input-number
+                v-model="createForm.well_depth"
+                :precision="2"
+                :step="0.1"
+                :min="0"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">

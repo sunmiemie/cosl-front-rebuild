@@ -1,0 +1,510 @@
+<template>
+  <div class="app-container">
+    <el-card>
+      <template #header>
+        <div class="card-header">
+          <span>电路板与委托单关联汇总</span>
+        </div>
+      </template>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <div class="s-label">电路板总数</div>
+          <div class="s-val">{{ stats.total }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-label">已关联委托单</div>
+          <div class="s-val ok">{{ stats.linked }}</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-label">未关联委托单</div>
+          <div class="s-val warn">{{ stats.unlinked }}</div>
+        </div>
+      </div>
+
+      <el-form :inline="true" :model="filters" class="search-form">
+        <el-form-item>
+          <el-input
+            v-model="filters.search"
+            placeholder="搜索样品名称、SN号、申请人..."
+            clearable
+            style="width: 260px"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-select v-model="filters.status" placeholder="全部状态" clearable style="width: 140px">
+            <el-option label="已关联委托单" value="linked" />
+            <el-option label="未关联委托单" value="unlinked" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-select v-model="filters.device" placeholder="全部检测设备" clearable style="width: 160px">
+            <el-option label="三维电子显微镜" value="三维显微镜" />
+            <el-option label="X-RAY检测台" value="X-RAY检测台" />
+            <el-option label="CCD显微镜" value="CCD显微镜" />
+          </el-select>
+        </el-form-item>
+        <el-form-item>
+          <el-button @click="resetFilters">重置</el-button>
+          <el-button type="primary" @click="applyFilters">查询</el-button>
+        </el-form-item>
+      </el-form>
+
+      <div style="margin-bottom: 12px;">
+        <el-tooltip content="刷新数据">
+          <el-button circle icon="RefreshRight" type="primary" @click="getList" />
+        </el-tooltip>
+      </div>
+
+      <el-table :data="tableData" v-loading="loading" style="width: 100%" max-height="600" stripe border>
+        <el-table-column label="SN号" min-width="120">
+          <template #default="{ row }">
+            <span class="sn-code">{{ row.sn }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="样品名称" min-width="100" show-overflow-tooltip />
+        <el-table-column prop="spec" label="规格型号" min-width="100" show-overflow-tooltip />
+        <el-table-column prop="qty" label="数量" width="60" align="center" />
+        <el-table-column prop="device" label="检测设备" min-width="100" />
+        <el-table-column prop="hours" label="工时(h)" width="80" align="center" />
+        <el-table-column prop="inspector" label="检测人" width="80" />
+        <el-table-column prop="doneAt" label="检测完成时间" min-width="110" />
+        <el-table-column prop="applicant" label="申请人" width="80" />
+        <el-table-column prop="phone" label="申请人电话" min-width="110" />
+        <el-table-column label="委托人" width="80">
+          <template #default="{ row }">
+            <span :style="{ color: row.client ? 'inherit' : 'var(--el-text-color-secondary)' }">
+              {{ row.client || "—" }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="委托单编号" min-width="140">
+          <template #default="{ row }">
+            <el-button v-if="row.status === 'linked'" link type="primary" @click="showDetail(row.commNo)">
+              <span style="text-decoration: underline; text-underline-offset: 2px">{{ row.commNo }}</span>
+            </el-button>
+            <span v-else class="badge unlinked">未关联</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="160" fixed="right">
+          <template #default="{ row, $index }">
+            <el-button v-if="row.status === 'unlinked'" link type="primary" @click="openLinkModal($index)"
+              >关联委托单</el-button
+            >
+            <el-button link type="info" @click="openHoursModal($index)">编辑工时</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <!-- 关联委托单弹窗 -->
+    <el-dialog v-model="linkModalVisible" title="关联委托单" width="460px">
+      <div class="modal-sub">SN：{{ pendingRow?.sn }} {{ pendingRow?.name }}</div>
+      <el-form label-position="top">
+        <el-form-item label="选择委托单">
+          <el-select
+            v-model="linkForm.commNo"
+            placeholder="请选择委托单..."
+            style="width: 100%"
+            filterable
+            :loading="orderListLoading"
+          >
+            <el-option
+              v-for="item in orderList"
+              :key="item.commission_no"
+              :label="getOrderLabel(item)"
+              :value="item.commission_no"
+            />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="linkModalVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmLink">确认关联</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 编辑工时弹窗 -->
+    <el-dialog v-model="hoursModalVisible" title="编辑工时" width="400px">
+      <div class="modal-sub">SN：{{ pendingRow?.sn }} {{ pendingRow?.name }}</div>
+      <el-form label-position="top">
+        <el-form-item label="工时（小时）">
+          <el-input-number v-model="hoursForm.val" :min="0" :step="0.5" style="width: 100%" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="hoursModalVisible = false">取消</el-button>
+          <el-button type="primary" @click="confirmHours">保存</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <!-- 委托单详情抽屉/弹窗 -->
+    <el-drawer v-model="detailVisible" :title="'委托单详情 · ' + detailData?.basic?.['委托单编号']" size="680px">
+      <div v-if="detailData" class="detail-content">
+        <!-- 基本信息 -->
+        <div class="d-section">
+          <div class="d-section-title">基本信息</div>
+          <el-row :gutter="24" class="d-grid">
+            <el-col
+              :span="12"
+              v-for="key in ['委托单编号', '委托单位', '地址', '科研项目预算编号', '联系人', '电话', '邮箱', '接收方式', '处理方式', '输出要求', '输出版本', '封面标识', '印章要求', '交付方式', '报告用途', '备注']"
+              :key="key"
+            >
+              <div class="d-field">
+                <span class="dk">{{ key }}</span>
+                <span class="dv" :class="{ empty: !detailData.basic[key] }">{{ detailData.basic[key] || "—" }}</span>
+              </div>
+            </el-col>
+          </el-row>
+        </div>
+
+        <!-- 委托信息 -->
+        <div class="d-section">
+          <div class="d-section-title">委托信息（共 {{ detailData.samples.length }} 项）</div>
+          <div v-for="(s, i) in detailData.samples" :key="i" class="sample-card">
+            <div class="sample-card-title">样品 {{ i + 1 }}</div>
+            <el-row :gutter="24" class="d-grid">
+              <el-col
+                :span="12"
+                v-for="key in ['样品名称', '分类', '规格型号', '数量', '生产厂家', '项目名称']"
+                :key="key"
+              >
+                <div class="d-field">
+                  <span class="dk">{{ key }}</span>
+                  <span class="dv" :class="{ empty: !s[key] }">{{ s[key] || "—" }}</span>
+                </div>
+              </el-col>
+            </el-row>
+          </div>
+        </div>
+
+        <!-- 服务级别 -->
+        <div class="d-section">
+          <div class="d-section-title">服务级别</div>
+          <div class="d-field">
+            <span class="dk">服务级别</span>
+            <span class="dv">{{ detailData.service }}</span>
+          </div>
+        </div>
+      </div>
+    </el-drawer>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, computed, onMounted } from "vue"
+import { ElMessage } from "element-plus"
+import { request } from "@/utils/service"
+
+const loading = ref(false)
+const tableData = ref<any[]>([])
+const stats = reactive({ total: 0, linked: 0, unlinked: 0 })
+
+const filters = reactive({
+  search: "",
+  status: "",
+  device: ""
+})
+
+const getList = () => {
+  loading.value = true
+  request({
+    url: "data/commission-board-relation/list",
+    method: "get",
+    params: {
+      currentPage: 1,
+      pageSize: 1000,
+      search: filters.search,
+      status: filters.status,
+      device: filters.device
+    }
+  })
+    .then((res: any) => {
+      tableData.value = res.data.list || []
+      const s = res.data.stats || {}
+      stats.total = s.total || 0
+      stats.linked = s.linked || 0
+      stats.unlinked = s.unlinked || 0
+    })
+    .catch(() => {
+      tableData.value = []
+    })
+    .finally(() => {
+      loading.value = false
+    })
+}
+
+const applyFilters = () => {
+  getList()
+}
+
+const resetFilters = () => {
+  filters.search = ""
+  filters.status = ""
+  filters.device = ""
+  getList()
+}
+
+// 关联委托单逻辑
+const linkModalVisible = ref(false)
+const pendingRowIdx = ref<number | null>(null)
+const pendingRow = computed(() => (pendingRowIdx.value !== null ? tableData.value[pendingRowIdx.value] : null))
+const linkForm = reactive({ commNo: "" })
+const orderListLoading = ref(false)
+const orderList = ref<any[]>([])
+
+const getOrderLabel = (item: any) => {
+  const no = item?.commission_no || ""
+  const contact = item?.contact_name || ""
+  const org = item?.commission_org || ""
+  const suffix = org ? `（${org}）` : ""
+  return contact ? `${no} — ${contact}${suffix}` : `${no}${suffix}`
+}
+
+const getOrderList = () => {
+  orderListLoading.value = true
+  request({
+    url: "data/commission-order/list",
+    method: "get",
+    params: {
+      currentPage: 1,
+      pageSize: 1000
+    }
+  })
+    .then((res: any) => {
+      orderList.value = res.data.list || []
+    })
+    .catch(() => {
+      orderList.value = []
+    })
+    .finally(() => {
+      orderListLoading.value = false
+    })
+}
+
+const openLinkModal = (idx: number) => {
+  pendingRowIdx.value = idx
+  linkForm.commNo = ""
+  getOrderList()
+  linkModalVisible.value = true
+}
+
+const confirmLink = () => {
+  if (!linkForm.commNo) {
+    ElMessage.warning("请选择一个委托单")
+    return
+  }
+  if (pendingRowIdx.value !== null) {
+    const row = tableData.value[pendingRowIdx.value]
+    request({
+      url: "data/commission-board-relation/link",
+      method: "post",
+      data: {
+        sn: row.sn,
+        commissionNo: linkForm.commNo
+      }
+    })
+      .then(() => {
+        ElMessage.success("关联成功")
+        linkModalVisible.value = false
+        getList()
+      })
+      .catch(() => {
+        ElMessage.error("关联失败")
+      })
+    return
+  }
+  linkModalVisible.value = false
+}
+
+// 编辑工时逻辑
+const hoursModalVisible = ref(false)
+const hoursForm = reactive({ val: 0 })
+
+const openHoursModal = (idx: number) => {
+  pendingRowIdx.value = idx
+  hoursForm.val = tableData.value[idx].hours
+  hoursModalVisible.value = true
+}
+
+const confirmHours = () => {
+  if (pendingRowIdx.value !== null) {
+    const row = tableData.value[pendingRowIdx.value]
+    request({
+      url: "data/commission-board-relation/hours",
+      method: "post",
+      data: {
+        sn: row.sn,
+        hours: hoursForm.val
+      }
+    })
+      .then(() => {
+        ElMessage.success("工时已更新")
+        hoursModalVisible.value = false
+        getList()
+      })
+      .catch(() => {
+        ElMessage.error("工时更新失败")
+      })
+    return
+  }
+  hoursModalVisible.value = false
+}
+
+// 详情抽屉逻辑
+const detailVisible = ref(false)
+const detailData = ref<any>(null)
+
+const showDetail = (commNo: string) => {
+  if (!commNo) return
+  request({
+    url: "data/commission-order/detail",
+    method: "get",
+    params: { commissionNo: commNo }
+  })
+    .then((res: any) => {
+      detailData.value = res.data
+      detailVisible.value = true
+    })
+    .catch(() => {
+      ElMessage.error("获取委托单详情失败")
+    })
+}
+
+onMounted(() => {
+  getList()
+})
+</script>
+
+<style lang="scss" scoped>
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+
+  .stat-card {
+    background: var(--el-fill-color-light);
+    border-radius: 8px;
+    padding: 16px 20px;
+
+    .s-label {
+      font-size: 13px;
+      color: var(--el-text-color-secondary);
+      margin-bottom: 8px;
+    }
+
+    .s-val {
+      font-size: 24px;
+      font-weight: 500;
+      color: var(--el-text-color-primary);
+
+      &.warn {
+        color: var(--el-color-warning);
+      }
+      &.ok {
+        color: var(--el-color-success);
+      }
+    }
+  }
+}
+
+.search-form {
+  margin-bottom: 12px;
+}
+
+.sn-code {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  background: var(--el-fill-color-light);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+
+  &.unlinked {
+    background: var(--el-color-warning-light-9);
+    color: var(--el-color-warning);
+  }
+}
+
+.modal-sub {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+  margin-bottom: 20px;
+}
+
+/* 详情抽屉样式 */
+.d-section {
+  margin-bottom: 24px;
+
+  .d-section-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--el-text-color-primary);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--el-border-color-lighter);
+    margin-bottom: 16px;
+  }
+}
+
+.d-grid {
+  row-gap: 16px;
+}
+
+.d-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .dk {
+    font-size: 12px;
+    color: var(--el-text-color-secondary);
+  }
+
+  .dv {
+    font-size: 14px;
+    color: var(--el-text-color-primary);
+    word-break: break-all;
+
+    &.empty {
+      color: var(--el-text-color-placeholder);
+    }
+  }
+}
+
+.sample-card {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 16px;
+  background: var(--el-fill-color-light);
+  margin-bottom: 16px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .sample-card-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--el-text-color-secondary);
+    margin-bottom: 12px;
+  }
+}
+</style>

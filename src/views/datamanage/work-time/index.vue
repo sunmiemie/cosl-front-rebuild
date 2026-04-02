@@ -24,18 +24,34 @@ const userTableData = ref<GetUserData[]>([])
 const gettingUsers = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const { paginationDetailData, handleDetailCurrentChange, handleDetailSizeChange } = useDetailPagination()
+const filterEmptyParams = (params: any) => {
+  const newParams: any = {}
+  Object.keys(params).forEach((key) => {
+    if (params[key] !== "" && params[key] !== null && params[key] !== undefined) {
+      newParams[key] = params[key]
+    }
+  })
+  return newParams
+}
+
 const getUserTableData = async () => {
   gettingUsers.value = true
 
-  const params = {
+  const params = filterEmptyParams({
     ...searchData,
     currentPage: paginationData.currentPage,
     pageSize: paginationData.pageSize
-  }
+  })
+
   getUserDataApi(params)
     .then((res) => {
-      paginationData.total = res.data.total
-      userTableData.value = res.data.list
+      if (res && res.data) {
+        paginationData.total = res.data.total
+        userTableData.value = res.data.list
+      } else {
+        userTableData.value = []
+        paginationData.total = 0
+      }
     })
     .catch(() => {
       userTableData.value = []
@@ -63,16 +79,28 @@ const workTimeTableHeaders = ref([
 const gettingWorkTime = ref(false)
 const workTimeTableData = ref<GetWorkTimeData[]>([])
 const getWorkTimeTableData = async () => {
+  if (!currentRow.value?.id) {
+    workTimeTableData.value = []
+    paginationDetailData.total = 0
+    return
+  }
   gettingWorkTime.value = true
 
-  getWorkTimeDataApi({
-    userId: currentRow.value?.id,
+  const params = filterEmptyParams({
+    userId: currentRow.value.id,
     currentPage: paginationDetailData.currentPage,
     pageSize: paginationDetailData.pageSize
   })
+
+  getWorkTimeDataApi(params)
     .then((res) => {
-      workTimeTableData.value = res.data.list
-      paginationDetailData.total = res.data.total
+      if (res && res.data) {
+        workTimeTableData.value = res.data.list
+        paginationDetailData.total = res.data.total
+      } else {
+        workTimeTableData.value = []
+        paginationDetailData.total = 0
+      }
     })
     .catch(() => {
       workTimeTableData.value = []
@@ -82,12 +110,12 @@ const getWorkTimeTableData = async () => {
     })
 }
 
-onMounted(getUserTableData)
+onMounted(() => {
+  // getUserTableData() // watch with immediate: true already calls this
+})
 
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getUserTableData, { immediate: true })
-watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSize], getWorkTimeTableData, {
-  immediate: true
-})
+watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSize], getWorkTimeTableData)
 </script>
 
 <template>
@@ -150,7 +178,12 @@ watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSi
           >
             用户名：{{ username }}
           </el-text>
-          <TableComponent class="table-wrapper" :column-data="workTimeTableHeaders" :tableData="workTimeTableData" stripe />
+          <TableComponent
+            class="table-wrapper"
+            :column-data="workTimeTableHeaders"
+            :tableData="workTimeTableData"
+            stripe
+          />
           <el-pagination
             class="pager-wrapper"
             background

@@ -23,11 +23,11 @@
               value-format="YYYY/MM/DD"
             />
           </el-form-item>
-<!--          <el-form-item label="生成时间">-->
-<!--            <el-select v-model="searchData.startTime" placeholder="请选择" style="width: 150px">-->
-<!--              <el-option label="2023/01/05" value="2023/01/05" />-->
-<!--            </el-select>-->
-<!--          </el-form-item>-->
+          <!--          <el-form-item label="生成时间">-->
+          <!--            <el-select v-model="searchData.startTime" placeholder="请选择" style="width: 150px">-->
+          <!--              <el-option label="2023/01/05" value="2023/01/05" />-->
+          <!--            </el-select>-->
+          <!--          </el-form-item>-->
           <el-form-item>
             <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
             <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
@@ -54,7 +54,7 @@
           </TableComponent>
         </el-tab-pane>
         <el-tab-pane label="故障工单数据" name="second">Config</el-tab-pane>
-<!--        <el-tab-pane label="日志数据" name="third">Role</el-tab-pane>-->
+        <!--        <el-tab-pane label="日志数据" name="third">Role</el-tab-pane>-->
       </el-tabs>
     </el-card>
   </div>

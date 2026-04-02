@@ -175,10 +175,18 @@ const inspectionData: any = ref({
         <el-card class="echarts-box" shadow="never">
           <el-text size="default" type="info">每日巡检</el-text>
           <el-scrollbar height="250px">
-            <el-card v-for="(value, name, index) in inspectionData" :key="index" shadow="never"
-              class="everydaytest-card" style="margin-top: 10px">
-              <el-tag :type="value === '已巡检' ? 'success' : value === '待巡检' ? 'warning' : 'danger'"
-                class="everydaytest-tag">{{ value }}</el-tag>
+            <el-card
+              v-for="(value, name, index) in inspectionData"
+              :key="index"
+              shadow="never"
+              class="everydaytest-card"
+              style="margin-top: 10px"
+            >
+              <el-tag
+                :type="value === '已巡检' ? 'success' : value === '待巡检' ? 'warning' : 'danger'"
+                class="everydaytest-tag"
+                >{{ value }}</el-tag
+              >
               <el-text size="small" style="margin-left: 5px">{{ name }}</el-text>
               <el-icon style="margin-left: 5vw">
                 <ArrowRight />

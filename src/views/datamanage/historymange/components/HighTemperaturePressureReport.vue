@@ -82,7 +82,13 @@
           <el-input v-model="formData.task_number" placeholder="请输入任务单号" />
         </el-form-item>
         <el-form-item label="测试日期" prop="test_date">
-          <el-date-picker v-model="formData.test_date" type="date" placeholder="请选择测试日期" value-format="YYYY-MM-DD" style="width: 100%" />
+          <el-date-picker
+            v-model="formData.test_date"
+            type="date"
+            placeholder="请选择测试日期"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="测试人员" prop="tester">
           <el-input v-model="formData.tester" placeholder="请输入测试人员" />

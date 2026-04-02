@@ -1,13 +1,13 @@
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref, onMounted, computed } from "vue"
 import { ElMessage, ElTree, type FormInstance, type FormRules } from "element-plus"
-import type { CheckboxValueType } from 'element-plus'
+import type { CheckboxValueType } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { generateDevBatchReport, getboardsinfoForBugReport } from "@/api/report"
 import { getDevTestTypeDataApi } from "@/api/testtype"
 import { getTransactionTree } from "@/api/report"
-import { Search } from "@element-plus/icons-vue";
-import { getBoardDataBySn } from "@/api/board";
+import { Search } from "@element-plus/icons-vue"
+import { getBoardDataBySn } from "@/api/board"
 
 const emit = defineEmits(["close-dialog", "fetch-batch-reports"])
 
@@ -158,13 +158,13 @@ const handleCreate = async () => {
   const boards = selectedRows.value.map((board) => {
     return {
       boardId: board.id,
-      isProdBoard: board.is_prod_board,
+      isProdBoard: board.is_prod_board
     }
   })
   generateDevBatchReport({
     transactionId: Batch.value,
     boards,
-    testTypes: value.value,
+    testTypes: value.value
   })
     .then(() => {
       ElMessage.success(`成功生成批次报告`)
@@ -241,7 +241,13 @@ onMounted(getTempTreeData)
         <template #header>
           <div style="margin-bottom: 5px; display: flex; gap: 3px">
             <el-input v-model="boardSerialNumber" clearable placeholder="搜索 SN 号" />
-            <el-button :disabled="boardSerialNumber.trim() === ''" @click="searchSerialNumber" type="primary" :icon="Search" style="opacity: 0.7" />
+            <el-button
+              :disabled="boardSerialNumber.trim() === ''"
+              @click="searchSerialNumber"
+              type="primary"
+              :icon="Search"
+              style="opacity: 0.7"
+            />
             <el-button @click="resetTree" type="primary" style="opacity: 0.7" plain>重置</el-button>
           </div>
           <el-input v-model="filterText" clearable placeholder="搜索目录" />
@@ -305,24 +311,32 @@ onMounted(getTempTreeData)
                     :rules="formRules"
                   >
                     <el-form-item label="测试类型" prop="testType">
-                      <el-select multiple clearable popper-class="custom-header" v-model="value" placeholder="请选择"
-                        filterable @visible-change="getTestTypeData">
+                      <el-select
+                        multiple
+                        clearable
+                        popper-class="custom-header"
+                        v-model="value"
+                        placeholder="请选择"
+                        filterable
+                        @visible-change="getTestTypeData"
+                      >
                         <template #header>
                           <el-checkbox v-model="checkAll" :indeterminate="indeterminate" @change="handleCheckAll">
                             选择所有
                           </el-checkbox>
                         </template>
-                        <el-option v-for="item in testTypeList" :label="item.name" :value="item.number"
-                          :key="item.id" />
+                        <el-option
+                          v-for="item in testTypeList"
+                          :label="item.name"
+                          :value="item.number"
+                          :key="item.id"
+                        />
                       </el-select>
                     </el-form-item>
                     <div style="margin-top: 30px; display: flex; justify-content: flex-end; gap: 10px">
                       <el-button @click="cancelGenerateReport">取消</el-button>
-                      <el-button
-                        type="primary"
-                        @click="handleCreate"
-                        :disabled="selectedRows.length <= 0"
-                      >生成批次报告</el-button
+                      <el-button type="primary" @click="handleCreate" :disabled="selectedRows.length <= 0"
+                        >生成批次报告</el-button
                       >
                     </div>
                   </el-form>

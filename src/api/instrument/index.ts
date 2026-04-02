@@ -1,6 +1,6 @@
 import { request } from "@/utils/service"
 import type * as Instrument from "./types/instrument"
-import {UnwrapNestedRefs} from "vue";
+import { UnwrapNestedRefs } from "vue"
 
 // 仪器管理
 

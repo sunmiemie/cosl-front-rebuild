@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import TableComponent from '@/components/Table/index.vue';
-import { reactive, ref } from 'vue';
-import CommpontentEcharts from '@/components/Echarts/echarts.vue'
+import TableComponent from "@/components/Table/index.vue"
+import { reactive, ref } from "vue"
+import CommpontentEcharts from "@/components/Echarts/echarts.vue"
 
 const headers = ref([
   { prop: "equipment", label: "设备", align: "center" },
@@ -25,7 +25,7 @@ const tableData = [
     progress: 20
   }
 ]
-let option = reactive({
+const option = reactive({
   xAxis: {
     type: "category",
     data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -40,64 +40,64 @@ let option = reactive({
     }
   ]
 })
-let option1 = reactive({
+const option1 = reactive({
   tooltip: {
-    trigger: 'axis',
+    trigger: "axis",
     axisPointer: {
-      type: 'shadow'
+      type: "shadow"
     }
   },
   legend: {},
   grid: {
-    left: '3%',
-    right: '4%',
-    bottom: '3%',
+    left: "3%",
+    right: "4%",
+    bottom: "3%",
     containLabel: true
   },
   xAxis: [
     {
-      type: 'category',
-      data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      type: "category",
+      data: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
     }
   ],
   yAxis: [
     {
-      type: 'value'
+      type: "value"
     }
   ],
   series: [
     {
-      name: 'Direct',
-      type: 'bar',
+      name: "Direct",
+      type: "bar",
       emphasis: {
-        focus: 'series'
+        focus: "series"
       },
       data: [320, 332, 301, 334, 390, 330, 320]
     },
     {
-      name: 'Email',
-      type: 'bar',
-      stack: 'Ad',
+      name: "Email",
+      type: "bar",
+      stack: "Ad",
       emphasis: {
-        focus: 'series'
+        focus: "series"
       },
       data: [120, 132, 101, 134, 90, 230, 210]
     },
     {
-      name: 'Union Ads',
-      type: 'bar',
-      stack: 'Ad',
+      name: "Union Ads",
+      type: "bar",
+      stack: "Ad",
       emphasis: {
-        focus: 'series'
+        focus: "series"
       },
       data: [220, 182, 191, 234, 290, 330, 310]
     },
     {
-      name: 'Video Ads',
-      type: 'bar',
-      stack: 'Ad',
+      name: "Video Ads",
+      type: "bar",
+      stack: "Ad",
       emphasis: {
-        focus: 'series'
+        focus: "series"
       },
       data: [150, 232, 201, 154, 190, 330, 410]
     }
@@ -107,12 +107,13 @@ let option1 = reactive({
 
 <template>
   <div class="app-container">
-    <el-row :gutter="15" class="box4" >
+    <el-row :gutter="15" class="box4">
       <el-col :span="6">
         <div class="top-box">
           <el-text type="info" size="default" class="top-text">今日新增设备</el-text>
           <div class="text-info">
-            <i class="devce-icon"> <img src="@/assets/iconimg/shebei.svg">
+            <i class="devce-icon">
+              <img src="@/assets/iconimg/shebei.svg" />
               <span class="device-num">546,2</span>
             </i>
           </div>
@@ -122,7 +123,8 @@ let option1 = reactive({
         <div class="top-box">
           <el-text type="info" size="default" class="top-text">故障设备</el-text>
           <div class="text-info">
-            <i class="devce-icon"> <img src="@/assets/iconimg/zhidongxiguzhang.svg">
+            <i class="devce-icon">
+              <img src="@/assets/iconimg/zhidongxiguzhang.svg" />
               <span class="device-num">546,2</span>
             </i>
           </div>
@@ -132,7 +134,8 @@ let option1 = reactive({
         <div class="top-box">
           <el-text type="info" size="default" class="top-text">测试工单数量</el-text>
           <div class="text-info">
-            <i class="devce-icon"> <img src="@/assets/iconimg/liuchengceshigongdan.svg">
+            <i class="devce-icon">
+              <img src="@/assets/iconimg/liuchengceshigongdan.svg" />
               <span class="device-num">546,2</span>
             </i>
           </div>
@@ -142,35 +145,35 @@ let option1 = reactive({
         <div class="top-box">
           <el-text type="info" size="default" class="top-text">审核数量</el-text>
           <div class="text-info">
-            <i class="devce-icon"> <img src="@/assets/iconimg/jihuashenheshuliang.svg">
+            <i class="devce-icon">
+              <img src="@/assets/iconimg/jihuashenheshuliang.svg" />
               <span class="device-num">546,2</span>
             </i>
           </div>
         </div>
       </el-col>
     </el-row>
-    <el-row :gutter=15>
+    <el-row :gutter="15">
       <el-col :span="9">
-        <el-card class="echarts-box " shadow="never">
-          <CommpontentEcharts :width="'100%'" :height="'300px'" :option="option as any"></CommpontentEcharts>
+        <el-card class="echarts-box" shadow="never">
+          <CommpontentEcharts :width="'100%'" :height="'300px'" :option="option as any" />
         </el-card>
       </el-col>
       <el-col :span="9">
-        <el-card class="echarts-box " shadow="never" style="overflow: visible">
-          <CommpontentEcharts :width="'90%'" :height="'250px'" :option="option1 as any"></CommpontentEcharts>
+        <el-card class="echarts-box" shadow="never" style="overflow: visible">
+          <CommpontentEcharts :width="'90%'" :height="'250px'" :option="option1 as any" />
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="echarts-box " shadow="never">
+        <el-card class="echarts-box" shadow="never">
           <el-text size="default">每日巡检</el-text>
           <el-scrollbar height="250px">
             <el-card v-for="item in 6" shadow="never" class="everydaytest-card" style="margin-top: 10px">
               <el-tag type="success" class="everydaytest-tag">正常</el-tag>
-              <el-text size="small" style="margin-left: 5px;">2024-01-04</el-text>
-              <el-icon style="margin-left: 6vw;">
+              <el-text size="small" style="margin-left: 5px">2024-01-04</el-text>
+              <el-icon style="margin-left: 6vw">
                 <ArrowRight />
               </el-icon>
-
             </el-card>
           </el-scrollbar>
         </el-card>
@@ -219,7 +222,7 @@ let option1 = reactive({
   .top-box {
     border-radius: 5px;
     height: 100px;
-    background-color: #E9ECF1;
+    background-color: #e9ecf1;
     width: 99%;
     position: relative;
 

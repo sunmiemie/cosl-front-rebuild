@@ -198,8 +198,8 @@ const closeDialogs = () => {
 
 // 打印二维码
 const getSelection = () => {
-  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "startTime" })
-    .then((res) => {
+  getQRcodeImgApi({ data: selectedRows.value, headerKey: "name", seriaKey: "seria", startTimeKey: "startTime" }).then(
+    (res) => {
       if (res.code === 0) {
         const imageData = res.data
         const printWindow = window.open("", "_blank")
@@ -282,15 +282,21 @@ const generatePreview = () => {
   param.append("fileData", fileList.file[0].raw)
 
   previewBatchDataApi(param)
-    .then((data) => {
-      preview.boards = data.boards_to_add
-      preview.batches = data.batches
-      preview.boardModels = data.board_models
-      previewDialogVisible.value = true
+    .then((data: any) => {
+      // 防止返回值为 undefined 导致的报错
+      if (data) {
+        preview.boards = data.boards_to_add || []
+        preview.batches = data.batches || []
+        preview.boardModels = data.board_models || []
+        previewDialogVisible.value = true
+      } else {
+        ElMessage.error("预览数据为空或解析失败")
+      }
     })
     .catch((err) => {
       fileList.file = []
-      ElMessage.error(err.data.errormessage)
+      const errorMsg = err?.data?.errormessage || err?.response?.data?.errormessage || err?.message || "文件解析异常"
+      ElMessage.error(errorMsg)
     })
     .finally(() => {
       previewLoading.value = false
@@ -318,7 +324,8 @@ const bulkImport = () => {
     })
     .catch((err) => {
       fileList.file = []
-      ElMessage.error(err.data.errormessage)
+      const errorMsg = err?.data?.errormessage || err?.response?.data?.errormessage || err?.message || "导入异常"
+      ElMessage.error(errorMsg)
     })
     .finally(() => {
       insertingData.value = false
@@ -382,53 +389,53 @@ onMounted(() => {
     </el-col>
     <el-col v-else :span="19">
       <div class="affix-container">
-      <el-affix target=".affix-container" :offset="120">
-      <el-card shadow="never" class="search-wrapper">
-        <el-form ref="searchFormRef" :inline="true" :model="searchData">
-          <el-form-item prop="seria" label="批次号">
-            <el-input v-model="searchData.id" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item prop="name" label="批次名称">
-            <el-input v-model="searchData.name" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item prop="status" label="供应商">
-            <el-input v-model="searchData.supplier" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item>
-            <el-button type="primary" icon="search" @click="handleSearch">查询</el-button>
-            <el-button icon="refresh" @click="resetSearch">重置</el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
-      </el-affix>
-      <el-card v-loading="loading" shadow="never">
-        <div class="toolbar-wrapper">
-          <div>
-            <el-tooltip content="刷新当前页">
-              <el-button type="primary" icon="refresh-right" circle @click="getTableData" />
-            </el-tooltip>
+        <el-affix target=".affix-container" :offset="120">
+          <el-card shadow="never" class="search-wrapper">
+            <el-form ref="searchFormRef" :inline="true" :model="searchData">
+              <el-form-item prop="seria" label="批次号">
+                <el-input v-model="searchData.id" placeholder="请输入" />
+              </el-form-item>
+              <el-form-item prop="name" label="批次名称">
+                <el-input v-model="searchData.name" placeholder="请输入" />
+              </el-form-item>
+              <el-form-item prop="status" label="供应商">
+                <el-input v-model="searchData.supplier" placeholder="请输入" />
+              </el-form-item>
+              <el-form-item>
+                <el-button type="primary" icon="search" @click="handleSearch">查询</el-button>
+                <el-button icon="refresh" @click="resetSearch">重置</el-button>
+              </el-form-item>
+            </el-form>
+          </el-card>
+        </el-affix>
+        <el-card v-loading="loading" shadow="never">
+          <div class="toolbar-wrapper">
+            <div>
+              <el-tooltip content="刷新当前页">
+                <el-button type="primary" icon="refresh-right" circle @click="getTableData" />
+              </el-tooltip>
+            </div>
           </div>
-        </div>
-        <div class="table-wrapper">
-          <TableComponent :tableData="BatchData" :column-data="batchHeaders" stripe>
-            <template #link="{ row }">
-              <el-link type="primary" class="el-link" @click="handleLink(row, '批次详情')"> 批次详情 </el-link>
-            </template>
-          </TableComponent>
-        </div>
-        <div class="pager-wrapper">
-          <el-pagination
-            background
-            :layout="paginationData.layout"
-            :page-sizes="paginationData.pageSizes"
-            :total="paginationData.total"
-            :page-size="paginationData.pageSize"
-            :currentPage="paginationData.currentPage"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
-        </div>
-      </el-card>
+          <div class="table-wrapper">
+            <TableComponent :tableData="BatchData" :column-data="batchHeaders" stripe>
+              <template #link="{ row }">
+                <el-link type="primary" class="el-link" @click="handleLink(row, '批次详情')"> 批次详情 </el-link>
+              </template>
+            </TableComponent>
+          </div>
+          <div class="pager-wrapper">
+            <el-pagination
+              background
+              :layout="paginationData.layout"
+              :page-sizes="paginationData.pageSizes"
+              :total="paginationData.total"
+              :page-size="paginationData.pageSize"
+              :currentPage="paginationData.currentPage"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
+        </el-card>
       </div>
     </el-col>
   </el-row>
@@ -524,7 +531,7 @@ onMounted(() => {
       class="upload-demo"
       drag
       accept=".xls,.xlsx"
-      headers="Content-Type':'multipart/form-data"
+      :headers="{ 'Content-Type': 'multipart/form-data' }"
       action=""
       v-model:file-list="fileList.file"
       multiple

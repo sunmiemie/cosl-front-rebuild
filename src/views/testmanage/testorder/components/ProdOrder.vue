@@ -1,9 +1,9 @@
 <!-- 生产测试工单 -->
 
 <script lang="ts" setup>
-import {reactive, ref, watch, type Ref, computed, h} from "vue"
+import { reactive, ref, watch, type Ref, computed, h } from "vue"
 import { useRouter } from "vue-router"
-import {ElMessage, ElMessageBox, ElTable, ElTree, type FormInstance} from "element-plus"
+import { ElMessage, ElMessageBox, ElTable, ElTree, type FormInstance } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
 import { useUserStore } from "@/store/modules/user"
@@ -21,8 +21,8 @@ import {
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
 import { checkReportDataApi, getSingleReportDataApi } from "@/api/report"
-import {Delete, Warning} from "@element-plus/icons-vue";
-import {deleteInstrumentDataApi} from "@/api/instrument";
+import { Delete, Warning } from "@element-plus/icons-vue"
+import { deleteInstrumentDataApi } from "@/api/instrument"
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -346,6 +346,16 @@ const handleSelectionChange = (val: any) => {
   selectedRows.value = val
 }
 
+const handleCheckAllChange = (row: any) => {
+  row["selectedTest"] = row["checkAll"] ? row["available"] : []
+  row["isInd"] = false
+}
+
+const handleSelectedTestChange = (row: any) => {
+  row["checkAll"] = row["selectedTest"].length === row["available"].length
+  row["isInd"] = row["selectedTest"].length > 0 && row["selectedTest"].length < row["available"].length
+}
+
 const selectedUnitRows = ref<any>([])
 const selectedUnitRowCount = computed(() => selectedUnitRows.value.length)
 const handleUnitSelectionChange = (val: any) => {
@@ -517,11 +527,10 @@ async function getTestunits() {
 
 const postSelectedUnits = () => {
   const selectedUnitIds = selectedUnitRows.value.map((item) => item.testunit_id)
-  postUnits(selectedUnitIds)
-    .then(() => {
-      ElMessage.success("发布成功")
-      getTestunits()
-    })
+  postUnits(selectedUnitIds).then(() => {
+    ElMessage.success("发布成功")
+    getTestunits()
+  })
 }
 
 // 显式暴露方法供父组件调用
@@ -534,7 +543,6 @@ const orderInfo = reactive<any>({
   consignor: "",
   orderNo: ""
 })
-
 
 /** 监听分页参数的变化 */
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTestunits, { immediate: true })
@@ -608,7 +616,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
         </div>
       </div>
       <div class="table-wrapper">
-  <!--          max-height="450"-->
+        <!--          max-height="450"-->
         <TableComponent
           :column-data="headers"
           :tableData="TableData"
@@ -786,10 +794,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
                                 <el-checkbox
                                   :indeterminate="row['isInd']"
                                   v-model="row['checkAll']"
-                                  @change="
-                                    row['selectedTest'] = row['checkAll'] ? row['available'] : [];
-                                    row['isInd'] = false
-                                  "
+                                  @change="handleCheckAllChange(row)"
                                   >全选</el-checkbox
                                 >
                                 <el-divider direction="vertical" />
@@ -799,11 +804,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
                                     :value="item"
                                     :label="item.name"
                                     :key="item.id"
-                                    @change="
-                                      row['checkAll'] = row['selectedTest'].length === row['available'].length;
-                                      row['isInd'] =
-                                        row['selectedTest'].length > 0 && row['selectedTest'].length < row['available'].length
-                                    "
+                                    @change="handleSelectedTestChange(row)"
                                   />
                                 </el-checkbox-group>
                               </div>
@@ -815,12 +816,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
                   </el-col>
                   <el-col :span="9">
                     <el-card shadow="never" style="margin-top: 10px">
-                      <el-form
-                        ref="orderFormRef"
-                        :model="orderInfo"
-                        label-position="left"
-                        label-width="auto"
-                      >
+                      <el-form ref="orderFormRef" :model="orderInfo" label-position="left" label-width="auto">
                         <el-form-item label="测试类别">
                           <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
                         </el-form-item>

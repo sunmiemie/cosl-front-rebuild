@@ -52,17 +52,18 @@ const resetForm = () => {
 }
 const currentUpdateId = ref<undefined | string>(undefined)
 
-const headers = checkPermission(['14']) ? ref([
-  { prop: "number", label: "类型ID", align: "center" },
-  { prop: "name", label: "测试类型", align: "center" },
-  { prop: "processCount", label: "所属流程数量", align: "center" },
-  { prop: "link", label: "操作", type: "link", align: "center" }
-]) :
-  ref([
-    { prop: "number", label: "类型ID", align: "center" },
-    { prop: "name", label: "测试类型", align: "center" },
-    { prop: "processCount", label: "所属流程数量", align: "center" }
-  ]);
+const headers = checkPermission(["14"])
+  ? ref([
+      { prop: "number", label: "类型ID", align: "center" },
+      { prop: "name", label: "测试类型", align: "center" },
+      { prop: "processCount", label: "所属流程数量", align: "center" },
+      { prop: "link", label: "操作", type: "link", align: "center" }
+    ])
+  : ref([
+      { prop: "number", label: "类型ID", align: "center" },
+      { prop: "name", label: "测试类型", align: "center" },
+      { prop: "processCount", label: "所属流程数量", align: "center" }
+    ])
 
 const TableData = ref<any[]>([])
 const searchFormRef = ref<FormInstance | null>(null)
@@ -117,7 +118,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button v-permission="['14']" icon="CirclePlus" type="primary" @click="dialogVisible = true">新增测试类型</el-button>
+          <el-button v-permission="['14']" icon="CirclePlus" type="primary" @click="dialogVisible = true"
+            >新增测试类型</el-button
+          >
         </div>
         <div>
           <el-tooltip content="刷新当前页">

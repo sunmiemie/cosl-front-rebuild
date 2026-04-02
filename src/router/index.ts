@@ -89,6 +89,15 @@ export const constantRoutes: RouteRecordRaw[] = [
             }
           },
           {
+            path: "instrument",
+            component: () => import("@/views/devicemanage/device/instrument/index.vue"),
+            name: "Instrument",
+            meta: {
+              title: "仪器管理",
+              keepAlive: true
+            }
+          },
+          {
             path: "fixtures",
             component: () => import("@/views/devicemanage/device/fixtures/index.vue"),
             name: "Fixtures",
@@ -165,6 +174,24 @@ export const constantRoutes: RouteRecordRaw[] = [
             }
           },
           {
+            path: "instrumentDevice",
+            component: () => import("@/views/devicemanage/devicemodel/instrumentDevice/index.vue"),
+            name: "InstrumentDevice",
+            meta: {
+              title: "仪器型号管理",
+              keepAlive: true
+            }
+          },
+          {
+            path: "product",
+            component: () => import("@/views/devicemanage/devicemodel/product/index.vue"),
+            name: "Product",
+            meta: {
+              title: "产品型号管理",
+              keepAlive: true
+            }
+          },
+          {
             path: "equipmenttype",
             component: () => import("@/views/devicemanage/devicemodel/equipmenttype/index.vue"),
             name: "EquipmentType",
@@ -184,24 +211,6 @@ export const constantRoutes: RouteRecordRaw[] = [
           title: "设备故障管理",
           keepAlive: true,
           hidden: true
-        }
-      },
-      {
-        path: "instrumentDevice",
-        component: () => import("@/views/devicemanage/instrumentDevice/index.vue"),
-        name: "InstrumentDevice",
-        meta: {
-          title: "仪器管理",
-          keepAlive: true
-        }
-      },
-      {
-        path: "product",
-        component: () => import("@/views/devicemanage/product/index.vue"),
-        name: "Product",
-        meta: {
-          title: "产品管理",
-          keepAlive: true
         }
       }
     ]
@@ -505,6 +514,45 @@ export const dynamicRoutes: RouteRecordRaw[] = [
           title: "疑问项库列表",
           keepAlive: true
         }
+      },
+      {
+        path: "ordermanage",
+        component: () => import("@/views/ordermanage/index.vue"),
+        redirect: "/datamanage/ordermanage/add",
+        name: "OrderManage",
+        meta: {
+          title: "委托单管理",
+          keepAlive: true
+        },
+        children: [
+          {
+            path: "add",
+            component: () => import("@/views/ordermanage/add/index.vue"),
+            name: "OrderAdd",
+            meta: {
+              title: "新增委托单",
+              keepAlive: true
+            }
+          },
+          {
+            path: "summary",
+            component: () => import("@/views/ordermanage/summary/index.vue"),
+            name: "OrderSummary",
+            meta: {
+              title: "电路板与委托单关联汇总",
+              keepAlive: true
+            }
+          },
+          {
+            path: "manage",
+            component: () => import("@/views/ordermanage/manage/index.vue"),
+            name: "OrderDataManage",
+            meta: {
+              title: "委托单数据管理",
+              keepAlive: true
+            }
+          }
+        ]
       }
     ]
   },

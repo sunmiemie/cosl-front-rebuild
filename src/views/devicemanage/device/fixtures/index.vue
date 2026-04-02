@@ -159,34 +159,33 @@ const handleSelectionChange = (val: any) => {
 
 // 打印二维码
 const getSelection = () => {
-  getQRcodeImgApi({ data: selectedRows.value, headerKey: "model", seriaKey: "seria", startTimeKey: "startTime" })
-    .then(
-      (res) => {
-        if (res.code === 0) {
-          const imageData = res.data
-          const printWindow = window.open("", "_blank")
-          printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
+  getQRcodeImgApi({ data: selectedRows.value, headerKey: "model", seriaKey: "seria", startTimeKey: "startTime" }).then(
+    (res) => {
+      if (res.code === 0) {
+        const imageData = res.data
+        const printWindow = window.open("", "_blank")
+        printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
 
-          for (const key in imageData) {
-            if (Object.prototype.hasOwnProperty.call(imageData, key)) {
-              const img = new Image()
-              img.src = imageData[key]
-              img.alt = "QR Code"
-              printWindow.document.body.appendChild(img)
-              printWindow.document.body.appendChild(document.createElement("br"))
-            }
+        for (const key in imageData) {
+          if (Object.prototype.hasOwnProperty.call(imageData, key)) {
+            const img = new Image()
+            img.src = imageData[key]
+            img.alt = "QR Code"
+            printWindow.document.body.appendChild(img)
+            printWindow.document.body.appendChild(document.createElement("br"))
           }
-
-          printWindow.document.write("</body></html>")
-          printWindow.document.close()
-          printWindow.onload = function () {
-            printWindow.print()
-            printWindow.close()
-          }
-        } else {
-          console.error("Error fetching QR codes", res)
         }
+
+        printWindow.document.write("</body></html>")
+        printWindow.document.close()
+        printWindow.onload = function () {
+          printWindow.print()
+          printWindow.close()
+        }
+      } else {
+        console.error("Error fetching QR codes", res)
       }
+    }
   )
 }
 
@@ -333,7 +332,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button v-permission="['2']" type="primary" icon="CirclePlus" @click="dialogVisible = true">新增夹具</el-button>
+          <el-button v-permission="['2']" type="primary" icon="CirclePlus" @click="dialogVisible = true"
+            >新增夹具</el-button
+          >
           <el-button v-if="selectedRows.length > 0" type="warning" icon="Printer" @click="getSelection"
             >打印二维码</el-button
           >

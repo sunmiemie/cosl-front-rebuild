@@ -1,16 +1,16 @@
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref, onMounted, computed } from "vue"
 import { ElMessage, ElTree, type FormInstance, type FormRules } from "element-plus"
-import type { CheckboxValueType } from 'element-plus'
+import type { CheckboxValueType } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { getboardsinfoForTempOrder, getTestMangePath } from "@/api/testMangelist"
 import { getBoardTestTypeDataApi } from "@/api/testtype"
 import { generateBatchReport } from "@/api/report"
-import {Search} from "@element-plus/icons-vue";
-import { getProdBoardDataBySn } from "@/api/board";
+import { Search } from "@element-plus/icons-vue"
+import { getProdBoardDataBySn } from "@/api/board"
 
 // 定义可以发出的事件
-const emit = defineEmits(['close-dialog', 'fetch-batch-reports'])
+const emit = defineEmits(["close-dialog", "fetch-batch-reports"])
 
 const currentRow = ref<any>()
 const showFlags = ref<any>(true)
@@ -249,20 +249,30 @@ onMounted(getTreeData)
         <template #header>
           <div style="margin-bottom: 5px; display: flex; gap: 3px">
             <el-input v-model="boardSerialNumber" clearable placeholder="搜索 SN 号" />
-            <el-button :disabled="boardSerialNumber.trim() === ''" @click="searchSerialNumber" type="primary" :icon="Search" style="opacity: 0.7" />
+            <el-button
+              :disabled="boardSerialNumber.trim() === ''"
+              @click="searchSerialNumber"
+              type="primary"
+              :icon="Search"
+              style="opacity: 0.7"
+            />
             <el-button @click="resetTree" type="primary" style="opacity: 0.7" plain>重置</el-button>
           </div>
           <el-input v-model="filterText" clearable placeholder="搜索目录" />
         </template>
-        <el-tree ref="treeRef" :data="treeData" :filter-node-method="filterNode" :props="defaultProps"
-          default-expand-all @node-click="clickNode" />
+        <el-tree
+          ref="treeRef"
+          :data="treeData"
+          :filter-node-method="filterNode"
+          :props="defaultProps"
+          default-expand-all
+          @node-click="clickNode"
+        />
       </el-card>
     </el-col>
     <el-col :span="18">
       <el-card shadow="never">
-        <div v-if="showFlags">
-          请先在左侧选择批次
-        </div>
+        <div v-if="showFlags">请先在左侧选择批次</div>
         <div v-else>
           <div class="info-header">
             <el-card shadow="never">
@@ -277,34 +287,61 @@ onMounted(getTreeData)
           <div>
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-card v-if="showProcess" shadow="never" style="margin-top: 10px; margin-bottom: 10px"
-                  v-loading="boardInfoLoading">
+                <el-card
+                  v-if="showProcess"
+                  shadow="never"
+                  style="margin-top: 10px; margin-bottom: 10px"
+                  v-loading="boardInfoLoading"
+                >
                   <div class="table-wrapper">
-                    <TableComponent ref="tableRef" :column-data="addHeaders" :table-data="boardTableData" selection
-                      stripe @selection-change="handleSelectionChange" />
+                    <TableComponent
+                      ref="tableRef"
+                      :column-data="addHeaders"
+                      :table-data="boardTableData"
+                      selection
+                      stripe
+                      @selection-change="handleSelectionChange"
+                    />
                   </div>
                 </el-card>
               </el-col>
               <el-col :span="12">
                 <el-card shadow="never" style="margin-top: 10px">
-                  <el-form ref="searchFormRef" :model="orderInfo" label-position="left" label-width="auto"
-                    :rules="formRules">
+                  <el-form
+                    ref="searchFormRef"
+                    :model="orderInfo"
+                    label-position="left"
+                    label-width="auto"
+                    :rules="formRules"
+                  >
                     <el-form-item label="测试类型" prop="testType">
-                      <el-select multiple clearable popper-class="custom-header" v-model="value" placeholder="请选择"
-                        filterable @visible-change="getTestTypeData">
+                      <el-select
+                        multiple
+                        clearable
+                        popper-class="custom-header"
+                        v-model="value"
+                        placeholder="请选择"
+                        filterable
+                        @visible-change="getTestTypeData"
+                      >
                         <template #header>
                           <el-checkbox v-model="checkAll" :indeterminate="indeterminate" @change="handleCheckAll">
                             选择所有
                           </el-checkbox>
                         </template>
-                        <el-option v-for="item in testTypeList" :label="item.name" :value="item.number"
-                          :key="item.id" />
+                        <el-option
+                          v-for="item in testTypeList"
+                          :label="item.name"
+                          :value="item.number"
+                          :key="item.id"
+                        />
                       </el-select>
                     </el-form-item>
                     <div style="margin-top: 30px; display: flex; justify-content: flex-end; gap: 10px">
                       <el-button @click="cancelGenerateReport">取消</el-button>
-                      <el-button type="primary" @click="handleCreate"
-                        :disabled="selectedRows.length <= 0">生成批次报告</el-button>
+                      <el-button type="primary" @click="handleCreate" :disabled="selectedRows.length <= 0"
+                        >生成批次报告</el-button
+                      >
                     </div>
                   </el-form>
                 </el-card>

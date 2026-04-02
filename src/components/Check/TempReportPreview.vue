@@ -1,6 +1,6 @@
 <script setup>
-import {Viewer} from "vexip-ui"
-import {ref} from "vue"
+import { Viewer } from "vexip-ui"
+import { ref } from "vue"
 
 const props = defineProps(["previewList"])
 const picViewer = ref(false)
@@ -11,16 +11,16 @@ const openViewer = (img) => {
   viewerUrl.value = img
 }
 const changeLabelType = (item) => {
-  if (item.pass === 1 && !('warn' in item)) {
-    return 'label-success'
-  } else if (item.pass === 1 && ('warn' in item)) {
-    return 'label-warn'
+  if (item.pass === 1 && !("warn" in item)) {
+    return "label-success"
+  } else if (item.pass === 1 && "warn" in item) {
+    return "label-warn"
   } else if (item.pass === 2) {
-    return 'label-danger'
+    return "label-danger"
   } else if (item.pass === 3) {
-    return 'label-question'
+    return "label-question"
   } else if (item.pass === 4) {
-    return 'label-danger'
+    return "label-danger"
   }
 }
 </script>
@@ -40,15 +40,19 @@ const changeLabelType = (item) => {
               </el-space>
             </el-descriptions-item>
             <el-descriptions-item :span="3" label="描述">
-              {{ item.desc == '' ? '无描述' : item.desc }}
+              {{ item.desc == "" ? "无描述" : item.desc }}
             </el-descriptions-item>
             <el-descriptions-item :span="3" label="留存图片">
               <span v-if="item.save.length == 0">无图片</span>
               <div style="display: flex; flex-wrap: wrap">
                 <template v-for="(img, index) in item.save">
                   <div style="display: flex; flex-direction: column">
-                    <el-image :src="img" fit="contain" style="width: 10vw; margin-right: 5px; cursor: pointer"
-                              @click="openViewer(img)"/>
+                    <el-image
+                      :src="img"
+                      fit="contain"
+                      style="width: 10vw; margin-right: 5px; cursor: pointer"
+                      @click="openViewer(img)"
+                    />
                     <el-text>图片{{ index + 1 }}</el-text>
                   </div>
                 </template>
@@ -62,8 +66,12 @@ const changeLabelType = (item) => {
                 <div style="display: flex; flex-wrap: wrap">
                   <template v-for="(img, index) in item.error.url">
                     <div style="display: flex; flex-direction: column">
-                      <el-image :src="img" fit="contain" style="width: 10vw; margin-right: 5px; cursor: pointer"
-                                @click="openViewer(img)"/>
+                      <el-image
+                        :src="img"
+                        fit="contain"
+                        style="width: 10vw; margin-right: 5px; cursor: pointer"
+                        @click="openViewer(img)"
+                      />
                       <el-text>图片{{ index + 1 }}</el-text>
                     </div>
                   </template>
@@ -78,8 +86,12 @@ const changeLabelType = (item) => {
                 <div style="display: flex; flex-wrap: wrap">
                   <template v-for="(img, index) in item.question.url">
                     <div style="display: flex; flex-direction: column">
-                      <el-image :src="img" fit="contain" style="width: 10vw; margin-right: 5px; cursor: pointer"
-                                @click="openViewer(img)"/>
+                      <el-image
+                        :src="img"
+                        fit="contain"
+                        style="width: 10vw; margin-right: 5px; cursor: pointer"
+                        @click="openViewer(img)"
+                      />
                       <el-text>图片{{ index + 1 }}</el-text>
                     </div>
                   </template>
@@ -94,8 +106,12 @@ const changeLabelType = (item) => {
                 <div style="display: flex; flex-wrap: wrap">
                   <template v-for="(img, index) in item.warn.url">
                     <div style="display: flex; flex-direction: column">
-                      <el-image :src="img" fit="contain" style="width: 10vw; margin-right: 5px; cursor: pointer"
-                                @click="openViewer(img)"/>
+                      <el-image
+                        :src="img"
+                        fit="contain"
+                        style="width: 10vw; margin-right: 5px; cursor: pointer"
+                        @click="openViewer(img)"
+                      />
                       <el-text>图片{{ index + 1 }}</el-text>
                     </div>
                   </template>
@@ -103,22 +119,23 @@ const changeLabelType = (item) => {
               </el-descriptions-item>
             </div>
           </el-descriptions>
-          <el-divider/>
+          <el-divider />
         </template>
       </div>
       <div v-if="props.previewList.json.plane.leftUrl != ''">
         <el-text>检测项</el-text>
-        <el-table :data="[
-              { title: '正面弓曲度', pass: props.previewList.json.plane['leftPass'] },
-              { title: '对面弓曲度', pass: props.previewList.json.plane['rightPass'] }
-            ]"
-                  style="margin-top: 5px"
+        <el-table
+          :data="[
+            { title: '正面弓曲度', pass: props.previewList.json.plane['leftPass'] },
+            { title: '对面弓曲度', pass: props.previewList.json.plane['rightPass'] }
+          ]"
+          style="margin-top: 5px"
         >
-          <el-table-column label="检测项" prop="title"/>
+          <el-table-column label="检测项" prop="title" />
           <el-table-column align="right" label="结果" prop="pass">
             <template #default="scope">
               <el-text :type="scope.row.pass === 3 ? 'warning' : scope.row.pass === 1 ? 'success' : 'danger'"
-              >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
+                >{{ scope.row.pass === 3 ? "疑问" : scope.row.pass === 1 ? "通过" : "不通过" }}
               </el-text>
             </template>
           </el-table-column>
@@ -137,12 +154,8 @@ const changeLabelType = (item) => {
         </el-table>
         <el-text>留存项</el-text>
         <div style="display: flex; justify-content: center; align-items: center">
-          <el-image
-            :src="props.previewList.json.plane.leftUrl"
-            fit="contain"
-            style="width: 40%; margin-right: 10px"
-          />
-          <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%"/>
+          <el-image :src="props.previewList.json.plane.leftUrl" fit="contain" style="width: 40%; margin-right: 10px" />
+          <el-image :src="props.previewList.json.plane.rightUrl" fit="contain" style="width: 40%" />
         </div>
 
         <el-text v-if="props.previewList.json.plane.errorList != undefined">缺陷项</el-text>
@@ -152,7 +165,7 @@ const changeLabelType = (item) => {
           border
           stripe
         >
-          <el-table-column label="检测项名称" prop="name" width="300"/>
+          <el-table-column label="检测项名称" prop="name" width="300" />
           <el-table-column label="缺陷描述">
             <template #default="scope">
               <el-text>{{ scope.row.error.desc }}</el-text>
@@ -171,15 +184,15 @@ const changeLabelType = (item) => {
       </div>
       <div v-if="props.previewList.json.twoD != ''">
         <el-text>正面留存</el-text>
-        <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%"/>
+        <el-image :src="props.previewList.json.twoD" fit="contain" style="width: 100%" />
         <el-text>背面留存</el-text>
-        <el-image :src="props.previewList.json.twoDBak" fit="contain" style="width: 100%"/>
+        <el-image :src="props.previewList.json.twoDBak" fit="contain" style="width: 100%" />
       </div>
     </el-scrollbar>
   </div>
   <el-dialog v-model="picViewer" align-center center width="70%">
     <Viewer height="600">
-      <img :src="viewerUrl" alt=""/>
+      <img :src="viewerUrl" alt="" />
     </Viewer>
   </el-dialog>
 </template>

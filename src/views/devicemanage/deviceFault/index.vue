@@ -94,10 +94,14 @@ const searchData = reactive({
 })
 const defineLink = (status: string) => {
   switch (status) {
-    case "0": return { 1: "受理" }
-    case "1": return { 1: "处理" }
-    case "2": return { 1: "详情" }
-    case "3": return { 1: "详情" }
+    case "0":
+      return { 1: "受理" }
+    case "1":
+      return { 1: "处理" }
+    case "2":
+      return { 1: "详情" }
+    case "3":
+      return { 1: "详情" }
   }
 }
 const getTableData = () => {
@@ -174,7 +178,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-input v-model="searchData.username" placeholder="请输入" />
         </el-form-item>
         <el-form-item prop="username" label="工单状态">
-          <el-select v-model="searchData.username" placeholder="请选择" style="width: 150px;"/>
+          <el-select v-model="searchData.username" placeholder="请选择" style="width: 150px" />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
@@ -322,7 +326,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           </el-row>
           <template #footer>
             <el-button size="large" type="primary" icon="Check" style="position: absolute; left: 20px"
-            >确认处理</el-button
+              >确认处理</el-button
             >
             <el-button size="large" type="info" icon="Close">取消修改</el-button>
           </template>

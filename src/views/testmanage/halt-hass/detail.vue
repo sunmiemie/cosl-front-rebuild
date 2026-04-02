@@ -67,7 +67,7 @@ const fetchDetail = () => {
 // 返回列表
 const goBack = () => {
   // 如果是从审核页面进入的，返回审核列表
-  if (route.query.audit === 'true') {
+  if (route.query.audit === "true") {
     router.push("/testmanage/checkprocess")
   } else {
     // 否则返回工艺列表
@@ -114,7 +114,7 @@ const handleAudit = (pass: boolean, reason?: string) => {
 
 // 判断是否可以审核（需要状态为待审核 且 从审核入口进入）
 const canAudit = computed(() => {
-  return detail.value?.status === 1 && route.query.audit === 'true'
+  return detail.value?.status === 1 && route.query.audit === "true"
 })
 
 // 判断是否可提交审核
@@ -200,10 +200,7 @@ onMounted(() => {
 
           <!-- 流程图 -->
           <el-tab-pane label="测试流程图" name="flowchart">
-            <FlowchartPreview
-              v-if="detail.processJson?.flowchart"
-              :flowchart="detail.processJson.flowchart"
-            />
+            <FlowchartPreview v-if="detail.processJson?.flowchart" :flowchart="detail.processJson.flowchart" />
             <el-empty v-else description="暂无流程图内容" />
           </el-tab-pane>
 
