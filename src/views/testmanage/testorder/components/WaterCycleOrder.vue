@@ -184,7 +184,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, defineExpose, computed } from "vue"
+import { ref, reactive, onMounted, onUnmounted, defineExpose, computed } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
 import { Cpu } from "@element-plus/icons-vue"
 import { useUserStore } from "@/store/modules/user"
@@ -272,6 +272,15 @@ const canCreate = computed(() => {
 
 const detailDialogVisible = ref(false)
 const currentOrder = ref<any | null>(null)
+const handleWindowFocus = () => {
+  if (loading.value) return
+  getList()
+}
+const handleVisibilityChange = () => {
+  if (document.visibilityState !== "visible") return
+  if (loading.value) return
+  getList()
+}
 
 const getStatusType = (status: number | string) => {
   const map: Record<string, string> = {
@@ -418,6 +427,13 @@ defineExpose({ refresh: getList })
 
 onMounted(() => {
   getList()
+  window.addEventListener("focus", handleWindowFocus)
+  document.addEventListener("visibilitychange", handleVisibilityChange)
+})
+
+onUnmounted(() => {
+  window.removeEventListener("focus", handleWindowFocus)
+  document.removeEventListener("visibilitychange", handleVisibilityChange)
 })
 </script>
 
