@@ -9,7 +9,7 @@ const isHeavyString = (value: unknown): boolean => {
 /** 递归剔除图片/base64 等大字段，保留业务文本与结构 */
 export const stripHeavyPayload = <T>(data: T): T => {
   if (Array.isArray(data)) {
-    return data.map((item) => stripHeavyPayload(item)) as T
+    return data.filter((item) => !isHeavyString(item)).map((item) => stripHeavyPayload(item)) as T
   }
   if (data !== null && typeof data === "object") {
     const result: Record<string, unknown> = {}
