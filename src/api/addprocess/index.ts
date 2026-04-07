@@ -99,7 +99,7 @@ export const changeVersion = (params: any) => {
 }
 
 export const getProcessById = (params: any) => {
-  return request({
+  return request<any>({
     url: "/test/addprocess/getsingle",
     method: "get",
     params

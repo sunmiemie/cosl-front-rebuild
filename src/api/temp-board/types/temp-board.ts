@@ -20,3 +20,10 @@ export interface GetTempBoardData {
   id: string
   seria: string
 }
+
+export interface CreateTempBoardResponseData {
+  code: number
+  message: string
+  id: string
+  name: string
+}

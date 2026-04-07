@@ -13,6 +13,20 @@ export interface HighTempBoxReportListItem {
   remark: string
 }
 
+export interface HighTempBoxReportPayload {
+  report_no: string
+  task_number: string
+  test_date: string
+  tester: string
+  status: number
+  remark: string
+}
+
+interface HighTempBoxReportMutationResponse {
+  code: number
+  msg?: string
+}
+
 export function getHighTempBoxReportListApi(params: {
   page: number
   pageSize: number
@@ -34,8 +48,8 @@ export function getHighTempBoxReportListApi(params: {
   })
 }
 
-export function createHighTempBoxReportApi(data: any) {
-  return request({
+export function createHighTempBoxReportApi(data: HighTempBoxReportPayload) {
+  return request<HighTempBoxReportMutationResponse>({
     url: "test/high-temp-box/report/create/",
     method: "post",
     data
@@ -52,8 +66,8 @@ export function getHighTempBoxReportDetailApi(pk: number) {
   })
 }
 
-export function updateHighTempBoxReportApi(pk: number, data: any) {
-  return request({
+export function updateHighTempBoxReportApi(pk: number, data: HighTempBoxReportPayload) {
+  return request<HighTempBoxReportMutationResponse>({
     url: `test/high-temp-box/report/detail/${pk}/`,
     method: "put",
     data
@@ -61,7 +75,7 @@ export function updateHighTempBoxReportApi(pk: number, data: any) {
 }
 
 export function deleteHighTempBoxReportApi(pk: number) {
-  return request({
+  return request<HighTempBoxReportMutationResponse>({
     url: `test/high-temp-box/report/detail/${pk}/`,
     method: "delete"
   })

@@ -1,6 +1,11 @@
 import { request } from "@/utils/service"
 import type * as HighTempPressure from "./types"
 
+type MutationResponse = {
+  code: number
+  msg?: string
+}
+
 /** 获取高温高压井工单列表 */
 export function getHighTempPressureOrderListApi(params: HighTempPressure.HighTempPressureOrderListRequest) {
   return request<HighTempPressure.HighTempPressureOrderListResponse>({
@@ -12,7 +17,7 @@ export function getHighTempPressureOrderListApi(params: HighTempPressure.HighTem
 
 /** 创建高温高压井工单 */
 export function createHighTempPressureOrderApi(data: HighTempPressure.CreateHighTempPressureOrderRequest) {
-  return request<any>({
+  return request<MutationResponse>({
     url: "test/high-temp-pressure/order/create/",
     method: "post",
     data
@@ -21,7 +26,7 @@ export function createHighTempPressureOrderApi(data: HighTempPressure.CreateHigh
 
 /** 获取高温高压井工单详情 */
 export function getHighTempPressureOrderDetailApi(id: number) {
-  return request<HighTempPressure.HighTempPressureOrderDetail>({
+  return request<HighTempPressure.HighTempPressureOrderDetailResponse>({
     url: `test/high-temp-pressure/order/detail/${id}/`,
     method: "get"
   })
@@ -29,7 +34,7 @@ export function getHighTempPressureOrderDetailApi(id: number) {
 
 /** 删除高温高压井工单 */
 export function deleteHighTempPressureOrderApi(id: number) {
-  return request<any>({
+  return request<MutationResponse>({
     url: `test/high-temp-pressure/order/delete/${id}/`,
     method: "delete"
   })
@@ -37,7 +42,7 @@ export function deleteHighTempPressureOrderApi(id: number) {
 
 /** 发布高温高压井工单 */
 export function publishHighTempPressureOrderApi(id: number) {
-  return request<any>({
+  return request<MutationResponse>({
     url: `test/high-temp-pressure/order/publish/${id}/`,
     method: "post"
   })

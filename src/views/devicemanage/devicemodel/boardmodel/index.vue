@@ -140,7 +140,7 @@ const getTableData = async () => {
     .finally(() => {
       loading.value = false
     })
-  const result = await getAllInstrumentsDataApi({})
+  const result = await getAllInstrumentsDataApi()
 
   DetailList.value = result.data
 }

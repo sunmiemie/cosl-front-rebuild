@@ -5,7 +5,7 @@ import { useUserStore } from "@/store/modules/user"
 const userStore = useUserStore()
 const switchRoles = ref(userStore.roles[0])
 watch(switchRoles, (value) => {
-  userStore.changeRoles(value)
+  userStore.roles = value ? [value] : []
 })
 </script>
 

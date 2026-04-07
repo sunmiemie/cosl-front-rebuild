@@ -13,7 +13,7 @@ export function getFirstLevelDirectoryApi(params: QuestionItem.GetFirstLevelDire
 }
 
 export function createFirstLevelDirectoryApi(data: QuestionItem.CreateFirstLevelDirectoryRequestData) {
-  return request({
+  return request<QuestionItem.CreateFirstLevelDirectoryResponseData>({
     url: "data/question-item-first-level-directory/add",
     method: "post",
     data

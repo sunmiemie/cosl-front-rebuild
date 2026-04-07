@@ -1,6 +1,11 @@
 import { request } from "@/utils/service"
 import type * as HaltHass from "./types/index"
 
+type MutationResponse = {
+  code: number
+  msg?: string
+}
+
 /**
  * 获取 HALT-HASS 工艺列表
  */
@@ -11,7 +16,7 @@ export const getHaltHassProcessList = (params: {
   status?: string
   boardGroupId?: string
 }): Promise<HaltHass.HaltHassProcessListResponse> => {
-  return request({
+  return request<HaltHass.HaltHassProcessListResponse>({
     url: "/test/halt-hass/list/",
     method: "get",
     params
@@ -22,7 +27,7 @@ export const getHaltHassProcessList = (params: {
  * 获取 HALT-HASS 工艺详情
  */
 export const getHaltHassProcessDetail = (id: number): Promise<HaltHass.HaltHassProcessDetailResponse> => {
-  return request({
+  return request<HaltHass.HaltHassProcessDetailResponse>({
     url: `/test/halt-hass/detail/${id}/`,
     method: "get"
   })
@@ -31,8 +36,8 @@ export const getHaltHassProcessDetail = (id: number): Promise<HaltHass.HaltHassP
 /**
  * 创建 HALT-HASS 工艺
  */
-export const createHaltHassProcess = (data: HaltHass.HaltHassProcessCreateParams) => {
-  return request({
+export const createHaltHassProcess = (data: HaltHass.HaltHassProcessCreateParams): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: "/test/halt-hass/create/",
     method: "post",
     data
@@ -42,8 +47,11 @@ export const createHaltHassProcess = (data: HaltHass.HaltHassProcessCreateParams
 /**
  * 更新 HALT-HASS 工艺
  */
-export const updateHaltHassProcess = (id: number, data: HaltHass.HaltHassProcessUpdateParams) => {
-  return request({
+export const updateHaltHassProcess = (
+  id: number,
+  data: HaltHass.HaltHassProcessUpdateParams
+): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: `/test/halt-hass/update/${id}/`,
     method: "put",
     data
@@ -53,8 +61,8 @@ export const updateHaltHassProcess = (id: number, data: HaltHass.HaltHassProcess
 /**
  * 删除 HALT-HASS 工艺
  */
-export const deleteHaltHassProcess = (id: number) => {
-  return request({
+export const deleteHaltHassProcess = (id: number): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: `/test/halt-hass/delete/${id}/`,
     method: "delete"
   })
@@ -63,8 +71,8 @@ export const deleteHaltHassProcess = (id: number) => {
 /**
  * 按电路板组获取可用工艺
  */
-export const getHaltHassProcessByBoard = (boardId: number) => {
-  return request({
+export const getHaltHassProcessByBoard = (boardId: number): Promise<HaltHass.HaltHassProcessListResponse> => {
+  return request<HaltHass.HaltHassProcessListResponse>({
     url: `/test/halt-hass/by-board/${boardId}/`,
     method: "get"
   })
@@ -86,8 +94,8 @@ export const getHaltHassVersionList = (params: {
 /**
  * 提交审核（复用现有接口）
  */
-export const submitHaltHassToCheck = (data: { id: number }) => {
-  return request({
+export const submitHaltHassToCheck = (data: { id: number }): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: "/test/addprocess/submitcheck/",
     method: "post",
     data
@@ -97,8 +105,13 @@ export const submitHaltHassToCheck = (data: { id: number }) => {
 /**
  * 审核通过/不通过（复用现有接口）
  */
-export const checkHaltHassPass = (data: { id: number; pass: boolean; user: number; reason?: string }) => {
-  return request({
+export const checkHaltHassPass = (data: {
+  id: number
+  pass: boolean
+  user: number
+  reason?: string
+}): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: "/test/check/pass/",
     method: "put",
     data
@@ -108,8 +121,8 @@ export const checkHaltHassPass = (data: { id: number; pass: boolean; user: numbe
 /**
  * 更改当前激活版本（复用现有接口）
  */
-export const changeHaltHassVersion = (params: { ID: number; version: number }) => {
-  return request({
+export const changeHaltHassVersion = (params: { ID: number; version: string | number }): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: "/test/addprocess/versionupdate/",
     method: "get",
     params
@@ -127,7 +140,7 @@ export const getHaltHassOrderList = (params: {
   status?: string
   orderNo?: string
 }): Promise<HaltHass.HaltHassOrderListResponse> => {
-  return request({
+  return request<HaltHass.HaltHassOrderListResponse>({
     url: "/test/halt-hass/order/list/",
     method: "get",
     params
@@ -138,7 +151,7 @@ export const getHaltHassOrderList = (params: {
  * 获取 HALT-HASS 工单详情
  */
 export const getHaltHassOrderDetail = (orderId: number): Promise<HaltHass.HaltHassOrderDetailResponse> => {
-  return request({
+  return request<HaltHass.HaltHassOrderDetailResponse>({
     url: `/test/halt-hass/order/detail/${orderId}/`,
     method: "get"
   })
@@ -147,8 +160,8 @@ export const getHaltHassOrderDetail = (orderId: number): Promise<HaltHass.HaltHa
 /**
  * 创建 HALT-HASS 工单
  */
-export const createHaltHassOrder = (data: HaltHass.HaltHassOrderCreateParams) => {
-  return request({
+export const createHaltHassOrder = (data: HaltHass.HaltHassOrderCreateParams): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: "/test/halt-hass/order/create/",
     method: "post",
     data
@@ -158,8 +171,8 @@ export const createHaltHassOrder = (data: HaltHass.HaltHassOrderCreateParams) =>
 /**
  * 发布 HALT-HASS 工单
  */
-export const publishHaltHassOrder = (orderId: number) => {
-  return request({
+export const publishHaltHassOrder = (orderId: number): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: `/test/halt-hass/order/publish/${orderId}/`,
     method: "post"
   })
@@ -168,8 +181,8 @@ export const publishHaltHassOrder = (orderId: number) => {
 /**
  * 删除 HALT-HASS 工单
  */
-export const deleteHaltHassOrder = (orderId: number) => {
-  return request({
+export const deleteHaltHassOrder = (orderId: number): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: `/test/halt-hass/order/delete/${orderId}/`,
     method: "delete"
   })
@@ -194,10 +207,11 @@ export const getHaltHassBoardsInfo = (params: { batchId: string | number; boardM
 export const getHaltHassReportList = (params: {
   page?: number
   pageSize?: number
+  result?: string
   reviewStatus?: string
   orderNo?: string
 }): Promise<HaltHass.HaltHassReportListResponse> => {
-  return request({
+  return request<HaltHass.HaltHassReportListResponse>({
     url: "/test/halt-hass/report/list/",
     method: "get",
     params
@@ -208,7 +222,7 @@ export const getHaltHassReportList = (params: {
  * 获取 HALT-HASS 报告详情
  */
 export const getHaltHassReportDetail = (reportId: number): Promise<HaltHass.HaltHassReportDetailResponse> => {
-  return request({
+  return request<HaltHass.HaltHassReportDetailResponse>({
     url: `/test/halt-hass/report/detail/${reportId}/`,
     method: "get"
   })
@@ -217,8 +231,11 @@ export const getHaltHassReportDetail = (reportId: number): Promise<HaltHass.Halt
 /**
  * 审核通过报告
  */
-export const approveHaltHassReport = (reportId: number, data: { reviewerId: number; comment?: string }) => {
-  return request({
+export const approveHaltHassReport = (
+  reportId: number,
+  data: { reviewerId: number; comment?: string }
+): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: `/test/halt-hass/report/approve/${reportId}/`,
     method: "post",
     data
@@ -228,8 +245,11 @@ export const approveHaltHassReport = (reportId: number, data: { reviewerId: numb
 /**
  * 审核打回报告
  */
-export const rejectHaltHassReport = (reportId: number, data: { reviewerId: number; reason: string }) => {
-  return request({
+export const rejectHaltHassReport = (
+  reportId: number,
+  data: { reviewerId: number; reason: string }
+): Promise<MutationResponse> => {
+  return request<MutationResponse>({
     url: `/test/halt-hass/report/reject/${reportId}/`,
     method: "post",
     data

@@ -15,6 +15,18 @@ export type GetReportResponseData = ApiResponseData<{
   pageSize: number
 }>
 
+export interface ReportQueryData {
+  id?: string | number | null
+  name?: string | null
+  type?: string | null
+  user?: string | null
+  date?: string | null
+  [key: string]: string | number | null | undefined
+}
+
+export type GetSingleReportResponseData = ApiResponseData<ReportQueryData>
+export type CheckReportResponseData = ApiResponseData<any>
+
 export interface GetBugReportData {
   id: string
   name: string
@@ -42,3 +54,10 @@ export type GetBatchReportResponseData = ApiResponseData<{
   currentPage: number
   pageSize: number
 }>
+
+export interface ReportActionResponseData {
+  code: number
+  message: string
+  success?: boolean
+  msg?: string
+}

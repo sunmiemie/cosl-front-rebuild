@@ -23,10 +23,14 @@ export interface HighTempPressureOrderListRequest {
 }
 
 export interface HighTempPressureOrderListResponse {
-  list: HighTempPressureOrderListItem[]
-  total: number
-  page: number
-  pageSize: number
+  code: number
+  data: {
+    list: HighTempPressureOrderListItem[]
+    total: number
+    page: number
+    pageSize: number
+  }
+  msg?: string
 }
 
 export interface CreateHighTempPressureOrderRequest {
@@ -41,4 +45,8 @@ export interface CreateHighTempPressureOrderRequest {
   remark?: string
 }
 
-export type HighTempPressureOrderDetail = HighTempPressureOrderListItem
+export interface HighTempPressureOrderDetailResponse {
+  code: number
+  data: HighTempPressureOrderListItem
+  msg?: string
+}

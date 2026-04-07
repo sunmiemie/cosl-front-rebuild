@@ -43,14 +43,14 @@ export function getBoardDataApi(params: {
 }
 
 export function getBoardDataBySn(serialNumber: string) {
-  return request({
+  return request<Board.GetBoardDataBySnResponseData>({
     url: `equipment/board/${serialNumber}`,
     method: "get"
   })
 }
 
 export function getProdBoardDataBySn(serialNumber: string) {
-  return request({
+  return request<Board.GetProdBoardDataBySnResponseData>({
     url: `equipment/prod-board/${serialNumber}`,
     method: "get"
   })

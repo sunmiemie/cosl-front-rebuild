@@ -1,6 +1,11 @@
 import { request } from "@/utils/service"
 import type * as SimulatedWell from "./types"
 
+type MutationResponse = {
+  code: number
+  msg?: string
+}
+
 /** 获取模拟井工单列表 */
 export function getSimulatedWellOrderListApi(params: SimulatedWell.SimulatedWellOrderListRequest) {
   return request<SimulatedWell.SimulatedWellOrderListResponse>({
@@ -12,7 +17,7 @@ export function getSimulatedWellOrderListApi(params: SimulatedWell.SimulatedWell
 
 /** 创建模拟井工单 */
 export function createSimulatedWellOrderApi(data: SimulatedWell.CreateSimulatedWellOrderRequest) {
-  return request<any>({
+  return request<MutationResponse>({
     url: "test/simulated-well/order/create/",
     method: "post",
     data
@@ -21,7 +26,7 @@ export function createSimulatedWellOrderApi(data: SimulatedWell.CreateSimulatedW
 
 /** 获取模拟井工单详情 */
 export function getSimulatedWellOrderDetailApi(id: number) {
-  return request<SimulatedWell.SimulatedWellOrderDetail>({
+  return request<SimulatedWell.SimulatedWellOrderDetailResponse>({
     url: `test/simulated-well/order/detail/${id}/`,
     method: "get"
   })
@@ -29,7 +34,7 @@ export function getSimulatedWellOrderDetailApi(id: number) {
 
 /** 删除模拟井工单 */
 export function deleteSimulatedWellOrderApi(id: number) {
-  return request<any>({
+  return request<MutationResponse>({
     url: `test/simulated-well/order/delete/${id}/`,
     method: "delete"
   })
@@ -37,7 +42,7 @@ export function deleteSimulatedWellOrderApi(id: number) {
 
 /** 发布模拟井工单 */
 export function publishSimulatedWellOrderApi(id: number) {
-  return request<any>({
+  return request<MutationResponse>({
     url: `test/simulated-well/order/publish/${id}/`,
     method: "post"
   })

@@ -330,7 +330,7 @@ const handleDelete = async (row: WaterCycleReportListItem) => {
   }
 }
 
-const getStatusType = (status: number) => {
+const getStatusType = (status: number): "info" | "success" | "danger" | undefined => {
   switch (status) {
     case 0:
       return "info"
@@ -339,7 +339,7 @@ const getStatusType = (status: number) => {
     case 2:
       return "danger"
     default:
-      return ""
+      return undefined
   }
 }
 

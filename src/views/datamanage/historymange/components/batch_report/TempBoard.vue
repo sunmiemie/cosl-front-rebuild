@@ -49,6 +49,14 @@ interface Tree {
   [key: string]: any
 }
 
+type RequestError = {
+  response?: {
+    data?: {
+      errormessage?: string
+    }
+  }
+}
+
 // 电路板信息 型号和批次ID
 const Batch = ref<any>()
 const CircuitBatch = ref<any>()
@@ -218,7 +226,7 @@ const searchSerialNumber = async () => {
     const res = await getBoardDataBySn(boardSerialNumber.value)
     tempTreeData.value = res.data
   } catch (error) {
-    ElMessage.error(error.response.data.errormessage)
+    ElMessage.error((error as RequestError).response?.data?.errormessage || "鏌ヨ澶辫触")
   }
 }
 

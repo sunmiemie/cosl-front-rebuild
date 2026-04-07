@@ -109,7 +109,7 @@
           <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
         </el-form-item>
         <el-form-item label="备注">
-          <el-input v-model="createForm.remark" type="textarea" rows="3" placeholder="请输入备注" />
+          <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -210,12 +210,14 @@ const canCreate = computed(() => {
 const detailDialogVisible = ref(false)
 const currentOrder = ref<HighTemperatureOrderDetail | null>(null)
 
-const getStatusType = (status: number | string) => {
-  const map: Record<string, string> = {
+type StatusTagType = "success" | "warning" | "info" | "primary" | "danger"
+
+const getStatusType = (status: number | string): StatusTagType | undefined => {
+  const map: Record<string, StatusTagType | undefined> = {
     "0": "info",
     "1": "warning",
     "2": "primary",
-    "3": "",
+    "3": undefined,
     "4": "danger",
     "5": "success",
     "6": "danger",
@@ -223,7 +225,7 @@ const getStatusType = (status: number | string) => {
     "8": "warning"
   }
   const key = typeof status === "number" ? String(status) : status
-  return map[key] || ""
+  return map[key]
 }
 
 const getList = async () => {

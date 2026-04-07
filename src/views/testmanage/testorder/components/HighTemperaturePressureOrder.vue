@@ -1,4 +1,224 @@
-<!-- 高温高压井 测试工单 -->
+<script setup lang="ts">
+import { computed, defineExpose, onMounted, reactive, ref } from "vue"
+import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
+import {
+  createHighTempPressureOrderApi,
+  deleteHighTempPressureOrderApi,
+  getHighTempPressureOrderDetailApi,
+  getHighTempPressureOrderListApi,
+  publishHighTempPressureOrderApi
+} from "@/api/high-temp-pressure"
+import type { HighTempPressureOrderListItem } from "@/api/high-temp-pressure/types"
+
+type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
+
+const statusOptions = [
+  { value: "0", label: "已创建" },
+  { value: "1", label: "待领取" },
+  { value: "2", label: "测试中" },
+  { value: "3", label: "待审核" },
+  { value: "4", label: "待重测" },
+  { value: "5", label: "正常" },
+  { value: "6", label: "异常" },
+  { value: "7", label: "暂存" },
+  { value: "8", label: "疑问" }
+]
+
+const searchForm = reactive({
+  taskNumber: "",
+  status: ""
+})
+
+const pagination = reactive({
+  page: 1,
+  pageSize: 20,
+  total: 0
+})
+
+const loading = ref(false)
+const tableData = ref<HighTempPressureOrderListItem[]>([])
+
+const createDialogVisible = ref(false)
+const createLoading = ref(false)
+const createFormRef = ref<FormInstance>()
+const createForm = reactive({
+  test_platform: "高温高压井测试台",
+  test_date: new Date().toISOString().split("T")[0],
+  device_name: "",
+  device_number: "",
+  task_number: "",
+  target_temp: 0,
+  target_pressure: 0,
+  applicant: "",
+  remark: ""
+})
+
+const createRules = {
+  test_platform: [{ required: true, message: "请选择测试台", trigger: "change" }],
+  test_date: [{ required: true, message: "请选择测试日期", trigger: "change" }],
+  device_name: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
+  device_number: [{ required: true, message: "请输入设备编号", trigger: "blur" }],
+  task_number: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
+  target_temp: [{ required: true, message: "请输入目标温度", trigger: "blur" }],
+  target_pressure: [{ required: true, message: "请输入目标压力", trigger: "blur" }],
+  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }]
+}
+
+const canCreate = computed(() => !!(createForm.task_number && createForm.device_name && createForm.applicant))
+
+const detailDialogVisible = ref(false)
+const currentOrder = ref<HighTempPressureOrderListItem | null>(null)
+
+const getStatusType = (status: number | string): TagType => {
+  const map: Record<string, TagType> = {
+    "0": "info",
+    "1": "warning",
+    "2": "primary",
+    "3": "warning",
+    "4": "danger",
+    "5": "success",
+    "6": "danger",
+    "7": "info",
+    "8": "warning"
+  }
+  return map[String(status)]
+}
+
+const getList = async () => {
+  loading.value = true
+  try {
+    const res = await getHighTempPressureOrderListApi({
+      page: pagination.page,
+      pageSize: pagination.pageSize,
+      taskNumber: searchForm.taskNumber || undefined,
+      status: searchForm.status || undefined
+    })
+    if (res.code === 0) {
+      tableData.value = res.data.list
+      pagination.total = res.data.total
+    }
+  } catch (error) {
+    console.error(error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const handleSearch = () => {
+  pagination.page = 1
+  getList()
+}
+
+const handleReset = () => {
+  searchForm.taskNumber = ""
+  searchForm.status = ""
+  pagination.page = 1
+  getList()
+}
+
+const handleSizeChange = (size: number) => {
+  pagination.pageSize = size
+  pagination.page = 1
+  getList()
+}
+
+const handleCurrentChange = (page: number) => {
+  pagination.page = page
+  getList()
+}
+
+const showCreateDialog = () => {
+  Object.assign(createForm, {
+    test_platform: "高温高压井测试台",
+    test_date: new Date().toISOString().split("T")[0],
+    device_name: "",
+    device_number: "",
+    task_number: "",
+    target_temp: 0,
+    target_pressure: 0,
+    applicant: "",
+    remark: ""
+  })
+  createDialogVisible.value = true
+}
+
+const handleCreate = async () => {
+  if (!createFormRef.value) return
+
+  await createFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    createLoading.value = true
+    try {
+      const res = await createHighTempPressureOrderApi(createForm)
+      if (res.code === 0) {
+        ElMessage.success("创建成功")
+        createDialogVisible.value = false
+        getList()
+      } else {
+        ElMessage.error(res.msg || "创建失败")
+      }
+    } catch (error) {
+      console.error(error)
+      ElMessage.error("创建失败")
+    } finally {
+      createLoading.value = false
+    }
+  })
+}
+
+const handleDetail = async (row: HighTempPressureOrderListItem) => {
+  try {
+    const res = await getHighTempPressureOrderDetailApi(row.id)
+    if (res.code === 0) {
+      currentOrder.value = res.data
+      detailDialogVisible.value = true
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error("获取详情失败")
+  }
+}
+
+const handlePublish = async (row: HighTempPressureOrderListItem) => {
+  await ElMessageBox.confirm("确认发布该工单吗？发布后测试人员即可领取。", "确认发布", { type: "warning" })
+  try {
+    const res = await publishHighTempPressureOrderApi(row.id)
+    if (res.code === 0) {
+      ElMessage.success("发布成功")
+      getList()
+    } else {
+      ElMessage.error(res.msg || "发布失败")
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error("发布失败")
+  }
+}
+
+const handleDelete = async (row: HighTempPressureOrderListItem) => {
+  await ElMessageBox.confirm("确认删除该工单吗？", "确认删除", { type: "warning" })
+  try {
+    const res = await deleteHighTempPressureOrderApi(row.id)
+    if (res.code === 0) {
+      ElMessage.success("删除成功")
+      getList()
+    } else {
+      ElMessage.error(res.msg || "删除失败")
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error("删除失败")
+  }
+}
+
+defineExpose({
+  refresh: getList
+})
+
+onMounted(() => {
+  getList()
+})
+</script>
 
 <template>
   <div class="affix-container">
@@ -22,7 +242,7 @@
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
         <div>
-          <el-button type="primary" icon="CirclePlus" @click="showCreateDialog"> 新增 高温高压井 工单 </el-button>
+          <el-button type="primary" icon="CirclePlus" @click="showCreateDialog">新增高温高压井工单</el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -38,7 +258,7 @@
           <el-table-column prop="device_name" label="设备名称" min-width="150" align="center" />
           <el-table-column prop="target_temp" label="目标温度(°C)" width="120" align="center" />
           <el-table-column prop="target_pressure" label="目标压力(MPa)" width="120" align="center" />
-          <el-table-column prop="status" label="状态" width="100" align="center">
+          <el-table-column label="状态" width="100" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">{{ row.status_text || row.status }}</el-tag>
             </template>
@@ -66,7 +286,7 @@
       </div>
     </el-card>
 
-    <el-dialog v-model="createDialogVisible" title="创建 高温高压井 工单" width="800px" :close-on-click-modal="false">
+    <el-dialog v-model="createDialogVisible" title="创建高温高压井工单" width="800px" :close-on-click-modal="false">
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="120px">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -116,7 +336,7 @@
           <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
         </el-form-item>
         <el-form-item label="备注" style="margin-top: 8px">
-          <el-input v-model="createForm.remark" type="textarea" rows="3" placeholder="请输入备注" />
+          <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -147,231 +367,27 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, reactive, onMounted, defineExpose, computed } from "vue"
-import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
-import {
-  getHighTempPressureOrderListApi,
-  createHighTempPressureOrderApi,
-  getHighTempPressureOrderDetailApi,
-  deleteHighTempPressureOrderApi,
-  publishHighTempPressureOrderApi
-} from "@/api/high-temp-pressure"
-import type { HighTempPressureOrderListItem } from "@/api/high-temp-pressure/types"
-
-const statusOptions = [
-  { value: "0", label: "已创建" },
-  { value: "1", label: "待领取" },
-  { value: "2", label: "测试中" },
-  { value: "3", label: "待审核" },
-  { value: "4", label: "待重做" },
-  { value: "5", label: "正常" },
-  { value: "6", label: "异常" },
-  { value: "7", label: "暂存" },
-  { value: "8", label: "疑问" }
-]
-
-const searchForm = reactive({ taskNumber: "", status: "" })
-const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
-const loading = ref(false)
-const tableData = ref<HighTempPressureOrderListItem[]>([])
-
-const createDialogVisible = ref(false)
-const createLoading = ref(false)
-const createFormRef = ref<FormInstance>()
-const createForm = reactive({
-  test_platform: "高温高压井测试台",
-  test_date: new Date().toISOString().split("T")[0],
-  device_name: "",
-  device_number: "",
-  task_number: "",
-  target_temp: 0,
-  target_pressure: 0,
-  applicant: "",
-  remark: ""
-})
-
-const createRules = {
-  test_platform: [{ required: true, message: "请选择测试台", trigger: "change" }],
-  test_date: [{ required: true, message: "请选择测试日期", trigger: "change" }],
-  device_name: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
-  device_number: [{ required: true, message: "请输入设备编号", trigger: "blur" }],
-  task_number: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
-  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }]
-}
-
-const canCreate = computed(() => {
-  return !!(createForm.task_number && createForm.device_name && createForm.applicant)
-})
-
-const detailDialogVisible = ref(false)
-const currentOrder = ref<HighTempPressureOrderListItem | null>(null)
-
-const getStatusType = (status: number | string) => {
-  const map: Record<string, string> = {
-    "0": "info",
-    "1": "warning",
-    "2": "primary",
-    "3": "",
-    "4": "danger",
-    "5": "success",
-    "6": "danger",
-    "7": "info",
-    "8": "warning"
-  }
-  const key = String(status)
-  return map[key] || ""
-}
-
-const getList = async () => {
-  loading.value = true
-  try {
-    const res = await getHighTempPressureOrderListApi({
-      page: pagination.page,
-      pageSize: pagination.pageSize,
-      taskNumber: searchForm.taskNumber || undefined,
-      status: searchForm.status || undefined
-    })
-    if (res.code === 0) {
-      tableData.value = res.data.list
-      pagination.total = res.data.total
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    loading.value = false
-  }
-}
-
-const handleSearch = () => {
-  pagination.page = 1
-  getList()
-}
-
-const handleReset = () => {
-  searchForm.taskNumber = ""
-  searchForm.status = ""
-  pagination.page = 1
-  getList()
-}
-
-const handleSizeChange = (size: number) => {
-  pagination.pageSize = size
-  pagination.page = 1
-  getList()
-}
-
-const handleCurrentChange = (page: number) => {
-  pagination.page = page
-  getList()
-}
-
-const showCreateDialog = () => {
-  Object.assign(createForm, {
-    test_platform: "高温高压井测试台",
-    test_date: new Date().toISOString().split("T")[0],
-    device_name: "",
-    device_number: "",
-    task_number: "",
-    target_temp: 0,
-    target_pressure: 0,
-    applicant: "",
-    remark: ""
-  })
-  createDialogVisible.value = true
-}
-
-const handleCreate = async () => {
-  if (!createFormRef.value) return
-  await createFormRef.value.validate(async (valid) => {
-    if (!valid) return
-    createLoading.value = true
-    try {
-      await createHighTempPressureOrderApi(createForm)
-      ElMessage.success("创建成功")
-      createDialogVisible.value = false
-      getList()
-    } catch (e) {
-      console.error(e)
-      ElMessage.error("创建失败")
-    } finally {
-      createLoading.value = false
-    }
-  })
-}
-
-const handleDetail = async (row: HighTempPressureOrderListItem) => {
-  try {
-    const res = await getHighTempPressureOrderDetailApi(row.id)
-    if (res.code === 0) {
-      currentOrder.value = res.data
-      detailDialogVisible.value = true
-    }
-  } catch (e) {
-    console.error(e)
-    ElMessage.error("获取详情失败")
-  }
-}
-
-const handlePublish = async (row: HighTempPressureOrderListItem) => {
-  await ElMessageBox.confirm("确定要发布该工单吗？发布后将可被测试人员领取。", "确认发布", { type: "warning" })
-  try {
-    const res = await publishHighTempPressureOrderApi(row.id)
-    if (res.code === 0) {
-      ElMessage.success("发布成功")
-      getList()
-    } else {
-      ElMessage.error(res.msg || "发布失败")
-    }
-  } catch (e) {
-    console.error(e)
-    ElMessage.error("发布失败")
-  }
-}
-
-const handleDelete = async (row: HighTempPressureOrderListItem) => {
-  await ElMessageBox.confirm("确定要删除该工单吗？", "确认删除", { type: "warning" })
-  try {
-    const res = await deleteHighTempPressureOrderApi(row.id)
-    if (res.code === 0) {
-      ElMessage.success("删除成功")
-      getList()
-    } else {
-      ElMessage.error(res.msg || "删除失败")
-    }
-  } catch (e) {
-    console.error(e)
-    ElMessage.error("删除失败")
-  }
-}
-
-defineExpose({ refresh: getList })
-
-onMounted(() => {
-  getList()
-})
-</script>
-
-<style lang="scss" scoped>
+<style scoped>
 .search-wrapper {
   margin-bottom: 20px;
-  :deep(.el-card__body) {
-    padding-bottom: 2px;
-  }
 }
+
 .toolbar-wrapper {
   display: flex;
   justify-content: space-between;
   margin-bottom: 20px;
 }
+
 .table-wrapper {
   margin-bottom: 20px;
 }
+
 .pager-wrapper {
   display: flex;
   justify-content: flex-end;
 }
+
 .el-link {
-  margin-right: 8px;
+  margin: 0 4px;
 }
 </style>

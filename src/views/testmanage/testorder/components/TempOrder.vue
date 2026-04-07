@@ -20,7 +20,7 @@ import {
   invalidTestUnitApi
 } from "@/api/testMangelist"
 import { getTestTypeDataApi } from "@/api/testtype"
-import { checkReportDataApi, getSingleDevReportDataApi, getSingleReportDataApi } from "@/api/report"
+import { checkTempReportDataApi, getSingleDevReportDataApi } from "@/api/report"
 import { Warning } from "@element-plus/icons-vue"
 
 const router = useRouter()
@@ -83,12 +83,18 @@ const searchData = reactive({
   TestName: "",
   TestType: "",
   TestStatus: "",
-  Daterange: "",
+  Daterange: [] as string[],
   boardName: "",
   boardModel: ""
 })
 const clearSearchData = () => {
-  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+  searchData.number = ""
+  searchData.TestName = ""
+  searchData.TestType = ""
+  searchData.TestStatus = ""
+  searchData.Daterange = []
+  searchData.boardName = ""
+  searchData.boardModel = ""
 }
 
 const defineLink = (status: any) => {
@@ -122,8 +128,10 @@ let postFormInfo = reactive({
   user_name: "",
   dev_testunit_starttime: ""
 })
-const generateErrorList = (obj, path = []) => {
-  let paths = []
+type ErrorPath = string[]
+
+const generateErrorList = (obj: any, path: ErrorPath = []): ErrorPath[] => {
+  let paths: ErrorPath[] = []
   if (obj === null || typeof obj !== "object") {
     return paths
   }
@@ -137,7 +145,7 @@ const generateErrorList = (obj, path = []) => {
   }
   return paths
 }
-const getNestedValue = (obj, path) => {
+const getNestedValue = (obj: any, path: ErrorPath) => {
   return path.reduce((acc, key) => {
     if (acc && acc[key] !== undefined) {
       return acc[key]
@@ -145,6 +153,13 @@ const getNestedValue = (obj, path) => {
     return undefined
   }, obj)
 }
+
+const buildReportQuery = (data: Record<string, any>) =>
+  Object.fromEntries(
+    Object.entries(data || {})
+      .filter(([, value]) => value == null || ["string", "number", "boolean"].includes(typeof value))
+      .map(([key, value]) => [key, value == null ? "" : String(value)])
+  )
 const postOrDelete = ref("发布")
 const drawerVisible = ref(false)
 // link操作逻辑
@@ -205,14 +220,14 @@ const handleLink = (data: any, i: string) => {
     document.body.removeChild(link)
   } else if (i === "查看报告") {
     getSingleDevReportDataApi({ unitId: data["dev_testunit_id"] }).then((res) => {
-      router.push({ name: "tempReportView", query: res.data })
+      router.push({ name: "tempReportView", query: buildReportQuery(res.data) })
     })
   } else if (i === "查看缺陷") {
     errorVisible.value = true
     errorLoading.value = true
-    getSingleReportDataApi({ unitId: data["testunit_id"] }).then((res) => {
+    getSingleDevReportDataApi({ unitId: data["dev_testunit_id"] }).then((res) => {
       const report_id = res.data["id"]
-      checkReportDataApi({ id: report_id }).then((res) => {
+      checkTempReportDataApi({ id: report_id }).then((res) => {
         reportJson.value = res.data
         errorList.value = []
         generateErrorList(reportJson.value).forEach((item) => {
@@ -329,8 +344,10 @@ const handleSearch = async () => {
   // 深拷贝
   const params = JSON.parse(JSON.stringify(searchData))
   // 拼接时间参数
-  if (params.Daterange !== "") {
+  if (params.Daterange.length > 0) {
     params.Daterange = params.Daterange.join("-")
+  } else {
+    params.Daterange = ""
   }
   params.currentPage = paginationData.currentPage
   params.pageSize = paginationData.pageSize
@@ -483,8 +500,10 @@ async function getMangeData() {
   loading.value = true
   const params = JSON.parse(JSON.stringify(searchData))
   // 拼接时间参数
-  if (params.Daterange !== "") {
+  if (params.Daterange.length > 0) {
     params.Daterange = params.Daterange.join("-")
+  } else {
+    params.Daterange = ""
   }
   params.currentPage = paginationData.currentPage
   params.pageSize = paginationData.pageSize
@@ -567,7 +586,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         </el-form-item>
         <el-form-item label="创建时间范围">
           <el-date-picker
-            v-model="searchData['Daterange'] as any"
+            v-model="searchData.Daterange"
             end-placeholder="结束日期"
             range-separator="至"
             start-placeholder="开始日期"

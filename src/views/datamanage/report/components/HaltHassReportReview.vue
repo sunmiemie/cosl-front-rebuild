@@ -9,7 +9,7 @@ import {
   approveHaltHassReport,
   rejectHaltHassReport
 } from "@/api/halt-hass"
-import type { HaltHassReportListItem, HaltHassReportDetail } from "@/api/halt-hass/types"
+import type { HaltHassReportDetail, HaltHassReportListItem } from "@/api/halt-hass/types"
 
 const userStore = useUserStore()
 
@@ -20,7 +20,6 @@ const pagination = reactive({
   pageSize: 10,
   total: 0
 })
-
 const searchData = reactive({
   orderNo: ""
 })
@@ -33,9 +32,31 @@ const rejectDialogVisible = ref(false)
 const rejectReason = ref("")
 const rejectingReportId = ref<number | null>(null)
 
-const getResultType = (result: number) => {
-  const map: Record<number, string> = { 1: "success", 2: "danger", 3: "warning" }
-  return map[result] || ""
+const getResultType = (
+  result: number
+): "success" | "warning" | "danger" | undefined => {
+  const map: Record<number, "success" | "warning" | "danger"> = {
+    1: "success",
+    2: "danger",
+    3: "warning"
+  }
+  return map[result]
+}
+
+const getNodeStatusType = (
+  status?: string
+): "success" | "warning" | "danger" | "info" => {
+  switch (status) {
+    case "success":
+      return "success"
+    case "pending":
+    case "running":
+      return "info"
+    case "skipped":
+      return "warning"
+    default:
+      return "danger"
+  }
 }
 
 const formatTime = (time?: string) => {
@@ -47,7 +68,7 @@ const formatDuration = (duration?: number) => {
   if (!duration) return "-"
   const mins = Math.floor(duration / 60)
   const secs = duration % 60
-  return `${mins}分${secs}秒`
+  return `${mins}\u5206${secs}\u79D2`
 }
 
 const getTableData = () => {
@@ -105,30 +126,40 @@ const handleDetail = async (row: HaltHassReportListItem) => {
       activeTab.value = "info"
       detailVisible.value = true
     } else {
-      ElMessage.error(res.msg || "获取详情失败")
+      ElMessage.error(res.msg || "\u83B7\u53D6\u8BE6\u60C5\u5931\u8D25")
     }
   } catch {
-    ElMessage.error("获取详情失败")
+    ElMessage.error("\u83B7\u53D6\u8BE6\u60C5\u5931\u8D25")
   }
 }
 
 const handleApprove = async (report: HaltHassReportDetail | HaltHassReportListItem) => {
-  await ElMessageBox.confirm("确定要通过该报告的审核吗？", "确认通过", { type: "success" })
+  await ElMessageBox.confirm(
+    "\u786E\u5B9A\u8981\u901A\u8FC7\u8BE5\u62A5\u544A\u7684\u5BA1\u6838\u5417\uFF1F",
+    "\u786E\u8BA4\u901A\u8FC7",
+    { type: "success" }
+  )
+
+  const reviewerId = userStore.userid
+  if (reviewerId === undefined) {
+    ElMessage.error("\u5BA1\u6838\u4EBA\u4FE1\u606F\u7F3A\u5931")
+    return
+  }
 
   try {
     const res = await approveHaltHassReport(report.id, {
-      reviewerId: userStore.userId,
+      reviewerId,
       comment: ""
     })
     if (res.code === 0) {
-      ElMessage.success("审核通过成功")
+      ElMessage.success("\u5BA1\u6838\u901A\u8FC7\u6210\u529F")
       detailVisible.value = false
       getTableData()
     } else {
-      ElMessage.error(res.msg || "操作失败")
+      ElMessage.error(res.msg || "\u64CD\u4F5C\u5931\u8D25")
     }
   } catch {
-    ElMessage.error("操作失败")
+    ElMessage.error("\u64CD\u4F5C\u5931\u8D25")
   }
 }
 
@@ -140,25 +171,31 @@ const showRejectDialog = (report: HaltHassReportDetail | HaltHassReportListItem)
 
 const handleReject = async () => {
   if (!rejectReason.value.trim()) {
-    ElMessage.warning("请填写打回原因")
+    ElMessage.warning("\u8BF7\u586B\u5199\u6253\u56DE\u539F\u56E0")
+    return
+  }
+
+  const reviewerId = userStore.userid
+  if (reviewerId === undefined) {
+    ElMessage.error("\u5BA1\u6838\u4EBA\u4FE1\u606F\u7F3A\u5931")
     return
   }
 
   try {
     const res = await rejectHaltHassReport(rejectingReportId.value!, {
-      reviewerId: userStore.userId,
+      reviewerId,
       reason: rejectReason.value
     })
     if (res.code === 0) {
-      ElMessage.success("已打回")
+      ElMessage.success("\u5DF2\u6253\u56DE")
       rejectDialogVisible.value = false
       detailVisible.value = false
       getTableData()
     } else {
-      ElMessage.error(res.msg || "操作失败")
+      ElMessage.error(res.msg || "\u64CD\u4F5C\u5931\u8D25")
     }
   } catch {
-    ElMessage.error("操作失败")
+    ElMessage.error("\u64CD\u4F5C\u5931\u8D25")
   }
 }
 
@@ -173,12 +210,17 @@ defineExpose({ resetSearch })
   <el-card v-loading="loading" shadow="never">
     <div class="search-wrapper">
       <el-form :inline="true" :model="searchData">
-        <el-form-item label="工单号">
-          <el-input v-model="searchData.orderNo" placeholder="请输入工单号" clearable style="width: 200px" />
+        <el-form-item label="&#x5DE5;&#x5355;&#x53F7;">
+          <el-input
+            v-model="searchData.orderNo"
+            placeholder="&#x8BF7;&#x8F93;&#x5165;&#x5DE5;&#x5355;&#x53F7;"
+            clearable
+            style="width: 200px"
+          />
         </el-form-item>
         <el-form-item>
-          <el-button :icon="Search" type="primary" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+          <el-button :icon="Search" type="primary" @click="handleSearch">&#x67E5;&#x8BE2;</el-button>
+          <el-button :icon="Refresh" @click="resetSearch">&#x91CD;&#x7F6E;</el-button>
         </el-form-item>
       </el-form>
     </div>
@@ -186,7 +228,7 @@ defineExpose({ resetSearch })
     <div class="toolbar-wrapper">
       <div />
       <div>
-        <el-tooltip content="刷新当前页">
+        <el-tooltip content="&#x5237;&#x65B0;&#x5F53;&#x524D;&#x9875;">
           <el-button type="primary" icon="RefreshRight" circle @click="getTableData" />
         </el-tooltip>
       </div>
@@ -194,28 +236,28 @@ defineExpose({ resetSearch })
 
     <div class="table-wrapper">
       <el-table :data="tableData" stripe border>
-        <el-table-column prop="id" label="报告ID" width="80" align="center" />
-        <el-table-column prop="order" label="工单号" width="180" align="center">
+        <el-table-column prop="id" label="&#x62A5;&#x544A;ID" width="80" align="center" />
+        <el-table-column label="&#x5DE5;&#x5355;&#x53F7;" width="180" align="center">
           <template #default="{ row }">
             {{ row.order?.orderNo || "-" }}
           </template>
         </el-table-column>
-        <el-table-column prop="result" label="测试结果" width="100" align="center">
+        <el-table-column prop="result" label="&#x6D4B;&#x8BD5;&#x7ED3;&#x679C;" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="getResultType(row.result)">{{ row.resultText }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="审核状态" width="100" align="center">
+        <el-table-column label="&#x5BA1;&#x6838;&#x72B6;&#x6001;" width="100" align="center">
           <template #default>
-            <el-tag type="warning">待审核</el-tag>
+            <el-tag type="warning">&#x5F85;&#x5BA1;&#x6838;</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="提交时间" width="170" align="center" />
-        <el-table-column label="操作" width="200" align="center" fixed="right">
+        <el-table-column prop="createdAt" label="&#x63D0;&#x4EA4;&#x65F6;&#x95F4;" width="170" align="center" />
+        <el-table-column label="&#x64CD;&#x4F5C;" width="200" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button type="primary" link :icon="View" @click="handleDetail(row)">详情</el-button>
-            <el-button type="success" link :icon="Check" @click="handleApprove(row)">通过</el-button>
-            <el-button type="danger" link :icon="Close" @click="showRejectDialog(row)">打回</el-button>
+            <el-button type="primary" link :icon="View" @click="handleDetail(row)">&#x8BE6;&#x60C5;</el-button>
+            <el-button type="success" link :icon="Check" @click="handleApprove(row)">&#x901A;&#x8FC7;</el-button>
+            <el-button type="danger" link :icon="Close" @click="showRejectDialog(row)">&#x6253;&#x56DE;</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -234,46 +276,56 @@ defineExpose({ resetSearch })
       />
     </div>
 
-    <el-dialog v-model="detailVisible" title="报告审核" width="900px">
+    <el-dialog v-model="detailVisible" title="&#x62A5;&#x544A;&#x5BA1;&#x6838;" width="900px">
       <el-tabs v-model="activeTab" v-if="currentReport">
-        <el-tab-pane label="基本信息" name="info">
+        <el-tab-pane label="&#x57FA;&#x672C;&#x4FE1;&#x606F;" name="info">
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="报告ID">{{ currentReport.id }}</el-descriptions-item>
-            <el-descriptions-item label="工单号">{{ currentReport.order?.orderNo || "-" }}</el-descriptions-item>
-            <el-descriptions-item label="测试结果">
+            <el-descriptions-item label="&#x62A5;&#x544A;ID">{{ currentReport.id }}</el-descriptions-item>
+            <el-descriptions-item label="&#x5DE5;&#x5355;&#x53F7;">
+              {{ currentReport.order?.orderNo || "-" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="&#x6D4B;&#x8BD5;&#x7ED3;&#x679C;">
               <el-tag :type="getResultType(currentReport.result)">{{ currentReport.resultText }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="审核状态"><el-tag type="warning">待审核</el-tag></el-descriptions-item>
-            <el-descriptions-item label="电路板组">{{
-              currentReport.order?.boardGroup?.name || "-"
-            }}</el-descriptions-item>
-            <el-descriptions-item label="工艺">
-              {{ currentReport.order?.process?.name || "-" }}
-              <span v-if="currentReport.order?.process?.version">(v{{ currentReport.order.process.version }})</span>
+            <el-descriptions-item label="&#x5BA1;&#x6838;&#x72B6;&#x6001;">
+              <el-tag type="warning">&#x5F85;&#x5BA1;&#x6838;</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="电路板数量">{{ currentReport.order?.boardCount || "-" }}</el-descriptions-item>
-            <el-descriptions-item label="提交时间">{{ currentReport.createdAt }}</el-descriptions-item>
+            <el-descriptions-item label="&#x7535;&#x8DEF;&#x677F;&#x7EC4;">
+              {{ currentReport.order?.boardGroup?.name || "-" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="&#x5DE5;&#x827A;">
+              {{ currentReport.order?.process?.name || "-" }}
+              <span v-if="currentReport.order?.process?.version">
+                (v{{ currentReport.order.process.version }})
+              </span>
+            </el-descriptions-item>
+            <el-descriptions-item label="&#x7535;&#x8DEF;&#x677F;&#x6570;&#x91CF;">
+              {{ currentReport.order?.boardCount || "-" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="&#x63D0;&#x4EA4;&#x65F6;&#x95F4;">
+              {{ currentReport.createdAt }}
+            </el-descriptions-item>
           </el-descriptions>
         </el-tab-pane>
 
-        <el-tab-pane label="流程图结果" name="flowchart">
+        <el-tab-pane label="&#x6D41;&#x7A0B;&#x56FE;&#x7ED3;&#x679C;" name="flowchart">
           <div v-if="currentReport.reportJson?.flowchartResult" class="flowchart-result">
             <el-row :gutter="20" class="summary-row">
               <el-col :span="8">
                 <div class="summary-card">
-                  <div class="summary-label">总节点数</div>
+                  <div class="summary-label">&#x603B;&#x8282;&#x70B9;&#x6570;</div>
                   <div class="summary-value">{{ currentReport.reportJson.flowchartResult.totalNodes }}</div>
                 </div>
               </el-col>
               <el-col :span="8">
                 <div class="summary-card success">
-                  <div class="summary-label">成功节点</div>
+                  <div class="summary-label">&#x6210;&#x529F;&#x8282;&#x70B9;</div>
                   <div class="summary-value">{{ currentReport.reportJson.flowchartResult.successNodes }}</div>
                 </div>
               </el-col>
               <el-col :span="8">
                 <div class="summary-card danger">
-                  <div class="summary-label">失败节点</div>
+                  <div class="summary-label">&#x5931;&#x8D25;&#x8282;&#x70B9;</div>
                   <div class="summary-value">{{ currentReport.reportJson.flowchartResult.failedNodes }}</div>
                 </div>
               </el-col>
@@ -285,16 +337,24 @@ defineExpose({ resetSearch })
               border
               style="margin-top: 20px"
             >
-              <el-table-column prop="nodeId" label="节点ID" width="120" />
-              <el-table-column prop="nodeName" label="节点名称" min-width="150" />
-              <el-table-column prop="status" label="状态" width="100" align="center">
+              <el-table-column prop="nodeId" label="&#x8282;&#x70B9;ID" width="120" />
+              <el-table-column prop="nodeName" label="&#x8282;&#x70B9;&#x540D;&#x79F0;" min-width="150" />
+              <el-table-column prop="status" label="&#x72B6;&#x6001;" width="100" align="center">
                 <template #default="{ row }">
-                  <el-tag :type="row.status === 'success' ? 'success' : 'danger'">
-                    {{ row.status === "success" ? "成功" : "失败" }}
+                  <el-tag :type="getNodeStatusType(row.status)">
+                    {{
+                      row.status === "success"
+                        ? "成功"
+                        : row.status === "skipped"
+                          ? "跳过"
+                          : row.status === "pending" || row.status === "running"
+                            ? "进行中"
+                            : "失败"
+                    }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="error" label="错误信息" min-width="200">
+              <el-table-column prop="error" label="&#x9519;&#x8BEF;&#x4FE1;&#x606F;" min-width="200">
                 <template #default="{ row }">
                   <el-text type="danger" v-if="row.error">{{ row.error }}</el-text>
                   <span v-else>-</span>
@@ -302,56 +362,62 @@ defineExpose({ resetSearch })
               </el-table-column>
             </el-table>
           </div>
-          <el-empty v-else description="无流程图结果数据" />
+          <el-empty v-else description="&#x65E0;&#x6D41;&#x7A0B;&#x56FE;&#x7ED3;&#x679C;&#x6570;&#x636E;" />
         </el-tab-pane>
 
-        <el-tab-pane label="电路板信息" name="boards">
+        <el-tab-pane label="&#x7535;&#x8DEF;&#x677F;&#x4FE1;&#x606F;" name="boards">
           <el-table :data="currentReport.reportJson?.boards || []" size="small" border>
-            <el-table-column type="index" label="序号" width="60" align="center" />
-            <el-table-column prop="serial" label="序列号" />
-            <el-table-column prop="boardModelName" label="型号">
+            <el-table-column type="index" label="&#x5E8F;&#x53F7;" width="60" align="center" />
+            <el-table-column prop="serial" label="&#x5E8F;&#x5217;&#x53F7;" />
+            <el-table-column prop="boardModelName" label="&#x578B;&#x53F7;">
               <template #default="{ row }">{{ row.boardModelName || "-" }}</template>
             </el-table-column>
           </el-table>
 
           <div style="margin-top: 20px">
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="测试开始时间">{{
-                formatTime(currentReport.reportJson?.startTime)
-              }}</el-descriptions-item>
-              <el-descriptions-item label="测试结束时间">{{
-                formatTime(currentReport.reportJson?.endTime)
-              }}</el-descriptions-item>
-              <el-descriptions-item label="测试时长">{{
-                formatDuration(currentReport.reportJson?.duration)
-              }}</el-descriptions-item>
-              <el-descriptions-item label="备注">{{ currentReport.reportJson?.remark || "-" }}</el-descriptions-item>
+              <el-descriptions-item label="&#x6D4B;&#x8BD5;&#x5F00;&#x59CB;&#x65F6;&#x95F4;">
+                {{ formatTime(currentReport.reportJson?.startTime) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="&#x6D4B;&#x8BD5;&#x7ED3;&#x675F;&#x65F6;&#x95F4;">
+                {{ formatTime(currentReport.reportJson?.endTime) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="&#x6D4B;&#x8BD5;&#x65F6;&#x957F;">
+                {{ formatDuration(currentReport.reportJson?.duration) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="&#x5907;&#x6CE8;">
+                {{ currentReport.reportJson?.remark || "-" }}
+              </el-descriptions-item>
             </el-descriptions>
           </div>
         </el-tab-pane>
       </el-tabs>
 
       <template #footer>
-        <el-button @click="detailVisible = false">关闭</el-button>
-        <el-button type="danger" :icon="Close" @click="showRejectDialog(currentReport!)">打回</el-button>
-        <el-button type="success" :icon="Check" @click="handleApprove(currentReport!)">通过</el-button>
+        <el-button @click="detailVisible = false">&#x5173;&#x95ED;</el-button>
+        <el-button type="danger" :icon="Close" @click="showRejectDialog(currentReport!)">
+          &#x6253;&#x56DE;
+        </el-button>
+        <el-button type="success" :icon="Check" @click="handleApprove(currentReport!)">
+          &#x901A;&#x8FC7;
+        </el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="rejectDialogVisible" title="打回报告" width="500px">
+    <el-dialog v-model="rejectDialogVisible" title="&#x6253;&#x56DE;&#x62A5;&#x544A;" width="500px">
       <el-form>
-        <el-form-item label="打回原因" required>
+        <el-form-item label="&#x6253;&#x56DE;&#x539F;&#x56E0;" required>
           <el-input
             v-model="rejectReason"
             type="textarea"
             :rows="4"
-            placeholder="请输入打回原因，该原因将发送给测试人员"
+            placeholder="&#x8BF7;&#x8F93;&#x5165;&#x6253;&#x56DE;&#x539F;&#x56E0;&#xFF0C;&#x8BE5;&#x539F;&#x56E0;&#x5C06;&#x53D1;&#x9001;&#x7ED9;&#x6D4B;&#x8BD5;&#x4EBA;&#x5458;"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="rejectDialogVisible = false">取消</el-button>
-        <el-button type="danger" @click="handleReject">确认打回</el-button>
+        <el-button @click="rejectDialogVisible = false">&#x53D6;&#x6D88;</el-button>
+        <el-button type="danger" @click="handleReject">&#x786E;&#x8BA4;&#x6253;&#x56DE;</el-button>
       </template>
     </el-dialog>
   </el-card>

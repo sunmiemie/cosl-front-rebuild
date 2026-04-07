@@ -689,7 +689,7 @@ const activeBtn = (val: any) => {
   if (val == form.curStep) {
     return "success"
   } else {
-    return null
+    return undefined
   }
 }
 const saveEdit = async (data: any) => {

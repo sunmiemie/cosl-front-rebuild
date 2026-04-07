@@ -7,6 +7,13 @@ export interface FirstLevelDirectory {
 
 export type GetFirstLevelDirectoryResponseData = ApiResponseData<FirstLevelDirectory[]>
 
+export interface CreateFirstLevelDirectoryResponseData {
+  code: number
+  message: string
+  id: number
+  name: string
+}
+
 // 二级目录
 export interface CreateSecondLevelDirectoryRequestData {
   secondLevelDirectoryName: string

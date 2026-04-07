@@ -33,7 +33,7 @@ const treeLoading = ref<boolean>(false)
 const DialogCheck = ref<boolean>(false)
 const treeRef = ref<InstanceType<typeof ElTree>>()
 const filterText = ref<any>("")
-const testType = ref<number>()
+const testType = ref<number | null>(null)
 
 interface TestCheckType {
   ID?: string
@@ -98,7 +98,7 @@ const searchData = reactive({
   version: "",
   type: "",
   boardModel: "",
-  testType: null
+  testType: null as number | null
 })
 const defineLink = (status: any) => {
   switch (status) {
@@ -304,8 +304,10 @@ const haltHassStatusOptions = [
 ]
 
 // 获取 HALT-HASS 状态类型
-const getHaltHassStatusType = (status: number) => {
-  const map: Record<number, string> = { 0: "info", 1: "warning", 2: "danger", 3: "success" }
+type StatusTagType = "success" | "warning" | "info" | "primary" | "danger"
+
+const getHaltHassStatusType = (status: number): StatusTagType => {
+  const map: Record<number, StatusTagType> = { 0: "info", 1: "warning", 2: "danger", 3: "success" }
   return map[status] || "info"
 }
 
@@ -639,7 +641,7 @@ onMounted(() => {
       <el-card v-loading="loading" shadow="never">
         <div class="detailbar-wrapper">
           <el-tooltip content="刷新当前页">
-            <el-button :icon="RefreshRight" circle type="primary" @click="getDetailTableData(testType)" />
+            <el-button :icon="RefreshRight" circle type="primary" @click="getDetailTableData()" />
           </el-tooltip>
         </div>
         <div class="table-wrapper">

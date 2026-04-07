@@ -13,7 +13,7 @@ export function getFirstLevelDirectoryApi(params: DefectItem.GetFirstLevelDirect
 }
 
 export function createFirstLevelDirectoryApi(data: DefectItem.CreateFirstLevelDirectoryRequestData) {
-  return request({
+  return request<DefectItem.CreateFirstLevelDirectoryResponseData>({
     url: "data/defect-item-first-level-directory/add",
     method: "post",
     data

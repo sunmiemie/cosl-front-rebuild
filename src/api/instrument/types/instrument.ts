@@ -15,6 +15,7 @@ export interface GetInstrumentRequestData {
   name?: string
   id?: string
   isTree?: boolean
+  paging?: boolean
 }
 
 export interface GetInstrumentData {

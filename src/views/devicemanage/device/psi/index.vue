@@ -193,6 +193,10 @@ const getSelection = () => {
     if (res.code === 0) {
       const imageData = res.data
       const printWindow = window.open("", "_blank")
+      if (!printWindow) {
+        ElMessage.error("无法打开打印窗口")
+        return
+      }
       printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
 
       for (const key in imageData) {
@@ -454,7 +458,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             class="upload-demo"
             drag
             accept=".xls,.xlsx"
-            headers="Content-Type':'multipart/form-data"
+            :headers="{ 'Content-Type': 'multipart/form-data' }"
             action=""
             v-model:file-list="fileList.file"
             multiple

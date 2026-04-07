@@ -58,7 +58,7 @@ export const getboardsinfoForBugReport = (params: any) => {
   })
 }
 export const generateBugReport = (data: any) => {
-  return request({
+  return request<TestType.ReportActionResponseData>({
     url: "data/report/bug-report-generate",
     method: "post",
     data
@@ -66,7 +66,7 @@ export const generateBugReport = (data: any) => {
 }
 
 export const generateBatchReport = (data: any) => {
-  return request({
+  return request<TestType.ReportActionResponseData>({
     url: "data/report/batch-report-generate",
     method: "post",
     data
@@ -74,7 +74,7 @@ export const generateBatchReport = (data: any) => {
 }
 
 export const setDownloadSuccessApi = (report_id: number, report_type: string) => {
-  return request({
+  return request<TestType.ReportActionResponseData>({
     url: `data/report/set-download-success/${report_id}`,
     method: "post",
     data: { report_type }
@@ -82,14 +82,14 @@ export const setDownloadSuccessApi = (report_id: number, report_type: string) =>
 }
 
 export const generateDevBugReport = (data: any) => {
-  return request({
+  return request<TestType.ReportActionResponseData>({
     url: "data/report/dev-bug-report-generate",
     method: "post",
     data
   })
 }
 export const generateDevBatchReport = (data: any) => {
-  return request({
+  return request<TestType.ReportActionResponseData>({
     url: "data/report/dev-batch-report-generate",
     method: "post",
     data
@@ -113,14 +113,14 @@ export function getTempReportDataApi(params: {
   })
 }
 export function getSingleReportDataApi(params: any) {
-  return request<TestType.GetReportResponseData>({
+  return request<TestType.GetSingleReportResponseData>({
     url: "data/report/single",
     method: "get",
     params
   })
 }
 export function getSingleDevReportDataApi(params: any) {
-  return request<TestType.GetReportResponseData>({
+  return request<TestType.GetSingleReportResponseData>({
     url: "data/devreport/single",
     method: "get",
     params
@@ -143,14 +143,14 @@ export function getReportCheckDataApi(params: {
 }
 
 export const checkReportDataApi = (params: any) => {
-  return request({
+  return request<TestType.CheckReportResponseData>({
     url: "data/report/check/operate",
     method: "get",
     params
   })
 }
 export const checkTempReportDataApi = (params: any) => {
-  return request({
+  return request<TestType.CheckReportResponseData>({
     url: "data/devreport/check/operate",
     method: "get",
     params
@@ -158,7 +158,7 @@ export const checkTempReportDataApi = (params: any) => {
 }
 
 export const checkReportPassApi = (data: any) => {
-  return request({
+  return request<TestType.ReportActionResponseData>({
     url: "data/report/check/pass",
     headers: { "Content-Type": "multipart/form-data" },
     method: "post",
@@ -167,7 +167,7 @@ export const checkReportPassApi = (data: any) => {
 }
 
 export const checkTempReportPassApi = (data: any) => {
-  return request({
+  return request<TestType.ReportActionResponseData>({
     url: "data/devreport/check/pass",
     headers: { "Content-Type": "multipart/form-data" },
     method: "post",
@@ -176,7 +176,7 @@ export const checkTempReportPassApi = (data: any) => {
 }
 
 export const checkReportFeedbackApi = (data: any) => {
-  return request({
+  return request<TestType.ReportActionResponseData>({
     url: "data/report/check/feedback",
     headers: { "Content-Type": "multipart/form-data" },
     method: "post",
@@ -185,7 +185,7 @@ export const checkReportFeedbackApi = (data: any) => {
 }
 
 export const checkTempReportFeedbackApi = (data: any) => {
-  return request({
+  return request<TestType.ReportActionResponseData>({
     url: "data/devreport/check/feedback",
     headers: { "Content-Type": "multipart/form-data" },
     method: "post",

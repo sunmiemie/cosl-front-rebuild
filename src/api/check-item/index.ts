@@ -12,7 +12,7 @@ export function getFirstLevelDirectoryApi() {
 }
 
 export function createFirstLevelDirectoryApi(data: { name: string }) {
-  return request({
+  return request<CheckItem.CreateFirstLevelDirectoryResponseData>({
     url: "data/check-item-first-level-directory/add",
     method: "post",
     data

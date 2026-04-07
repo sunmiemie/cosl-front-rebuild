@@ -10,7 +10,7 @@ export function createTempBatchDataApi(data: any) {
 }
 
 export function previewTempBatchDataApi(data: any) {
-  return request({
+  return request<TempBatch.PreviewTempBatchResponseData>({
     url: "equipment/temp-batch/preview",
     method: "post",
     headers: { "Content-Type": "multipart/form-data" },
@@ -28,7 +28,7 @@ export function getTempBatchDataApi(params: TempBatch.GetTempBatchRequestData) {
 }
 
 export function getNewestBatchNumber() {
-  return request({
+  return request<TempBatch.NewestBatchNumberResponseData>({
     url: "equipment/temp-batch/newest-batch-number",
     method: "get"
   })

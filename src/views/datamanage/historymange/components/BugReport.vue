@@ -153,11 +153,11 @@ const downloadReport = async (data: any) => {
 
 // 批量下载报告
 const downloadReports = async () => {
-  const downloadPromises = []
+  const downloadPromises: Promise<void>[] = []
 
   for (const item of selectedRows.value) {
     const downloadUrl = `${import.meta.env.VITE_BASE_API}data/report/download-bug-report?id=${item.report_id}`
-    const downloadPromise = await downloadFile(downloadUrl, item.file_name).then(async (downloadSuccessful) => {
+    const downloadPromise = downloadFile(downloadUrl, item.file_name).then(async (downloadSuccessful) => {
       if (downloadSuccessful) {
         await setDownloadSuccessApi(item.report_id, "缺陷报告")
       } else {

@@ -5,7 +5,7 @@ import { UnwrapNestedRefs } from "vue"
 // 仪器管理
 
 export function createInstrumentDataApi(data: UnwrapNestedRefs<{ name: string; id: null; type: null }>) {
-  return request({
+  return request<any>({
     url: "equipment/instrument/add",
     method: "post",
     data

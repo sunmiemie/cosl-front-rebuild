@@ -234,13 +234,15 @@ const handleHaltHassCurrentChange = (page: number) => {
 }
 
 // 获取结果类型
-const getResultType = (result: number) => {
-  const map: Record<number, string> = {
+const getResultType = (
+  result: number
+): "success" | "warning" | "info" | "primary" | "danger" | undefined => {
+  const map: Record<number, "success" | "warning" | "info" | "primary" | "danger" | undefined> = {
     1: "success",
     2: "danger",
     3: "warning"
   }
-  return map[result] || ""
+  return map[result]
 }
 
 // 查看 HALT-HASS 报告详情
@@ -266,7 +268,7 @@ const handleApprove = async (report: HaltHassReportDetail | HaltHassReportListIt
 
   try {
     const res = await approveHaltHassReport(report.id, {
-      reviewerId: userStore.userId,
+      reviewerId: userStore.userid!,
       comment: ""
     })
     if (res.code === 0) {
@@ -298,7 +300,7 @@ const handleReject = async () => {
 
   try {
     const res = await rejectHaltHassReport(rejectingReportId.value!, {
-      reviewerId: userStore.userId,
+      reviewerId: userStore.userid!,
       reason: rejectReason.value
     })
     if (res.code === 0) {
@@ -1239,7 +1241,7 @@ const handleTabClick = (tab: TabsPaneContext) => {
 onMounted(() => {
   const { page, tab } = router.currentRoute.value.query
 
-  if (tab) activeTab.value = tab
+  if (typeof tab === "string") activeTab.value = tab
 
   if (tab === "halt-hass" && haltHassReviewRef.value) {
     haltHassReviewRef.value.resetSearch()
@@ -1262,7 +1264,7 @@ onMounted(() => {
     return
   }
 
-  if (page) {
+  if (typeof page === "string") {
     paginationData.currentPage = Number(page)
   }
   getTableData()

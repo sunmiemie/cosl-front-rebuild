@@ -13,6 +13,20 @@ export interface WaterCycleReportListItem {
   remark: string
 }
 
+export interface WaterCycleReportPayload {
+  report_no: string
+  task_number: string
+  test_date: string
+  tester: string
+  status: number
+  remark: string
+}
+
+interface WaterCycleReportMutationResponse {
+  code: number
+  msg?: string
+}
+
 export function getWaterCycleReportListApi(params: {
   page: number
   pageSize: number
@@ -34,8 +48,8 @@ export function getWaterCycleReportListApi(params: {
   })
 }
 
-export function createWaterCycleReportApi(data: any) {
-  return request({
+export function createWaterCycleReportApi(data: WaterCycleReportPayload) {
+  return request<WaterCycleReportMutationResponse>({
     url: "test/water-cycle/report/create/",
     method: "post",
     data
@@ -52,8 +66,8 @@ export function getWaterCycleReportDetailApi(pk: number) {
   })
 }
 
-export function updateWaterCycleReportApi(pk: number, data: any) {
-  return request({
+export function updateWaterCycleReportApi(pk: number, data: WaterCycleReportPayload) {
+  return request<WaterCycleReportMutationResponse>({
     url: `test/water-cycle/report/detail/${pk}/`,
     method: "put",
     data
@@ -61,7 +75,7 @@ export function updateWaterCycleReportApi(pk: number, data: any) {
 }
 
 export function deleteWaterCycleReportApi(pk: number) {
-  return request({
+  return request<WaterCycleReportMutationResponse>({
     url: `test/water-cycle/report/detail/${pk}/`,
     method: "delete"
   })

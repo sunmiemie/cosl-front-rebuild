@@ -13,6 +13,20 @@ export interface VibrationTableReportListItem {
   remark: string
 }
 
+export interface VibrationTableReportPayload {
+  report_no: string
+  task_number: string
+  test_date: string
+  tester: string
+  status: number
+  remark: string
+}
+
+interface VibrationTableReportMutationResponse {
+  code: number
+  msg?: string
+}
+
 export function getVibrationTableReportListApi(params: {
   page: number
   pageSize: number
@@ -34,8 +48,8 @@ export function getVibrationTableReportListApi(params: {
   })
 }
 
-export function createVibrationTableReportApi(data: any) {
-  return request({
+export function createVibrationTableReportApi(data: VibrationTableReportPayload) {
+  return request<VibrationTableReportMutationResponse>({
     url: "test/vibration-table/report/create/",
     method: "post",
     data
@@ -52,8 +66,8 @@ export function getVibrationTableReportDetailApi(pk: number) {
   })
 }
 
-export function updateVibrationTableReportApi(pk: number, data: any) {
-  return request({
+export function updateVibrationTableReportApi(pk: number, data: VibrationTableReportPayload) {
+  return request<VibrationTableReportMutationResponse>({
     url: `test/vibration-table/report/detail/${pk}/`,
     method: "put",
     data
@@ -61,7 +75,7 @@ export function updateVibrationTableReportApi(pk: number, data: any) {
 }
 
 export function deleteVibrationTableReportApi(pk: number) {
-  return request({
+  return request<VibrationTableReportMutationResponse>({
     url: `test/vibration-table/report/detail/${pk}/`,
     method: "delete"
   })

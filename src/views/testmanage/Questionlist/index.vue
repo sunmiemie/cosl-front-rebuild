@@ -138,7 +138,7 @@ const resetSearch = () => {
   handleSearch()
 }
 const uploadFunc = () => {
-  return new Promise((resolve, reject) => {
+  return new Promise<string>((resolve, reject) => {
     const input = document.createElement("input")
     input.type = "file"
     input.accept = "image/png, image/jpeg, image/gif, image/jpg" // 限制选择的文件类型为 .pdf, .png, .zip, .jpg
@@ -146,14 +146,20 @@ const uploadFunc = () => {
     document.body.appendChild(input)
     input.click()
     input.onchange = (e) => {
-      const file = e.target["files"][0]
+      const target = e.target as HTMLInputElement | null
+      const file = target?.files?.[0]
+      if (!file) {
+        reject(new Error("No file selected"))
+        return
+      }
       const reader = new FileReader()
       reader.onload = (e) => {
         let data
-        if (typeof e.target.result === "object") {
-          data = window["URL"].createObjectURL(new Blob([e.target.result]))
+        const result = e.target?.result
+        if (result instanceof ArrayBuffer) {
+          data = window["URL"].createObjectURL(new Blob([result]))
         } else {
-          data = e.target.result
+          data = result || ""
         }
         resolve(data)
       }

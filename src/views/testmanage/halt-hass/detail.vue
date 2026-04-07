@@ -1,31 +1,30 @@
-<!-- HALT-HASS 工艺详情页 -->
-
 <script lang="ts" setup>
-import { ref, onMounted, computed } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
-import { ArrowLeft, Check, Close } from "@element-plus/icons-vue"
-import { getHaltHassProcessDetail, checkHaltHassPass, submitHaltHassToCheck } from "@/api/halt-hass"
-import type { HaltHassProcessDetail, InstallGuideStep } from "@/api/halt-hass/types"
-import InstallGuideViewer from "./components/InstallGuideViewer.vue"
-import FlowchartPreview from "./components/FlowchartPreview.vue"
-import AuditPanel from "./components/AuditPanel.vue"
+import { checkHaltHassPass, getHaltHassProcessDetail, submitHaltHassToCheck } from "@/api/halt-hass"
+import type { HaltHassProcessDetail } from "@/api/halt-hass/types"
 import { useUserStore } from "@/store/modules/user"
+import AuditPanel from "./components/AuditPanel.vue"
+import FlowchartPreview from "./components/FlowchartPreview.vue"
+import InstallGuideViewer from "./components/InstallGuideViewer.vue"
+
+type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
 const loading = ref(false)
-const processId = computed(() => Number(route.params.id))
+const activeTab = ref("basic")
 const detail = ref<HaltHassProcessDetail | null>(null)
 
-// 当前激活的标签页
-const activeTab = ref("basic")
+const processId = computed(() => Number(route.params.id))
+const canAudit = computed(() => detail.value?.status === 1 && route.query.audit === "true")
+const canSubmit = computed(() => detail.value?.status === 0 || detail.value?.status === 2)
 
-// 获取状态标签类型
-const getStatusType = (status: number) => {
-  const map: Record<number, string> = {
+const getStatusType = (status: number): TagType => {
+  const map: Record<number, TagType> = {
     0: "info",
     1: "warning",
     2: "danger",
@@ -34,7 +33,6 @@ const getStatusType = (status: number) => {
   return map[status] || "info"
 }
 
-// 获取状态文本
 const getStatusText = (status: number) => {
   const map: Record<number, string> = {
     0: "草稿",
@@ -45,82 +43,75 @@ const getStatusText = (status: number) => {
   return map[status] || "未知"
 }
 
-// 获取详情数据
-const fetchDetail = () => {
+const fetchDetail = async () => {
   loading.value = true
-  getHaltHassProcessDetail(processId.value)
-    .then((res) => {
-      if (res.code === 0) {
-        detail.value = res.data
-      } else {
-        ElMessage.error("获取详情失败")
-      }
-    })
-    .catch(() => {
-      ElMessage.error("获取详情失败")
-    })
-    .finally(() => {
-      loading.value = false
-    })
-}
-
-// 返回列表
-const goBack = () => {
-  // 如果是从审核页面进入的，返回审核列表
-  if (route.query.audit === "true") {
-    router.push("/testmanage/checkprocess")
-  } else {
-    // 否则返回工艺列表
-    router.push("/testmanage/testprocess")
+  try {
+    const res = await getHaltHassProcessDetail(processId.value)
+    if (res.code === 0) {
+      detail.value = res.data
+    } else {
+      ElMessage.error("获取工艺详情失败")
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error("获取工艺详情失败")
+  } finally {
+    loading.value = false
   }
 }
 
-// 提交审核
-const handleSubmitCheck = () => {
+const goBack = () => {
+  if (route.query.audit === "true") {
+    router.push("/testmanage/checkprocess")
+    return
+  }
+  router.push("/testmanage/testprocess")
+}
+
+const handleSubmitCheck = async () => {
   if (!detail.value) return
-  ElMessageBox.confirm(`确认提交工艺「${detail.value.name}」进行审核？`, "提交审核", {
+
+  await ElMessageBox.confirm(`确认提交工艺“${detail.value.name}”进行审核吗？`, "提交审核", {
     confirmButtonText: "确认",
     cancelButtonText: "取消",
     type: "info"
-  }).then(() => {
-    submitHaltHassToCheck({ id: detail.value!.id }).then((res: any) => {
-      if (res.code === 0) {
-        ElMessage.success("提交成功")
-        fetchDetail()
-      } else {
-        ElMessage.error(res.msg || "提交失败")
-      }
-    })
   })
+
+  try {
+    const res = await submitHaltHassToCheck({ id: detail.value.id })
+    if (res.code === 0) {
+      ElMessage.success("提交成功")
+      fetchDetail()
+    } else {
+      ElMessage.error(res.msg || "提交失败")
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error("提交失败")
+  }
 }
 
-// 审核操作
-const handleAudit = (pass: boolean, reason?: string) => {
-  if (!detail.value) return
-  checkHaltHassPass({
-    id: detail.value.id,
-    pass,
-    user: userStore.userId,
-    reason: reason || ""
-  }).then((res: any) => {
+const handleAudit = async (pass: boolean, reason?: string) => {
+  if (!detail.value || !userStore.userid) return
+
+  try {
+    const res = await checkHaltHassPass({
+      id: detail.value.id,
+      pass,
+      user: userStore.userid,
+      reason: reason || ""
+    })
     if (res.code === 0) {
-      ElMessage.success(pass ? "审核通过" : "审核不通过")
+      ElMessage.success(pass ? "审核通过" : "审核驳回")
       fetchDetail()
     } else {
       ElMessage.error(res.msg || "审核操作失败")
     }
-  })
+  } catch (error) {
+    console.error(error)
+    ElMessage.error("审核操作失败")
+  }
 }
-
-// 判断是否可以审核（需要状态为待审核 且 从审核入口进入）
-const canAudit = computed(() => {
-  return detail.value?.status === 1 && route.query.audit === "true"
-})
-
-// 判断是否可提交审核
-const canSubmit = computed(() => {
-  return detail.value?.status === 0 || detail.value?.status === 2
-})
 
 onMounted(() => {
   fetchDetail()
@@ -143,10 +134,9 @@ onMounted(() => {
     <el-card v-loading="loading" shadow="never" style="margin-top: 20px">
       <template v-if="detail">
         <el-tabs v-model="activeTab">
-          <!-- 基本信息 -->
           <el-tab-pane label="基本信息" name="basic">
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="工艺ID">{{ detail.id }}</el-descriptions-item>
+              <el-descriptions-item label="工艺 ID">{{ detail.id }}</el-descriptions-item>
               <el-descriptions-item label="工艺名称">{{ detail.name }}</el-descriptions-item>
               <el-descriptions-item label="版本">{{ detail.version }}</el-descriptions-item>
               <el-descriptions-item label="状态">
@@ -160,22 +150,21 @@ onMounted(() => {
                   {{ detail.active === 1 ? "已激活" : "未激活" }}
                 </el-tag>
               </el-descriptions-item>
-              <el-descriptions-item label="关联电路板组" :span="2">
+              <el-descriptions-item label="关联板组" :span="2">
                 <el-tag
-                  v-for="bg in detail.boardGroups"
-                  :key="bg.id"
+                  v-for="boardGroup in detail.boardGroups"
+                  :key="boardGroup.id"
                   type="info"
                   size="small"
                   style="margin-right: 8px"
                 >
-                  {{ bg.name }}
+                  {{ boardGroup.name }}
                 </el-tag>
-                <span v-if="!detail.boardGroups || detail.boardGroups.length === 0">-</span>
+                <span v-if="!detail.boardGroups?.length">-</span>
               </el-descriptions-item>
             </el-descriptions>
 
-            <!-- 审核意见 -->
-            <div v-if="detail.feedback && detail.feedback.length > 0" class="feedback-section">
+            <div v-if="detail.feedback?.length" class="feedback-section">
               <h4>审核意见</h4>
               <el-timeline>
                 <el-timeline-item
@@ -189,22 +178,19 @@ onMounted(() => {
             </div>
           </el-tab-pane>
 
-          <!-- 安装指导 -->
-          <el-tab-pane label="安装指导" name="installGuide">
+          <el-tab-pane label="安装指引" name="installGuide">
             <InstallGuideViewer
               v-if="detail.processJson?.installGuide"
               :install-guide="detail.processJson.installGuide"
             />
-            <el-empty v-else description="暂无安装指导内容" />
+            <el-empty v-else description="暂无安装指引内容" />
           </el-tab-pane>
 
-          <!-- 流程图 -->
           <el-tab-pane label="测试流程图" name="flowchart">
             <FlowchartPreview v-if="detail.processJson?.flowchart" :flowchart="detail.processJson.flowchart" />
             <el-empty v-else description="暂无流程图内容" />
           </el-tab-pane>
 
-          <!-- 审核操作 -->
           <el-tab-pane v-if="canAudit" label="审核操作" name="audit">
             <AuditPanel @audit="handleAudit" />
           </el-tab-pane>

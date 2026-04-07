@@ -17,6 +17,13 @@ export type GetFirstLevelDirectoryResponseData = ApiResponseData<{
   total: number
 }>
 
+export interface CreateFirstLevelDirectoryResponseData {
+  code: number
+  message: string
+  id: string
+  name: string
+}
+
 export interface CreateFirstLevelDirectoryRequestData {
   name: string
 }

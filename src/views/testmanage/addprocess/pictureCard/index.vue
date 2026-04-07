@@ -1,19 +1,24 @@
 <script setup lang="ts">
-import { nextTick, ref } from "vue"
+import { nextTick, ref, toRef } from "vue"
 import { vDraggable } from "vue-draggable-plus"
-defineProps({
-  bannerList: {
-    type: Array,
-    required: true
-  },
-  preview: {
-    type: String
-  }
-})
+
+type BannerItem = {
+  url: string
+}
+
+const props = defineProps<{
+  bannerList: BannerItem[]
+  preview?: string
+}>()
 const emit = defineEmits(["onUpdate", "deletePic"])
 const dialogVisible = ref<any>(false)
 const dialogImageUrl = ref<any>("")
 const drag = ref<any>(false)
+const bannerList = toRef(props, "bannerList")
+const dragOptions: [typeof bannerList, { animation: number; onStart: () => void; onEnd: () => void }] = [
+  bannerList,
+  { animation: 150, onStart, onEnd }
+]
 // 预览
 const handlePictureCardPreviewFileDetail = (file: any) => {
   dialogImageUrl.value = file
@@ -33,13 +38,13 @@ function onEnd() {
   <div class="upload">
     <div class="el-upload-list el-upload-list&#45;&#45;picture-card">
       <TransitionGroup
-        :name="!drag ? 'fade' : null"
+        :name="!drag ? 'fade' : undefined"
         tag="ul"
         type="transition"
-        v-draggable="[bannerList, { animation: 150, onStart, onEnd }]"
+        v-draggable="dragOptions"
         class="el-upload-list el-upload-list--picture-card"
       >
-        <li v-for="item in bannerList" :key="item" class="el-upload-list__item is-success animated">
+        <li v-for="item in bannerList" :key="item.url" class="el-upload-list__item is-success animated">
           <img :src="item.url" alt="" class="el-upload-list__item-thumbnail" />
           <label class="el-upload-list__item-status-label">
             <i class="el-icon el-icon--upload-success el-icon--check">
@@ -78,7 +83,7 @@ function onEnd() {
         <el-upload key="upload" :show-file-list="false" list-type="picture-card" :auto-upload="false" disabled>
           <template #trigger>
             <el-button style="width: 100%; height: 100%; padding: 0; border: 2.5px solid #df5000">
-              <el-image draggable="false" :src="preview" style="width: 100%; height: 100%">
+              <el-image draggable="false" :src="props.preview" style="width: 100%; height: 100%">
                 <template #error>
                   <div style="display: flex; justify-content: center; align-items: center; width: 100%; height: 100%">
                     <el-text>等待中···</el-text>

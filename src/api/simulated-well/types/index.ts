@@ -23,10 +23,14 @@ export interface SimulatedWellOrderListRequest {
 }
 
 export interface SimulatedWellOrderListResponse {
-  list: SimulatedWellOrderListItem[]
-  total: number
-  page: number
-  pageSize: number
+  code: number
+  data: {
+    list: SimulatedWellOrderListItem[]
+    total: number
+    page: number
+    pageSize: number
+  }
+  msg?: string
 }
 
 export interface CreateSimulatedWellOrderRequest {
@@ -41,4 +45,8 @@ export interface CreateSimulatedWellOrderRequest {
   remark?: string
 }
 
-export type SimulatedWellOrderDetail = SimulatedWellOrderListItem
+export interface SimulatedWellOrderDetailResponse {
+  code: number
+  data: SimulatedWellOrderListItem
+  msg?: string
+}

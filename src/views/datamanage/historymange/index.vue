@@ -2,32 +2,35 @@
   <div class="app-container">
     <el-card>
       <el-tabs v-model="activeName" @tab-click="handleTabClick">
-        <el-tab-pane label="生产测试报告" name="prod">
+        <el-tab-pane label="&#x751F;&#x4EA7;&#x6D4B;&#x8BD5;&#x62A5;&#x544A;" name="prod">
           <ProdReport ref="prodReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="临时测试报告" name="temp">
+        <el-tab-pane label="&#x4E34;&#x65F6;&#x6D4B;&#x8BD5;&#x62A5;&#x544A;" name="temp">
           <TempReport ref="tempReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="缺陷报告" name="bug">
+        <el-tab-pane label="&#x7F3A;&#x9677;&#x62A5;&#x544A;" name="bug">
           <BugReport ref="bugReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="批次报告" name="batch">
+        <el-tab-pane label="&#x6279;&#x6B21;&#x62A5;&#x544A;" name="batch">
           <BatchReport ref="batchReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="HALT-HASS 报告" name="halt-hass">
+        <el-tab-pane label="HALT-HASS &#x62A5;&#x544A;" name="halt-hass">
           <HaltHassReport ref="haltHassReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="水循环报告" name="water-cycle">
+        <el-tab-pane label="&#x6C34;&#x5FAA;&#x73AF;&#x62A5;&#x544A;" name="water-cycle">
           <WaterCycleReport ref="waterCycleReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="高温箱报告" name="high-temp">
+        <el-tab-pane label="&#x9AD8;&#x6E29;&#x7BB1;&#x62A5;&#x544A;" name="high-temp">
           <HighTemperatureReport ref="highTempReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="振动台报告" name="vibration">
+        <el-tab-pane label="&#x632F;&#x52A8;&#x53F0;&#x62A5;&#x544A;" name="vibration">
           <VibrationReport ref="vibrationReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="高温高压报告" name="high-pressure">
-          <HighTemperaturePressureReport ref="HighTemperaturePressureReportComponent" />
+        <el-tab-pane label="&#x9AD8;&#x6E29;&#x9AD8;&#x538B;&#x62A5;&#x544A;" name="high-pressure">
+          <HighTemperaturePressureReport ref="highTemperaturePressureReportComponent" />
+        </el-tab-pane>
+        <el-tab-pane label="&#x6A21;&#x62DF;&#x4E95;&#x62A5;&#x544A;" name="simulation">
+          <SimulationWellReport ref="simulationWellReportComponent" />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -47,8 +50,8 @@ import WaterCycleReport from "./components/WaterCycleReport.vue"
 import HighTemperatureReport from "./components/HighTemperatureReport.vue"
 import VibrationReport from "./components/VibrationReport.vue"
 import HighTemperaturePressureReport from "./components/HighTemperaturePressureReport.vue"
+import SimulationWellReport from "./components/SimulationWellReport.vue"
 
-// 默认打开"生产测试报告"标签页
 const activeName = ref<any>("prod")
 const prodReportComponent = ref<InstanceType<typeof ProdReport> | null>(null)
 const tempReportComponent = ref<InstanceType<typeof TempReport> | null>(null)
@@ -58,58 +61,54 @@ const haltHassReportComponent = ref<InstanceType<typeof HaltHassReport> | null>(
 const waterCycleReportComponent = ref<InstanceType<typeof WaterCycleReport> | null>(null)
 const highTempReportComponent = ref<InstanceType<typeof HighTemperatureReport> | null>(null)
 const vibrationReportComponent = ref<InstanceType<typeof VibrationReport> | null>(null)
-const HighTemperaturePressureReportComponent = ref<InstanceType<typeof HighTemperaturePressureReport> | null>(null)
+const highTemperaturePressureReportComponent = ref<InstanceType<typeof HighTemperaturePressureReport> | null>(null)
+const simulationWellReportComponent = ref<InstanceType<typeof SimulationWellReport> | null>(null)
 
 const router = useRouter()
 
-const handleTabClick = (tab: TabsPaneContext) => {
-  // 记下当前选中的标签页，当点击浏览器返回按钮时，可返回到前面选中的标签页
-  router.replace({ query: { ...router.currentRoute.value.query, tab: tab.props.name } })
-
-  if (tab.props.name === "prod" && prodReportComponent.value) {
-    prodReportComponent.value.resetSearch()
-  } else if (tab.props.name === "temp" && tempReportComponent.value) {
-    tempReportComponent.value.resetSearch()
-  } else if (tab.props.name === "halt-hass" && haltHassReportComponent.value) {
-    haltHassReportComponent.value.resetSearch()
-  } else if (tab.props.name === "bug" && bugReportComponent.value) {
-    bugReportComponent.value.resetSearch()
-  } else if (tab.props.name === "batch" && batchReportComponent.value) {
-    batchReportComponent.value.resetSearch()
-  } else if (tab.props.name === "water-cycle" && waterCycleReportComponent.value) {
-    waterCycleReportComponent.value.resetSearch()
-  } else if (tab.props.name === "high-temp" && highTempReportComponent.value) {
-    highTempReportComponent.value.resetSearch()
-  } else if (tab.props.name === "vibration" && vibrationReportComponent.value) {
-    vibrationReportComponent.value.resetSearch()
-  } else if (tab.props.name === "high-pressure" && HighTemperaturePressureReportComponent.value) {
-    HighTemperaturePressureReportComponent.value.resetSearch()
+function resetTab(tabName: unknown) {
+  switch (tabName) {
+    case "prod":
+      prodReportComponent.value?.resetSearch()
+      break
+    case "temp":
+      tempReportComponent.value?.getTableData()
+      break
+    case "halt-hass":
+      haltHassReportComponent.value?.resetSearch()
+      break
+    case "bug":
+      bugReportComponent.value?.resetSearch()
+      break
+    case "batch":
+      batchReportComponent.value?.resetSearch()
+      break
+    case "water-cycle":
+      waterCycleReportComponent.value?.resetSearch()
+      break
+    case "high-temp":
+      highTempReportComponent.value?.resetSearch()
+      break
+    case "vibration":
+      vibrationReportComponent.value?.resetSearch()
+      break
+    case "high-pressure":
+      highTemperaturePressureReportComponent.value?.resetSearch()
+      break
+    case "simulation":
+      simulationWellReportComponent.value?.resetSearch()
+      break
   }
 }
 
+const handleTabClick = (tab: TabsPaneContext) => {
+  router.replace({ query: { ...router.currentRoute.value.query, tab: tab.props.name } })
+  resetTab(tab.props.name)
+}
+
 onMounted(() => {
-  // 如果路由参数中指定了标签页，则打开指定的标签页
   const { tab } = router.currentRoute.value.query
   if (tab) activeName.value = tab
-
-  if (tab === "prod" && prodReportComponent.value) {
-    prodReportComponent.value.resetSearch()
-  } else if (tab === "temp" && tempReportComponent.value) {
-    tempReportComponent.value.getTableData()
-  } else if (tab === "halt-hass" && haltHassReportComponent.value) {
-    haltHassReportComponent.value.resetSearch()
-  } else if (tab === "bug" && bugReportComponent.value) {
-    bugReportComponent.value.resetSearch()
-  } else if (tab === "batch" && batchReportComponent.value) {
-    batchReportComponent.value.resetSearch()
-  } else if (tab === "water-cycle" && waterCycleReportComponent.value) {
-    waterCycleReportComponent.value.resetSearch()
-  } else if (tab === "high-temp" && highTempReportComponent.value) {
-    highTempReportComponent.value.resetSearch()
-  } else if (tab === "vibration" && vibrationReportComponent.value) {
-    vibrationReportComponent.value.resetSearch()
-  } else if (tab === "high-pressure" && HighTemperaturePressureReportComponent.value) {
-    HighTemperaturePressureReportComponent.value.resetSearch()
-  }
+  resetTab(tab ?? "prod")
 })
 </script>

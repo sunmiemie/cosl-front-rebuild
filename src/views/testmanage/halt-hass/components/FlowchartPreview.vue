@@ -1,14 +1,13 @@
-<!-- 流程图预览组件（静态展示） -->
-
 <script lang="ts" setup>
 import { computed } from "vue"
-import type { FlowchartData, FlowchartNode } from "@/api/halt-hass/types"
+import type { FlowchartData } from "@/api/halt-hass/types"
+
+type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 
 const props = defineProps<{
   flowchart: FlowchartData
 }>()
 
-// 获取节点类型显示名称
 const getNodeTypeLabel = (type: string) => {
   const typeMap: Record<string, string> = {
     hardware: "硬件节点",
@@ -20,9 +19,8 @@ const getNodeTypeLabel = (type: string) => {
   return typeMap[type] || type
 }
 
-// 获取节点类型标签颜色
-const getNodeTypeColor = (type: string) => {
-  const colorMap: Record<string, string> = {
+const getNodeTypeColor = (type: string): TagType => {
+  const colorMap: Record<string, TagType> = {
     hardware: "warning",
     data: "primary",
     visualization: "success",
@@ -32,23 +30,14 @@ const getNodeTypeColor = (type: string) => {
   return colorMap[type] || "info"
 }
 
-// 节点列表
-const nodeList = computed(() => {
-  return props.flowchart?.nodes || []
-})
+const nodeList = computed(() => props.flowchart?.nodes || [])
+const edgeList = computed(() => props.flowchart?.edges || [])
 
-// 边列表
-const edgeList = computed(() => {
-  return props.flowchart?.edges || []
-})
-
-// 统计信息
 const stats = computed(() => {
   const nodes = props.flowchart?.nodes || []
   const edges = props.flowchart?.edges || []
-
-  // 按类型分组统计
   const typeCount: Record<string, number> = {}
+
   nodes.forEach((node) => {
     const type = node.type || "default"
     typeCount[type] = (typeCount[type] || 0) + 1
@@ -64,7 +53,6 @@ const stats = computed(() => {
 
 <template>
   <div class="flowchart-preview">
-    <!-- 统计信息 -->
     <el-row :gutter="20" class="stats-row">
       <el-col :span="8">
         <el-statistic title="节点总数" :value="stats.totalNodes" />
@@ -73,11 +61,10 @@ const stats = computed(() => {
         <el-statistic title="连接总数" :value="stats.totalEdges" />
       </el-col>
       <el-col :span="8">
-        <el-statistic title="节点类型" :value="Object.keys(stats.typeCount).length" />
+        <el-statistic title="节点类型数" :value="Object.keys(stats.typeCount).length" />
       </el-col>
     </el-row>
 
-    <!-- 类型分布 -->
     <div class="type-distribution">
       <h4>节点类型分布</h4>
       <div class="type-tags">
@@ -93,11 +80,10 @@ const stats = computed(() => {
       </div>
     </div>
 
-    <!-- 节点列表 -->
     <div class="node-list">
       <h4>节点列表</h4>
       <el-table :data="nodeList" stripe border max-height="400">
-        <el-table-column prop="id" label="节点ID" width="150" />
+        <el-table-column prop="id" label="节点 ID" width="150" />
         <el-table-column label="类型" width="120">
           <template #default="{ row }">
             <el-tag :type="getNodeTypeColor(row.type)" size="small">
@@ -118,20 +104,18 @@ const stats = computed(() => {
       </el-table>
     </div>
 
-    <!-- 连接列表 -->
     <div v-if="edgeList.length > 0" class="edge-list">
       <h4>连接列表</h4>
       <el-table :data="edgeList" stripe border max-height="300">
-        <el-table-column prop="id" label="连接ID" width="200" />
+        <el-table-column prop="id" label="连接 ID" width="200" />
         <el-table-column prop="source" label="源节点" />
         <el-table-column prop="target" label="目标节点" />
       </el-table>
     </div>
 
-    <!-- 提示信息 -->
     <el-alert
       title="完整流程图请在客户端查看"
-      description="管理端仅提供节点和连接的静态列表展示，如需查看完整的可视化流程图，请使用 COSL 客户端。"
+      description="管理端仅展示节点和连接的静态结果，如需查看完整可视化流程图，请使用 COSL 客户端。"
       type="info"
       show-icon
       :closable="false"

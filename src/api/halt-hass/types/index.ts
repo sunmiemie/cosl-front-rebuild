@@ -208,6 +208,10 @@ export interface HaltHassOrderCreateParams {
   boardCount: number
   creatorId: number
   remark?: string
+  boardSerials?: Array<{
+    serial: string
+    boardModelId: number
+  }>
 }
 
 // ==================== HALT-HASS 报告类型 ====================
@@ -295,4 +299,5 @@ export interface HaltHassReportDetail {
 export interface HaltHassReportDetailResponse {
   code: number
   data: HaltHassReportDetail
+  msg?: string
 }

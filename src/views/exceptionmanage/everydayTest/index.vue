@@ -26,7 +26,7 @@ function ProcessingTime(date: Date): string {
 const selectDate = (val: CalendarDateType) => {
   if (!calendar.value) return
   calendar.value.selectDate(val)
-  const currentMonth = calendar.value.selectedDay.$d
+  const currentMonth = calendar.value.selectedDay?.toDate() ?? new Date()
   const currentTime = ProcessingTime(currentMonth)
 
   const params = {

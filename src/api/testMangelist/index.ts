@@ -64,8 +64,8 @@ export const postDevUnits = (data: any) => {
     data
   })
 }
-export const createDevTestUnitApi = (data: any) => {
-  return request({
+export const createDevTestUnitApi = (data: any): Promise<{ status?: string; message?: string }> => {
+  return request<{ status?: string; message?: string }>({
     url: "/test/dev-testunit/add/",
     method: "post",
     data
@@ -131,7 +131,11 @@ export const getBatchesBySupplier = () =>
     method: "get"
   })
 
-export const getTestunitsByBatchApi = ({ batchId, currentPage, pageSize }) =>
+export const getTestunitsByBatchApi = ({
+  batchId,
+  currentPage,
+  pageSize
+}: Pick<TestMange.inpTestMangeTableDataType, "batchId" | "currentPage" | "pageSize">) =>
   request<TestMange.getTestMangeTableType>({
     url: "/test/testunits-by-batch",
     method: "get",

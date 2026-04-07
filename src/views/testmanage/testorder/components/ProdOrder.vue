@@ -95,10 +95,14 @@ const searchData = reactive({
   TestName: "",
   TestType: "",
   TestStatus: "",
-  Daterange: ""
+  Daterange: [] as string[]
 })
 const clearSearchData = () => {
-  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+  searchData.number = ""
+  searchData.TestName = ""
+  searchData.TestType = ""
+  searchData.TestStatus = ""
+  searchData.Daterange = []
 }
 
 const defineLink = (status: any) => {
@@ -128,8 +132,10 @@ let postFormInfo = reactive({
   user_name: "",
   testunit_starttime: ""
 })
-const generateErrorList = (obj, path = []) => {
-  let paths = []
+type ErrorPath = string[]
+
+const generateErrorList = (obj: any, path: ErrorPath = []): ErrorPath[] => {
+  let paths: ErrorPath[] = []
   if (obj === null || typeof obj !== "object") {
     return paths
   }
@@ -143,7 +149,7 @@ const generateErrorList = (obj, path = []) => {
   }
   return paths
 }
-const getNestedValue = (obj, path) => {
+const getNestedValue = (obj: any, path: ErrorPath) => {
   return path.reduce((acc, key) => {
     if (acc && acc[key] !== undefined) {
       return acc[key]
@@ -151,6 +157,13 @@ const getNestedValue = (obj, path) => {
     return undefined
   }, obj)
 }
+
+const buildReportQuery = (data: Record<string, any>) =>
+  Object.fromEntries(
+    Object.entries(data || {})
+      .filter(([, value]) => value == null || ["string", "number", "boolean"].includes(typeof value))
+      .map(([key, value]) => [key, value == null ? "" : String(value)])
+  )
 
 const postOrDelete = ref("发布")
 const drawerVisible = ref(false)
@@ -205,7 +218,7 @@ const handleLink = (data: any, i: string) => {
     document.body.removeChild(link)
   } else if (i === "查看报告") {
     getSingleReportDataApi({ unitId: data["testunit_id"] }).then((res) => {
-      router.push({ name: "reportView", query: res.data })
+      router.push({ name: "reportView", query: buildReportQuery(res.data) })
     })
   } else if (i === "查看缺陷") {
     errorVisible.value = true
@@ -510,8 +523,10 @@ async function getTestunits() {
 
   const params = JSON.parse(JSON.stringify(searchData))
   // 拼接时间参数
-  if (params.Daterange !== "") {
+  if (params.Daterange.length > 0) {
     params.Daterange = params.Daterange.join("-")
+  } else {
+    params.Daterange = ""
   }
 
   params.currentPage = paginationData.currentPage
@@ -576,7 +591,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
           </el-form-item>
           <el-form-item label="创建时间范围">
             <el-date-picker
-              v-model="searchData['Daterange'] as any"
+              v-model="searchData.Daterange"
               end-placeholder="结束日期"
               range-separator="至"
               start-placeholder="开始日期"

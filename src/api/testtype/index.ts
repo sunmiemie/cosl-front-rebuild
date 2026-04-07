@@ -51,7 +51,7 @@ export function getTempTestTypeForProdBoard(params: { size: number; currentPage:
 }
 // 为了方便传递列表参数，使用post请求
 export function getBoardTestTypeDataApi(data: any) {
-  return request({
+  return request<TestType.BoardTestTypeResponseData>({
     url: "test/board-testtype/list/",
     method: "post",
     data
@@ -59,21 +59,21 @@ export function getBoardTestTypeDataApi(data: any) {
 }
 // 为了方便传递列表参数，使用post请求
 export function getBugReportTestTypeDataApi(data: any) {
-  return request({
+  return request<TestType.BoardTestTypeResponseData>({
     url: "test/bug-report-testtype/list/",
     method: "post",
     data
   })
 }
 export function getDevTestTypeDataApi(data: any) {
-  return request({
+  return request<TestType.BoardTestTypeResponseData>({
     url: "test/devboard-testtype/list/",
     method: "post",
     data
   })
 }
 export function getBugReportDevTestTypeDataApi(data: any) {
-  return request({
+  return request<TestType.BoardTestTypeResponseData>({
     url: "test/dev-bug-report-testtype/list/",
     method: "post",
     data

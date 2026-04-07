@@ -220,7 +220,7 @@
         </div>
 
         <el-form-item label="备注" style="margin-top: 20px">
-          <el-input v-model="createForm.remark" type="textarea" rows="3" placeholder="请输入备注" />
+          <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -376,19 +376,21 @@ const detailDialogVisible = ref(false)
 const currentOrder = ref<HaltHassOrderDetail | null>(null)
 
 // 获取状态类型
-const getStatusType = (status: number) => {
-  const map: Record<number, string> = {
+type StatusTagType = "success" | "warning" | "info" | "primary" | "danger"
+
+const getStatusType = (status: number): StatusTagType | undefined => {
+  const map: Record<number, StatusTagType | undefined> = {
     0: "info",
     1: "warning",
     2: "primary",
-    3: "",
+    3: undefined,
     4: "danger",
     5: "success",
     6: "danger",
     7: "info",
     8: "warning"
   }
-  return map[status] || ""
+  return map[status]
 }
 
 // 获取工单列表
@@ -415,7 +417,7 @@ const getList = async () => {
 // 获取电路板组列表
 const getBoardGroups = async () => {
   try {
-    const res = await getBoardGroupListApi({ page: 1, pageSize: 1000 })
+    const res = await getBoardGroupListApi({ currentPage: 1, pageSize: 1000 })
     if (res.code === 0) {
       boardGroupList.value = res.data.list || []
     }
@@ -653,6 +655,12 @@ const handleCreate = async () => {
 
     createLoading.value = true
     try {
+      const creatorId = userStore.userid
+      if (creatorId == null) {
+        ElMessage.error("未获取到当前用户信息")
+        return
+      }
+
       // 收集选中的电路板信息（包含序列号和型号ID）
       const boardSerials = Object.entries(selectedBoards).map(([boardModelId, board]) => ({
         serial: board.serial,
@@ -663,7 +671,7 @@ const handleCreate = async () => {
         boardGroupId: createForm.boardGroupId!,
         processId: createForm.processId!,
         boardCount: selectedBoardGroup.value!.boards.length,
-        creatorId: userStore.userId,
+        creatorId,
         remark: createForm.remark,
         boardSerials // 包含选中的电路板信息
       } as any)

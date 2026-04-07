@@ -2,7 +2,7 @@ import { request } from "@/utils/service"
 import type * as TempBoard from "@/api/temp-board/types/temp-board"
 
 export function createTempBoardApi(data: TempBoard.CreateTempBoardRequestData) {
-  return request({
+  return request<TempBoard.CreateTempBoardResponseData>({
     url: "equipment/temp-board/add",
     method: "post",
     data

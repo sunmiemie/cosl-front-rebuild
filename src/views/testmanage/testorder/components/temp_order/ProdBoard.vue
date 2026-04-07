@@ -145,7 +145,7 @@ const formRules: FormRules = reactive({
   testUnitDesc: [{ required: true, trigger: "blur", message: "请输入测试内容" }],
   consignor: [{ required: true, trigger: "blur", message: "请输入委托人" }]
 })
-const emit = defineEmits(["add-order"])
+const emit = defineEmits(["add-order", "stop-adding-order"])
 const handleCreate = () => {
   searchFormRef.value?.validate((valid: boolean) => {
     if (valid) {

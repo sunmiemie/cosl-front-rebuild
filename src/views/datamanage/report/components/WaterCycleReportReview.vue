@@ -55,9 +55,11 @@ const rejectingId = ref<number | null>(null)
 
 const allReports = ref<WaterCycleReport[]>([])
 
-const getResultType = (result: number) => {
+const getResultType = (
+  result: number
+): "success" | "warning" | "danger" | undefined => {
   const map: Record<number, string> = { 1: "success", 2: "danger", 3: "warning" }
-  return map[result] || ""
+  return (map[result] as "success" | "warning" | "danger" | undefined) ?? undefined
 }
 
 const formatTime = (time?: string) => {

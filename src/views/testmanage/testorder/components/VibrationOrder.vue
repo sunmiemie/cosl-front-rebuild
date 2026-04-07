@@ -171,6 +171,7 @@ const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
 const loading = ref(false)
 
 type Row = {
+  id?: number
   orderNo: string
   type: string
   applicant: string
@@ -223,14 +224,14 @@ const canCreate = computed(() => {
 const detailDialogVisible = ref(false)
 const currentOrder = ref<VibrationOrderDetail | null>(null)
 
-type TagType = "" | "success" | "warning" | "info" | "primary" | "danger"
+type TagType = "success" | "warning" | "info" | "primary" | "danger"
 
-const getStatusType = (status: number | string): TagType => {
-  const map: Record<string, TagType> = {
+const getStatusType = (status: number | string): TagType | undefined => {
+  const map: Record<string, TagType | undefined> = {
     "0": "info",
     "1": "warning",
     "2": "primary",
-    "3": "",
+    "3": undefined,
     "4": "danger",
     "5": "success",
     "6": "danger",
@@ -238,7 +239,7 @@ const getStatusType = (status: number | string): TagType => {
     "8": "warning"
   }
   const key = typeof status === "number" ? String(status) : status
-  return map[key] || ""
+  return map[key]
 }
 
 const formatDate = (date: Date) => {
@@ -330,6 +331,7 @@ const handleCreate = async () => {
 }
 
 const handleDetail = async (row: Row) => {
+  if (row.id == null) return
   try {
     const res = await getVibrationTableOrderDetail(row.id)
     if (res && res.code === 0) {
@@ -344,6 +346,7 @@ const handleDetail = async (row: Row) => {
   }
 }
 const handleDelete = async (row: Row) => {
+  if (row.id == null) return
   await ElMessageBox.confirm("确定要删除该工单吗？", "确认删除", { type: "warning" })
   try {
     const res = await deleteVibrationTableOrder(row.id)
@@ -358,6 +361,7 @@ const handleDelete = async (row: Row) => {
   }
 }
 const handlePublish = async (row: Row) => {
+  if (row.id == null) return
   await ElMessageBox.confirm("确定要发布该工单吗？发布后将可被测试人员领取。", "确认发布", { type: "warning" })
   try {
     const res = await publishVibrationTableOrder(row.id)

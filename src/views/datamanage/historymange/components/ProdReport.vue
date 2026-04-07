@@ -79,11 +79,16 @@ const searchData = reactive({
   user: "",
   type: "",
   serial: "",
-  dateTimeRange: "",
+  dateTimeRange: [] as string[],
   instrument: ""
 })
 const clearSearchData = () => {
-  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+  searchData.id = ""
+  searchData.user = ""
+  searchData.type = ""
+  searchData.serial = ""
+  searchData.dateTimeRange = []
+  searchData.instrument = ""
 }
 const defineLink = (status: string, reportGenerated: number) => {
   switch (status) {
@@ -100,10 +105,7 @@ const defineLink = (status: string, reportGenerated: number) => {
 
 const getTableData = () => {
   loading.value = true
-  let dateTimeRange
-  if (searchData.dateTimeRange !== "") {
-    dateTimeRange = searchData.dateTimeRange.join("-")
-  }
+  const dateTimeRange = searchData.dateTimeRange.length > 0 ? searchData.dateTimeRange.join("-") : undefined
   getReportDataApi({
     currentPage: paginationData.currentPage,
     size: paginationData.pageSize,
@@ -201,7 +203,7 @@ const handleSelectionChange = (val: any) => {
 
 const generateReports = async () => {
   let generateExists = false
-  const generatePromises = []
+  const generatePromises: Promise<void>[] = []
 
   selectedRows.value.forEach((item) => {
     // console.log(item)
@@ -209,7 +211,7 @@ const generateReports = async () => {
       if (item.link[key] === "生成") {
         generateExists = true
 
-        let generatePromise
+        let generatePromise: Promise<void>
         if (item.type !== "功能性测试") {
           generatePromise = generateReportPdfApi({ id: item.id })
             .then(() => {
@@ -244,7 +246,7 @@ const generateReports = async () => {
 
 const downloadReports = async () => {
   let downloadExists = false
-  const downloadPromises = []
+  const downloadPromises: Promise<void>[] = []
 
   for (const item of selectedRows.value) {
     // console.log(item)
@@ -258,7 +260,7 @@ const downloadReports = async () => {
         } else {
           downloadUrl = `${import.meta.env.VITE_BASE_API}data/func-report/pdf/download?id=${item.id}`
         }
-        const downloadPromise = await downloadFile(downloadUrl, item.report_pdf_filepath).then(
+        const downloadPromise = downloadFile(downloadUrl, item.report_pdf_filepath).then(
           async (downloadSuccessful) => {
             if (downloadSuccessful) {
               await setDownloadSuccessApi(item.id, "正式报告")

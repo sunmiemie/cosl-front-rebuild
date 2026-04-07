@@ -13,6 +13,20 @@ export interface HighTempPressureReportListItem {
   remark: string
 }
 
+export interface HighTempPressureReportPayload {
+  report_no: string
+  task_number: string
+  test_date: string
+  tester: string
+  status: number
+  remark: string
+}
+
+interface HighTempPressureReportMutationResponse {
+  code: number
+  msg?: string
+}
+
 export function getHighTempPressureReportListApi(params: {
   page: number
   pageSize: number
@@ -34,8 +48,8 @@ export function getHighTempPressureReportListApi(params: {
   })
 }
 
-export function createHighTempPressureReportApi(data: any) {
-  return request({
+export function createHighTempPressureReportApi(data: HighTempPressureReportPayload) {
+  return request<HighTempPressureReportMutationResponse>({
     url: "test/high-temp-pressure/report/create/",
     method: "post",
     data
@@ -52,8 +66,8 @@ export function getHighTempPressureReportDetailApi(pk: number) {
   })
 }
 
-export function updateHighTempPressureReportApi(pk: number, data: any) {
-  return request({
+export function updateHighTempPressureReportApi(pk: number, data: HighTempPressureReportPayload) {
+  return request<HighTempPressureReportMutationResponse>({
     url: `test/high-temp-pressure/report/detail/${pk}/`,
     method: "put",
     data
@@ -61,7 +75,7 @@ export function updateHighTempPressureReportApi(pk: number, data: any) {
 }
 
 export function deleteHighTempPressureReportApi(pk: number) {
-  return request({
+  return request<HighTempPressureReportMutationResponse>({
     url: `test/high-temp-pressure/report/detail/${pk}/`,
     method: "delete"
   })
