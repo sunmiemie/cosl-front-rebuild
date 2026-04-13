@@ -9,6 +9,9 @@ interface LoadingInstance {
   close: () => void
 }
 
+/** Element Plus 的全屏服务会返回同一个实例，不同包装函数也需要共享计数。 */
+const pendingTasks = new WeakMap<LoadingInstance, number>()
+
 interface UseFullscreenLoading {
   <T extends (...args: any[]) => ReturnType<T>>(
     fn: T,
@@ -23,13 +26,19 @@ interface UseFullscreenLoading {
  * @returns 返回一个新的函数，该函数返回一个 Promise
  */
 export const useFullscreenLoading: UseFullscreenLoading = (fn, options = {}) => {
-  let loadingInstance: LoadingInstance
   return async (...args) => {
+    const loadingInstance = ElLoading.service({ ...defaultOptions, ...options })
+    pendingTasks.set(loadingInstance, (pendingTasks.get(loadingInstance) ?? 0) + 1)
     try {
-      loadingInstance = ElLoading.service({ ...defaultOptions, ...options })
       return await fn(...args)
     } finally {
-      loadingInstance?.close()
+      const pendingCount = (pendingTasks.get(loadingInstance) ?? 1) - 1
+      if (pendingCount > 0) {
+        pendingTasks.set(loadingInstance, pendingCount)
+      } else {
+        pendingTasks.delete(loadingInstance)
+        loadingInstance.close()
+      }
     }
   }
 }
