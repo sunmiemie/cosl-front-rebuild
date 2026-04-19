@@ -29,7 +29,10 @@ const setTheme = (value: ThemeName) => {
 
 /** 在 html 根元素上挂载 class */
 const setHtmlRootClassName = (value: ThemeName) => {
-  document.documentElement.className = value
+  // 保留无障碍或其他功能挂载的类名，只替换已注册的主题类。
+  const classList = document.documentElement.classList
+  classList.remove(...themeList.map((theme) => theme.name))
+  classList.add(value)
 }
 
 /** 初始化 */
