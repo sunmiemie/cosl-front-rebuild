@@ -9,10 +9,37 @@ export interface HighTempPressureOrderListItem {
   target_pressure: number
   applicant: string
   remark: string
+  use_device?: string
+  max_diameter?: number | null
+  hold_time?: number | null
+  admin_signature_url?: string | null
+  sanxin_applicant_item_1?: "yes" | "no" | null
+  sanxin_applicant_item_2?: "yes" | "no" | null
+  sanxin_applicant_item_3?: "yes" | "no" | null
+  sanxin_applicant_item_4?: "yes" | "no" | null
+  sanxin_applicant_item_5?: "yes" | "no" | null
+  sanxin_applicant_signer?: string | null
+  sanxin_confirm_date?: string | null
+  sanxin_tester_item_1?: "yes" | "no" | null
+  sanxin_tester_item_2?: "yes" | "no" | null
+  sanxin_is_sanxin?: boolean
+  instrument_count?: number
+  instrument_names?: string
+  instrument_sns?: string
+  test_types?: string
+  instruments?: HighTempPressureOrderInstrumentItem[]
   status: number
   status_text?: string
   created_at: string
   updated_at: string
+}
+
+export interface HighTempPressureOrderInstrumentItem {
+  instrument_name: string
+  instrument_sn: string
+  test_type?: string
+  quantity?: number
+  max_diameter?: number | null
 }
 
 export interface HighTempPressureOrderListRequest {
@@ -42,6 +69,10 @@ export interface CreateHighTempPressureOrderRequest {
   target_temp: number
   target_pressure: number
   applicant: string
+  use_device?: string
+  max_diameter?: number | null
+  hold_time?: number | null
+  instruments?: HighTempPressureOrderInstrumentItem[]
   remark?: string
 }
 

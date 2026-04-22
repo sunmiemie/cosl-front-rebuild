@@ -50,7 +50,7 @@
         </el-form-item>
       </el-form>
 
-      <div style="margin-bottom: 12px;">
+      <div style="margin-bottom: 12px">
         <el-tooltip content="刷新数据">
           <el-button circle icon="RefreshRight" type="primary" @click="getList" />
         </el-tooltip>
@@ -151,7 +151,24 @@
           <el-row :gutter="24" class="d-grid">
             <el-col
               :span="12"
-              v-for="key in ['委托单编号', '委托单位', '地址', '科研项目预算编号', '联系人', '电话', '邮箱', '接收方式', '处理方式', '输出要求', '输出版本', '封面标识', '印章要求', '交付方式', '报告用途', '备注']"
+              v-for="key in [
+                '委托单编号',
+                '委托单位',
+                '地址',
+                '科研项目预算编号',
+                '联系人',
+                '电话',
+                '邮箱',
+                '接收方式',
+                '处理方式',
+                '输出要求',
+                '输出版本',
+                '封面标识',
+                '印章要求',
+                '交付方式',
+                '报告用途',
+                '备注'
+              ]"
               :key="key"
             >
               <div class="d-field">

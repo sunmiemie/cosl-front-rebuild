@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, defineExpose, onMounted, reactive, ref } from "vue"
-import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
+import {
+  ElMessage,
+  ElMessageBox,
+  type FormInstance,
+  type UploadFile,
+  type UploadProps,
+  type UploadUserFile
+} from "element-plus"
 import {
   createHighTempPressureOrderApi,
   deleteHighTempPressureOrderApi,
@@ -8,7 +15,7 @@ import {
   getHighTempPressureOrderListApi,
   publishHighTempPressureOrderApi
 } from "@/api/high-temp-pressure"
-import type { HighTempPressureOrderListItem } from "@/api/high-temp-pressure/types"
+import type { HighTempPressureOrderInstrumentItem, HighTempPressureOrderListItem } from "@/api/high-temp-pressure/types"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 
@@ -44,30 +51,90 @@ const createFormRef = ref<FormInstance>()
 const createForm = reactive({
   test_platform: "高温高压井测试台",
   test_date: new Date().toISOString().split("T")[0],
+  use_device: "",
   device_name: "",
-  device_number: "",
+  device_number: "N/A",
   task_number: "",
   target_temp: 0,
   target_pressure: 0,
+  max_diameter: null as number | null,
+  hold_time: null as number | null,
   applicant: "",
   remark: ""
 })
 
+const instrumentFormList = ref<HighTempPressureOrderInstrumentItem[]>([
+  { instrument_name: "", instrument_sn: "", test_type: "", quantity: 1, max_diameter: null }
+])
+
 const createRules = {
   test_platform: [{ required: true, message: "请选择测试台", trigger: "change" }],
   test_date: [{ required: true, message: "请选择测试日期", trigger: "change" }],
-  device_name: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
-  device_number: [{ required: true, message: "请输入设备编号", trigger: "blur" }],
   task_number: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
   target_temp: [{ required: true, message: "请输入目标温度", trigger: "blur" }],
   target_pressure: [{ required: true, message: "请输入目标压力", trigger: "blur" }],
-  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }]
+  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }],
+  use_device: [{ required: true, message: "请输入使用设备", trigger: "blur" }]
 }
 
-const canCreate = computed(() => !!(createForm.task_number && createForm.device_name && createForm.applicant))
+const canCreate = computed(() => {
+  if (!(createForm.task_number && createForm.applicant && createForm.use_device)) return false
+  if (!instrumentFormList.value.length) return false
+  return instrumentFormList.value.every((i) => !!(i.instrument_name && i.instrument_sn))
+})
 
 const detailDialogVisible = ref(false)
 const currentOrder = ref<HighTempPressureOrderListItem | null>(null)
+
+const publishDialogVisible = ref(false)
+const publishLoading = ref(false)
+const publishOrder = ref<HighTempPressureOrderListItem | null>(null)
+const publishSignatureFileList = ref<UploadUserFile[]>([])
+const publishSignatureRawFile = ref<File | null>(null)
+const publishSignatureObjectUrl = ref("")
+const publishSignaturePreviewDataUrl = ref("")
+const signaturePreviewVisible = ref(false)
+const publishConfirmDate = ref(new Date().toISOString().split("T")[0])
+const sanxinApplicantItems = [
+  "被测产品外形尺寸：①250容器：直径>240mm、长度>9m、总重量>4吨；②480容器：直径>420mm、长度>15m、总重量>4吨",
+  "①定型被测产品，试压条件是否超出设计指标范围内；②未定型被测产品，经过安全系数计算，理论上会发生变形、泄露甚至是爆裂",
+  "被测产品原材料是否未经过检验、不合格",
+  "被测产品密封面、壁厚等关键尺寸是否未经过检测、未合格",
+  "被测产品是否含有毒有害、腐蚀性、爆炸性或电离辐射等危险品，或强磁性物质"
+]
+
+const sanxinApplicantAnswers = computed<("yes" | "no")[]>(() => {
+  const o = publishOrder.value
+  const raw = [
+    o?.sanxin_applicant_item_1,
+    o?.sanxin_applicant_item_2,
+    o?.sanxin_applicant_item_3,
+    o?.sanxin_applicant_item_4,
+    o?.sanxin_applicant_item_5
+  ]
+  return raw.map((v) => (v === "yes" ? "yes" : "no"))
+})
+const sanxinApplicantHasRisk = computed(() => sanxinApplicantAnswers.value.some((v) => v === "yes"))
+const sanxinApplicantSummaryText = computed(() =>
+  sanxinApplicantHasRisk.value ? "序号 1-5 包含为「是」的选项" : "序号 1-5 全部为「否」"
+)
+const sanxinApplicantSigner = computed(() => publishOrder.value?.sanxin_applicant_signer || "--")
+
+type SanxinAnswer = "yes" | "no" | null
+
+const sanxinTesterItems = ["被测产品其他附件如上下接头、O型圈等是否不合格", "密封件未装配、有损伤且未润滑充分"]
+
+const sanxinTesterAnswers = reactive<Record<number, SanxinAnswer>>({ 0: null, 1: null })
+const sanxinDoneCount = computed(() => Object.values(sanxinTesterAnswers).filter((v) => v !== null).length)
+const sanxinProgressPercent = computed(() => (sanxinDoneCount.value / 2) * 100)
+const sanxinHasRisk = computed(() => Object.values(sanxinTesterAnswers).some((v) => v === "yes"))
+const publishSignaturePreviewUrl = computed(
+  () =>
+    publishSignaturePreviewDataUrl.value || publishSignatureObjectUrl.value || publishSignatureFileList.value[0]?.url
+)
+const canConfirmPublish = computed(
+  () => !!(publishOrder.value && publishSignatureRawFile.value && sanxinDoneCount.value === 2)
+)
 
 const getStatusType = (status: number | string): TagType => {
   const map: Record<string, TagType> = {
@@ -131,15 +198,36 @@ const showCreateDialog = () => {
   Object.assign(createForm, {
     test_platform: "高温高压井测试台",
     test_date: new Date().toISOString().split("T")[0],
+    use_device: "",
     device_name: "",
-    device_number: "",
+    device_number: "N/A",
     task_number: "",
     target_temp: 0,
     target_pressure: 0,
+    max_diameter: null,
+    hold_time: null,
     applicant: "",
     remark: ""
   })
+  instrumentFormList.value = [
+    { instrument_name: "", instrument_sn: "", test_type: "", quantity: 1, max_diameter: null }
+  ]
   createDialogVisible.value = true
+}
+
+const addInstrumentRow = () => {
+  instrumentFormList.value.push({
+    instrument_name: "",
+    instrument_sn: "",
+    test_type: "",
+    quantity: 1,
+    max_diameter: null
+  })
+}
+
+const removeInstrumentRow = (index: number) => {
+  if (instrumentFormList.value.length <= 1) return
+  instrumentFormList.value.splice(index, 1)
 }
 
 const handleCreate = async () => {
@@ -147,9 +235,20 @@ const handleCreate = async () => {
 
   await createFormRef.value.validate(async (valid) => {
     if (!valid) return
+    if (!canCreate.value) return
     createLoading.value = true
     try {
-      const res = await createHighTempPressureOrderApi(createForm)
+      createForm.device_name = createForm.use_device
+      const res = await createHighTempPressureOrderApi({
+        ...createForm,
+        instruments: instrumentFormList.value.map((i) => ({
+          instrument_name: i.instrument_name,
+          instrument_sn: i.instrument_sn,
+          test_type: i.test_type,
+          quantity: i.quantity,
+          max_diameter: i.max_diameter ?? null
+        }))
+      })
       if (res.code === 0) {
         ElMessage.success("创建成功")
         createDialogVisible.value = false
@@ -179,12 +278,126 @@ const handleDetail = async (row: HighTempPressureOrderListItem) => {
   }
 }
 
-const handlePublish = async (row: HighTempPressureOrderListItem) => {
-  await ElMessageBox.confirm("确认发布该工单吗？发布后测试人员即可领取。", "确认发布", { type: "warning" })
+const showPublishDialog = async (row: HighTempPressureOrderListItem) => {
+  publishSignatureFileList.value = []
+  publishSignatureRawFile.value = null
+  if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+  publishSignatureObjectUrl.value = ""
+  publishSignaturePreviewDataUrl.value = ""
+  signaturePreviewVisible.value = false
+  publishConfirmDate.value = new Date().toISOString().split("T")[0]
+  sanxinTesterAnswers[0] = null
+  sanxinTesterAnswers[1] = null
   try {
-    const res = await publishHighTempPressureOrderApi(row.id)
+    const res = await getHighTempPressureOrderDetailApi(row.id)
+    if (res.code === 0) {
+      publishOrder.value = res.data
+      publishDialogVisible.value = true
+    } else {
+      ElMessage.error(res.msg || "获取工单信息失败")
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error("获取工单信息失败")
+  }
+}
+
+const handlePublishSignatureChange: UploadProps["onChange"] = (file: UploadFile) => {
+  const raw = file.raw
+  if (!raw) {
+    publishSignatureFileList.value = []
+    publishSignatureRawFile.value = null
+    if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+    publishSignatureObjectUrl.value = ""
+    publishSignaturePreviewDataUrl.value = ""
+    return
+  }
+  if (!raw.type.startsWith("image/")) {
+    ElMessage.error("请上传图片格式的签名文件")
+    publishSignatureFileList.value = []
+    publishSignatureRawFile.value = null
+    if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+    publishSignatureObjectUrl.value = ""
+    publishSignaturePreviewDataUrl.value = ""
+    return
+  }
+  if (raw.size / 1024 / 1024 > 5) {
+    ElMessage.error("签名图片大小不能超过 5MB")
+    publishSignatureFileList.value = []
+    publishSignatureRawFile.value = null
+    if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+    publishSignatureObjectUrl.value = ""
+    publishSignaturePreviewDataUrl.value = ""
+    return
+  }
+
+  publishSignatureRawFile.value = raw
+  if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+  publishSignatureObjectUrl.value = URL.createObjectURL(raw)
+  publishSignaturePreviewDataUrl.value = ""
+  const reader = new FileReader()
+  reader.onload = () => {
+    publishSignaturePreviewDataUrl.value = String(reader.result || "")
+  }
+  reader.readAsDataURL(raw)
+  publishSignatureFileList.value = [
+    {
+      name: raw.name,
+      url: publishSignatureObjectUrl.value,
+      status: "success"
+    }
+  ]
+}
+
+const handlePublishSignatureRemove: UploadProps["onRemove"] = () => {
+  if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+  publishSignatureFileList.value = []
+  publishSignatureRawFile.value = null
+  publishSignatureObjectUrl.value = ""
+  publishSignaturePreviewDataUrl.value = ""
+  signaturePreviewVisible.value = false
+}
+
+const handleReuploadSignature = () => {
+  if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+  publishSignatureFileList.value = []
+  publishSignatureRawFile.value = null
+  publishSignatureObjectUrl.value = ""
+  publishSignaturePreviewDataUrl.value = ""
+  signaturePreviewVisible.value = false
+}
+
+const setSanxinAnswer = (idx: number, answer: Exclude<SanxinAnswer, null>) => {
+  sanxinTesterAnswers[idx] = answer
+}
+
+const openSignaturePreview = () => {
+  if (!publishSignaturePreviewUrl.value) return
+  signaturePreviewVisible.value = true
+}
+
+const handleConfirmPublish = async () => {
+  if (!publishOrder.value) return
+  if (sanxinDoneCount.value !== 2) {
+    ElMessage.warning("请完成测试方确认项（序号1-2）填写")
+    return
+  }
+  if (!publishSignatureRawFile.value) {
+    ElMessage.warning("请上传管理员电子签名")
+    return
+  }
+  publishLoading.value = true
+  try {
+    const formData = new FormData()
+    formData.append("admin_signature", publishSignatureRawFile.value)
+    formData.append("confirm_date", publishConfirmDate.value)
+    formData.append("tester_item_1", sanxinTesterAnswers[0] || "")
+    formData.append("tester_item_2", sanxinTesterAnswers[1] || "")
+    formData.append("is_sanxin", sanxinHasRisk.value ? "1" : "0")
+    const res = await publishHighTempPressureOrderApi(publishOrder.value.id, formData)
     if (res.code === 0) {
       ElMessage.success("发布成功")
+      publishDialogVisible.value = false
       getList()
     } else {
       ElMessage.error(res.msg || "发布失败")
@@ -192,6 +405,8 @@ const handlePublish = async (row: HighTempPressureOrderListItem) => {
   } catch (error) {
     console.error(error)
     ElMessage.error("发布失败")
+  } finally {
+    publishLoading.value = false
   }
 }
 
@@ -253,11 +468,53 @@ onMounted(() => {
 
       <div class="table-wrapper">
         <el-table :data="tableData" stripe border style="width: 100%">
-          <el-table-column prop="task_number" label="任务单号" width="180" align="center" />
-          <el-table-column prop="applicant" label="申请人" min-width="120" align="center" />
-          <el-table-column prop="device_name" label="设备名称" min-width="150" align="center" />
-          <el-table-column prop="target_temp" label="目标温度(°C)" width="120" align="center" />
-          <el-table-column prop="target_pressure" label="目标压力(MPa)" width="120" align="center" />
+          <el-table-column prop="task_number" label="任务单编号" width="160" align="center" />
+          <el-table-column prop="applicant" label="申请人" min-width="100" align="center" />
+          <el-table-column label="待测仪器" min-width="160" align="center">
+            <template #default="{ row }">
+              <span>{{ row.instrument_names || "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="仪器SN号" min-width="160" align="center">
+            <template #default="{ row }">
+              <span>{{ row.instrument_sns || "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="测试类型" min-width="140" align="center">
+            <template #default="{ row }">
+              <span>{{ row.test_types || "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="待测数量" width="90" align="center">
+            <template #default="{ row }">
+              <span>{{ row.instrument_count ?? 0 }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="使用设备" min-width="140" align="center">
+            <template #default="{ row }">
+              <span>{{ row.use_device || row.device_name || "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="最大直径(mm)" width="120" align="center">
+            <template #default="{ row }">
+              <span>{{ row.max_diameter ?? "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="温度(°C)" width="100" align="center">
+            <template #default="{ row }">
+              <span>{{ row.target_temp ?? "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="压力(MPa)" width="100" align="center">
+            <template #default="{ row }">
+              <span>{{ row.target_pressure ?? "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="保温保压时间(分)" width="140" align="center">
+            <template #default="{ row }">
+              <span>{{ row.hold_time ?? "-" }}</span>
+            </template>
+          </el-table-column>
           <el-table-column label="状态" width="100" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">{{ row.status_text || row.status }}</el-tag>
@@ -266,7 +523,9 @@ onMounted(() => {
           <el-table-column label="操作" width="160" align="center" fixed="right">
             <template #default="{ row }">
               <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
-              <el-link v-if="row.status === 0" type="success" class="el-link" @click="handlePublish(row)">发布</el-link>
+              <el-link v-if="row.status === 0" type="success" class="el-link" @click="showPublishDialog(row)"
+                >发布</el-link
+              >
               <el-link v-if="row.status === 0" type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
             </template>
           </el-table-column>
@@ -309,32 +568,106 @@ onMounted(() => {
           </el-col>
         </el-row>
 
-        <el-form-item label="设备名称" prop="device_name">
-          <el-input v-model="createForm.device_name" placeholder="请输入设备名称" />
-        </el-form-item>
-        <el-form-item label="设备编号" prop="device_number">
-          <el-input v-model="createForm.device_number" placeholder="请输入设备编号" />
-        </el-form-item>
-        <el-form-item label="任务单号" prop="task_number">
-          <el-input v-model="createForm.task_number" placeholder="请输入任务单号" />
+        <el-form-item label="任务单编号" prop="task_number">
+          <el-input v-model="createForm.task_number" placeholder="请输入任务单编号" />
         </el-form-item>
 
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="目标温度(°C)" prop="target_temp">
+            <el-form-item label="温度(°C)" prop="target_temp">
               <el-input-number v-model="createForm.target_temp" :min="0" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="目标压力(MPa)" prop="target_pressure">
+            <el-form-item label="压力(MPa)" prop="target_pressure">
               <el-input-number v-model="createForm.target_pressure" :min="0" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
 
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="最大直径(mm)">
+              <el-input-number v-model="createForm.max_diameter" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="保温保压时间(分)">
+              <el-input-number v-model="createForm.hold_time" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item label="使用设备" prop="use_device">
+          <el-input v-model="createForm.use_device" placeholder="请输入使用设备" />
+        </el-form-item>
+
         <el-form-item label="申请人" prop="applicant">
           <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
         </el-form-item>
+
+        <el-form-item label="待测仪器">
+          <div style="width: 100%">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 10px">
+              <el-button type="primary" icon="CirclePlus" @click="addInstrumentRow">新增仪器</el-button>
+            </div>
+            <el-table :data="instrumentFormList" border style="width: 100%">
+              <el-table-column label="待测仪器" min-width="160" align="center">
+                <template #default="{ row }">
+                  <el-input v-model="row.instrument_name" placeholder="请输入待测仪器" />
+                </template>
+              </el-table-column>
+              <el-table-column label="仪器SN号" min-width="160" align="center">
+                <template #default="{ row }">
+                  <el-input v-model="row.instrument_sn" placeholder="请输入SN号" />
+                </template>
+              </el-table-column>
+              <el-table-column label="测试类型" min-width="140" align="center">
+                <template #default="{ row }">
+                  <el-input v-model="row.test_type" placeholder="请输入测试类型" />
+                </template>
+              </el-table-column>
+              <el-table-column label="数量" width="90" align="center">
+                <template #default="{ row }">
+                  <el-input-number
+                    v-model="row.quantity"
+                    :min="1"
+                    :step="1"
+                    step-strictly
+                    :controls="false"
+                    size="small"
+                    style="width: 100%"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column label="最大直径(mm)" width="130" align="center">
+                <template #default="{ row }">
+                  <el-input-number
+                    v-model="row.max_diameter"
+                    :min="0"
+                    :step="1"
+                    step-strictly
+                    :controls="false"
+                    size="small"
+                    style="width: 100%"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" align="center">
+                <template #default="{ $index }">
+                  <el-button
+                    type="danger"
+                    :disabled="instrumentFormList.length <= 1"
+                    @click="removeInstrumentRow($index)"
+                  >
+                    删除
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-form-item>
+
         <el-form-item label="备注" style="margin-top: 8px">
           <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
@@ -343,6 +676,163 @@ onMounted(() => {
         <el-button @click="createDialogVisible = false">取消</el-button>
         <el-button type="primary" :loading="createLoading" :disabled="!canCreate" @click="handleCreate">创建</el-button>
       </template>
+    </el-dialog>
+
+    <el-dialog v-model="publishDialogVisible" width="920px" :close-on-click-modal="false" class="publish-dialog">
+      <template #header>
+        <div class="publish-dialog-header">
+          <div>
+            <div class="publish-dialog-title">工单分配 · "三新"测试确认单填写</div>
+            <div class="publish-dialog-subtitle">WT3-TC/ZZ-01-R04 · v1.0 | 测试方确认项由管理员填写</div>
+          </div>
+        </div>
+      </template>
+      <div class="publish-wrap">
+        <el-row :gutter="20">
+          <el-col :span="14">
+            <el-card v-if="publishOrder" shadow="never" class="publish-card">
+              <template #header>
+                <div class="publish-card-title">工单信息</div>
+              </template>
+              <el-descriptions :column="2" border>
+                <el-descriptions-item label="工单编号">{{ publishOrder.task_number }}</el-descriptions-item>
+                <el-descriptions-item label="状态">
+                  <el-tag :type="getStatusType(publishOrder.status)">{{
+                    publishOrder.status_text || publishOrder.status
+                  }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="设备名称">{{ publishOrder.device_name || "-" }}</el-descriptions-item>
+                <el-descriptions-item label="设备编号">{{ publishOrder.device_number || "-" }}</el-descriptions-item>
+                <el-descriptions-item label="目标温度">{{ publishOrder.target_temp }}°C</el-descriptions-item>
+                <el-descriptions-item label="目标压力">{{ publishOrder.target_pressure }}MPa</el-descriptions-item>
+              </el-descriptions>
+            </el-card>
+            <el-card shadow="never" class="publish-card">
+              <template #header>
+                <div class="publish-card-title">申请方确认项（序号 1-5）</div>
+              </template>
+              <div v-for="(text, idx) in sanxinApplicantItems" :key="idx" class="publish-readonly-row">
+                <div class="publish-readonly-index">{{ idx + 1 }}</div>
+                <div class="publish-readonly-content">{{ text }}</div>
+                <el-tag
+                  :type="sanxinApplicantAnswers[idx] === 'yes' ? 'danger' : 'success'"
+                  effect="light"
+                >
+                  {{ sanxinApplicantAnswers[idx] === "yes" ? "是" : "否" }}
+                </el-tag>
+              </div>
+            </el-card>
+          </el-col>
+          <el-col :span="10">
+            <el-card shadow="never" class="publish-card">
+              <div class="publish-section">
+                <div class="publish-section-head">
+                  <span>测试方填写进度</span>
+                  <span>{{ sanxinDoneCount }}/2 已填写</span>
+                </div>
+                <el-progress :percentage="sanxinProgressPercent" :stroke-width="8" :show-text="false" />
+              </div>
+              <div class="publish-section">
+                <el-alert type="info" :closable="false" show-icon>
+                  <template #title>
+                    <div class="publish-alert-content">
+                      <div><strong>申请方汇总：</strong>{{ sanxinApplicantSummaryText }}</div>
+                      <div>申请方签字：{{ sanxinApplicantSigner }}</div>
+                    </div>
+                  </template>
+                </el-alert>
+              </div>
+              <div v-for="(title, idx) in sanxinTesterItems" :key="idx" class="publish-question">
+                <div class="publish-question-title">
+                  <span class="publish-question-index">{{ idx + 1 }}</span>
+                  <span>{{ title }}</span>
+                </div>
+                <div class="publish-question-actions">
+                  <el-button
+                    :type="sanxinTesterAnswers[idx] === 'yes' ? 'danger' : undefined"
+                    :plain="sanxinTesterAnswers[idx] !== 'yes'"
+                    @click="setSanxinAnswer(idx, 'yes')"
+                  >
+                    是（不合格）
+                  </el-button>
+                  <el-button
+                    :type="sanxinTesterAnswers[idx] === 'no' ? 'success' : undefined"
+                    :plain="sanxinTesterAnswers[idx] !== 'no'"
+                    @click="setSanxinAnswer(idx, 'no')"
+                  >
+                    否（合格）
+                  </el-button>
+                </div>
+              </div>
+              <el-alert v-if="sanxinHasRisk" type="warning" :closable="false" show-icon class="publish-section">
+                存在“是”选项，本次将被标记为“三新”测试，请遵守相关安全规程。
+              </el-alert>
+              <div class="publish-section">
+                <div class="publish-field-label">管理员电子签名 <span class="publish-required">*</span></div>
+                <el-upload
+                  v-model:file-list="publishSignatureFileList"
+                  :show-file-list="false"
+                  :auto-upload="false"
+                  :limit="1"
+                  accept="image/*"
+                  :disabled="!!publishSignatureRawFile"
+                  :on-change="handlePublishSignatureChange"
+                  :on-remove="handlePublishSignatureRemove"
+                >
+                  <div
+                    class="publish-signature-box"
+                    :class="{ 'is-filled': !!publishSignatureRawFile }"
+                    @click="publishSignatureRawFile ? openSignaturePreview() : undefined"
+                  >
+                    <div v-if="!publishSignatureRawFile" class="publish-signature-placeholder">
+                      <div class="publish-signature-hint">点击上传签名图片</div>
+                      <div class="publish-signature-tip">支持 PNG / JPG，上传后自动保存</div>
+                    </div>
+                    <img v-else class="publish-signature-image" :src="publishSignaturePreviewUrl" alt="签名预览" />
+                  </div>
+                </el-upload>
+                <div v-if="publishSignatureRawFile" class="publish-signature-actions">
+                  <span class="publish-signature-saved">已保存签名</span>
+                  <el-link type="primary" @click="handleReuploadSignature">重新上传</el-link>
+                </div>
+              </div>
+              <div class="publish-section">
+                <div class="publish-field-label">确认日期（自动填充）</div>
+                <el-date-picker
+                  v-model="publishConfirmDate"
+                  type="date"
+                  style="width: 100%"
+                  value-format="YYYY-MM-DD"
+                  disabled
+                />
+              </div>
+            </el-card>
+          </el-col>
+        </el-row>
+      </div>
+      <template #footer>
+        <el-button @click="publishDialogVisible = false">取消</el-button>
+        <el-button
+          type="primary"
+          :loading="publishLoading"
+          :disabled="!canConfirmPublish"
+          @click="handleConfirmPublish"
+        >
+          确认并下发工单
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="signaturePreviewVisible"
+      title="管理员电子签名"
+      width="640px"
+      :close-on-click-modal="true"
+      append-to-body
+    >
+      <div v-if="publishSignaturePreviewUrl" class="signature-preview">
+        <img :src="publishSignaturePreviewUrl" alt="管理员电子签名" class="signature-preview-img" />
+      </div>
     </el-dialog>
 
     <el-drawer v-model="detailDialogVisible" title="工单详情" size="600px">
@@ -389,5 +879,216 @@ onMounted(() => {
 
 .el-link {
   margin: 0 4px;
+}
+
+.publish-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.publish-dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.publish-dialog-subtitle {
+  font-size: 11px;
+  color: #909399;
+  margin-top: 2px;
+}
+
+.publish-wrap {
+  font-size: 12px;
+}
+
+.publish-card {
+  margin-bottom: 16px;
+}
+
+.publish-card:last-child {
+  margin-bottom: 0;
+}
+
+.publish-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.publish-readonly-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.publish-readonly-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.publish-readonly-index {
+  width: 20px;
+  color: #606266;
+  font-weight: 600;
+  flex-shrink: 0;
+  line-height: 24px;
+}
+
+.publish-readonly-content {
+  flex: 1;
+  line-height: 1.6;
+  color: #303133;
+}
+
+.publish-section {
+  margin-bottom: 16px;
+}
+
+.publish-section:last-child {
+  margin-bottom: 0;
+}
+
+.publish-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  color: #606266;
+  font-size: 13px;
+}
+
+.publish-alert-content {
+  line-height: 1.7;
+}
+
+.publish-question {
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background-color: #fafafa;
+}
+
+.publish-question-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 12px;
+  line-height: 1.6;
+  color: #303133;
+}
+
+.publish-question-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #ecf5ff;
+  color: #409eff;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.publish-question-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.publish-question-actions :deep(.el-button) {
+  flex: 1;
+  margin-left: 0;
+}
+
+.publish-field-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #606266;
+  margin-bottom: 8px;
+}
+
+.publish-required {
+  color: #f56c6c;
+}
+
+.publish-signature-box {
+  border: 1px dashed #c0c4cc;
+  border-radius: 8px;
+  padding: 16px 12px;
+  text-align: center;
+  background: #fafafa;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.publish-signature-box:hover:not(.is-filled) {
+  border-color: #409eff;
+  background-color: #f5f7fa;
+}
+
+.publish-signature-box.is-filled {
+  border-style: solid;
+  border-color: #dcdfe6;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.publish-signature-placeholder {
+  min-height: 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.publish-signature-hint {
+  font-size: 13px;
+  color: #606266;
+}
+
+.publish-signature-tip {
+  font-size: 11px;
+  color: #909399;
+  margin-top: 4px;
+}
+
+.publish-signature-image {
+  max-height: 72px;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  margin: 0 auto;
+  border-radius: 4px;
+}
+
+.publish-signature-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.publish-signature-saved {
+  font-size: 11px;
+  color: #67c23a;
+}
+
+.signature-preview {
+  display: flex;
+  justify-content: center;
+}
+
+.signature-preview-img {
+  width: 100%;
+  max-height: 70vh;
+  object-fit: contain;
 }
 </style>

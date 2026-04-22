@@ -32,9 +32,7 @@ const rejectDialogVisible = ref(false)
 const rejectReason = ref("")
 const rejectingReportId = ref<number | null>(null)
 
-const getResultType = (
-  result: number
-): "success" | "warning" | "danger" | undefined => {
+const getResultType = (result: number): "success" | "warning" | "danger" | undefined => {
   const map: Record<number, "success" | "warning" | "danger"> = {
     1: "success",
     2: "danger",
@@ -43,9 +41,7 @@ const getResultType = (
   return map[result]
 }
 
-const getNodeStatusType = (
-  status?: string
-): "success" | "warning" | "danger" | "info" => {
+const getNodeStatusType = (status?: string): "success" | "warning" | "danger" | "info" => {
   switch (status) {
     case "success":
       return "success"
@@ -295,9 +291,7 @@ defineExpose({ resetSearch })
             </el-descriptions-item>
             <el-descriptions-item label="&#x5DE5;&#x827A;">
               {{ currentReport.order?.process?.name || "-" }}
-              <span v-if="currentReport.order?.process?.version">
-                (v{{ currentReport.order.process.version }})
-              </span>
+              <span v-if="currentReport.order?.process?.version"> (v{{ currentReport.order.process.version }}) </span>
             </el-descriptions-item>
             <el-descriptions-item label="&#x7535;&#x8DEF;&#x677F;&#x6570;&#x91CF;">
               {{ currentReport.order?.boardCount || "-" }}
@@ -395,12 +389,8 @@ defineExpose({ resetSearch })
 
       <template #footer>
         <el-button @click="detailVisible = false">&#x5173;&#x95ED;</el-button>
-        <el-button type="danger" :icon="Close" @click="showRejectDialog(currentReport!)">
-          &#x6253;&#x56DE;
-        </el-button>
-        <el-button type="success" :icon="Check" @click="handleApprove(currentReport!)">
-          &#x901A;&#x8FC7;
-        </el-button>
+        <el-button type="danger" :icon="Close" @click="showRejectDialog(currentReport!)"> &#x6253;&#x56DE; </el-button>
+        <el-button type="success" :icon="Check" @click="handleApprove(currentReport!)"> &#x901A;&#x8FC7; </el-button>
       </template>
     </el-dialog>
 

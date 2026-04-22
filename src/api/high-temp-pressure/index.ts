@@ -41,10 +41,16 @@ export function deleteHighTempPressureOrderApi(id: number) {
 }
 
 /** 发布高温高压井工单 */
-export function publishHighTempPressureOrderApi(id: number) {
+export function publishHighTempPressureOrderApi(id: number, data?: FormData) {
   return request<MutationResponse>({
     url: `test/high-temp-pressure/order/publish/${id}/`,
-    method: "post"
+    method: "post",
+    ...(data
+      ? {
+          headers: { "Content-Type": "multipart/form-data" },
+          data
+        }
+      : {})
   })
 }
 

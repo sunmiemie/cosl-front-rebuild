@@ -250,7 +250,9 @@
           <el-descriptions-item label="邮箱">{{ detailData.basic?.["邮箱"] }}</el-descriptions-item>
           <el-descriptions-item label="服务级别">{{ detailData.service }}</el-descriptions-item>
           <el-descriptions-item label="地址" :span="2">{{ detailData.basic?.["地址"] || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="科研项目预算编号" :span="2">{{ detailData.basic?.["科研项目预算编号"] || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="科研项目预算编号" :span="2">{{
+            detailData.basic?.["科研项目预算编号"] || "-"
+          }}</el-descriptions-item>
 
           <el-descriptions-item label="接收方式">{{ detailData.basic?.["接收方式"] || "-" }}</el-descriptions-item>
           <el-descriptions-item label="处理方式">{{ detailData.basic?.["处理方式"] || "-" }}</el-descriptions-item>

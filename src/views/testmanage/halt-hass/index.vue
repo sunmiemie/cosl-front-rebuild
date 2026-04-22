@@ -194,7 +194,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-table-column prop="version" label="版本" align="center" width="100" />
           <el-table-column label="关联板组" align="center" min-width="180">
             <template #default="{ row }">
-              <el-tag v-for="boardGroup in row.boardGroups" :key="boardGroup.id" type="info" size="small" style="margin: 2px">
+              <el-tag
+                v-for="boardGroup in row.boardGroups"
+                :key="boardGroup.id"
+                type="info"
+                size="small"
+                style="margin: 2px"
+              >
                 {{ boardGroup.name }}
               </el-tag>
               <span v-if="!row.boardGroups?.length">-</span>
@@ -219,7 +225,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             <template #default="{ row }">
               <el-button type="primary" link :icon="View" @click="handleView(row)">详情</el-button>
               <el-button v-if="canActivate(row)" type="success" link @click="handleActivate(row)">激活</el-button>
-              <el-button v-if="canSubmit(row.status)" type="warning" link @click="handleSubmitCheck(row)">提交审核</el-button>
+              <el-button v-if="canSubmit(row.status)" type="warning" link @click="handleSubmitCheck(row)"
+                >提交审核</el-button
+              >
               <el-button v-if="canDelete(row.status)" type="danger" link :icon="Delete" @click="handleDelete(row)">
                 删除
               </el-button>

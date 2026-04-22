@@ -234,9 +234,7 @@ const handleHaltHassCurrentChange = (page: number) => {
 }
 
 // 获取结果类型
-const getResultType = (
-  result: number
-): "success" | "warning" | "info" | "primary" | "danger" | undefined => {
+const getResultType = (result: number): "success" | "warning" | "info" | "primary" | "danger" | undefined => {
   const map: Record<number, "success" | "warning" | "info" | "primary" | "danger" | undefined> = {
     1: "success",
     2: "danger",

@@ -41,10 +41,17 @@ export function deleteSimulatedWellOrderApi(id: number) {
 }
 
 /** 发布模拟井工单 */
-export function publishSimulatedWellOrderApi(id: number) {
+export function publishSimulatedWellOrderApi(id: number, data?: FormData) {
   return request<MutationResponse>({
     url: `test/simulated-well/order/publish/${id}/`,
     method: "post"
+    ,
+    ...(data
+      ? {
+          headers: { "Content-Type": "multipart/form-data" },
+          data
+        }
+      : {})
   })
 }
 

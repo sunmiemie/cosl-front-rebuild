@@ -420,6 +420,63 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         }
       },
       {
+        path: "simulated-well-data-manage",
+        component: () => import("@/views/datamanage/simulated-well-data-manage/index.vue"),
+        redirect: "/datamanage/simulated-well-data-manage/report",
+        name: "SimulatedWellDataManage",
+        meta: {
+          title: "模拟井数据管理",
+          keepAlive: true
+        },
+        children: [
+          {
+            path: "report",
+            component: () => import("@/views/datamanage/historymange/components/SimulationWellReport.vue"),
+            name: "SimulatedWellReportManage",
+            meta: {
+              title: "模拟井报告审核",
+              keepAlive: true
+            }
+          },
+          {
+            path: "report-template",
+            component: () => import("@/views/datamanage/simulated-well-report-template/index.vue"),
+            name: "SimulatedWellReportTemplate",
+            meta: {
+              title: "模拟井报告模板",
+              keepAlive: true
+            }
+          },
+          {
+            path: "instrument-models",
+            component: () => import("@/views/datamanage/simulated-well-data-manage/instrument-models.vue"),
+            name: "SimulatedWellInstrumentModels",
+            meta: {
+              title: "仪器型号管理",
+              keepAlive: true
+            }
+          },
+          {
+            path: "instrument-list",
+            component: () => import("@/views/datamanage/simulated-well-data-manage/instrument-list.vue"),
+            name: "SimulatedWellInstrumentList",
+            meta: {
+              title: "仪器管理",
+              keepAlive: true
+            }
+          },
+          {
+            path: "usage-maintenance",
+            component: () => import("@/views/datamanage/simulated-well-data-manage/usage-maintenance.vue"),
+            name: "SimulatedWellUsageMaintenance",
+            meta: {
+              title: "使用与维保",
+              keepAlive: true
+            }
+          }
+        ]
+      },
+      {
         path: "reportCheckList",
         component: () => import("@/views/datamanage/report/index.vue"),
         name: "reportCheckList",

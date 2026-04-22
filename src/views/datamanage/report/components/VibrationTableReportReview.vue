@@ -61,9 +61,7 @@ const rejectingId = ref<number | null>(null)
 
 const allReports = ref<VibrationReport[]>([])
 
-const getResultType = (
-  result: number
-): "success" | "warning" | "danger" | undefined => {
+const getResultType = (result: number): "success" | "warning" | "danger" | undefined => {
   const map: Record<number, string> = { 1: "success", 2: "danger", 3: "warning" }
   return (map[result] as "success" | "warning" | "danger" | undefined) ?? undefined
 }

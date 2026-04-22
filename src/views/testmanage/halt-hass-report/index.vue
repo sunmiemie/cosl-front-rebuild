@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
-import { approveHaltHassReport, getHaltHassReportDetail, getHaltHassReportList, rejectHaltHassReport } from "@/api/halt-hass"
+import {
+  approveHaltHassReport,
+  getHaltHassReportDetail,
+  getHaltHassReportList,
+  rejectHaltHassReport
+} from "@/api/halt-hass"
 import type { HaltHassReportDetail, HaltHassReportListItem } from "@/api/halt-hass/types"
 import { useUserStore } from "@/store/modules/user"
 
@@ -311,7 +316,12 @@ onMounted(() => {
               </el-col>
             </el-row>
 
-            <el-table :data="currentReport.reportJson.flowchartResult.nodeResults" size="small" border style="margin-top: 20px">
+            <el-table
+              :data="currentReport.reportJson.flowchartResult.nodeResults"
+              size="small"
+              border
+              style="margin-top: 20px"
+            >
               <el-table-column prop="nodeId" label="节点 ID" width="120" />
               <el-table-column prop="nodeName" label="节点名称" min-width="150" />
               <el-table-column label="状态" width="100" align="center">

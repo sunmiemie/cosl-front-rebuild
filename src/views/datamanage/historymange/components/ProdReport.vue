@@ -260,15 +260,13 @@ const downloadReports = async () => {
         } else {
           downloadUrl = `${import.meta.env.VITE_BASE_API}data/func-report/pdf/download?id=${item.id}`
         }
-        const downloadPromise = downloadFile(downloadUrl, item.report_pdf_filepath).then(
-          async (downloadSuccessful) => {
-            if (downloadSuccessful) {
-              await setDownloadSuccessApi(item.id, "正式报告")
-            } else {
-              ElMessage.error("下载失败")
-            }
+        const downloadPromise = downloadFile(downloadUrl, item.report_pdf_filepath).then(async (downloadSuccessful) => {
+          if (downloadSuccessful) {
+            await setDownloadSuccessApi(item.id, "正式报告")
+          } else {
+            ElMessage.error("下载失败")
           }
-        )
+        })
 
         downloadPromises.push(downloadPromise)
         break

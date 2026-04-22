@@ -242,7 +242,12 @@ onMounted(() => {
               </el-col>
             </el-row>
 
-            <el-table :data="currentReport.reportJson.flowchartResult.nodeResults" size="small" border style="margin-top: 20px">
+            <el-table
+              :data="currentReport.reportJson.flowchartResult.nodeResults"
+              size="small"
+              border
+              style="margin-top: 20px"
+            >
               <el-table-column prop="nodeId" label="节点 ID" width="120" />
               <el-table-column prop="nodeName" label="节点名称" min-width="150" />
               <el-table-column label="状态" width="100" align="center">
