@@ -44,8 +44,7 @@ export function deleteSimulatedWellOrderApi(id: number) {
 export function publishSimulatedWellOrderApi(id: number, data?: FormData) {
   return request<MutationResponse>({
     url: `test/simulated-well/order/publish/${id}/`,
-    method: "post"
-    ,
+    method: "post",
     ...(data
       ? {
           headers: { "Content-Type": "multipart/form-data" },

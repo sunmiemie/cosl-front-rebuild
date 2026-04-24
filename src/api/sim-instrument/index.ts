@@ -31,4 +31,3 @@ export function deleteSimInstrumentApi(instrumentId: number) {
     method: "delete"
   })
 }
-
