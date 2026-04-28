@@ -27,6 +27,7 @@ export interface InspectionBaseInfoDetailItem {
   sort_no: number
   content: string
   require_photo: boolean
+  photo?: string | null
   created_at?: string | null
   updated_at?: string | null
 }
@@ -73,6 +74,7 @@ export interface InspectionBaseInfoSaveRequest {
     sort_no?: number
     content: string
     require_photo: boolean
+    photo?: string | null
   }>
 }
 

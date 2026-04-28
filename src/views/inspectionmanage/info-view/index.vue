@@ -32,7 +32,9 @@ const monthRecords = ref<InspectionBaseInfoListItem[]>([])
 const drawerVisible = ref(false)
 const currentRecord = ref<InspectionBaseInfoDetail | null>(null)
 
-const activeGroupInfo = computed(() => inspectionGroups.find((item) => item.value === activeGroup.value) || inspectionGroups[0])
+const activeGroupInfo = computed(
+  () => inspectionGroups.find((item) => item.value === activeGroup.value) || inspectionGroups[0]
+)
 
 const recordsByDate = computed(() => {
   return monthRecords.value.reduce<Record<string, InspectionBaseInfoListItem[]>>((map, item) => {
@@ -65,6 +67,14 @@ function getStatusType(status: InspectionBaseInfoListItem["status"]) {
   if (status === "正常") return "success"
   if (status === "维保中") return "warning"
   return "danger"
+}
+
+function getPhotoUrl(photo?: string | null) {
+  const value = (photo || "").trim()
+  if (!value) return ""
+  if (/^(https?:)?\/\//i.test(value) || value.startsWith("data:") || value.startsWith("blob:")) return value
+  const baseUrl = import.meta.env.VITE_BASE_API || window.location.origin
+  return new URL(value, baseUrl).toString()
 }
 
 function selectDate(val: CalendarDateType) {
@@ -224,6 +234,19 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
           <el-table-column prop="content" label="巡检内容" min-width="240" />
           <el-table-column label="是否需要拍照" width="126" align="center">
             <template #default="{ row }">{{ row.require_photo ? "是" : "否" }}</template>
+          </el-table-column>
+          <el-table-column label="巡检图片" width="136" align="center">
+            <template #default="{ row }">
+              <el-image
+                v-if="getPhotoUrl(row.photo)"
+                class="inspection-photo"
+                :src="getPhotoUrl(row.photo)"
+                :preview-src-list="[getPhotoUrl(row.photo)]"
+                preview-teleported
+                fit="cover"
+              />
+              <span v-else class="empty-photo">暂无图片</span>
+            </template>
           </el-table-column>
         </el-table>
       </template>
@@ -444,6 +467,19 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
   color: var(--el-text-color-primary);
   font-size: 15px;
   font-weight: 700;
+}
+
+.inspection-photo {
+  width: 72px;
+  height: 54px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
+  background: var(--el-fill-color-light);
+}
+
+.empty-photo {
+  color: var(--el-text-color-placeholder);
+  font-size: 13px;
 }
 
 @media (max-width: 1200px) {
