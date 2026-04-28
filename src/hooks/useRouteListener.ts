@@ -11,10 +11,9 @@ let latestRoute: RouteLocationNormalized
 
 /** 设置最新的路由信息，触发路由变化事件 */
 export const setRouteChange = (to: RouteLocationNormalized) => {
-  // 触发事件
-  emitter.emit(key, to)
-  // 缓存最新的路由信息
+  // 先更新缓存，保证事件处理过程中新增的立即订阅拿到当前路由。
   latestRoute = to
+  emitter.emit(key, to)
 }
 
 /** 单独监听路由会浪费渲染性能，使用发布订阅模式去进行分发管理 */
