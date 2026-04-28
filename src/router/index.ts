@@ -246,6 +246,35 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       }
     ]
+  },
+  {
+    path: "/inspectionmanage",
+    component: Layouts,
+    redirect: "/inspectionmanage/view",
+    meta: {
+      title: "巡检管理",
+      elIcon: "Tickets"
+    },
+    children: [
+      {
+        path: "view",
+        component: () => import("@/views/inspectionmanage/info-view/index.vue"),
+        name: "InspectionInfoView",
+        meta: {
+          title: "巡检信息查看",
+          keepAlive: true
+        }
+      },
+      {
+        path: "base-info",
+        component: () => import("@/views/inspectionmanage/base-info/index.vue"),
+        name: "InspectionBaseInfo",
+        meta: {
+          title: "巡检基础信息",
+          keepAlive: true
+        }
+      }
+    ]
   }
 ]
 
