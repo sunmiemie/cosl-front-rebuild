@@ -714,10 +714,7 @@ onMounted(() => {
               <div v-for="(text, idx) in sanxinApplicantItems" :key="idx" class="publish-readonly-row">
                 <div class="publish-readonly-index">{{ idx + 1 }}</div>
                 <div class="publish-readonly-content">{{ text }}</div>
-                <el-tag
-                  :type="sanxinApplicantAnswers[idx] === 'yes' ? 'danger' : 'success'"
-                  effect="light"
-                >
+                <el-tag :type="sanxinApplicantAnswers[idx] === 'yes' ? 'danger' : 'success'" effect="light">
                   {{ sanxinApplicantAnswers[idx] === "yes" ? "是" : "否" }}
                 </el-tag>
               </div>

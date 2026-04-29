@@ -12,16 +12,18 @@ export type GetUserResponseData = ApiResponseData<{
 }>
 
 export interface CreateUserRequestData {
-  username: ""
-  password: ""
-  role: ""
-  introduction: ""
+  username: string
+  password?: string
+  nickname?: string
+  role?: number | null
+  introduction?: string
 }
 
 export interface UpdateUserRequestData {
-  id: ""
-  username: ""
-  password?: ""
-  role: ""
-  introduction: ""
+  id: number
+  username: string
+  password?: string
+  nickname?: string
+  role?: number | null
+  introduction?: string
 }

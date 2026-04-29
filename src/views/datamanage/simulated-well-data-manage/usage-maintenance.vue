@@ -97,7 +97,16 @@ const activeTab = ref("usage")
 const headerCellStyle = () => ({ whiteSpace: "nowrap" })
 
 const usageData = [
-  { id: "U001", model: "HCAL61XA", sn: "SN-1001", jobId: "DO-001", date: "2025-01-11", temperature: 85, duration: 2.1, status: "正常" }
+  {
+    id: "U001",
+    model: "HCAL61XA",
+    sn: "SN-1001",
+    jobId: "DO-001",
+    date: "2025-01-11",
+    temperature: 85,
+    duration: 2.1,
+    status: "正常"
+  }
 ]
 const cycleData = [{ id: "C001", model: "HCAL61XA", normal: 50, high: 10, coef: 5 }]
 const maintainData = [

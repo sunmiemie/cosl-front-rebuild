@@ -270,7 +270,7 @@ export const constantRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/inspectionmanage/base-info/index.vue"),
         name: "InspectionBaseInfo",
         meta: {
-          title: "巡检基础信息",
+          title: "巡检信息添加",
           keepAlive: true
         }
       }

@@ -43,4 +43,3 @@ export interface CreateSimInstrumentRequest {
 }
 
 export interface UpdateSimInstrumentRequest extends CreateSimInstrumentRequest {}
-

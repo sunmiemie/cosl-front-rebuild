@@ -77,7 +77,13 @@ const addUser = () => {
     if (valid) {
       addingUser.value = true
 
-      createUserDataApi(userInfoFormData)
+      createUserDataApi({
+        username: userInfoFormData.username,
+        password: userInfoFormData.password,
+        nickname: userInfoFormData.nickname,
+        role: userInfoFormData.role === "" ? null : userInfoFormData.role,
+        introduction: userInfoFormData.introduction
+      })
         .then(() => {
           ElMessage.success("新增成功")
           clearUserInfoFormData()
