@@ -17,7 +17,24 @@
         </div>
         <div class="reviewer-sign">
           <div class="reviewer-sign-label">签字确认</div>
-          <div class="reviewer-sign-box">{{ reviewerName }}</div>
+          <div class="reviewer-sign-box">
+            <img v-if="signImageUrl" class="reviewer-sign-image" :src="signImageUrl" alt="签字图片" />
+            <div v-else class="reviewer-sign-placeholder">{{ reviewerName }}</div>
+          </div>
+          <div class="reviewer-sign-actions">
+            <el-upload
+              v-model:file-list="signFileList"
+              :auto-upload="false"
+              :show-file-list="false"
+              :limit="1"
+              accept="image/*"
+              :on-change="handleSignChange"
+              :on-exceed="handleSignExceed"
+            >
+              <el-button size="small" type="primary" plain>上传签字图片</el-button>
+            </el-upload>
+            <el-button v-if="signImageUrl" size="small" type="danger" plain @click="clearSignImage"> 清除 </el-button>
+          </div>
         </div>
       </div>
     </el-card>
@@ -142,7 +159,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue"
-import { ElMessage, ElMessageBox } from "element-plus"
+import { ElMessage, ElMessageBox, type UploadFile, type UploadProps, type UploadUserFile } from "element-plus"
 import { useUserStoreHook } from "@/store/modules/user"
 import {
   getSimulatedWellReportListApi,
@@ -161,6 +178,39 @@ type AuditRow = SimulatedWellReportListItem & {
 const userStore = useUserStoreHook()
 const reviewerName = computed(() => userStore.nickName || userStore.username || "-")
 const reviewerRole = computed(() => (userStore.roles?.length ? `角色：${userStore.roles.join(", ")}` : ""))
+
+const signImageUrl = ref("")
+const signFileList = ref<UploadUserFile[]>([])
+
+const clearSignImage = () => {
+  signImageUrl.value = ""
+  signFileList.value = []
+}
+
+const handleSignExceed: UploadProps["onExceed"] = (_files) => {
+  clearSignImage()
+}
+
+const handleSignChange: UploadProps["onChange"] = (file: UploadFile) => {
+  const raw = file.raw
+  if (!raw) return
+  if (!raw.type.startsWith("image/")) {
+    ElMessage.error("请上传图片格式文件")
+    clearSignImage()
+    return
+  }
+  if (raw.size > 5 * 1024 * 1024) {
+    ElMessage.error("图片大小不能超过 5MB")
+    clearSignImage()
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = () => {
+    signImageUrl.value = String(reader.result || "")
+    signFileList.value = [{ name: raw.name, status: "success" }]
+  }
+  reader.readAsDataURL(raw)
+}
 
 const loading = ref(false)
 const rows = ref<AuditRow[]>([])
@@ -419,6 +469,29 @@ onMounted(() => {
   justify-content: center;
   font-size: 14px;
   color: #303133;
+  overflow: hidden;
+}
+
+.reviewer-sign-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.reviewer-sign-placeholder {
+  width: 100%;
+  text-align: center;
+  padding: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reviewer-sign-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 @media (max-width: 900px) {
@@ -435,6 +508,10 @@ onMounted(() => {
     width: 100%;
     padding-right: 0;
     text-align: left;
+  }
+
+  .reviewer-sign-actions {
+    justify-content: flex-start;
   }
 }
 </style>

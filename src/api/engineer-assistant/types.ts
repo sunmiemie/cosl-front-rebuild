@@ -49,11 +49,20 @@ export type EngineerAssistantApplicationForm = {
   raw?: unknown
 }
 
-export type GetEngineerAssistantUsersResponse = EngineerAssistantBaseResponse<EngineerAssistantListData<EngineerAssistantUser>>
-export type GetEngineerAssistantTestTypesResponse = EngineerAssistantBaseResponse<EngineerAssistantListData<EngineerAssistantTestType>>
-export type GetEngineerAssistantTestStatusesResponse = EngineerAssistantBaseResponse<EngineerAssistantListData<EngineerAssistantTestStatus>>
-export type GetEngineerAssistantApplicationFormsResponse = EngineerAssistantBaseResponse<EngineerAssistantListData<EngineerAssistantApplicationForm>>
-export type GetEngineerAssistantApplicationFormDetailResponse = EngineerAssistantBaseResponse<EngineerAssistantApplicationForm>
+export type GetEngineerAssistantUsersResponse = EngineerAssistantBaseResponse<
+  EngineerAssistantListData<EngineerAssistantUser>
+>
+export type GetEngineerAssistantTestTypesResponse = EngineerAssistantBaseResponse<
+  EngineerAssistantListData<EngineerAssistantTestType>
+>
+export type GetEngineerAssistantTestStatusesResponse = EngineerAssistantBaseResponse<
+  EngineerAssistantListData<EngineerAssistantTestStatus>
+>
+export type GetEngineerAssistantApplicationFormsResponse = EngineerAssistantBaseResponse<
+  EngineerAssistantListData<EngineerAssistantApplicationForm>
+>
+export type GetEngineerAssistantApplicationFormDetailResponse =
+  EngineerAssistantBaseResponse<EngineerAssistantApplicationForm>
 
 export type PushEngineerAssistantProcessesBody = {
   processDtoList: Array<{
