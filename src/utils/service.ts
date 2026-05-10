@@ -4,6 +4,45 @@ import { ElMessage } from "element-plus"
 import { get, merge } from "lodash-es"
 import { getToken } from "./cache/cookies"
 
+const httpStatusMessage: Record<number, string> = {
+  400: "请求参数错误（400）",
+  401: "登录状态已失效，请重新登录",
+  403: "拒绝访问，没有操作权限（403）",
+  404: "接口不存在或后端地址配置错误（404）",
+  408: "请求超时（408）",
+  500: "服务器内部错误（500）",
+  501: "服务未实现（501）",
+  502: "网关错误（502）",
+  503: "服务不可用（503）",
+  504: "网关超时（504）",
+  505: "HTTP 版本不受支持（505）"
+}
+
+const isReadableMessage = (value: unknown): value is string => {
+  if (typeof value !== "string") return false
+  const text = value.trim()
+  return text.length > 0 && !text.startsWith("<!DOCTYPE") && !text.includes("<html")
+}
+
+const resolveRequestErrorMessage = (error: any) => {
+  const data = get(error, "response.data")
+  const status = Number(get(error, "response.status"))
+  const backendMessage =
+    get(data, "message") ||
+    get(data, "msg") ||
+    get(data, "errormessage") ||
+    get(data, "errorMessage") ||
+    get(data, "error")
+
+  if (isReadableMessage(data)) return data.trim()
+  if (isReadableMessage(backendMessage)) return backendMessage.trim()
+  if (status && httpStatusMessage[status]) return httpStatusMessage[status]
+  if (status) return `请求失败（${status}）`
+  if (error?.code === "ERR_NETWORK") return "无法连接后端服务，请检查接口地址或后端是否启动"
+  if (isReadableMessage(error?.message)) return error.message
+  return "请求失败"
+}
+
 /** 退出登录并强制刷新页面（会重定向到登录页） */
 function logout() {
   useUserStoreHook().logout()
@@ -52,47 +91,13 @@ function createService() {
     (error) => {
       // status 是 HTTP 状态码
       const status = get(error, "response.status")
-      const errormessage = get(error, "response.data.errormessage")
-      switch (status) {
-        case 400:
-          error.message = "请求错误"
-          break
-        case 401:
-          // Token 过期时
-          logout()
-          break
-        case 403:
-          error.message = "拒绝访问"
-          break
-        case 404:
-          error.message = "请求地址出错"
-          break
-        case 408:
-          error.message = "请求超时"
-          break
-        case 500:
-          error.message = "服务器内部错误"
-          break
-        case 501:
-          error.message = "服务未实现"
-          break
-        case 502:
-          error.message = "网关错误"
-          break
-        case 503:
-          error.message = "服务不可用"
-          break
-        case 504:
-          error.message = "网关超时"
-          break
-        case 505:
-          error.message = "HTTP 版本不受支持"
-          break
-        default:
-          ElMessage.error(errormessage)
-          break
+      error.message = resolveRequestErrorMessage(error)
+      if (status === 401) {
+        // Token 过期时
+        logout()
+      } else {
+        ElMessage.error(error.message)
       }
-      // ElMessage.error(error.message)
       return Promise.reject(error)
     }
   )

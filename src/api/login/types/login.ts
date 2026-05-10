@@ -7,4 +7,20 @@ export interface LoginRequestData {
 
 export type LoginResponseData = ApiResponseData<{ token: string }>
 
-export type UserInfoResponseData = ApiResponseData<{ id: number; username: string; roles: string[]; nickName: string }>
+export interface UserPermissionInfo {
+  id: number
+  name: string
+  code?: string
+  category?: string
+  scope?: string
+  action?: string
+}
+
+export type UserInfoResponseData = ApiResponseData<{
+  id: number
+  username: string
+  roles: string[]
+  permissionCodes?: string[]
+  permissions?: UserPermissionInfo[]
+  nickName: string
+}>

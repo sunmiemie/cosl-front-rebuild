@@ -1,12 +1,12 @@
 export interface CreateRoleRequestData {
-  roleName: ""
-  permissions: []
+  roleName: string
+  permissions: number[]
 }
 
 export interface GetRoleData {
   id: number
   roleName: string
-  permissionIds: number[]
+  permissions: number[]
 }
 
 export type GetRoleResponseData = ApiResponseData<{
@@ -15,7 +15,7 @@ export type GetRoleResponseData = ApiResponseData<{
 }>
 
 export interface UpdateRoleRequestData {
-  id: ""
-  roleName: ""
+  roleId: number | string
+  roleName: string
   permissions: number[]
 }

@@ -1,6 +1,7 @@
 import { type RouteRecordRaw, createRouter } from "vue-router"
 import { history, flatMultiLevelRoutes } from "./helper"
 import routeSettings from "@/config/route"
+import { AddOrderPermissionCodes, PermissionCode, ReportReviewPermissionCodes } from "@/constants/permission"
 
 const Layouts = () => import("@/layouts/index.vue")
 
@@ -299,6 +300,8 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "TestOrder",
         meta: {
           title: "测试工单列表",
+          roles: ["11"],
+          permissions: AddOrderPermissionCodes,
           keepAlive: true
         }
       },
@@ -404,6 +407,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         meta: {
           title: "HALT-HASS工单",
           keepAlive: true,
+          permissions: [PermissionCode.TestOrderCreateHaltHass],
           hidden: true // 已集成到测试工单列表
         }
       },
@@ -414,6 +418,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         meta: {
           title: "HALT-HASS报告审核",
           keepAlive: true,
+          permissions: [PermissionCode.ReportReviewHaltHass],
           hidden: true // 已集成到报告审核页面
         }
       }
@@ -464,6 +469,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
             name: "SimulatedWellReportManage",
             meta: {
               title: "模拟井报告审核",
+              permissions: [PermissionCode.ReportReviewSimulatedWell],
               keepAlive: true
             }
           },
@@ -512,6 +518,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         meta: {
           title: "报告审核列表",
           roles: ["16"],
+          permissions: ReportReviewPermissionCodes,
           keepAlive: true
         }
       },
@@ -521,6 +528,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "checkReport",
         meta: {
           title: "报告审核",
+          permissions: [PermissionCode.ReportReviewBasic],
           keepAlive: true,
           hidden: true
         }
@@ -531,6 +539,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "checkFunctionalReport",
         meta: {
           title: "功能性测试报告审核",
+          permissions: [PermissionCode.ReportReviewBasic],
           keepAlive: true,
           hidden: true
         }
@@ -541,6 +550,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "checkTempReport",
         meta: {
           title: "临时报告审核",
+          permissions: [PermissionCode.ReportReviewBasic],
           keepAlive: true,
           hidden: true
         }
@@ -707,7 +717,7 @@ export function resetRouter() {
   try {
     router.getRoutes().forEach((route) => {
       const { name, meta } = route
-      if (name && meta.roles?.length) {
+      if (name && (meta.roles?.length || meta.permissions?.length)) {
         router.hasRoute(name) && router.removeRoute(name)
       }
     })

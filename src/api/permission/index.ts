@@ -7,3 +7,26 @@ export function getPermissionDataApi() {
     method: "get"
   })
 }
+
+export function createPermissionDataApi(data: Permission.SavePermissionRequestData) {
+  return request<ApiResponseData<Permission.GetPermissionData>>({
+    url: "data/permission/add",
+    method: "post",
+    data
+  })
+}
+
+export function updatePermissionDataApi(data: Permission.SavePermissionRequestData) {
+  return request<ApiResponseData<Permission.GetPermissionData>>({
+    url: "data/permission/update",
+    method: "post",
+    data
+  })
+}
+
+export function deletePermissionDataApi(permissionId: number) {
+  return request({
+    url: `data/permission/delete/${permissionId}`,
+    method: "delete"
+  })
+}

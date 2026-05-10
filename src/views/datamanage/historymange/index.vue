@@ -14,22 +14,30 @@
         <el-tab-pane label="&#x6279;&#x6B21;&#x62A5;&#x544A;" name="batch">
           <BatchReport ref="batchReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="HALT-HASS &#x62A5;&#x544A;" name="halt-hass">
+        <el-tab-pane v-if="canUseTab('halt-hass')" label="HALT-HASS &#x62A5;&#x544A;" name="halt-hass">
           <HaltHassReport ref="haltHassReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="&#x6C34;&#x5FAA;&#x73AF;&#x62A5;&#x544A;" name="water-cycle">
+        <el-tab-pane
+          v-if="canUseTab('water-cycle')"
+          label="&#x6C34;&#x5FAA;&#x73AF;&#x62A5;&#x544A;"
+          name="water-cycle"
+        >
           <WaterCycleReport ref="waterCycleReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="&#x9AD8;&#x6E29;&#x7BB1;&#x62A5;&#x544A;" name="high-temp">
+        <el-tab-pane v-if="canUseTab('high-temp')" label="&#x9AD8;&#x6E29;&#x7BB1;&#x62A5;&#x544A;" name="high-temp">
           <HighTemperatureReport ref="highTempReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="&#x632F;&#x52A8;&#x53F0;&#x62A5;&#x544A;" name="vibration">
+        <el-tab-pane v-if="canUseTab('vibration')" label="&#x632F;&#x52A8;&#x53F0;&#x62A5;&#x544A;" name="vibration">
           <VibrationReport ref="vibrationReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="&#x9AD8;&#x6E29;&#x9AD8;&#x538B;&#x62A5;&#x544A;" name="high-pressure">
+        <el-tab-pane
+          v-if="canUseTab('high-pressure')"
+          label="&#x9AD8;&#x6E29;&#x9AD8;&#x538B;&#x62A5;&#x544A;"
+          name="high-pressure"
+        >
           <HighTemperaturePressureReport ref="highTemperaturePressureReportComponent" />
         </el-tab-pane>
-        <el-tab-pane label="&#x6A21;&#x62DF;&#x4E95;&#x62A5;&#x544A;" name="simulation">
+        <el-tab-pane v-if="canUseTab('simulation')" label="&#x6A21;&#x62DF;&#x4E95;&#x62A5;&#x544A;" name="simulation">
           <SimulationWellReport ref="simulationWellReportComponent" />
         </el-tab-pane>
       </el-tabs>
@@ -38,9 +46,11 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import { TabsPaneContext } from "element-plus"
+import { PermissionCode } from "@/constants/permission"
+import { checkPermission } from "@/utils/permission"
 import ProdReport from "./components/ProdReport.vue"
 import TempReport from "./components/TempReport.vue"
 import BugReport from "./components/BugReport.vue"
@@ -65,6 +75,27 @@ const highTemperaturePressureReportComponent = ref<InstanceType<typeof HighTempe
 const simulationWellReportComponent = ref<InstanceType<typeof SimulationWellReport> | null>(null)
 
 const router = useRouter()
+const visibleTabs = computed(() =>
+  [
+    { name: "prod" },
+    { name: "temp" },
+    { name: "bug" },
+    { name: "batch" },
+    { name: "halt-hass", permission: PermissionCode.ReportReviewHaltHass },
+    { name: "water-cycle", permission: PermissionCode.ReportReviewWaterCycle },
+    { name: "high-temp", permission: PermissionCode.ReportReviewHighTempBox },
+    { name: "vibration", permission: PermissionCode.ReportReviewVibrationTable },
+    { name: "high-pressure", permission: PermissionCode.ReportReviewHighTempPressure },
+    { name: "simulation", permission: PermissionCode.ReportReviewSimulatedWell }
+  ].filter((item) => !item.permission || checkPermission([item.permission]))
+)
+
+const canUseTab = (tabName: string) => visibleTabs.value.some((item) => item.name === tabName)
+
+function normalizeActiveTab(requestedTab: unknown) {
+  const tabName = typeof requestedTab === "string" ? requestedTab : "prod"
+  activeName.value = canUseTab(tabName) ? tabName : visibleTabs.value[0]?.name || ""
+}
 
 function resetTab(tabName: unknown) {
   switch (tabName) {
@@ -108,7 +139,7 @@ const handleTabClick = (tab: TabsPaneContext) => {
 
 onMounted(() => {
   const { tab } = router.currentRoute.value.query
-  if (tab) activeName.value = tab
-  resetTab(tab ?? "prod")
+  normalizeActiveTab(tab)
+  resetTab(activeName.value)
 })
 </script>

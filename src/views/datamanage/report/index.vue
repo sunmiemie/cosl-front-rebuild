@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { reactive, ref, watch, onMounted } from "vue"
+import { computed, reactive, ref, watch, onMounted } from "vue"
 import { type FormInstance, type TabsPaneContext, ElMessage, ElMessageBox } from "element-plus"
 import { ElButton } from "element-plus"
 import { Refresh, Search, View, Check, Close } from "@element-plus/icons-vue"
@@ -9,6 +9,8 @@ import { getReportCheckDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
+import { PermissionCode } from "@/constants/permission"
+import { checkPermission } from "@/utils/permission"
 import {
   getHaltHassReportList,
   getHaltHassReportDetail,
@@ -22,6 +24,7 @@ import WaterCycleReportReview from "./components/WaterCycleReportReview.vue"
 import HighTempBoxReportReview from "./components/HighTempBoxReportReview.vue"
 import VibrationTableReportReview from "./components/VibrationTableReportReview.vue"
 import HighTempHighPressureReportReview from "./components/HighTempHighPressureReportReview.vue"
+import SimulationWellReportReview from "../historymange/components/SimulationWellReport.vue"
 
 const loading = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
@@ -30,12 +33,32 @@ const DialogCheck = ref(false)
 
 // Tab 切换
 const activeTab = ref("normal")
+const reportTabs = computed(() =>
+  [
+    { name: "normal", permission: PermissionCode.ReportReviewBasic },
+    { name: "halt-hass", permission: PermissionCode.ReportReviewHaltHass },
+    { name: "water-cycle", permission: PermissionCode.ReportReviewWaterCycle },
+    { name: "high-temp-box", permission: PermissionCode.ReportReviewHighTempBox },
+    { name: "vibration-table", permission: PermissionCode.ReportReviewVibrationTable },
+    { name: "high-temp-high-pressure", permission: PermissionCode.ReportReviewHighTempPressure },
+    { name: "simulation", permission: PermissionCode.ReportReviewSimulatedWell }
+  ].filter((item) => checkPermission([item.permission]))
+)
+const canReview = (permission: string) => checkPermission([permission])
+const normalizeActiveTab = (requestedTab?: string) => {
+  if (requestedTab && reportTabs.value.some((item) => item.name === requestedTab)) {
+    activeTab.value = requestedTab
+    return
+  }
+  activeTab.value = reportTabs.value[0]?.name || ""
+}
 
 const haltHassReviewRef = ref<InstanceType<typeof HaltHassReportReview> | null>(null)
 const waterCycleReviewRef = ref<InstanceType<typeof WaterCycleReportReview> | null>(null)
 const highTempBoxReviewRef = ref<InstanceType<typeof HighTempBoxReportReview> | null>(null)
 const vibrationReviewRef = ref<InstanceType<typeof VibrationTableReportReview> | null>(null)
 const hthpReviewRef = ref<InstanceType<typeof HighTempHighPressureReportReview> | null>(null)
+const simulationReviewRef = ref<InstanceType<typeof SimulationWellReportReview> | null>(null)
 
 interface TestCheckType {
   ID?: string
@@ -152,7 +175,8 @@ const handleSearch = () => {
  * 重置查询条件
  */
 const resetSearch = () => {
-  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
+  const searchKeys = Object.keys(searchData) as Array<keyof typeof searchData>
+  searchKeys.forEach((key) => (searchData[key] = ""))
   paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
 }
 //#endregion
@@ -1239,37 +1263,47 @@ const handleTabClick = (tab: TabsPaneContext) => {
 onMounted(() => {
   const { page, tab } = router.currentRoute.value.query
 
-  if (typeof tab === "string") activeTab.value = tab
+  normalizeActiveTab(typeof tab === "string" ? tab : undefined)
 
-  if (tab === "halt-hass" && haltHassReviewRef.value) {
+  if (activeTab.value === "halt-hass" && haltHassReviewRef.value) {
     haltHassReviewRef.value.resetSearch()
     return
   }
-  if (tab === "water-cycle" && waterCycleReviewRef.value) {
+  if (activeTab.value === "water-cycle" && waterCycleReviewRef.value) {
     waterCycleReviewRef.value.resetSearch()
     return
   }
-  if (tab === "high-temp-box" && highTempBoxReviewRef.value) {
+  if (activeTab.value === "high-temp-box" && highTempBoxReviewRef.value) {
     highTempBoxReviewRef.value.resetSearch()
     return
   }
-  if (tab === "vibration-table" && vibrationReviewRef.value) {
+  if (activeTab.value === "vibration-table" && vibrationReviewRef.value) {
     vibrationReviewRef.value.resetSearch()
     return
   }
-  if (tab === "high-temp-high-pressure" && hthpReviewRef.value) {
+  if (activeTab.value === "high-temp-high-pressure" && hthpReviewRef.value) {
     hthpReviewRef.value.resetSearch()
+    return
+  }
+  if (activeTab.value === "simulation" && simulationReviewRef.value) {
+    simulationReviewRef.value.resetSearch()
     return
   }
 
   if (typeof page === "string") {
     paginationData.currentPage = Number(page)
   }
-  getTableData()
+  if (activeTab.value === "normal") getTableData()
 })
 
 /** 监听分页参数的变化 */
-watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: false })
+watch(
+  [() => paginationData.currentPage, () => paginationData.pageSize],
+  () => {
+    if (activeTab.value === "normal") getTableData()
+  },
+  { immediate: false }
+)
 </script>
 
 <template>
@@ -1277,7 +1311,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card shadow="never">
       <el-tabs v-model="activeTab" @tab-click="handleTabClick">
         <!-- 普通报告审核 Tab -->
-        <el-tab-pane label="普通报告审核" name="normal">
+        <el-tab-pane v-if="canReview(PermissionCode.ReportReviewBasic)" label="普通报告审核" name="normal">
           <el-card v-loading="loading" class="search-wrapper" shadow="never">
             <el-form ref="searchFormRef" :inline="true" :model="searchData">
               <el-form-item label="测试人">
@@ -1345,26 +1379,47 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         </el-tab-pane>
 
         <!-- HALT-HASS 报告审核 Tab -->
-        <el-tab-pane label="HALT-HASS 报告审核" name="halt-hass">
+        <el-tab-pane v-if="canReview(PermissionCode.ReportReviewHaltHass)" label="HALT-HASS 报告审核" name="halt-hass">
           <HaltHassReportReview ref="haltHassReviewRef" />
         </el-tab-pane>
 
-        <el-tab-pane label="水循环报告审核" name="water-cycle">
+        <el-tab-pane v-if="canReview(PermissionCode.ReportReviewWaterCycle)" label="水循环报告审核" name="water-cycle">
           <WaterCycleReportReview ref="waterCycleReviewRef" />
         </el-tab-pane>
 
-        <el-tab-pane label="高温箱报告审核" name="high-temp-box">
+        <el-tab-pane
+          v-if="canReview(PermissionCode.ReportReviewHighTempBox)"
+          label="高温箱报告审核"
+          name="high-temp-box"
+        >
           <HighTempBoxReportReview ref="highTempBoxReviewRef" />
         </el-tab-pane>
 
-        <el-tab-pane label="振动台报告审核" name="vibration-table">
+        <el-tab-pane
+          v-if="canReview(PermissionCode.ReportReviewVibrationTable)"
+          label="振动台报告审核"
+          name="vibration-table"
+        >
           <VibrationTableReportReview ref="vibrationReviewRef" />
         </el-tab-pane>
 
-        <el-tab-pane label="高温高压报告审核" name="high-temp-high-pressure">
+        <el-tab-pane
+          v-if="canReview(PermissionCode.ReportReviewHighTempPressure)"
+          label="高温高压报告审核"
+          name="high-temp-high-pressure"
+        >
           <HighTempHighPressureReportReview ref="hthpReviewRef" />
         </el-tab-pane>
+
+        <el-tab-pane
+          v-if="canReview(PermissionCode.ReportReviewSimulatedWell)"
+          label="模拟井报告审核"
+          name="simulation"
+        >
+          <SimulationWellReportReview ref="simulationReviewRef" />
+        </el-tab-pane>
       </el-tabs>
+      <el-empty v-if="reportTabs.length === 0" description="当前角色没有报告审核权限" />
     </el-card>
 
     <!-- 普通工艺审核对话框 -->

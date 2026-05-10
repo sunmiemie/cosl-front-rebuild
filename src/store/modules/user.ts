@@ -12,6 +12,7 @@ import routeSettings from "@/config/route"
 export const useUserStore = defineStore("user", () => {
   const token = ref<string>(getToken() || "")
   const roles = ref<string[]>([])
+  const permissionCodes = ref<string[]>([])
   const username = ref<string>("")
   const nickName = ref<string>("")
   const userid = ref<number>()
@@ -32,6 +33,7 @@ export const useUserStore = defineStore("user", () => {
     userid.value = data.id
     // 验证返回的 roles 是否为一个非空数组，否则塞入一个没有任何作用的默认角色，防止路由守卫逻辑进入无限循环
     roles.value = data.roles?.length > 0 ? data.roles : routeSettings.defaultRoles
+    permissionCodes.value = data.permissionCodes || []
     nickName.value = data.nickName
   }
   /** 登出 */
@@ -39,6 +41,7 @@ export const useUserStore = defineStore("user", () => {
     removeToken()
     token.value = ""
     roles.value = []
+    permissionCodes.value = []
     resetRouter()
     _resetTagsView()
   }
@@ -47,6 +50,7 @@ export const useUserStore = defineStore("user", () => {
     removeToken()
     token.value = ""
     roles.value = []
+    permissionCodes.value = []
   }
   /** 重置 Visited Views 和 Cached Views */
   const _resetTagsView = () => {
@@ -56,7 +60,7 @@ export const useUserStore = defineStore("user", () => {
     }
   }
 
-  return { userid, token, roles, nickName, username, login, getInfo, logout, resetToken }
+  return { userid, token, roles, permissionCodes, nickName, username, login, getInfo, logout, resetToken }
 })
 
 /** 在 setup 外使用 */

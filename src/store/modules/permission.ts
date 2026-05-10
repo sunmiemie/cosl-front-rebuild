@@ -6,18 +6,25 @@ import { constantRoutes, dynamicRoutes } from "@/router"
 import { flatMultiLevelRoutes } from "@/router/helper"
 import routeSettings from "@/config/route"
 
-const hasPermission = (roles: string[], route: RouteRecordRaw) => {
+const hasPermission = (roles: string[], permissionCodes: string[], route: RouteRecordRaw) => {
   const routeRoles = route.meta?.roles
-  return routeRoles ? roles.some((role) => routeRoles.includes(role)) : true
+  const routePermissions = route.meta?.permissions
+  const roleMatched = routeRoles ? roles.some((role) => routeRoles.includes(role)) : false
+  const permissionMatched = routePermissions
+    ? permissionCodes.some((permissionCode) => routePermissions.includes(permissionCode))
+    : false
+  if (routeRoles?.length || routePermissions?.length) return roleMatched || permissionMatched
+  return true
 }
 
-const filterDynamicRoutes = (routes: RouteRecordRaw[], roles: string[]) => {
+const filterDynamicRoutes = (routes: RouteRecordRaw[], roles: string[], permissionCodes: string[]) => {
   const res: RouteRecordRaw[] = []
   routes.forEach((route) => {
     const tempRoute = { ...route }
-    if (hasPermission(roles, tempRoute)) {
+    if (hasPermission(roles, permissionCodes, tempRoute)) {
       if (tempRoute.children) {
-        tempRoute.children = filterDynamicRoutes(tempRoute.children, roles)
+        tempRoute.children = filterDynamicRoutes(tempRoute.children, roles, permissionCodes)
+        if (route.children?.length && tempRoute.children.length === 0 && !tempRoute.meta?.alwaysShow) return
       }
       res.push(tempRoute)
     }
@@ -32,8 +39,8 @@ export const usePermissionStore = defineStore("permission", () => {
   const addRoutes = ref<RouteRecordRaw[]>([])
 
   /** 根据角色生成可访问的 Routes（可访问的路由 = 常驻路由 + 有访问权限的动态路由） */
-  const setRoutes = (roles: string[]) => {
-    const accessedRoutes = filterDynamicRoutes(dynamicRoutes, roles)
+  const setRoutes = (roles: string[], permissionCodes: string[] = []) => {
+    const accessedRoutes = filterDynamicRoutes(dynamicRoutes, roles, permissionCodes)
     _set(accessedRoutes)
   }
 

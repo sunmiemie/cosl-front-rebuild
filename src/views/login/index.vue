@@ -17,6 +17,7 @@ const loginFormRef = ref<FormInstance | null>(null)
 
 /** 登录按钮 Loading */
 const loading = ref(false)
+const loginErrorMessage = ref("")
 /** 登录表单数据 */
 const loginFormData: LoginRequestData = reactive({
   username: "admin",
@@ -33,6 +34,7 @@ const loginFormRules: FormRules = {
 }
 /** 登录逻辑 */
 const handleLogin = () => {
+  loginErrorMessage.value = ""
   loginFormRef.value?.validate((valid: boolean, fields) => {
     if (valid) {
       loading.value = true
@@ -41,8 +43,9 @@ const handleLogin = () => {
         .then(() => {
           router.push({ path: "/" })
         })
-        .catch(() => {
+        .catch((err: any) => {
           loginFormData.password = ""
+          loginErrorMessage.value = err?.message || "登录失败，请检查后端服务或账号密码"
         })
         .finally(() => {
           loading.value = false
@@ -107,6 +110,7 @@ onMounted(() => {
               @focus="handleFocus"
             />
           </el-form-item>
+          <el-alert v-if="loginErrorMessage" class="login-error" type="error" :title="loginErrorMessage" show-icon />
           <div style="display: flex; flex-direction: column; align-items: center; justify-content: center">
             <el-button :loading="loading" size="large" type="primary" @click.prevent="handleLogin">登 录</el-button>
             <el-button :loading="loading" size="large" type="success" @click.prevent="handleSSOLogin">
@@ -182,6 +186,10 @@ onMounted(() => {
         width: 100%;
         margin-top: 10px;
         margin-left: 0;
+      }
+
+      .login-error {
+        margin-bottom: 10px;
       }
     }
   }

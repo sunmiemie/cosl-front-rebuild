@@ -23,6 +23,10 @@ declare module "vue-router" {
      */
     roles?: string[]
     /**
+     * 设置能进入该路由的权限编码，后端从角色权限生成
+     */
+    permissions?: string[]
+    /**
      * 默认 true，如果设置为 false，则不会在面包屑中显示
      */
     breadcrumb?: boolean

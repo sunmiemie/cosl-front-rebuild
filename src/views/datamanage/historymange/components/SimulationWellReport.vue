@@ -168,6 +168,7 @@ import {
   type SimulatedWellReportListItem
 } from "@/api/simulated-well-report"
 
+type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 type AuditRow = SimulatedWellReportListItem & {
   template_no: string
   job_no: string
@@ -248,7 +249,7 @@ const formatTime = (timeStr?: string) => {
   return date.toLocaleString()
 }
 
-const getReviewedStatusType = (status: number): "success" | "danger" | "info" | "" => {
+const getReviewedStatusType = (status: number): TagType => {
   if (status === 1) return "success"
   if (status === 2) return "danger"
   return "info"
@@ -382,6 +383,10 @@ const handleDownload = (row: AuditRow) => {
 
 onMounted(() => {
   getList()
+})
+
+defineExpose({
+  resetSearch: getList
 })
 </script>
 
