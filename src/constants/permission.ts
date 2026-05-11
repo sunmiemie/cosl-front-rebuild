@@ -14,7 +14,8 @@ export const PermissionCode = {
   ReportReviewHighTempPressure: "REPORT_REVIEW_HIGH_TEMP_PRESSURE",
   ReportReviewSimulatedWell: "REPORT_REVIEW_SIMULATED_WELL",
   UserManage: "USER_MANAGE",
-  RoleManage: "ROLE_MANAGE"
+  RoleManage: "ROLE_MANAGE",
+  SignatureManage: "SIGNATURE_MANAGE"
 } as const
 
 export const AddOrderPermissionCodes = [

@@ -7,6 +7,7 @@ import {
   getSimulatedWellOrderListApi,
   publishSimulatedWellOrderApi
 } from "@/api/simulated-well"
+import { getMySignatureApi, getSignatureImageApi } from "@/api/signature"
 import type { SimulatedWellOrderListItem } from "@/api/simulated-well/types"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
@@ -45,6 +46,7 @@ const publishLoading = ref(false)
 const publishOrder = ref<SimulatedWellOrderListItem | null>(null)
 const publishSignatureFileList = ref<UploadUserFile[]>([])
 const publishSignatureRawFile = ref<File | null>(null)
+const publishSignatureSource = ref<"saved" | "local" | "">("")
 const publishSignatureObjectUrl = ref("")
 const publishSignaturePreviewDataUrl = ref("")
 const signaturePreviewVisible = ref(false)
@@ -86,6 +88,55 @@ const publishSignaturePreviewUrl = computed(
 const canConfirmPublish = computed(
   () => !!(publishOrder.value && publishSignatureRawFile.value && sanxinDoneCount.value === 2)
 )
+const publishSignatureStatusText = computed(() =>
+  publishSignatureSource.value === "saved" ? "已读取个人签名" : "已选择本地签名"
+)
+
+const resetPublishDialog = () => {
+  publishSignatureFileList.value = []
+  publishSignatureRawFile.value = null
+  publishSignatureSource.value = ""
+  if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+  publishSignatureObjectUrl.value = ""
+  publishSignaturePreviewDataUrl.value = ""
+  signaturePreviewVisible.value = false
+  publishOrder.value = null
+  sanxinTesterAnswers[0] = null
+  sanxinTesterAnswers[1] = null
+  publishConfirmDate.value = new Date().toISOString().split("T")[0]
+}
+
+const getSignatureFileName = (mimeType?: string | null) => {
+  if (mimeType === "image/jpeg" || mimeType === "image/jpg") return "signature.jpg"
+  if (mimeType === "image/webp") return "signature.webp"
+  return "signature.png"
+}
+
+const loadStoredSignatureForPublish = async () => {
+  try {
+    const info = await getMySignatureApi()
+    if (!info.data?.hasSignature) return
+    const blob = await getSignatureImageApi(info.data.userId)
+    if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+    publishSignatureObjectUrl.value = URL.createObjectURL(blob)
+    publishSignaturePreviewDataUrl.value = ""
+    publishSignatureRawFile.value = new File(
+      [blob],
+      info.data.originalFilename || getSignatureFileName(info.data.mimeType || blob.type),
+      { type: blob.type || info.data.mimeType || "image/png" }
+    )
+    publishSignatureSource.value = "saved"
+    publishSignatureFileList.value = [
+      {
+        name: publishSignatureRawFile.value.name,
+        url: publishSignatureObjectUrl.value,
+        status: "success"
+      }
+    ]
+  } catch (error) {
+    console.warn("读取个人签名失败", error)
+  }
+}
 
 const getStatusType = (status: number | string): TagType => {
   const map: Record<string, TagType> = {
@@ -159,6 +210,7 @@ const handleDetail = async (row: SimulatedWellOrderListItem) => {
 }
 
 const showPublishDialog = async (row: SimulatedWellOrderListItem) => {
+  resetPublishDialog()
   try {
     const res = await getSimulatedWellOrderDetailApi(row.id)
     if (res.code === 0) {
@@ -170,15 +222,7 @@ const showPublishDialog = async (row: SimulatedWellOrderListItem) => {
     publishOrder.value = row
   }
 
-  publishSignatureFileList.value = []
-  publishSignatureRawFile.value = null
-  if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
-  publishSignatureObjectUrl.value = ""
-  publishSignaturePreviewDataUrl.value = ""
-  signaturePreviewVisible.value = false
-  sanxinTesterAnswers[0] = null
-  sanxinTesterAnswers[1] = null
-  publishConfirmDate.value = new Date().toISOString().split("T")[0]
+  await loadStoredSignatureForPublish()
   publishDialogVisible.value = true
 }
 
@@ -189,17 +233,34 @@ const setSanxinAnswer = (idx: number, answer: SanxinAnswer) => {
 const handlePublishSignatureChange: UploadProps["onChange"] = (file: UploadFile) => {
   const raw = file.raw as File | undefined
   if (!raw) return
+  if (!raw.type.startsWith("image/")) {
+    ElMessage.error("请上传图片格式的签名文件")
+    clearPublishSignature()
+    return
+  }
+  if (raw.size / 1024 / 1024 > 5) {
+    ElMessage.error("签名图片大小不能超过 5MB")
+    clearPublishSignature()
+    return
+  }
+  if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
   publishSignatureRawFile.value = raw
+  publishSignatureSource.value = "local"
   publishSignatureObjectUrl.value = URL.createObjectURL(raw)
   publishSignaturePreviewDataUrl.value = ""
 }
 
-const handlePublishSignatureRemove: UploadProps["onRemove"] = () => {
+const clearPublishSignature = () => {
   publishSignatureRawFile.value = null
+  publishSignatureSource.value = ""
   if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
   publishSignatureObjectUrl.value = ""
   publishSignaturePreviewDataUrl.value = ""
   publishSignatureFileList.value = []
+}
+
+const handlePublishSignatureRemove: UploadProps["onRemove"] = () => {
+  clearPublishSignature()
 }
 
 const openSignaturePreview = () => {
@@ -208,7 +269,7 @@ const openSignaturePreview = () => {
 }
 
 const handleReuploadSignature = () => {
-  handlePublishSignatureRemove()
+  clearPublishSignature()
 }
 
 const handleConfirmPublish = async () => {
@@ -374,7 +435,13 @@ onMounted(() => {
       </div>
     </el-drawer>
 
-    <el-dialog v-model="publishDialogVisible" width="920px" :close-on-click-modal="false" class="publish-dialog">
+    <el-dialog
+      v-model="publishDialogVisible"
+      width="920px"
+      :close-on-click-modal="false"
+      class="publish-dialog"
+      @closed="resetPublishDialog"
+    >
       <template #header>
         <div class="publish-dialog-header">
           <div>
@@ -479,7 +546,7 @@ onMounted(() => {
                   </div>
                 </el-upload>
                 <div v-if="publishSignatureRawFile" class="publish-signature-actions">
-                  <span class="publish-signature-saved">已保存签名</span>
+                  <span class="publish-signature-saved">{{ publishSignatureStatusText }}</span>
                   <el-link type="primary" @click="handleReuploadSignature">重新上传</el-link>
                 </div>
               </div>

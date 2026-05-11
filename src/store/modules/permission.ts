@@ -17,6 +17,17 @@ const hasPermission = (roles: string[], permissionCodes: string[], route: RouteR
   return true
 }
 
+const resolveChildPath = (parentPath: string, childPath: string) => {
+  if (childPath.startsWith("/")) return childPath
+  return `${parentPath.replace(/\/$/, "")}/${childPath}`.replace(/\/{2,}/g, "/")
+}
+
+const resolveFirstAccessibleChildPath = (route: RouteRecordRaw) => {
+  const firstAccessibleChild = route.children?.find((child) => !child.meta?.hidden)
+  if (!firstAccessibleChild) return undefined
+  return resolveChildPath(route.path, firstAccessibleChild.path)
+}
+
 const filterDynamicRoutes = (routes: RouteRecordRaw[], roles: string[], permissionCodes: string[]) => {
   const res: RouteRecordRaw[] = []
   routes.forEach((route) => {
@@ -25,6 +36,10 @@ const filterDynamicRoutes = (routes: RouteRecordRaw[], roles: string[], permissi
       if (tempRoute.children) {
         tempRoute.children = filterDynamicRoutes(tempRoute.children, roles, permissionCodes)
         if (route.children?.length && tempRoute.children.length === 0 && !tempRoute.meta?.alwaysShow) return
+        if (tempRoute.path === "/permission") {
+          const firstAccessibleChildPath = resolveFirstAccessibleChildPath(tempRoute)
+          if (firstAccessibleChildPath) tempRoute.redirect = firstAccessibleChildPath
+        }
       }
       res.push(tempRoute)
     }

@@ -661,7 +661,6 @@ getPermissionList().then(getRoleTableData)
         </el-button>
       </template>
     </el-drawer>
-
   </div>
 </template>
 
@@ -970,6 +969,7 @@ getPermissionList().then(getRoleTableData)
   height: 560px;
 
   :deep(.el-scrollbar__view) {
+    position: relative;
     min-height: 100%;
   }
 }
@@ -996,8 +996,11 @@ getPermissionList().then(getRoleTableData)
 }
 
 .permission-empty-state {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: grid;
-  min-height: 280px;
+  min-height: 0;
   place-items: center;
   pointer-events: none;
 }

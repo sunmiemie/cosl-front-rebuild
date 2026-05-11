@@ -33,6 +33,10 @@ const logout = () => {
   userStore.logout()
   router.push("/login")
 }
+
+const openMySignature = () => {
+  router.push("/signature/my")
+}
 </script>
 
 <template>
@@ -58,6 +62,9 @@ const logout = () => {
         </div>
         <template #dropdown>
           <el-dropdown-menu>
+            <el-dropdown-item @click="openMySignature">
+              <span style="display: block">我的签名</span>
+            </el-dropdown-item>
             <el-dropdown-item @click="logout">
               <span style="display: block">退出登录</span>
             </el-dropdown-item>

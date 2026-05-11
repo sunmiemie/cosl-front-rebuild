@@ -15,6 +15,7 @@ import {
   getHighTempPressureOrderListApi,
   publishHighTempPressureOrderApi
 } from "@/api/high-temp-pressure"
+import { getMySignatureApi, getSignatureImageApi } from "@/api/signature"
 import type { HighTempPressureOrderInstrumentItem, HighTempPressureOrderListItem } from "@/api/high-temp-pressure/types"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
@@ -91,6 +92,7 @@ const publishLoading = ref(false)
 const publishOrder = ref<HighTempPressureOrderListItem | null>(null)
 const publishSignatureFileList = ref<UploadUserFile[]>([])
 const publishSignatureRawFile = ref<File | null>(null)
+const publishSignatureSource = ref<"saved" | "local" | "">("")
 const publishSignatureObjectUrl = ref("")
 const publishSignaturePreviewDataUrl = ref("")
 const signaturePreviewVisible = ref(false)
@@ -135,6 +137,55 @@ const publishSignaturePreviewUrl = computed(
 const canConfirmPublish = computed(
   () => !!(publishOrder.value && publishSignatureRawFile.value && sanxinDoneCount.value === 2)
 )
+const publishSignatureStatusText = computed(() =>
+  publishSignatureSource.value === "saved" ? "已读取个人签名" : "已选择本地签名"
+)
+
+const resetPublishDialog = () => {
+  publishSignatureFileList.value = []
+  publishSignatureRawFile.value = null
+  publishSignatureSource.value = ""
+  if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+  publishSignatureObjectUrl.value = ""
+  publishSignaturePreviewDataUrl.value = ""
+  signaturePreviewVisible.value = false
+  publishOrder.value = null
+  publishConfirmDate.value = new Date().toISOString().split("T")[0]
+  sanxinTesterAnswers[0] = null
+  sanxinTesterAnswers[1] = null
+}
+
+const getSignatureFileName = (mimeType?: string | null) => {
+  if (mimeType === "image/jpeg" || mimeType === "image/jpg") return "signature.jpg"
+  if (mimeType === "image/webp") return "signature.webp"
+  return "signature.png"
+}
+
+const loadStoredSignatureForPublish = async () => {
+  try {
+    const info = await getMySignatureApi()
+    if (!info.data?.hasSignature) return
+    const blob = await getSignatureImageApi(info.data.userId)
+    if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
+    publishSignatureObjectUrl.value = URL.createObjectURL(blob)
+    publishSignaturePreviewDataUrl.value = ""
+    publishSignatureRawFile.value = new File(
+      [blob],
+      info.data.originalFilename || getSignatureFileName(info.data.mimeType || blob.type),
+      { type: blob.type || info.data.mimeType || "image/png" }
+    )
+    publishSignatureSource.value = "saved"
+    publishSignatureFileList.value = [
+      {
+        name: publishSignatureRawFile.value.name,
+        url: publishSignatureObjectUrl.value,
+        status: "success"
+      }
+    ]
+  } catch (error) {
+    console.warn("读取个人签名失败", error)
+  }
+}
 
 const getStatusType = (status: number | string): TagType => {
   const map: Record<string, TagType> = {
@@ -279,19 +330,12 @@ const handleDetail = async (row: HighTempPressureOrderListItem) => {
 }
 
 const showPublishDialog = async (row: HighTempPressureOrderListItem) => {
-  publishSignatureFileList.value = []
-  publishSignatureRawFile.value = null
-  if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
-  publishSignatureObjectUrl.value = ""
-  publishSignaturePreviewDataUrl.value = ""
-  signaturePreviewVisible.value = false
-  publishConfirmDate.value = new Date().toISOString().split("T")[0]
-  sanxinTesterAnswers[0] = null
-  sanxinTesterAnswers[1] = null
+  resetPublishDialog()
   try {
     const res = await getHighTempPressureOrderDetailApi(row.id)
     if (res.code === 0) {
       publishOrder.value = res.data
+      await loadStoredSignatureForPublish()
       publishDialogVisible.value = true
     } else {
       ElMessage.error(res.msg || "获取工单信息失败")
@@ -307,6 +351,7 @@ const handlePublishSignatureChange: UploadProps["onChange"] = (file: UploadFile)
   if (!raw) {
     publishSignatureFileList.value = []
     publishSignatureRawFile.value = null
+    publishSignatureSource.value = ""
     if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
     publishSignatureObjectUrl.value = ""
     publishSignaturePreviewDataUrl.value = ""
@@ -316,6 +361,7 @@ const handlePublishSignatureChange: UploadProps["onChange"] = (file: UploadFile)
     ElMessage.error("请上传图片格式的签名文件")
     publishSignatureFileList.value = []
     publishSignatureRawFile.value = null
+    publishSignatureSource.value = ""
     if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
     publishSignatureObjectUrl.value = ""
     publishSignaturePreviewDataUrl.value = ""
@@ -325,6 +371,7 @@ const handlePublishSignatureChange: UploadProps["onChange"] = (file: UploadFile)
     ElMessage.error("签名图片大小不能超过 5MB")
     publishSignatureFileList.value = []
     publishSignatureRawFile.value = null
+    publishSignatureSource.value = ""
     if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
     publishSignatureObjectUrl.value = ""
     publishSignaturePreviewDataUrl.value = ""
@@ -332,6 +379,7 @@ const handlePublishSignatureChange: UploadProps["onChange"] = (file: UploadFile)
   }
 
   publishSignatureRawFile.value = raw
+  publishSignatureSource.value = "local"
   if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
   publishSignatureObjectUrl.value = URL.createObjectURL(raw)
   publishSignaturePreviewDataUrl.value = ""
@@ -353,6 +401,7 @@ const handlePublishSignatureRemove: UploadProps["onRemove"] = () => {
   if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
   publishSignatureFileList.value = []
   publishSignatureRawFile.value = null
+  publishSignatureSource.value = ""
   publishSignatureObjectUrl.value = ""
   publishSignaturePreviewDataUrl.value = ""
   signaturePreviewVisible.value = false
@@ -362,6 +411,7 @@ const handleReuploadSignature = () => {
   if (publishSignatureObjectUrl.value) URL.revokeObjectURL(publishSignatureObjectUrl.value)
   publishSignatureFileList.value = []
   publishSignatureRawFile.value = null
+  publishSignatureSource.value = ""
   publishSignatureObjectUrl.value = ""
   publishSignaturePreviewDataUrl.value = ""
   signaturePreviewVisible.value = false
@@ -678,7 +728,13 @@ onMounted(() => {
       </template>
     </el-dialog>
 
-    <el-dialog v-model="publishDialogVisible" width="920px" :close-on-click-modal="false" class="publish-dialog">
+    <el-dialog
+      v-model="publishDialogVisible"
+      width="920px"
+      :close-on-click-modal="false"
+      class="publish-dialog"
+      @closed="resetPublishDialog"
+    >
       <template #header>
         <div class="publish-dialog-header">
           <div>
@@ -789,7 +845,7 @@ onMounted(() => {
                   </div>
                 </el-upload>
                 <div v-if="publishSignatureRawFile" class="publish-signature-actions">
-                  <span class="publish-signature-saved">已保存签名</span>
+                  <span class="publish-signature-saved">{{ publishSignatureStatusText }}</span>
                   <el-link type="primary" @click="handleReuploadSignature">重新上传</el-link>
                 </div>
               </div>

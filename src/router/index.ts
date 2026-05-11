@@ -63,6 +63,23 @@ export const constantRoutes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: "/signature",
+    component: Layouts,
+    meta: {
+      hidden: true
+    },
+    children: [
+      {
+        path: "my",
+        component: () => import("@/views/signature/my/index.vue"),
+        name: "MySignature",
+        meta: {
+          title: "我的签名"
+        }
+      }
+    ]
+  },
+  {
     path: "/devicemanage",
     component: Layouts,
     redirect: "/devicemanage/device",
@@ -661,6 +678,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
       title: "权限管理",
       svgIcon: "lock",
       roles: ["18", "19"], // 可以在根路由中设置角色
+      permissions: [PermissionCode.UserManage, PermissionCode.RoleManage, PermissionCode.SignatureManage],
       alwaysShow: true // 将始终显示根菜单
       // hidden: true
     },
@@ -671,7 +689,8 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "UserManagement",
         meta: {
           title: "用户管理",
-          roles: ["18"] // 用户管理所需的权限
+          roles: ["18"], // 用户管理所需的权限
+          permissions: [PermissionCode.UserManage]
         }
       },
       {
@@ -680,7 +699,17 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "RoleManagement",
         meta: {
           title: "角色管理",
-          roles: ["19"] // 角色管理所需的权限
+          roles: ["19"], // 角色管理所需的权限
+          permissions: [PermissionCode.RoleManage]
+        }
+      },
+      {
+        path: "signature",
+        component: () => import("@/views/permission/signature/index.vue"),
+        name: "SignatureManagement",
+        meta: {
+          title: "签名管理",
+          permissions: [PermissionCode.SignatureManage]
         }
       },
       {
