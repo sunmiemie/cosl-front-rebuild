@@ -2,6 +2,7 @@
 import TableComponent from "@/components/Table/index.vue"
 import { reactive, ref } from "vue"
 import CommpontentEcharts from "@/components/Echarts/echarts.vue"
+import TaskPanel from "@/components/TaskCenter/TaskPanel.vue"
 
 const headers = ref([
   { prop: "equipment", label: "设备", align: "center" },
@@ -192,7 +193,9 @@ const option1 = reactive({
         </el-card>
       </el-col>
       <el-col :span="10">
-        <el-card class="Footer-box" shadow="never" />
+        <el-card class="Footer-box" shadow="never">
+          <TaskPanel compact />
+        </el-card>
       </el-col>
     </el-row>
   </div>

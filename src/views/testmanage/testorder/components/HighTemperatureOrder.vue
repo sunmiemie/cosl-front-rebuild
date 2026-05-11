@@ -139,7 +139,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from "vue"
+import { ref, reactive, onMounted, computed, watch } from "vue"
+import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
 import {
   getHighTemperatureOrderList,
@@ -148,6 +149,7 @@ import {
   publishHighTemperatureOrder,
   deleteHighTemperatureOrder
 } from "@/api/high-temperature"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 //api接口函数名称
 import type { HighTemperatureOrderListItem, HighTemperatureOrderDetail } from "@/api/high-temperature/types"
 const statusOptions = [
@@ -163,6 +165,8 @@ const statusOptions = [
 ]
 
 const searchForm = reactive({ taskNumber: "", status: "" })
+const route = useRoute()
+const taskCenterStore = useTaskCenterStoreHook()
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
 const loading = ref(false)
 
@@ -260,6 +264,17 @@ const handleReset = () => {
   pagination.page = 1
   getList()
 }
+
+const initSearchFromRoute = () => {
+  const { taskNumber, status } = route.query
+  searchForm.taskNumber = typeof taskNumber === "string" ? taskNumber : ""
+  searchForm.status = typeof status === "string" ? status : ""
+}
+
+const shouldSyncRouteTask = () => {
+  const { tab } = route.query
+  return typeof tab !== "string" || tab === "high-temp"
+}
 const handleSizeChange = (size: number) => {
   pagination.pageSize = size
   pagination.page = 1
@@ -295,6 +310,7 @@ const handleCreate = async () => {
       if (res && res.code === 0) {
         ElMessage.success("创建成功")
         createDialogVisible.value = false
+        void taskCenterStore.refresh(true)
         getList()
       } else {
         ElMessage.error(res?.msg || "创建失败")
@@ -329,6 +345,7 @@ const handlePublish = async (row: HighTemperatureOrderListItem) => {
     const res = await publishHighTemperatureOrder(row.id)
     if (res.code === 0) {
       ElMessage.success("发布成功")
+      void taskCenterStore.refresh(true)
       getList()
     } else {
       ElMessage.error(res.msg || "发布失败")
@@ -345,6 +362,7 @@ const handleDelete = async (row: HighTemperatureOrderListItem) => {
     const res = await deleteHighTemperatureOrder(row.id)
     if (res.code === 0) {
       ElMessage.success("删除成功")
+      void taskCenterStore.refresh(true)
       getList()
     } else {
       ElMessage.error(res.msg || "删除失败")
@@ -355,7 +373,19 @@ const handleDelete = async (row: HighTemperatureOrderListItem) => {
   }
 }
 defineExpose({ refresh: getList })
+
+watch(
+  () => route.fullPath,
+  () => {
+    if (!shouldSyncRouteTask()) return
+    initSearchFromRoute()
+    pagination.page = 1
+    getList()
+  }
+)
+
 onMounted(() => {
+  initSearchFromRoute()
   getList()
 })
 </script>

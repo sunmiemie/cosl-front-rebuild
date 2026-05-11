@@ -9,6 +9,7 @@ import { getReportCheckDataApi } from "@/api/report"
 import { getTestTypeDataApi } from "@/api/testtype"
 import { useRouter } from "vue-router"
 import { useUserStore } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import { PermissionCode } from "@/constants/permission"
 import { checkPermission } from "@/utils/permission"
 import {
@@ -29,6 +30,7 @@ import SimulationWellReportReview from "../historymange/components/SimulationWel
 const loading = ref(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 const router = useRouter()
+const taskCenterStore = useTaskCenterStoreHook()
 const DialogCheck = ref(false)
 
 // Tab 切换
@@ -296,6 +298,7 @@ const handleApprove = async (report: HaltHassReportDetail | HaltHassReportListIt
     if (res.code === 0) {
       ElMessage.success("审核通过成功")
       haltHassDetailVisible.value = false
+      void taskCenterStore.refresh(true)
       getHaltHassTableData()
     } else {
       ElMessage.error(res.msg || "操作失败")
@@ -329,6 +332,7 @@ const handleReject = async () => {
       ElMessage.success("已打回")
       rejectDialogVisible.value = false
       haltHassDetailVisible.value = false
+      void taskCenterStore.refresh(true)
       getHaltHassTableData()
     } else {
       ElMessage.error(res.msg || "操作失败")
@@ -1241,7 +1245,7 @@ const formatDuration = (duration?: number) => {
 
 // Tab 切换处理
 const handleTabClick = (tab: TabsPaneContext) => {
-  router.replace({ query: { ...router.currentRoute.value.query, tab: tab.props.name } })
+  router.replace({ query: { tab: String(tab.props.name || "") } })
 
   if (tab.props.name === "halt-hass" && haltHassReviewRef.value) {
     haltHassReviewRef.value.resetSearch()
@@ -1265,36 +1269,21 @@ onMounted(() => {
 
   normalizeActiveTab(typeof tab === "string" ? tab : undefined)
 
-  if (activeTab.value === "halt-hass" && haltHassReviewRef.value) {
-    haltHassReviewRef.value.resetSearch()
-    return
-  }
-  if (activeTab.value === "water-cycle" && waterCycleReviewRef.value) {
-    waterCycleReviewRef.value.resetSearch()
-    return
-  }
-  if (activeTab.value === "high-temp-box" && highTempBoxReviewRef.value) {
-    highTempBoxReviewRef.value.resetSearch()
-    return
-  }
-  if (activeTab.value === "vibration-table" && vibrationReviewRef.value) {
-    vibrationReviewRef.value.resetSearch()
-    return
-  }
-  if (activeTab.value === "high-temp-high-pressure" && hthpReviewRef.value) {
-    hthpReviewRef.value.resetSearch()
-    return
-  }
-  if (activeTab.value === "simulation" && simulationReviewRef.value) {
-    simulationReviewRef.value.resetSearch()
-    return
-  }
-
   if (typeof page === "string") {
     paginationData.currentPage = Number(page)
   }
   if (activeTab.value === "normal") getTableData()
 })
+
+watch(
+  () => router.currentRoute.value.query.tab,
+  (tab) => {
+    normalizeActiveTab(typeof tab === "string" ? tab : undefined)
+    if (activeTab.value === "normal") {
+      getTableData()
+    }
+  }
+)
 
 /** 监听分页参数的变化 */
 watch(

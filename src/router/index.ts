@@ -346,6 +346,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "Check",
         meta: {
           title: "工艺审核列表",
+          permissions: [PermissionCode.TestProcessReview],
           keepAlive: true
         }
       },
@@ -355,6 +356,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "AddProcess",
         meta: {
           title: "测试工艺",
+          permissions: [PermissionCode.TestProcessCreate],
           keepAlive: true,
           hidden: true
         }
@@ -365,6 +367,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         name: "checktestlist",
         meta: {
           title: "工艺审核",
+          permissions: [PermissionCode.TestProcessReview],
           keepAlive: true,
           hidden: true
         }

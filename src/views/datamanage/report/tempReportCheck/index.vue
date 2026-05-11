@@ -8,10 +8,12 @@ import {
   generateDevQuestionUnitApi
 } from "@/api/report"
 import { useUserStore } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import TempReportPreview from "@/components/Check/TempReportPreview.vue"
 import { ElMessageBox } from "element-plus"
 
 const userStore = useUserStore()
+const taskCenterStore = useTaskCenterStoreHook()
 
 const feedbackList = ref([])
 const feedbackReason = ref("")
@@ -327,6 +329,7 @@ const checkPass = () => {
   checkTempReportPassApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
+      void taskCenterStore.refresh(true)
       router.push({ name: "reportCheckList" })
     }
   })
@@ -353,6 +356,7 @@ const checkFeedback = () => {
   checkTempReportFeedbackApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
+      void taskCenterStore.refresh(true)
       router.push({ name: "reportCheckList" })
     }
   })
@@ -379,6 +383,7 @@ const generateQuestionUnit = () => {
   generateDevQuestionUnitApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
+      void taskCenterStore.refresh(true)
       router.push({ name: "reportCheckList" })
     }
   })
@@ -457,7 +462,7 @@ const reGetReport = () => {
   })
 }
 
-onMounted(async () => {
+const loadReportData = async () => {
   loading.value = true
   anyObj.type = route.query.type
   anyObj.id = route.query.id
@@ -471,9 +476,20 @@ onMounted(async () => {
     updateStatus()
     getErrorQuestionWarnList()
   })
+}
+
+onMounted(async () => {
+  await loadReportData()
   watch([() => reportJson.value], getErrorQuestionWarnList, { immediate: true, deep: true })
   watch([() => reportJson.value], updateStatus, { immediate: true, deep: true })
 })
+
+watch(
+  () => route.fullPath,
+  () => {
+    void loadReportData()
+  }
+)
 </script>
 
 <template>

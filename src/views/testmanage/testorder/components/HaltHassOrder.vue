@@ -270,9 +270,11 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, defineExpose, computed, watch } from "vue"
+import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox, ElTree, type FormInstance } from "element-plus"
 import { Cpu } from "@element-plus/icons-vue"
 import { useUserStore } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
   getHaltHassOrderList,
   getHaltHassOrderDetail,
@@ -288,6 +290,8 @@ import type { HaltHassOrderListItem, HaltHassOrderDetail } from "@/api/halt-hass
 import type { BoardGroup, BoardModelItem } from "@/api/boardgroup/types/boardgroup"
 
 const userStore = useUserStore()
+const route = useRoute()
+const taskCenterStore = useTaskCenterStoreHook()
 
 // 状态选项
 const statusOptions = [
@@ -487,6 +491,17 @@ const handleReset = () => {
   getList()
 }
 
+const initSearchFromRoute = () => {
+  const { orderNo, status } = route.query
+  searchForm.orderNo = typeof orderNo === "string" ? orderNo : ""
+  searchForm.status = typeof status === "string" ? status : ""
+}
+
+const shouldSyncRouteTask = () => {
+  const { tab } = route.query
+  return typeof tab !== "string" || tab === "halt-hass"
+}
+
 // 分页变化
 const handleSizeChange = (size: number) => {
   pagination.pageSize = size
@@ -678,6 +693,7 @@ const handleCreate = async () => {
       if (res.code === 0) {
         ElMessage.success("创建成功")
         createDialogVisible.value = false
+        void taskCenterStore.refresh(true)
         getList()
       } else {
         ElMessage.error(res.msg || "创建失败")
@@ -715,6 +731,7 @@ const handlePublish = async (row: HaltHassOrderListItem) => {
     const res = await publishHaltHassOrder(row.id)
     if (res.code === 0) {
       ElMessage.success("发布成功")
+      void taskCenterStore.refresh(true)
       getList()
     } else {
       ElMessage.error(res.msg || "发布失败")
@@ -735,6 +752,7 @@ const handleDelete = async (row: HaltHassOrderListItem) => {
     const res = await deleteHaltHassOrder(row.id)
     if (res.code === 0) {
       ElMessage.success("删除成功")
+      void taskCenterStore.refresh(true)
       getList()
     } else {
       ElMessage.error(res.msg || "删除失败")
@@ -750,6 +768,17 @@ defineExpose({
   refresh: getList
 })
 
+watch(
+  () => route.fullPath,
+  () => {
+    if (!shouldSyncRouteTask()) return
+    initSearchFromRoute()
+    pagination.page = 1
+    getList()
+  }
+)
+
+initSearchFromRoute()
 onMounted(() => {
   getList()
   getBoardGroups()

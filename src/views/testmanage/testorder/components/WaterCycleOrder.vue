@@ -184,10 +184,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, defineExpose, computed } from "vue"
+import { ref, reactive, onMounted, onUnmounted, defineExpose, computed, watch } from "vue"
+import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
 import { Cpu } from "@element-plus/icons-vue"
 import { useUserStore } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
   getWaterCycleOrderListApi,
   createWaterCycleOrderApi,
@@ -199,6 +201,8 @@ import {
 import type { WaterCycleOrderListItem, WaterCycleOrderDetail } from "@/api/water-cycle/types"
 
 const userStore = useUserStore()
+const route = useRoute()
+const taskCenterStore = useTaskCenterStoreHook()
 
 const statusOptions = [
   { value: "0", label: "已创建" },
@@ -332,6 +336,17 @@ const handleReset = () => {
   getList()
 }
 
+const initSearchFromRoute = () => {
+  const { taskNumber, status } = route.query
+  searchForm.taskNumber = typeof taskNumber === "string" ? taskNumber : ""
+  searchForm.status = typeof status === "string" ? status : ""
+}
+
+const shouldSyncRouteTask = () => {
+  const { tab } = route.query
+  return typeof tab !== "string" || tab === "water-cycle"
+}
+
 const handleSizeChange = (size: number) => {
   pagination.pageSize = size
   pagination.page = 1
@@ -370,6 +385,7 @@ const handleCreate = async () => {
       await createWaterCycleOrderApi(createForm)
       ElMessage.success("创建成功")
       createDialogVisible.value = false
+      void taskCenterStore.refresh(true)
       getList()
     } catch (e) {
       console.error(e)
@@ -399,6 +415,7 @@ const handlePublish = async (row: any) => {
     const res = await publishWaterCycleOrderApi(row.id)
     if (res.code === 0) {
       ElMessage.success("发布成功")
+      void taskCenterStore.refresh(true)
       getList()
     } else {
       ElMessage.error(res.msg || "发布失败")
@@ -415,6 +432,7 @@ const handleDelete = async (row: any) => {
     const res = await deleteWaterCycleOrderApi(row.id)
     if (res.code === 0) {
       ElMessage.success("删除成功")
+      void taskCenterStore.refresh(true)
       getList()
     } else {
       ElMessage.error(res.msg || "删除失败")
@@ -427,6 +445,17 @@ const handleDelete = async (row: any) => {
 
 defineExpose({ refresh: getList })
 
+watch(
+  () => route.fullPath,
+  () => {
+    if (!shouldSyncRouteTask()) return
+    initSearchFromRoute()
+    pagination.page = 1
+    getList()
+  }
+)
+
+initSearchFromRoute()
 onMounted(() => {
   getList()
   window.addEventListener("focus", handleWindowFocus)

@@ -136,11 +136,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue"
+import { ref, reactive, onMounted, watch } from "vue"
 import ProcessPreview from "@/components/Check/ProcessPreview.vue"
 import { useRoute, useRouter } from "vue-router"
 import { checkEyesDataApi, checkXrayDataApi, checkFuncDataApi, checkPassApi } from "@/api/check"
 import { useUserStore } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import { ElMessageBox } from "element-plus"
 import { VAceEditor } from "vue3-ace-editor"
 import "./vace.config"
@@ -181,6 +182,7 @@ const processJson = ref({
 const loading = ref(false)
 const route = useRoute()
 const router = useRouter()
+const taskCenterStore = useTaskCenterStoreHook()
 const options = reactive({
   useWorker: true, // 启用语法检查,必须为true
   enableBasicAutocompletion: true, // 自动补全
@@ -203,7 +205,7 @@ const anyObj = reactive({
   user: "",
   date: ""
 })
-onMounted(() => {
+const loadProcessData = () => {
   anyObj.type = route.query.process_type
   anyObj.id = route.query.testprocess_id
   anyObj.name = route.query.testprocess_name
@@ -229,7 +231,19 @@ onMounted(() => {
       loading.value = false
     })
   }
+}
+
+onMounted(() => {
+  loadProcessData()
 })
+
+watch(
+  () => route.fullPath,
+  () => {
+    loadProcessData()
+  }
+)
+
 const handleCheckPass = () => {
   ElMessageBox.confirm("确认审核通过吗？", "审核确认", {
     confirmButtonText: "确认",
@@ -241,6 +255,7 @@ const handleCheckPass = () => {
       user: userStore.userid,
       pass: true
     }).then(() => {
+      void taskCenterStore.refresh(true)
       router.push("/testmanage/check")
     })
   })
@@ -257,6 +272,7 @@ const handleCheckBack = () => {
       user: userStore.userid,
       reason: reason.value
     }).then(() => {
+      void taskCenterStore.refresh(true)
       router.push("/testmanage/check")
     })
   })

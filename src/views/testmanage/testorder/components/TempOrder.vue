@@ -2,13 +2,14 @@
 
 <script lang="ts" setup>
 import { computed, h, reactive, ref, watch } from "vue"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import { ElMessage, ElMessageBox, ElTable, ElTree, type FormInstance, TabsPaneContext } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import ProdBoard from "@/views/testmanage/testorder/components/temp_order/ProdBoard.vue"
 import TempBoard from "@/views/testmanage/testorder/components/temp_order/TempBoard.vue"
 import { usePagination } from "@/hooks/usePagination"
 import { useUserStore } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import { checkPermission } from "@/utils/permission"
 import {
   getTempTestMangeTable,
@@ -24,7 +25,9 @@ import { checkTempReportDataApi, getSingleDevReportDataApi } from "@/api/report"
 import { Warning } from "@element-plus/icons-vue"
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
+const taskCenterStore = useTaskCenterStoreHook()
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
 const reportJson = ref<any>([])
@@ -95,6 +98,17 @@ const clearSearchData = () => {
   searchData.Daterange = []
   searchData.boardName = ""
   searchData.boardModel = ""
+}
+
+const initSearchFromRoute = () => {
+  const { id, status } = route.query
+  searchData.number = typeof id === "string" ? id : ""
+  searchData.TestStatus = typeof status === "string" ? status : ""
+}
+
+const shouldSyncRouteTask = () => {
+  const { tab } = route.query
+  return typeof tab !== "string" || tab === "temp"
 }
 
 const defineLink = (status: any) => {
@@ -413,6 +427,7 @@ const addOrder = (addProdBoard, selectedRows, orderInfo, processList) => {
             .then(() => {
               tempDialogVisible.value = false
               ElMessage.success("添加成功")
+              void taskCenterStore.refresh(true)
               getMangeData()
               if (addProdBoard) {
                 prodBoardComponent.value?.clearOrderInfo()
@@ -429,6 +444,7 @@ const addOrder = (addProdBoard, selectedRows, orderInfo, processList) => {
       } else {
         tempDialogVisible.value = false
         ElMessage.success("添加成功")
+        void taskCenterStore.refresh(true)
         getMangeData()
         if (addProdBoard) {
           prodBoardComponent.value?.clearOrderInfo()
@@ -462,10 +478,12 @@ const TestStatus = reactive([
 const confirm = async (value: string) => {
   if (value === "发布") {
     publishDevTestUnitApi({ id: postFormInfo["dev_testunit_id"] }).then(() => {
+      void taskCenterStore.refresh(true)
       getMangeData()
     })
   } else {
     deleteDevTestUnitApi(postFormInfo["dev_testunit_id"]).then(() => {
+      void taskCenterStore.refresh(true)
       getMangeData()
     })
   }
@@ -545,11 +563,26 @@ const postSelectedUnits = () => {
   const selectedUnitIds = selectedRows.value.map((item) => item.dev_testunit_id)
   postDevUnits(selectedUnitIds).then(() => {
     ElMessage.success("发布成功")
+    void taskCenterStore.refresh(true)
     getMangeData()
   })
 }
 
 /** 监听分页参数的变化 */
+watch(
+  () => route.fullPath,
+  () => {
+    if (!shouldSyncRouteTask()) return
+    initSearchFromRoute()
+    if (paginationData.currentPage !== 1) {
+      paginationData.currentPage = 1
+      return
+    }
+    getMangeData()
+  }
+)
+
+initSearchFromRoute()
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getMangeData, { immediate: true })
 </script>
 

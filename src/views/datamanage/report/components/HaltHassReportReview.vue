@@ -1,8 +1,10 @@
 <script lang="ts" setup>
-import { reactive, ref, onMounted } from "vue"
+import { reactive, ref, onMounted, watch } from "vue"
+import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { Search, Refresh, View, Check, Close } from "@element-plus/icons-vue"
 import { useUserStore } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
   getHaltHassReportList,
   getHaltHassReportDetail,
@@ -12,6 +14,8 @@ import {
 import type { HaltHassReportDetail, HaltHassReportListItem } from "@/api/halt-hass/types"
 
 const userStore = useUserStore()
+const route = useRoute()
+const taskCenterStore = useTaskCenterStoreHook()
 
 const loading = ref(false)
 const tableData = ref<HaltHassReportListItem[]>([])
@@ -23,6 +27,16 @@ const pagination = reactive({
 const searchData = reactive({
   orderNo: ""
 })
+
+const initSearchFromRoute = () => {
+  const { orderNo } = route.query
+  searchData.orderNo = typeof orderNo === "string" ? orderNo : ""
+}
+
+const shouldSyncRouteTask = () => {
+  const { tab } = route.query
+  return typeof tab !== "string" || tab === "halt-hass"
+}
 
 const detailVisible = ref(false)
 const currentReport = ref<HaltHassReportDetail | null>(null)
@@ -129,6 +143,21 @@ const handleDetail = async (row: HaltHassReportListItem) => {
   }
 }
 
+const openRouteReportDetail = async () => {
+  if (!shouldSyncRouteTask()) return
+  const reportId = Number(route.query.reportId)
+  if (!reportId) return
+  try {
+    const res = await getHaltHassReportDetail(reportId)
+    if (res.code === 0) {
+      currentReport.value = res.data
+      activeTab.value = "info"
+      detailVisible.value = true
+    }
+  } catch {
+  }
+}
+
 const handleApprove = async (report: HaltHassReportDetail | HaltHassReportListItem) => {
   await ElMessageBox.confirm(
     "\u786E\u5B9A\u8981\u901A\u8FC7\u8BE5\u62A5\u544A\u7684\u5BA1\u6838\u5417\uFF1F",
@@ -150,6 +179,7 @@ const handleApprove = async (report: HaltHassReportDetail | HaltHassReportListIt
     if (res.code === 0) {
       ElMessage.success("\u5BA1\u6838\u901A\u8FC7\u6210\u529F")
       detailVisible.value = false
+      void taskCenterStore.refresh(true)
       getTableData()
     } else {
       ElMessage.error(res.msg || "\u64CD\u4F5C\u5931\u8D25")
@@ -186,6 +216,7 @@ const handleReject = async () => {
       ElMessage.success("\u5DF2\u6253\u56DE")
       rejectDialogVisible.value = false
       detailVisible.value = false
+      void taskCenterStore.refresh(true)
       getTableData()
     } else {
       ElMessage.error(res.msg || "\u64CD\u4F5C\u5931\u8D25")
@@ -196,8 +227,21 @@ const handleReject = async () => {
 }
 
 onMounted(() => {
+  initSearchFromRoute()
   getTableData()
+  void openRouteReportDetail()
 })
+
+watch(
+  () => route.fullPath,
+  () => {
+    if (!shouldSyncRouteTask()) return
+    initSearchFromRoute()
+    pagination.currentPage = 1
+    getTableData()
+    void openRouteReportDetail()
+  }
+)
 
 defineExpose({ resetSearch })
 </script>

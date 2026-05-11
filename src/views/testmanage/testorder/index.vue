@@ -39,6 +39,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
+import { watch } from "vue"
 import { TabsPaneContext } from "element-plus"
 import { PermissionCode } from "@/constants/permission"
 import { checkPermission } from "@/utils/permission"
@@ -80,7 +81,7 @@ const router = useRouter()
 
 const handleTabClick = (tab: TabsPaneContext) => {
   // 记下当前选中的标签页，当点击浏览器返回按钮时，可返回到前面选中的标签页
-  router.replace({ query: { ...router.currentRoute.value.query, tab: tab.props.name } })
+  router.replace({ query: { tab: String(tab.props.name || "") } })
 
   if (tab.props.name === "prod" && prodOrderComponent.value) {
     prodOrderComponent.value.getTestunits()
@@ -110,4 +111,13 @@ onMounted(() => {
     activeName.value = availableTabs.value[0]?.name || ""
   }
 })
+
+watch(
+  () => router.currentRoute.value.query.tab,
+  (tab) => {
+    if (typeof tab === "string" && availableTabs.value.some((item) => item.name === tab)) {
+      activeName.value = tab
+    }
+  }
+)
 </script>
