@@ -5,11 +5,13 @@ import { onMounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { checkReportDataApi, checkReportFeedbackApi, checkReportPassApi, generateQuestionUnitApi } from "@/api/report"
 import { useUserStore } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import FunctionalTestingReportPreview from "@/components/Check/FunctionalTestingReportPreview.vue"
 import { ElMessageBox } from "element-plus"
 import { ReportCheck } from "@/utils/report"
 
 const userStore = useUserStore()
+const taskCenterStore = useTaskCenterStoreHook()
 const reportJson = ref({})
 
 const hasError = ref(false)
@@ -658,6 +660,7 @@ const checkPass = () => {
   checkReportPassApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
+      void taskCenterStore.refresh(true)
       router.push({ name: "reportCheckList" })
     }
   })
@@ -691,6 +694,7 @@ const checkFeedback = () => {
     // console.log(formData)
     if (res.msg === "success") {
       loading.value = false
+      void taskCenterStore.refresh(true)
       router.push({ name: "reportCheckList" })
     }
   })
@@ -717,6 +721,7 @@ const generateQuestionUnit = () => {
   generateQuestionUnitApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
+      void taskCenterStore.refresh(true)
       router.push({ name: "reportCheckList" })
     }
   })
@@ -795,26 +800,34 @@ const reGetReport = () => {
     console.log(reportJson.value)
   })
 }
-const overallResult = ref("")
-onMounted(() => {
+const loadReportData = () => {
   loading.value = true
   anyObj.type = route.query.type
   anyObj.id = route.query.id
   anyObj.name = route.query.name
   anyObj.user = route.query.user
   anyObj.date = route.query.date
-  // console.log("anyObj", anyObj.type)
   checkReportDataApi({ id: route.query.id }).then((res) => {
     loaded.value = true
     loading.value = false
     getErrorQuestionWarnList()
     reportJson.value = res.data
-    // TODO
     console.log(reportJson.value)
     overallResult.value = getOverallResult(reportJson.value.data)
   })
+}
+const overallResult = ref("")
+onMounted(() => {
+  loadReportData()
   watch([() => reportJson.value], getErrorQuestionWarnList, { immediate: true, deep: true })
 })
+
+watch(
+  () => route.fullPath,
+  () => {
+    loadReportData()
+  }
+)
 
 // Check if all results are PASS or if any are FAIL
 const getOverallResult = (obj) => {

@@ -41,7 +41,7 @@ const defaultSettings: LayoutSettings = {
   fixedHeader: true,
   showFooter: true,
   showLogo: true,
-  showNotify: false,
+  showNotify: true,
   showThemeSwitch: true,
   showScreenfull: true,
   showSearchMenu: true,

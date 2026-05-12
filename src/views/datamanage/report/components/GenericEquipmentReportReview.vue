@@ -1,11 +1,29 @@
 <script lang="ts" setup>
-import { computed, reactive, ref, onMounted } from "vue"
+import { computed, reactive, ref, onMounted, watch } from "vue"
+import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { Search, Refresh, View, Check, Close } from "@element-plus/icons-vue"
-import { getWaterCycleReportListApi, updateWaterCycleReportApi } from "@/api/water-cycle-report"
-import { getHighTempBoxReportListApi, updateHighTempBoxReportApi } from "@/api/high-temp-box-report"
-import { getVibrationTableReportListApi, updateVibrationTableReportApi } from "@/api/vibration-table-report"
-import { getHighTempPressureReportListApi, updateHighTempPressureReportApi } from "@/api/high-temp-pressure-report"
+import {
+  getWaterCycleReportDetailApi,
+  getWaterCycleReportListApi,
+  updateWaterCycleReportApi
+} from "@/api/water-cycle-report"
+import {
+  getHighTempBoxReportDetailApi,
+  getHighTempBoxReportListApi,
+  updateHighTempBoxReportApi
+} from "@/api/high-temp-box-report"
+import {
+  getVibrationTableReportDetailApi,
+  getVibrationTableReportListApi,
+  updateVibrationTableReportApi
+} from "@/api/vibration-table-report"
+import {
+  getHighTempPressureReportDetailApi,
+  getHighTempPressureReportListApi,
+  updateHighTempPressureReportApi
+} from "@/api/high-temp-pressure-report"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 
 type ReportType = "water-cycle" | "high-temp-box" | "vibration-table" | "high-temp-high-pressure"
 
@@ -25,30 +43,36 @@ interface ReportRow {
 const props = defineProps<{
   reportType: ReportType
 }>()
+const route = useRoute()
+const taskCenterStore = useTaskCenterStoreHook()
 
 const configs = {
   "water-cycle": {
     title: "水循环报告审核",
     taskLabel: "水循环任务单号",
     getList: getWaterCycleReportListApi,
+    getDetail: getWaterCycleReportDetailApi,
     update: updateWaterCycleReportApi
   },
   "high-temp-box": {
     title: "高温箱报告审核",
     taskLabel: "高温箱任务单号",
     getList: getHighTempBoxReportListApi,
+    getDetail: getHighTempBoxReportDetailApi,
     update: updateHighTempBoxReportApi
   },
   "vibration-table": {
     title: "振动台报告审核",
     taskLabel: "振动台任务单号",
     getList: getVibrationTableReportListApi,
+    getDetail: getVibrationTableReportDetailApi,
     update: updateVibrationTableReportApi
   },
   "high-temp-high-pressure": {
     title: "高温高压报告审核",
     taskLabel: "高温高压任务单号",
     getList: getHighTempPressureReportListApi,
+    getDetail: getHighTempPressureReportDetailApi,
     update: updateHighTempPressureReportApi
   }
 }
@@ -63,6 +87,17 @@ const currentReport = ref<ReportRow | null>(null)
 const rejectDialogVisible = ref(false)
 const rejectReason = ref("")
 const rejectingReport = ref<ReportRow | null>(null)
+
+const initSearchFromRoute = () => {
+  const { taskNumber, tester } = route.query
+  searchData.taskNumber = typeof taskNumber === "string" ? taskNumber : ""
+  searchData.tester = typeof tester === "string" ? tester : ""
+}
+
+const shouldSyncRouteTask = () => {
+  const { tab } = route.query
+  return typeof tab !== "string" || tab === props.reportType
+}
 
 const formatTime = (time?: string) => time || "-"
 const nowText = () => {
@@ -118,6 +153,20 @@ const handleDetail = (row: ReportRow) => {
   detailVisible.value = true
 }
 
+const openRouteReportDetail = async () => {
+  if (!shouldSyncRouteTask()) return
+  const reportId = Number(route.query.reportId)
+  if (!reportId) return
+  try {
+    const res = await config.value.getDetail(reportId)
+    if (res.code === 0) {
+      currentReport.value = res.data as ReportRow
+      detailVisible.value = true
+    }
+  } catch {
+  }
+}
+
 const handleApprove = async (report: ReportRow) => {
   await ElMessageBox.confirm("确定要通过该报告的审核吗？", "确认通过", { type: "success" })
   await config.value.update(report.id, {
@@ -127,6 +176,7 @@ const handleApprove = async (report: ReportRow) => {
   } as any)
   ElMessage.success("审核通过成功")
   detailVisible.value = false
+  void taskCenterStore.refresh(true)
   getTableData()
 }
 
@@ -150,10 +200,27 @@ const handleReject = async () => {
   ElMessage.success("已打回")
   rejectDialogVisible.value = false
   detailVisible.value = false
+  void taskCenterStore.refresh(true)
   getTableData()
 }
 
-onMounted(getTableData)
+onMounted(() => {
+  initSearchFromRoute()
+  getTableData()
+  void openRouteReportDetail()
+})
+
+watch(
+  () => route.fullPath,
+  () => {
+    if (!shouldSyncRouteTask()) return
+    initSearchFromRoute()
+    pagination.currentPage = 1
+    getTableData()
+    void openRouteReportDetail()
+  }
+)
+
 defineExpose({ resetSearch })
 </script>
 

@@ -2,11 +2,12 @@
 
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref, computed, h } from "vue"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import { ElMessage, ElMessageBox, ElTable, ElTree, type FormInstance } from "element-plus"
 import TableComponent from "@/components/Table/index.vue"
 import { usePagination } from "@/hooks/usePagination"
 import { useUserStore } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import { checkPermission } from "@/utils/permission"
 import {
   getTestMangePath,
@@ -25,7 +26,9 @@ import { Delete, Warning } from "@element-plus/icons-vue"
 import { deleteInstrumentDataApi } from "@/api/instrument"
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
+const taskCenterStore = useTaskCenterStoreHook()
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
 const reportJson = ref<any>([])
@@ -103,6 +106,17 @@ const clearSearchData = () => {
   searchData.TestType = ""
   searchData.TestStatus = ""
   searchData.Daterange = []
+}
+
+const initSearchFromRoute = () => {
+  const { id, status } = route.query
+  searchData.number = typeof id === "string" ? id : ""
+  searchData.TestStatus = typeof status === "string" ? status : ""
+}
+
+const shouldSyncRouteTask = () => {
+  const { tab } = route.query
+  return typeof tab !== "string" || tab === "prod"
 }
 
 const defineLink = (status: any) => {
@@ -384,6 +398,7 @@ const submitAdd = () => {
   }).then(() => {
     // getMangeData()
     dialogVisible.value = false
+    void taskCenterStore.refresh(true)
     getTestunits()
   })
 }
@@ -404,11 +419,13 @@ const TestStatus = [
 const confirm = async (value: string) => {
   if (value === "发布") {
     publicTestUnitApi({ id: postFormInfo["testunit_id"] }).then(() => {
+      void taskCenterStore.refresh(true)
       // getMangeData()
       getTestunits()
     })
   } else {
     deleteTestUnitApi(postFormInfo["testunit_id"]).then(() => {
+      void taskCenterStore.refresh(true)
       // getMangeData()
       getTestunits()
     })
@@ -544,6 +561,7 @@ const postSelectedUnits = () => {
   const selectedUnitIds = selectedUnitRows.value.map((item) => item.testunit_id)
   postUnits(selectedUnitIds).then(() => {
     ElMessage.success("发布成功")
+    void taskCenterStore.refresh(true)
     getTestunits()
   })
 }
@@ -560,6 +578,20 @@ const orderInfo = reactive<any>({
 })
 
 /** 监听分页参数的变化 */
+watch(
+  () => route.fullPath,
+  () => {
+    if (!shouldSyncRouteTask()) return
+    initSearchFromRoute()
+    if (paginationData.currentPage !== 1) {
+      paginationData.currentPage = 1
+      return
+    }
+    getTestunits()
+  }
+)
+
+initSearchFromRoute()
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTestunits, { immediate: true })
 </script>
 

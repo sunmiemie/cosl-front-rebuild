@@ -1,4 +1,6 @@
 export const PermissionCode = {
+  TestProcessCreate: "TEST_PROCESS_CREATE",
+  TestProcessReview: "TEST_PROCESS_REVIEW",
   TestOrderCreateBasic: "TEST_ORDER_CREATE_BASIC",
   TestOrderCreateHaltHass: "TEST_ORDER_CREATE_HALT_HASS",
   TestOrderCreateWaterCycle: "TEST_ORDER_CREATE_WATER_CYCLE",

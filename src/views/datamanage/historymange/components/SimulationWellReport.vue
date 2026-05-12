@@ -157,9 +157,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from "vue"
+import { computed, onMounted, reactive, ref, watch } from "vue"
+import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox, type UploadFile, type UploadProps, type UploadUserFile } from "element-plus"
 import { useUserStoreHook } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
   getSimulatedWellReportListApi,
   getSimulatedWellReportDetailApi,
@@ -176,10 +178,22 @@ type AuditRow = SimulatedWellReportListItem & {
 }
 
 const userStore = useUserStoreHook()
+const route = useRoute()
+const taskCenterStore = useTaskCenterStoreHook()
 const reviewerName = computed(() => userStore.nickName || userStore.username || "-")
 
 const signImageUrl = ref("")
 const signFileList = ref<UploadUserFile[]>([])
+const shouldSyncRouteTask = () => {
+  const { tab } = route.query
+  return typeof tab !== "string" || tab === "simulation"
+}
+
+const taskNumberFilter = computed(() => {
+  if (!shouldSyncRouteTask()) return ""
+  const value = route.query.taskNumber
+  return typeof value === "string" ? value.trim().toLowerCase() : ""
+})
 
 const clearSignImage = () => {
   signImageUrl.value = ""
@@ -214,7 +228,13 @@ const handleSignChange: UploadProps["onChange"] = (file: UploadFile) => {
 const loading = ref(false)
 const rows = ref<AuditRow[]>([])
 
-const pendingAllRows = computed(() => rows.value.filter((r) => r.status === 0))
+const pendingAllRows = computed(() =>
+  rows.value.filter(
+    (r) =>
+      r.status === 0 &&
+      (!taskNumberFilter.value || r.task_number.toLowerCase().includes(taskNumberFilter.value))
+  )
+)
 const reviewedAllRows = computed(() => rows.value.filter((r) => r.status !== 0))
 
 const pendingPagination = reactive({
@@ -316,6 +336,21 @@ const handleDetail = async (row: AuditRow) => {
   }
 }
 
+const openRouteReportDetail = async () => {
+  if (!shouldSyncRouteTask()) return
+  const reportId = Number(route.query.reportId)
+  if (!reportId) return
+  try {
+    const res = await getSimulatedWellReportDetailApi(reportId)
+    if (res.code === 0) {
+      currentReport.value = normalizeRow(res.data)
+      detailDialogVisible.value = true
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
 const handleApprove = async (row: AuditRow) => {
   await ElMessageBox.confirm("确认通过该报告审核吗？", "审核通过", { type: "warning" })
   try {
@@ -330,6 +365,7 @@ const handleApprove = async (row: AuditRow) => {
     const res = await updateSimulatedWellReportApi(row.id, payload as any)
     if (res.code === 0) {
       ElMessage.success("已通过")
+      void taskCenterStore.refresh(true)
       getList()
     } else {
       ElMessage.error(res.msg || "操作失败")
@@ -355,6 +391,7 @@ const handleReject = async (row: AuditRow) => {
     const res = await updateSimulatedWellReportApi(row.id, payload as any)
     if (res.code === 0) {
       ElMessage.success("已驳回")
+      void taskCenterStore.refresh(true)
       getList()
     } else {
       ElMessage.error(res.msg || "操作失败")
@@ -381,7 +418,17 @@ const handleDownload = (row: AuditRow) => {
 
 onMounted(() => {
   getList()
+  void openRouteReportDetail()
 })
+
+watch(
+  () => route.fullPath,
+  () => {
+    if (!shouldSyncRouteTask()) return
+    pendingPagination.page = 1
+    void openRouteReportDetail()
+  }
+)
 
 defineExpose({
   resetSearch: getList

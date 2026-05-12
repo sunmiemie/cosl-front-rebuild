@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue"
+import { onMounted, reactive, ref, watch } from "vue"
+import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
 import {
   approveHaltHassReport,
@@ -9,10 +10,13 @@ import {
 } from "@/api/halt-hass"
 import type { HaltHassReportDetail, HaltHassReportListItem } from "@/api/halt-hass/types"
 import { useUserStore } from "@/store/modules/user"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 
 const userStore = useUserStore()
+const route = useRoute()
+const taskCenterStore = useTaskCenterStoreHook()
 
 const reviewStatusOptions = [
   { value: "0", label: "待审核" },
@@ -44,6 +48,12 @@ const rejectForm = reactive({
   reportId: 0,
   reason: ""
 })
+
+const initSearchFromRoute = () => {
+  const { orderNo, reviewStatus } = route.query
+  searchForm.orderNo = typeof orderNo === "string" ? orderNo : ""
+  searchForm.reviewStatus = typeof reviewStatus === "string" ? reviewStatus : ""
+}
 
 const getResultType = (result: number): TagType => {
   const map: Record<number, TagType> = {
@@ -129,6 +139,20 @@ const handleDetail = async (row: HaltHassReportListItem) => {
   }
 }
 
+const openRouteReportDetail = async () => {
+  const reportId = Number(route.query.reportId)
+  if (!reportId) return
+  try {
+    const res = await getHaltHassReportDetail(reportId)
+    if (res.code === 0) {
+      currentReport.value = res.data
+      detailDialogVisible.value = true
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 const handleApprove = async (row: HaltHassReportListItem | HaltHassReportDetail) => {
   if (!userStore.userid) return
 
@@ -143,6 +167,7 @@ const handleApprove = async (row: HaltHassReportListItem | HaltHassReportDetail)
     if (res.code === 0) {
       ElMessage.success("审核通过")
       detailDialogVisible.value = false
+      void taskCenterStore.refresh(true)
       getList()
     } else {
       ElMessage.error(res.msg || "操作失败")
@@ -176,6 +201,7 @@ const confirmReject = async () => {
       ElMessage.success("已驳回")
       rejectDialogVisible.value = false
       detailDialogVisible.value = false
+      void taskCenterStore.refresh(true)
       getList()
     } else {
       ElMessage.error(res.msg || "操作失败")
@@ -189,8 +215,20 @@ const confirmReject = async () => {
 }
 
 onMounted(() => {
+  initSearchFromRoute()
   getList()
+  void openRouteReportDetail()
 })
+
+watch(
+  () => route.fullPath,
+  () => {
+    initSearchFromRoute()
+    pagination.page = 1
+    getList()
+    void openRouteReportDetail()
+  }
+)
 </script>
 
 <template>

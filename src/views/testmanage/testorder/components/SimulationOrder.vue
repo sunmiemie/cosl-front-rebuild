@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, defineExpose, onMounted, reactive, ref } from "vue"
+import { computed, defineExpose, onMounted, reactive, ref, watch } from "vue"
+import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox, type UploadFile, type UploadProps, type UploadUserFile } from "element-plus"
 import {
   deleteSimulatedWellOrderApi,
@@ -8,6 +9,7 @@ import {
   publishSimulatedWellOrderApi
 } from "@/api/simulated-well"
 import { getMySignatureApi, getSignatureImageApi } from "@/api/signature"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import type { SimulatedWellOrderListItem } from "@/api/simulated-well/types"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
@@ -28,6 +30,8 @@ const searchForm = reactive({
   taskNumber: "",
   status: ""
 })
+const route = useRoute()
+const taskCenterStore = useTaskCenterStoreHook()
 
 const pagination = reactive({
   page: 1,
@@ -185,6 +189,17 @@ const handleReset = () => {
   getList()
 }
 
+const initSearchFromRoute = () => {
+  const { taskNumber, status } = route.query
+  searchForm.taskNumber = typeof taskNumber === "string" ? taskNumber : ""
+  searchForm.status = typeof status === "string" ? status : ""
+}
+
+const shouldSyncRouteTask = () => {
+  const { tab } = route.query
+  return typeof tab !== "string" || tab === "simulation"
+}
+
 const handleSizeChange = (size: number) => {
   pagination.pageSize = size
   pagination.page = 1
@@ -296,6 +311,7 @@ const handleConfirmPublish = async () => {
     if (res.code === 0) {
       ElMessage.success("发布成功")
       publishDialogVisible.value = false
+      void taskCenterStore.refresh(true)
       getList()
       return
     }
@@ -314,6 +330,7 @@ const handleDelete = async (row: SimulatedWellOrderListItem) => {
     const res = await deleteSimulatedWellOrderApi(row.id)
     if (res.code === 0) {
       ElMessage.success("删除成功")
+      void taskCenterStore.refresh(true)
       getList()
       return
     }
@@ -328,7 +345,18 @@ defineExpose({
   refresh: getList
 })
 
+watch(
+  () => route.fullPath,
+  () => {
+    if (!shouldSyncRouteTask()) return
+    initSearchFromRoute()
+    pagination.page = 1
+    getList()
+  }
+)
+
 onMounted(() => {
+  initSearchFromRoute()
   getList()
 })
 </script>
