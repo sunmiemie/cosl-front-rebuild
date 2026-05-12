@@ -42,8 +42,6 @@ const configDraft = reactive<Record<SectionKey, string[]>>({
   test_items: [],
   evaluation_standards: []
 })
-const newFieldText = ref("")
-
 const sectionTabs = [
   { key: "test_products" as SectionKey, label: "测试产品" },
   { key: "match_instruments" as SectionKey, label: "配接仪器" },
@@ -60,6 +58,7 @@ const filteredTemplates = computed(() => {
 const currentTemplate = computed(() => templates.value.find((t) => t.id === currentTemplateId.value) || null)
 
 const currentFieldList = computed(() => configDraft[activeSection.value])
+const currentSectionLabel = computed(() => sectionTabs.find((s) => s.key === activeSection.value)?.label || "字段")
 
 const createDialogVisible = ref(false)
 const createFormRef = ref<FormInstance>()
@@ -79,6 +78,63 @@ const createRules = {
   report_no: [{ required: true, message: "请输入报告编号", trigger: "blur" }],
   report_name: [{ required: true, message: "请输入报告名称", trigger: "blur" }]
 }
+
+type FieldType =
+  | "text"
+  | "textarea"
+  | "number"
+  | "radio"
+  | "date"
+  | "select"
+  | "checkbox"
+  | "depth-group"
+  | "range-radio"
+  | "multi-input-row"
+  | "sampling-group"
+  | "card-group"
+
+const fieldTypeOptions = [
+  {
+    label: "基础类型",
+    options: [
+      { value: "text", label: "文本输入" },
+      { value: "textarea", label: "多行文本" },
+      { value: "number", label: "数字" },
+      { value: "radio", label: "正常/异常判定" },
+      { value: "date", label: "日期" },
+      { value: "select", label: "下拉选择" },
+      { value: "checkbox", label: "复选框" }
+    ]
+  },
+  {
+    label: "复合类型",
+    options: [
+      { value: "depth-group", label: "深度输入组" },
+      { value: "range-radio", label: "区间+判定" },
+      { value: "multi-input-row", label: "多列复合行" },
+      { value: "sampling-group", label: "取样测试组" },
+      { value: "card-group", label: "数据卡片组" }
+    ]
+  }
+] as const
+
+const compoundTypes: FieldType[] = ["depth-group", "range-radio", "multi-input-row", "sampling-group", "card-group"]
+const addFieldDialogVisible = ref(false)
+const addFieldForm = reactive({
+  type: "text" as FieldType,
+  nameCN: "",
+  nameEN: "",
+  defaultValue: "",
+  required: false,
+  depthPointCount: 4,
+  depthUnit: "m",
+  depthWithJudgment: false,
+  rangeUnit: "m",
+  multiRowCount: 2,
+  samplingPointCount: 2
+})
+
+const isCompoundType = computed(() => compoundTypes.includes(addFieldForm.type))
 
 const uniqueNonempty = (items: string[]) => {
   const set = new Set<string>()
@@ -177,7 +233,6 @@ const handleDelete = async (row: TemplateItem) => {
 const openConfig = (row: TemplateItem) => {
   currentTemplateId.value = row.id
   activeSection.value = "test_products"
-  newFieldText.value = ""
   pageMode.value = "config"
   fetchDetail(row.id)
 }
@@ -205,14 +260,29 @@ const backToList = () => {
 }
 
 const addField = () => {
-  const text = newFieldText.value.trim()
+  const text = addFieldForm.nameCN.trim()
   if (!text) return
   if (currentFieldList.value.includes(text)) {
     ElMessage.warning("字段已存在")
     return
   }
   currentFieldList.value.push(text)
-  newFieldText.value = ""
+  addFieldDialogVisible.value = false
+}
+
+const openAddFieldDialog = () => {
+  addFieldForm.type = "text"
+  addFieldForm.nameCN = ""
+  addFieldForm.nameEN = ""
+  addFieldForm.defaultValue = ""
+  addFieldForm.required = false
+  addFieldForm.depthPointCount = 4
+  addFieldForm.depthUnit = "m"
+  addFieldForm.depthWithJudgment = false
+  addFieldForm.rangeUnit = "m"
+  addFieldForm.multiRowCount = 2
+  addFieldForm.samplingPointCount = 2
+  addFieldDialogVisible.value = true
 }
 
 const removeField = (idx: number) => {
@@ -334,80 +404,216 @@ onMounted(() => {
       <el-card shadow="never">
         <template #header>
           <div class="card-header">
-            <div class="card-title">{{ sectionTabs.find((s) => s.key === activeSection)?.label }}字段</div>
-            <div class="field-input-wrap">
-              <el-input v-model="newFieldText" placeholder="输入字段内容后添加" @keyup.enter="addField" />
-              <el-button type="success" @click="addField">添加字段</el-button>
-            </div>
+            <div class="card-title">{{ currentSectionLabel }}字段</div>
+            <el-button type="success" icon="CirclePlus" @click="openAddFieldDialog">添加字段</el-button>
           </div>
         </template>
 
         <div class="field-list">
           <div v-for="(item, idx) in currentFieldList" :key="`${activeSection}-${idx}`" class="field-item">
-            <div class="field-text">{{ item }}</div>
-            <el-button link type="danger" @click="removeField(idx)">删除</el-button>
+            <div class="field-card-main">
+              <div class="field-card-title">
+                {{ item }}
+              </div>
+              <div class="field-card-meta">
+                类型：<span class="field-type-badge">文本输入</span>
+                <span class="field-card-separator">|</span>
+                来源：{{ currentSectionLabel }}
+              </div>
+            </div>
+            <el-button class="field-delete-btn" link type="danger" @click="removeField(idx)">删除</el-button>
           </div>
           <el-empty v-if="currentFieldList.length === 0" description="暂无字段，请点击上方“添加字段”" />
         </div>
       </el-card>
     </div>
 
-    <el-dialog v-model="createDialogVisible" title="新增报告模板" width="520px" :close-on-click-modal="false">
-      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="90px">
+    <el-dialog
+      v-model="createDialogVisible"
+      title="新增配置模板"
+      width="620px"
+      class="simwell-admin-dialog"
+      :close-on-click-modal="false"
+    >
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-position="top">
         <el-form-item label="报告上传">
           <el-upload
             v-model:file-list="createDocxFileList"
+            class="docx-upload"
+            drag
             :auto-upload="false"
             :show-file-list="true"
             :limit="1"
             accept=".docx"
             :on-change="handleCreateDocxChange"
           >
-            <el-button :loading="createDocxLoading">上传 docx 报告</el-button>
+            <div class="upload-area-icon">📄</div>
+            <div class="upload-area-text">
+              {{ createDocxLoading ? "正在解析文档..." : "点击或拖拽 docx 报告到此处上传" }}
+            </div>
+            <div class="upload-area-hint">保留现有 docx 读取解析功能，解析后自动回填下方字段</div>
           </el-upload>
         </el-form-item>
-        <el-form-item label="模板编号" prop="report_no">
-          <el-input v-model="createForm.report_no" placeholder="例如：WT3-TCZZ-02-R35" />
-        </el-form-item>
-        <el-form-item label="模板名称" prop="report_name">
-          <el-input v-model="createForm.report_name" placeholder="例如：CBMT61XA南区水泥胶结测井仪" />
-        </el-form-item>
-        <el-form-item label="测试产品">
-          <el-input
-            v-model="createParsedText.test_products"
-            type="textarea"
-            :rows="3"
-            placeholder="每行一条，支持用 、 , ; | 分隔"
-          />
-        </el-form-item>
-        <el-form-item label="配接仪器">
-          <el-input
-            v-model="createParsedText.match_instruments"
-            type="textarea"
-            :rows="3"
-            placeholder="每行一条，支持用 、 , ; | 分隔"
-          />
-        </el-form-item>
-        <el-form-item label="测试项目">
-          <el-input
-            v-model="createParsedText.test_items"
-            type="textarea"
-            :rows="3"
-            placeholder="每行一条，支持用 、 , ; | 分隔"
-          />
-        </el-form-item>
-        <el-form-item label="评价标准">
-          <el-input
-            v-model="createParsedText.evaluation_standards"
-            type="textarea"
-            :rows="4"
-            placeholder="每行一条，支持用 、 , ; | 分隔"
-          />
-        </el-form-item>
+
+        <div class="dialog-form-grid two-col">
+          <el-form-item label="模板编号 *" prop="report_no">
+            <el-input v-model="createForm.report_no" placeholder="例如：WT3-TCZZ-02-R35" />
+          </el-form-item>
+          <el-form-item label="模板名称 *" prop="report_name">
+            <el-input v-model="createForm.report_name" placeholder="例如：CBMT61XA南区水泥胶结测井仪" />
+          </el-form-item>
+        </div>
+
+        <div class="parsed-field-panel">
+          <div class="compound-panel-title">解析字段预览与调整</div>
+          <el-form-item label="测试产品">
+            <el-input
+              v-model="createParsedText.test_products"
+              type="textarea"
+              :rows="3"
+              placeholder="每行一条，支持用 、 , ; | 分隔"
+            />
+          </el-form-item>
+          <el-form-item label="配接仪器">
+            <el-input
+              v-model="createParsedText.match_instruments"
+              type="textarea"
+              :rows="3"
+              placeholder="每行一条，支持用 、 , ; | 分隔"
+            />
+          </el-form-item>
+          <el-form-item label="测试项目">
+            <el-input
+              v-model="createParsedText.test_items"
+              type="textarea"
+              :rows="3"
+              placeholder="每行一条，支持用 、 , ; | 分隔"
+            />
+          </el-form-item>
+          <el-form-item label="评价标准">
+            <el-input
+              v-model="createParsedText.evaluation_standards"
+              type="textarea"
+              :rows="4"
+              placeholder="每行一条，支持用 、 , ; | 分隔"
+            />
+          </el-form-item>
+        </div>
       </el-form>
       <template #footer>
         <el-button @click="createDialogVisible = false">取消</el-button>
         <el-button type="primary" @click="handleCreate">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="addFieldDialogVisible"
+      title="添加新字段"
+      width="640px"
+      class="simwell-admin-dialog"
+      :close-on-click-modal="false"
+    >
+      <el-form label-position="top">
+        <el-form-item label="字段类型">
+          <el-select v-model="addFieldForm.type" style="width: 100%">
+            <el-option-group v-for="group in fieldTypeOptions" :key="group.label" :label="group.label">
+              <el-option v-for="item in group.options" :key="item.value" :label="item.label" :value="item.value" />
+            </el-option-group>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="字段名称（中文）">
+          <el-input v-model="addFieldForm.nameCN" placeholder="例如：测试产品名称" @keyup.enter="addField" />
+        </el-form-item>
+        <el-form-item label="字段名称（英文，可选）">
+          <el-input v-model="addFieldForm.nameEN" placeholder="例如：Product Name" />
+        </el-form-item>
+
+        <div v-if="!isCompoundType" class="simple-field-config">
+          <el-form-item label="默认值（可选）">
+            <el-input v-model="addFieldForm.defaultValue" />
+          </el-form-item>
+        </div>
+
+        <div v-else class="compound-config-container">
+          <div v-if="addFieldForm.type === 'depth-group'" class="compound-panel">
+            <div class="compound-panel-title">深度输入组配置</div>
+            <div class="dialog-form-grid two-col">
+              <el-form-item label="测试点数量">
+                <el-input-number v-model="addFieldForm.depthPointCount" :min="1" :max="20" style="width: 100%" />
+              </el-form-item>
+              <el-form-item label="单位">
+                <el-input v-model="addFieldForm.depthUnit" placeholder="m" />
+              </el-form-item>
+            </div>
+            <el-checkbox v-model="addFieldForm.depthWithJudgment">每个测试点包含正常/不正常判定</el-checkbox>
+          </div>
+
+          <div v-if="addFieldForm.type === 'range-radio'" class="compound-panel">
+            <div class="compound-panel-title">区间+判定配置</div>
+            <el-form-item label="单位">
+              <el-input v-model="addFieldForm.rangeUnit" placeholder="m" />
+            </el-form-item>
+          </div>
+
+          <div v-if="addFieldForm.type === 'multi-input-row'" class="compound-panel">
+            <div class="compound-panel-title">多列复合行配置</div>
+            <el-form-item label="行数">
+              <el-input-number v-model="addFieldForm.multiRowCount" :min="1" :max="50" style="width: 100%" />
+            </el-form-item>
+            <div class="dynamic-list-item">
+              <span class="item-label">中文</span>
+              <el-input placeholder="标签" />
+              <span class="item-label">EN</span>
+              <el-input placeholder="Label" />
+              <span class="item-label">单位</span>
+              <el-input placeholder="m" style="max-width: 80px" />
+            </div>
+            <button type="button" class="add-item-btn">+ 添加列</button>
+          </div>
+
+          <div v-if="addFieldForm.type === 'sampling-group'" class="compound-panel">
+            <div class="compound-panel-title">取样测试组配置</div>
+            <el-form-item label="取样点数">
+              <el-input-number v-model="addFieldForm.samplingPointCount" :min="1" :max="20" style="width: 100%" />
+            </el-form-item>
+            <div class="dynamic-list-item">
+              <span class="item-label">中文</span>
+              <el-input placeholder="子项名称" />
+              <span class="item-label">EN</span>
+              <el-input placeholder="Item Name" />
+            </div>
+            <button type="button" class="add-item-btn">+ 添加子项</button>
+          </div>
+
+          <div v-if="addFieldForm.type === 'card-group'" class="compound-panel">
+            <div class="compound-panel-title">数据卡片组配置</div>
+            <div class="card-config-block">
+              <div class="card-config-header">
+                <span class="item-label">标题</span>
+                <el-input placeholder="卡片标题" />
+                <span class="item-label">EN</span>
+                <el-input placeholder="Card Title" />
+              </div>
+              <div class="card-fields-label">卡片字段</div>
+              <div class="dynamic-list-item">
+                <span class="item-label">中文</span>
+                <el-input placeholder="字段名" />
+                <span class="item-label">EN</span>
+                <el-input placeholder="Field" />
+                <span class="item-label">单位</span>
+                <el-input placeholder="单位" style="max-width: 80px" />
+              </div>
+              <button type="button" class="add-item-btn">+ 添加字段</button>
+            </div>
+            <button type="button" class="add-item-btn">+ 添加卡片</button>
+          </div>
+        </div>
+
+        <el-checkbox v-model="addFieldForm.required">必填字段</el-checkbox>
+      </el-form>
+      <template #footer>
+        <el-button @click="addFieldDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="addField">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -531,22 +737,244 @@ onMounted(() => {
 .field-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .field-item {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  background: var(--el-bg-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #4a9eff;
+    box-shadow: 0 4px 16px rgba(26, 84, 144, 0.1);
+    transform: translateY(-1px);
+  }
 }
 
-.field-text {
+.field-card-main {
+  min-width: 0;
+}
+
+.field-card-title {
   font-size: 14px;
+  font-weight: 600;
   color: var(--el-text-color-primary);
   line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.field-card-meta {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.field-card-separator {
+  margin: 0 8px;
+  color: var(--el-border-color);
+}
+
+.field-type-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(74, 158, 255, 0.1);
+  color: #1a5490;
+}
+
+.field-delete-btn {
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.simwell-admin-dialog {
+  :deep(.el-dialog) {
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  :deep(.el-dialog__header) {
+    padding: 24px 28px 12px;
+  }
+
+  :deep(.el-dialog__title) {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1a5490;
+  }
+
+  :deep(.el-dialog__body) {
+    padding: 12px 28px 8px;
+  }
+
+  :deep(.el-dialog__footer) {
+    padding: 16px 28px 24px;
+  }
+
+  :deep(.el-form-item__label) {
+    font-size: 14px;
+    font-weight: 500;
+    color: #2c3e50;
+    margin-bottom: 8px;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-textarea__inner),
+  :deep(.el-select__wrapper) {
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #e1e8ed inset;
+    transition: all 0.2s ease;
+  }
+
+  :deep(.el-input__wrapper.is-focus),
+  :deep(.el-textarea__inner:focus),
+  :deep(.el-select__wrapper.is-focused) {
+    box-shadow:
+      0 0 0 1px #4a9eff inset,
+      0 0 0 3px rgba(74, 158, 255, 0.1);
+  }
+}
+
+.docx-upload {
+  width: 100%;
+
+  :deep(.el-upload) {
+    width: 100%;
+  }
+
+  :deep(.el-upload-dragger) {
+    width: 100%;
+    border: 2px dashed #e1e8ed;
+    border-radius: 8px;
+    padding: 30px 20px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: #1a5490;
+      background: rgba(26, 84, 144, 0.04);
+    }
+  }
+}
+
+.upload-area-icon {
+  font-size: 42px;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.upload-area-text {
+  color: #5a6c7d;
+  margin-bottom: 8px;
+}
+
+.upload-area-hint {
+  font-size: 12px;
+  color: rgba(90, 108, 125, 0.75);
+}
+
+.dialog-form-grid {
+  display: grid;
+  gap: 16px;
+
+  &.two-col {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.parsed-field-panel,
+.compound-panel {
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 8px;
+  background: #f5f7fa;
+}
+
+.parsed-field-panel {
+  margin-top: 4px;
+}
+
+.compound-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e1e8ed;
+}
+
+.simple-field-config {
+  margin-top: 4px;
+}
+
+.dynamic-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  background: #ffffff;
+  border: 1px solid #e1e8ed;
+  border-radius: 6px;
+}
+
+.item-label {
+  flex-shrink: 0;
+  min-width: 32px;
+  font-size: 11px;
+  color: #5a6c7d;
+  white-space: nowrap;
+}
+
+.add-item-btn {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  margin-top: 6px;
+  border: 2px dashed #e1e8ed;
+  border-radius: 6px;
+  background: transparent;
+  color: #4a9eff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #4a9eff;
+    background: rgba(74, 158, 255, 0.05);
+  }
+}
+
+.card-config-block {
+  border: 1px solid #e1e8ed;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  background: #ffffff;
+}
+
+.card-config-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #e1e8ed;
+}
+
+.card-fields-label {
+  font-size: 12px;
+  color: #5a6c7d;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 
 @media (max-width: 1800px) {
