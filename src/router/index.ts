@@ -487,6 +487,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
             meta: {
               title: "模拟井报告审核",
               permissions: [PermissionCode.ReportReviewSimulatedWell],
+              hidden: true,
               keepAlive: true
             }
           },

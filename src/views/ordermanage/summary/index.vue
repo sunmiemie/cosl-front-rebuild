@@ -80,9 +80,14 @@
         </el-table-column>
         <el-table-column label="委托单编号" min-width="140">
           <template #default="{ row }">
-            <el-button v-if="row.status === 'linked'" link type="primary" @click="showDetail(row.commNo)">
-              <span style="text-decoration: underline; text-underline-offset: 2px">{{ row.commNo }}</span>
-            </el-button>
+            <template v-if="row.status === 'linked'">
+              <el-button link type="primary" @click="showDetail(row.commNo)">
+                <span style="text-decoration: underline; text-underline-offset: 2px">{{ row.commNo }}</span>
+              </el-button>
+              <div v-if="row.commissionSampleName" class="linked-sample">
+                {{ row.commissionSampleName }}{{ row.commissionSampleSpec ? ` / ${row.commissionSampleSpec}` : "" }}
+              </div>
+            </template>
             <span v-else class="badge unlinked">未关联</span>
           </template>
         </el-table-column>
@@ -108,6 +113,7 @@
             style="width: 100%"
             filterable
             :loading="orderListLoading"
+            @change="handleOrderChange"
           >
             <el-option
               v-for="item in orderList"
@@ -116,6 +122,20 @@
               :value="item.commission_no"
             />
           </el-select>
+        </el-form-item>
+        <el-form-item label="选择样品明细">
+          <el-tree-select
+            v-model="linkForm.sampleId"
+            :data="sampleTreeData"
+            :props="sampleTreeProps"
+            node-key="value"
+            check-strictly
+            filterable
+            :render-after-expand="false"
+            placeholder="请选择样品种类/规格型号..."
+            style="width: 100%"
+            :disabled="!linkForm.commNo || sampleTreeLoading"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -227,6 +247,26 @@ const filters = reactive({
   device: ""
 })
 
+const normalizeRelationStatus = (row: any): "linked" | "unlinked" => {
+  const rawStatus = row?.status
+  if (rawStatus === "linked" || rawStatus === 1 || rawStatus === "1" || rawStatus === true || rawStatus === "已关联") {
+    return "linked"
+  }
+  if (rawStatus === "unlinked" || rawStatus === 0 || rawStatus === "0" || rawStatus === false || rawStatus === "未关联") {
+    return "unlinked"
+  }
+  return row?.commNo || row?.commission_no ? "linked" : "unlinked"
+}
+
+const filterRowsByStatus = (rows: any[]) => {
+  const normalizedRows = (rows || []).map((row) => ({
+    ...row,
+    status: normalizeRelationStatus(row)
+  }))
+  if (!filters.status) return normalizedRows
+  return normalizedRows.filter((row) => row.status === filters.status)
+}
+
 const getList = () => {
   loading.value = true
   request({
@@ -236,12 +276,11 @@ const getList = () => {
       currentPage: 1,
       pageSize: 1000,
       search: filters.search,
-      status: filters.status,
       device: filters.device
     }
   })
     .then((res: any) => {
-      tableData.value = res.data.list || []
+      tableData.value = filterRowsByStatus(res.data.list || [])
       const s = res.data.stats || {}
       stats.total = s.total || 0
       stats.linked = s.linked || 0
@@ -270,9 +309,16 @@ const resetFilters = () => {
 const linkModalVisible = ref(false)
 const pendingRowIdx = ref<number | null>(null)
 const pendingRow = computed(() => (pendingRowIdx.value !== null ? tableData.value[pendingRowIdx.value] : null))
-const linkForm = reactive({ commNo: "" })
+const linkForm = reactive<{ commNo: string; sampleId: number | null }>({ commNo: "", sampleId: null })
 const orderListLoading = ref(false)
 const orderList = ref<any[]>([])
+const sampleTreeLoading = ref(false)
+const sampleTreeData = ref<any[]>([])
+const sampleTreeProps = {
+  label: "label",
+  children: "children",
+  disabled: "disabled"
+}
 
 const getOrderLabel = (item: any) => {
   const no = item?.commission_no || ""
@@ -306,13 +352,81 @@ const getOrderList = () => {
 const openLinkModal = (idx: number) => {
   pendingRowIdx.value = idx
   linkForm.commNo = ""
+  linkForm.sampleId = null
+  sampleTreeData.value = []
   getOrderList()
   linkModalVisible.value = true
+}
+
+const getSampleName = (sample: any) => sample.sample_name || sample["样品名称"] || ""
+const getSampleSpec = (sample: any) => sample.spec_model || sample["规格型号"] || ""
+const getSampleQuantity = (sample: any) => Number(sample.quantity ?? sample["数量"] ?? 0)
+
+const buildSampleTree = (commissionNo: string, samples: any[]) => {
+  const sampleGroups = new Map<string, any[]>()
+  samples.forEach((sample) => {
+    const name = getSampleName(sample) || "未命名样品"
+    if (!sampleGroups.has(name)) sampleGroups.set(name, [])
+    sampleGroups.get(name)?.push(sample)
+  })
+
+  return [
+    {
+      label: commissionNo,
+      value: `order-${commissionNo}`,
+      disabled: true,
+      children: Array.from(sampleGroups.entries()).map(([name, items]) => {
+        if (items.length === 1 && !getSampleSpec(items[0])) {
+          const sample = items[0]
+          return {
+            label: `${name}（数量：${getSampleQuantity(sample)}）`,
+            value: Number(sample.id)
+          }
+        }
+
+        return {
+          label: name,
+          value: `sample-${name}`,
+          disabled: true,
+          children: items.map((sample) => ({
+            label: `${getSampleSpec(sample) || "无规格型号"}（数量：${getSampleQuantity(sample)}）`,
+            value: Number(sample.id)
+          }))
+        }
+      })
+    }
+  ]
+}
+
+const handleOrderChange = (commissionNo: string) => {
+  linkForm.sampleId = null
+  sampleTreeData.value = []
+  if (!commissionNo) return
+
+  sampleTreeLoading.value = true
+  request({
+    url: "data/commission-order/detail",
+    method: "get",
+    params: { commissionNo }
+  })
+    .then((res: any) => {
+      sampleTreeData.value = buildSampleTree(commissionNo, res.data?.samples || [])
+    })
+    .catch(() => {
+      ElMessage.error("获取委托单样品明细失败")
+    })
+    .finally(() => {
+      sampleTreeLoading.value = false
+    })
 }
 
 const confirmLink = () => {
   if (!linkForm.commNo) {
     ElMessage.warning("请选择一个委托单")
+    return
+  }
+  if (!linkForm.sampleId) {
+    ElMessage.warning("请选择样品明细")
     return
   }
   if (pendingRowIdx.value !== null) {
@@ -322,7 +436,8 @@ const confirmLink = () => {
       method: "post",
       data: {
         sn: row.sn,
-        commissionNo: linkForm.commNo
+        commissionNo: linkForm.commNo,
+        sampleId: linkForm.sampleId
       }
     })
       .then(() => {
@@ -459,6 +574,12 @@ onMounted(() => {
     background: var(--el-color-warning-light-9);
     color: var(--el-color-warning);
   }
+}
+
+.linked-sample {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
 }
 
 .modal-sub {

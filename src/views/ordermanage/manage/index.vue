@@ -43,6 +43,12 @@
         <el-table-column prop="phone" label="电话" min-width="120" />
         <el-table-column prop="email" label="邮箱" min-width="160" show-overflow-tooltip />
         <el-table-column prop="service_label" label="服务级别" width="100" />
+        <el-table-column label="剩余数量" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="Number(row.remaining_quantity || 0) === 0" type="success">已完成</el-tag>
+            <span v-else>{{ row.remaining_quantity }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="updated_at" label="更新时间" width="170" />
         <el-table-column label="操作" width="200" align="center" fixed="right">
           <template #default="{ row }">
@@ -296,6 +302,10 @@ type Row = {
   email?: string
   service_level: string
   service_label?: string
+  sample_total_quantity?: number
+  used_quantity?: number
+  remaining_quantity?: number
+  remaining_label?: string
   remark?: string
   updated_at?: string
 }
@@ -310,6 +320,15 @@ const searchForm = reactive({
   contactName: "",
   serviceLevel: ""
 })
+
+const sortRowsByCompletion = (rows: Row[]) => {
+  return [...rows].sort((a, b) => {
+    const aCompleted = Number(a.remaining_quantity || 0) === 0
+    const bCompleted = Number(b.remaining_quantity || 0) === 0
+    if (aCompleted === bCompleted) return 0
+    return aCompleted ? 1 : -1
+  })
+}
 
 const getList = () => {
   loading.value = true
@@ -326,7 +345,7 @@ const getList = () => {
     }
   })
     .then((res: any) => {
-      tableData.value = res.data.list || []
+      tableData.value = sortRowsByCompletion(res.data.list || [])
       pagination.total = res.data.total || 0
     })
     .catch(() => {
@@ -368,6 +387,7 @@ const saveLoading = ref(false)
 const editFormRef = ref<FormInstance>()
 
 const getEmptySample = () => ({
+  id: null,
   sample_name: "",
   category: "",
   spec_model: "",
@@ -454,6 +474,7 @@ const openEditDialog = (row: Row) => {
       editForm.report_usage = res.data.basic["报告用途"] || ""
     }
     const samples = (res.data.samples || []).map((s: any) => ({
+      id: s.id || null,
       sample_name: s["样品名称"] || "",
       category: s["分类"] || "",
       spec_model: s["规格型号"] || "",

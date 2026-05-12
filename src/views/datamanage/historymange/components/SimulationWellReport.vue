@@ -13,7 +13,6 @@
       <div class="reviewer-body">
         <div class="reviewer-info">
           <div class="reviewer-name">{{ reviewerName }}</div>
-          <div class="reviewer-role">{{ reviewerRole }}</div>
         </div>
         <div class="reviewer-sign">
           <div class="reviewer-sign-label">签字确认</div>
@@ -178,7 +177,6 @@ type AuditRow = SimulatedWellReportListItem & {
 
 const userStore = useUserStoreHook()
 const reviewerName = computed(() => userStore.nickName || userStore.username || "-")
-const reviewerRole = computed(() => (userStore.roles?.length ? `角色：${userStore.roles.join(", ")}` : ""))
 
 const signImageUrl = ref("")
 const signFileList = ref<UploadUserFile[]>([])
@@ -437,37 +435,34 @@ defineExpose({
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 72px;
-  padding: 8px 0 10px;
-  border-radius: 6px;
+  min-height: 112px;
+  padding: 18px 24px;
+  border-radius: 10px;
   background: var(--el-fill-color-lighter);
+  gap: 24px;
 }
 .reviewer-info {
-  padding-left: 12px;
+  min-width: 120px;
 }
 .reviewer-name {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
-  margin-bottom: 6px;
-}
-.reviewer-role {
-  font-size: 12px;
-  color: #8a8f98;
 }
 .reviewer-sign {
-  width: 210px;
-  padding-right: 10px;
-  text-align: right;
+  flex: 1;
+  max-width: 320px;
+  margin: 0 auto;
+  text-align: center;
 }
 .reviewer-sign-label {
-  font-size: 12px;
-  color: #8a8f98;
-  margin-bottom: 8px;
+  font-size: 13px;
+  color: #606266;
+  margin-bottom: 10px;
 }
 .reviewer-sign-box {
-  height: 50px;
+  height: 68px;
   border: 1px dashed #dcdfe6;
-  border-radius: 6px;
+  border-radius: 10px;
   background: #fff;
   display: flex;
   align-items: center;
@@ -493,9 +488,9 @@ defineExpose({
 }
 
 .reviewer-sign-actions {
-  margin-top: 8px;
+  margin-top: 12px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 8px;
 }
 
@@ -511,7 +506,8 @@ defineExpose({
   }
   .reviewer-sign {
     width: 100%;
-    padding-right: 0;
+    max-width: none;
+    margin: 0;
     text-align: left;
   }
 
