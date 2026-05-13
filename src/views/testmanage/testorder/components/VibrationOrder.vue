@@ -155,7 +155,7 @@ const statusOptions = [
   { value: "2", label: "测试中" },
   { value: "3", label: "待审核" },
   { value: "4", label: "待重做" },
-  { value: "5", label: "正常" },
+  { value: "5", label: "已完成" },
   { value: "6", label: "异常" },
   { value: "7", label: "暂存" },
   { value: "8", label: "疑问" }
