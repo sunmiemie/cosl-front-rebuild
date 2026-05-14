@@ -22,6 +22,7 @@ const emit = defineEmits<{
 
 const RefEchart = ref<HTMLDivElement | null>(null)
 let myChart: echarts.ECharts | null = null
+let resizeObserver: ResizeObserver | null = null
 
 const initChart = () => {
   if (myChart) {
@@ -31,6 +32,10 @@ const initChart = () => {
     myChart = echarts.init(RefEchart.value)
     myChart.on("datazoom", (params) => emit("datazoom", params))
     myChart.setOption(prop.option, true)
+    if (typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(resizeChart)
+      resizeObserver.observe(RefEchart.value)
+    }
     window.addEventListener("resize", resizeChart) // 添加窗口大小变化监听
   }
 }
@@ -47,11 +52,15 @@ const resizeChart = () => {
 
 onMounted(initChart)
 
-watch(prop.option, initChart, {
-  deep: true
-})
+// 监听整个 option 的替换和内部修改，复用实例以保留图表交互状态。
+watch(
+  () => prop.option,
+  (option) => myChart?.setOption(option, true),
+  { deep: true }
+)
 
 onUnmounted(() => {
+  resizeObserver?.disconnect()
   if (myChart) {
     myChart.dispose() // 组件卸载时清理图表
     window.removeEventListener("resize", resizeChart) // 移除窗口大小变化监听
@@ -62,5 +71,11 @@ defineExpose({ dispatchAction })
 </script>
 
 <template>
-  <div ref="RefEchart" :style="{ width: `${prop.width}`, height: `${prop.height}` }" />
+  <div
+    ref="RefEchart"
+    :style="{
+      width: typeof prop.width === 'number' ? `${prop.width}px` : prop.width,
+      height: typeof prop.height === 'number' ? `${prop.height}px` : prop.height
+    }"
+  />
 </template>
