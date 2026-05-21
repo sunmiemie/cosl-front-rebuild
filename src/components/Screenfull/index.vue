@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref, watchEffect } from "vue"
+import { computed, onBeforeUnmount, ref, watchEffect } from "vue"
 import { ElMessage } from "element-plus"
 import screenfull from "screenfull"
 
@@ -29,14 +29,24 @@ const fullscreenTips = computed(() => {
 const fullscreenSvgName = computed(() => {
   return isFullscreen.value ? "fullscreen-exit" : "fullscreen"
 })
-const handleFullscreenClick = () => {
-  const dom = document.querySelector(props.element) || undefined
-  screenfull.isEnabled ? screenfull.toggle(dom) : ElMessage.warning("您的浏览器无法工作")
+const handleFullscreenClick = async () => {
+  if (!screenfull.isEnabled) {
+    ElMessage.warning("您的浏览器无法工作")
+    return false
+  }
+  try {
+    const dom = document.querySelector(props.element) || undefined
+    await screenfull.toggle(dom)
+    return true
+  } catch {
+    ElMessage.warning("无法进入全屏，请检查浏览器权限")
+    return false
+  }
 }
 const handleFullscreenChange = () => {
   isFullscreen.value = screenfull.isFullscreen
-  // 退出全屏时清除所有的 class
-  isFullscreen.value || (document.body.className = "")
+  // 只清理本组件添加的内容区全屏类。
+  if (!isFullscreen.value) document.body.classList.remove("content-full")
 }
 watchEffect((onCleanup) => {
   // 挂载组件时自动执行
@@ -59,17 +69,18 @@ const contentLargeSvgName = computed(() => {
 const handleContentLargeClick = () => {
   isContentLarge.value = !isContentLarge.value
   // 内容区放大时，将不需要的组件隐藏
-  document.body.className = isContentLarge.value ? "content-large" : ""
+  document.body.classList.toggle("content-large", isContentLarge.value)
 }
-const handleContentFullClick = () => {
+const handleContentFullClick = async () => {
   // 取消内容区放大
   isContentLarge.value && handleContentLargeClick()
   // 内容区全屏时，将不需要的组件隐藏
-  document.body.className = "content-full"
+  document.body.classList.add("content-full")
   // 开启全屏
-  handleFullscreenClick()
+  if (!(await handleFullscreenClick())) document.body.classList.remove("content-full")
 }
 //#endregion
+onBeforeUnmount(() => document.body.classList.remove("content-full", "content-large"))
 </script>
 
 <template>
