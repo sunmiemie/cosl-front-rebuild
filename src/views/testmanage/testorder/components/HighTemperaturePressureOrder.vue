@@ -53,37 +53,92 @@ const tableData = ref<HighTempPressureOrderListItem[]>([])
 const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
+const testTypeOptions = ["250容器", "480", "高压测试", "高温高压测试", "在线测试"]
+
+const todayText = () => new Date().toISOString().split("T")[0]
+const pad = (value: number) => String(value).padStart(3, "0")
+const randomSeq = () => pad(Math.floor(Math.random() * 1000))
+const generateTableNo = () => `HTP-${todayText().replaceAll("-", "")}-${randomSeq()}`
+const generateTaskNumber = () => `HTP-TASK-${todayText().replaceAll("-", "")}-${randomSeq()}`
+
 const createForm = reactive({
+  table_no: "",
   test_platform: "高温高压井测试台",
-  test_date: new Date().toISOString().split("T")[0],
+  test_date: todayText(),
+  application_date: todayText(),
   use_device: "",
   device_name: "",
   device_number: "N/A",
   task_number: "",
+  applicant_phone: "",
+  test_application_unit: "",
+  test_application_unit_manager: "",
+  research_number: "",
+  project_budget_number: "",
+  project_name: "",
+  client: "",
+  planned_time: "",
+  test_type: testTypeOptions[0],
   target_temp: 0,
   target_pressure: 0,
   max_diameter: null as number | null,
   hold_time: null as number | null,
   applicant: "",
+  project_members: "",
+  equipment_list: "",
+  instrument_combination: "",
+  test_steps: "",
+  safety_risks: "",
   remark: ""
 })
 
 const instrumentFormList = ref<HighTempPressureOrderInstrumentItem[]>([
-  { instrument_name: "", instrument_sn: "", test_type: "", quantity: 1, max_diameter: null }
+  {
+    instrument_name: "",
+    instrument_sn: "",
+    test_type: testTypeOptions[0],
+    quantity: 1,
+    instrument_length: "",
+    max_diameter: null
+  }
 ])
 
 const createRules = {
   test_platform: [{ required: true, message: "请选择测试台", trigger: "change" }],
   test_date: [{ required: true, message: "请选择测试日期", trigger: "change" }],
+  table_no: [{ required: true, message: "请填写表格编号", trigger: "blur" }],
   task_number: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
   target_temp: [{ required: true, message: "请输入目标温度", trigger: "blur" }],
   target_pressure: [{ required: true, message: "请输入目标压力", trigger: "blur" }],
   applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }],
-  use_device: [{ required: true, message: "请输入使用设备", trigger: "blur" }]
+  applicant_phone: [{ required: true, message: "请输入申请人电话", trigger: "blur" }],
+  test_application_unit: [{ required: true, message: "请输入测试申请单位", trigger: "blur" }],
+  test_application_unit_manager: [{ required: true, message: "请输入测试申请单位负责人", trigger: "blur" }],
+  application_date: [{ required: true, message: "请选择申请日期", trigger: "change" }],
+  project_name: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
+  client: [{ required: true, message: "请输入委托人", trigger: "blur" }],
+  planned_time: [{ required: true, message: "请选择时间", trigger: "change" }],
+  test_type: [{ required: true, message: "请选择测试类型", trigger: "change" }],
+  equipment_list: [{ required: true, message: "请输入设备清单", trigger: "blur" }]
 }
 
 const canCreate = computed(() => {
-  if (!(createForm.task_number && createForm.applicant && createForm.use_device)) return false
+  if (
+    !(
+      createForm.table_no &&
+      createForm.task_number &&
+      createForm.applicant &&
+      createForm.applicant_phone &&
+      createForm.test_application_unit &&
+      createForm.test_application_unit_manager &&
+      createForm.project_name &&
+      createForm.client &&
+      createForm.planned_time &&
+      createForm.test_type
+    )
+  ) {
+    return false
+  }
   if (!instrumentFormList.value.length) return false
   return instrumentFormList.value.every((i) => !!(i.instrument_name && i.instrument_sn))
 })
@@ -262,21 +317,44 @@ const handleCurrentChange = (page: number) => {
 
 const showCreateDialog = () => {
   Object.assign(createForm, {
+    table_no: generateTableNo(),
     test_platform: "高温高压井测试台",
-    test_date: new Date().toISOString().split("T")[0],
+    test_date: todayText(),
+    application_date: todayText(),
     use_device: "",
     device_name: "",
     device_number: "N/A",
-    task_number: "",
+    task_number: generateTaskNumber(),
+    applicant_phone: "",
+    test_application_unit: "",
+    test_application_unit_manager: "",
+    research_number: "",
+    project_budget_number: "",
+    project_name: "",
+    client: "",
+    planned_time: "",
+    test_type: testTypeOptions[0],
     target_temp: 0,
     target_pressure: 0,
     max_diameter: null,
     hold_time: null,
     applicant: "",
+    project_members: "",
+    equipment_list: "",
+    instrument_combination: "",
+    test_steps: "",
+    safety_risks: "",
     remark: ""
   })
   instrumentFormList.value = [
-    { instrument_name: "", instrument_sn: "", test_type: "", quantity: 1, max_diameter: null }
+    {
+      instrument_name: "",
+      instrument_sn: "",
+      test_type: testTypeOptions[0],
+      quantity: 1,
+      instrument_length: "",
+      max_diameter: null
+    }
   ]
   createDialogVisible.value = true
 }
@@ -285,8 +363,9 @@ const addInstrumentRow = () => {
   instrumentFormList.value.push({
     instrument_name: "",
     instrument_sn: "",
-    test_type: "",
+    test_type: createForm.test_type,
     quantity: 1,
+    instrument_length: "",
     max_diameter: null
   })
 }
@@ -304,14 +383,19 @@ const handleCreate = async () => {
     if (!canCreate.value) return
     createLoading.value = true
     try {
-      createForm.device_name = createForm.use_device
+      const firstInstrument = instrumentFormList.value[0]
+      createForm.device_name = firstInstrument.instrument_name
+      createForm.device_number = firstInstrument.instrument_sn
+      createForm.use_device = createForm.equipment_list
+      createForm.test_date = createForm.application_date
       const res = await createHighTempPressureOrderApi({
         ...createForm,
         instruments: instrumentFormList.value.map((i) => ({
           instrument_name: i.instrument_name,
           instrument_sn: i.instrument_sn,
-          test_type: i.test_type,
+          test_type: i.test_type || createForm.test_type,
           quantity: i.quantity,
+          instrument_length: i.instrument_length || "",
           max_diameter: i.max_diameter ?? null
         }))
       })
@@ -547,8 +631,11 @@ onMounted(() => {
 
       <div class="table-wrapper">
         <el-table :data="tableData" stripe border style="width: 100%">
+          <el-table-column prop="table_no" label="表格编号" width="160" align="center" />
           <el-table-column prop="task_number" label="任务单编号" width="160" align="center" />
           <el-table-column prop="applicant" label="申请人" min-width="100" align="center" />
+          <el-table-column prop="test_application_unit" label="测试申请单位" min-width="150" align="center" />
+          <el-table-column prop="project_name" label="项目名称" min-width="160" align="center" show-overflow-tooltip />
           <el-table-column label="待测仪器" min-width="160" align="center">
             <template #default="{ row }">
               <span>{{ row.instrument_names || "-" }}</span>
@@ -572,26 +659,6 @@ onMounted(() => {
           <el-table-column label="使用设备" min-width="140" align="center">
             <template #default="{ row }">
               <span>{{ row.use_device || row.device_name || "-" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="最大直径(mm)" width="120" align="center">
-            <template #default="{ row }">
-              <span>{{ row.max_diameter ?? "-" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="温度(°C)" width="100" align="center">
-            <template #default="{ row }">
-              <span>{{ row.target_temp ?? "-" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="压力(MPa)" width="100" align="center">
-            <template #default="{ row }">
-              <span>{{ row.target_pressure ?? "-" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="保温保压时间(分)" width="140" align="center">
-            <template #default="{ row }">
-              <span>{{ row.hold_time ?? "-" }}</span>
             </template>
           </el-table-column>
           <el-table-column label="状态" width="100" align="center">
@@ -624,67 +691,89 @@ onMounted(() => {
       </div>
     </el-card>
 
-    <el-dialog v-model="createDialogVisible" title="创建高温高压井工单" width="800px" :close-on-click-modal="false">
-      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="120px">
+    <el-dialog
+      v-model="createDialogVisible"
+      title="创建高温高压井工单"
+      width="1080px"
+      :close-on-click-modal="false"
+      class="high-pressure-order-dialog"
+    >
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="150px">
+        <el-divider content-position="left">基础信息</el-divider>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="测试台" prop="test_platform">
-              <el-select v-model="createForm.test_platform" placeholder="请选择测试台" style="width: 100%">
-                <el-option label="高温高压井测试台" value="高温高压井测试台" />
-              </el-select>
+            <el-form-item label="表格编号" prop="table_no">
+              <el-input v-model="createForm.table_no" disabled />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="测试日期" prop="test_date">
+            <el-form-item label="任务单编号" prop="task_number">
+              <el-input v-model="createForm.task_number" disabled />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="申请人" prop="applicant">
+              <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="申请人电话" prop="applicant_phone">
+              <el-input v-model="createForm.applicant_phone" placeholder="请输入申请人电话" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="测试申请单位" prop="test_application_unit">
+              <el-input v-model="createForm.test_application_unit" placeholder="请输入测试申请单位" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="单位负责人" prop="test_application_unit_manager">
+              <el-input v-model="createForm.test_application_unit_manager" placeholder="请输入测试申请单位负责人" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="申请日期" prop="application_date">
               <el-date-picker
-                v-model="createForm.test_date"
+                v-model="createForm.application_date"
                 type="date"
-                placeholder="选择日期"
+                placeholder="选择申请日期"
                 style="width: 100%"
                 value-format="YYYY-MM-DD"
               />
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="委托人" prop="client">
+              <el-input v-model="createForm.client" placeholder="请输入委托人" />
+            </el-form-item>
+          </el-col>
         </el-row>
 
-        <el-form-item label="任务单编号" prop="task_number">
-          <el-input v-model="createForm.task_number" placeholder="请输入任务单编号" />
-        </el-form-item>
-
+        <el-divider content-position="left">项目信息</el-divider>
         <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="温度(°C)" prop="target_temp">
-              <el-input-number v-model="createForm.target_temp" :min="0" style="width: 100%" />
+          <el-col :span="8">
+            <el-form-item label="科研编号" prop="research_number">
+              <el-input v-model="createForm.research_number" placeholder="请输入科研编号" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="压力(MPa)" prop="target_pressure">
-              <el-input-number v-model="createForm.target_pressure" :min="0" style="width: 100%" />
+          <el-col :span="8">
+            <el-form-item label="项目预算编号" prop="project_budget_number">
+              <el-input v-model="createForm.project_budget_number" placeholder="请输入项目预算编号" />
             </el-form-item>
           </el-col>
-        </el-row>
-
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="最大直径(mm)">
-              <el-input-number v-model="createForm.max_diameter" :min="0" style="width: 100%" />
+          <el-col :span="8">
+            <el-form-item label="项目名称" prop="project_name">
+              <el-input v-model="createForm.project_name" placeholder="请输入项目名称" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="保温保压时间(分)">
-              <el-input-number v-model="createForm.hold_time" :min="0" style="width: 100%" />
+          <el-col :span="24">
+            <el-form-item label="项目成员" prop="project_members">
+              <el-input v-model="createForm.project_members" placeholder="多个成员可用顿号或逗号分隔" />
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="使用设备" prop="use_device">
-          <el-input v-model="createForm.use_device" placeholder="请输入使用设备" />
-        </el-form-item>
-
-        <el-form-item label="申请人" prop="applicant">
-          <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
-        </el-form-item>
-
+        <el-divider content-position="left">待测仪器</el-divider>
         <el-form-item label="待测仪器">
           <div style="width: 100%">
             <div style="display: flex; justify-content: flex-end; margin-bottom: 10px">
@@ -698,25 +787,25 @@ onMounted(() => {
               </el-table-column>
               <el-table-column label="仪器SN号" min-width="160" align="center">
                 <template #default="{ row }">
-                  <el-input v-model="row.instrument_sn" placeholder="请输入SN号" />
+                  <el-input v-model="row.instrument_sn" placeholder="多个编号用逗号分隔" />
                 </template>
               </el-table-column>
-              <el-table-column label="测试类型" min-width="140" align="center">
-                <template #default="{ row }">
-                  <el-input v-model="row.test_type" placeholder="请输入测试类型" />
-                </template>
-              </el-table-column>
-              <el-table-column label="数量" width="90" align="center">
+              <el-table-column label="数量" width="140" align="center">
                 <template #default="{ row }">
                   <el-input-number
                     v-model="row.quantity"
                     :min="1"
                     :step="1"
                     step-strictly
-                    :controls="false"
+                    controls-position="right"
                     size="small"
-                    style="width: 100%"
+                    class="quantity-input"
                   />
+                </template>
+              </el-table-column>
+              <el-table-column label="仪器长度" width="130" align="center">
+                <template #default="{ row }">
+                  <el-input v-model="row.instrument_length" placeholder="mm" />
                 </template>
               </el-table-column>
               <el-table-column label="最大直径(mm)" width="130" align="center">
@@ -747,8 +836,60 @@ onMounted(() => {
           </div>
         </el-form-item>
 
-        <el-form-item label="备注" style="margin-top: 8px">
-          <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
+        <el-divider content-position="left">测试参数</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="时间" prop="planned_time">
+              <el-date-picker
+                v-model="createForm.planned_time"
+                type="datetime"
+                placeholder="请选择时间"
+                style="width: 100%"
+                value-format="YYYY-MM-DD HH:mm:ss"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="测试类型" prop="test_type">
+              <el-select v-model="createForm.test_type" placeholder="请选择测试类型" style="width: 100%">
+                <el-option v-for="item in testTypeOptions" :key="item" :label="item" :value="item" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="温度(°C)" prop="target_temp">
+              <el-input-number v-model="createForm.target_temp" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="压力(MPa)" prop="target_pressure">
+              <el-input-number v-model="createForm.target_pressure" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="保温保压时间(分)" prop="hold_time">
+              <el-input-number v-model="createForm.hold_time" :min="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-divider content-position="left">测试说明</el-divider>
+        <el-form-item label="设备清单" prop="equipment_list">
+          <el-input v-model="createForm.equipment_list" type="textarea" :rows="3" placeholder="请输入设备清单" />
+        </el-form-item>
+        <el-form-item label="仪器串组合" prop="instrument_combination">
+          <el-input v-model="createForm.instrument_combination" placeholder="请输入仪器串组合" />
+        </el-form-item>
+        <el-form-item label="测试步骤" prop="test_steps">
+          <el-input v-model="createForm.test_steps" type="textarea" :rows="4" placeholder="请输入测试步骤" />
+        </el-form-item>
+        <el-form-item label="安全风险及预防措施" prop="safety_risks">
+          <el-input
+            v-model="createForm.safety_risks"
+            type="textarea"
+            :rows="4"
+            placeholder="请输入安全风险及预防措施"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -917,23 +1058,63 @@ onMounted(() => {
       </div>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="600px">
-      <div v-if="currentOrder" style="padding: 0 20px">
-        <el-descriptions :column="1" border>
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="760px">
+      <div v-if="currentOrder" style="padding: 0 20px 24px">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="表格编号">{{ currentOrder.table_no || "-" }}</el-descriptions-item>
           <el-descriptions-item label="任务单号">{{ currentOrder.task_number }}</el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.status_text }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="测试台">{{ currentOrder.test_platform }}</el-descriptions-item>
+          <el-descriptions-item label="申请人">{{ currentOrder.applicant }}</el-descriptions-item>
+          <el-descriptions-item label="申请人电话">{{ currentOrder.applicant_phone || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试申请单位">{{
+            currentOrder.test_application_unit || "-"
+          }}</el-descriptions-item>
+          <el-descriptions-item label="单位负责人">
+            {{ currentOrder.test_application_unit_manager || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="申请日期">{{ currentOrder.application_date || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="委托人">{{ currentOrder.client || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="科研编号">{{ currentOrder.research_number || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="项目预算编号">
+            {{ currentOrder.project_budget_number || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="项目名称" :span="2">{{ currentOrder.project_name || "-" }}</el-descriptions-item>
           <el-descriptions-item label="设备名称">{{ currentOrder.device_name }}</el-descriptions-item>
           <el-descriptions-item label="设备编号">{{ currentOrder.device_number }}</el-descriptions-item>
+          <el-descriptions-item label="测试类型">{{ currentOrder.test_type || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="时间">{{ currentOrder.planned_time || "-" }}</el-descriptions-item>
           <el-descriptions-item label="目标温度(°C)">{{ currentOrder.target_temp }}</el-descriptions-item>
           <el-descriptions-item label="目标压力(MPa)">{{ currentOrder.target_pressure }}</el-descriptions-item>
-          <el-descriptions-item label="申请人">{{ currentOrder.applicant }}</el-descriptions-item>
+          <el-descriptions-item label="保温保压时间(分)">{{ currentOrder.hold_time ?? "-" }}</el-descriptions-item>
           <el-descriptions-item label="测试日期">{{ currentOrder.test_date }}</el-descriptions-item>
+          <el-descriptions-item label="项目成员" :span="2">{{
+            currentOrder.project_members || "-"
+          }}</el-descriptions-item>
+          <el-descriptions-item label="设备清单" :span="2">{{
+            currentOrder.equipment_list || "-"
+          }}</el-descriptions-item>
+          <el-descriptions-item label="仪器串组合" :span="2">
+            {{ currentOrder.instrument_combination || "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="测试步骤" :span="2">{{ currentOrder.test_steps || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="安全风险及预防措施" :span="2">
+            {{ currentOrder.safety_risks || "-" }}
+          </el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ currentOrder.created_at }}</el-descriptions-item>
           <el-descriptions-item label="备注">{{ currentOrder.remark || "-" }}</el-descriptions-item>
         </el-descriptions>
+
+        <div class="detail-section-title">待测仪器</div>
+        <el-table :data="currentOrder.instruments || []" border stripe>
+          <el-table-column prop="instrument_name" label="待测仪器" min-width="150" align="center" />
+          <el-table-column prop="instrument_sn" label="仪器SN号/资产号" min-width="180" align="center" />
+          <el-table-column prop="quantity" label="数量" width="90" align="center" />
+          <el-table-column prop="instrument_length" label="仪器长度" width="110" align="center" />
+          <el-table-column prop="max_diameter" label="最大直径" width="110" align="center" />
+        </el-table>
       </div>
     </el-drawer>
   </div>
@@ -961,6 +1142,22 @@ onMounted(() => {
 
 .el-link {
   margin: 0 4px;
+}
+
+.quantity-input {
+  width: 108px;
+}
+
+.detail-section-title {
+  margin: 18px 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+:deep(.high-pressure-order-dialog .el-dialog__body) {
+  max-height: 68vh;
+  overflow-y: auto;
 }
 
 .publish-dialog-header {

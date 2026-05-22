@@ -1,5 +1,6 @@
 export interface HighTempPressureOrderListItem {
   id: number
+  table_no?: string
   test_platform: string
   test_date: string
   device_name: string
@@ -8,6 +9,21 @@ export interface HighTempPressureOrderListItem {
   target_temp: number
   target_pressure: number
   applicant: string
+  applicant_phone?: string
+  test_application_unit?: string
+  test_application_unit_manager?: string
+  application_date?: string | null
+  research_number?: string
+  project_budget_number?: string
+  project_name?: string
+  client?: string
+  planned_time?: string | null
+  test_type?: string
+  project_members?: string
+  equipment_list?: string
+  instrument_combination?: string
+  test_steps?: string
+  safety_risks?: string
   remark: string
   use_device?: string
   max_diameter?: number | null
@@ -39,6 +55,7 @@ export interface HighTempPressureOrderInstrumentItem {
   instrument_sn: string
   test_type?: string
   quantity?: number
+  instrument_length?: string
   max_diameter?: number | null
 }
 
@@ -61,6 +78,7 @@ export interface HighTempPressureOrderListResponse {
 }
 
 export interface CreateHighTempPressureOrderRequest {
+  table_no?: string
   test_platform: string
   test_date: string
   device_name: string
@@ -69,6 +87,21 @@ export interface CreateHighTempPressureOrderRequest {
   target_temp: number
   target_pressure: number
   applicant: string
+  applicant_phone?: string
+  test_application_unit?: string
+  test_application_unit_manager?: string
+  application_date?: string | null
+  research_number?: string
+  project_budget_number?: string
+  project_name?: string
+  client?: string
+  planned_time?: string | null
+  test_type?: string
+  project_members?: string
+  equipment_list?: string
+  instrument_combination?: string
+  test_steps?: string
+  safety_risks?: string
   use_device?: string
   max_diameter?: number | null
   hold_time?: number | null
