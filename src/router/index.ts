@@ -49,15 +49,28 @@ export const constantRoutes: RouteRecordRaw[] = [
     path: "/",
     component: Layouts,
     redirect: "/dashboard",
+    meta: {
+      title: "首页",
+      svgIcon: "dashboard",
+      alwaysShow: true
+    },
     children: [
       {
         path: "dashboard",
         component: () => import("@/views/dashboard/index.vue"),
         name: "Dashboard",
         meta: {
-          title: "首页",
-          svgIcon: "dashboard",
+          title: "待处理任务中心",
           affix: true
+        }
+      },
+      {
+        path: "data-board",
+        component: () => import("@/views/dashboard/data-board.vue"),
+        name: "DataBoard",
+        meta: {
+          title: "数据看板",
+          elIcon: "DataLine"
         }
       }
     ]

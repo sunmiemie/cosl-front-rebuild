@@ -195,18 +195,18 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 
         <el-empty v-if="!selectedRecords.length" description="当天暂无巡检记录" />
         <el-table v-else :data="selectedRecords" border stripe class="record-table" @row-click="openDetail">
-          <el-table-column prop="device_name" label="巡检设备名称" min-width="150" />
-          <el-table-column prop="device_sn" label="设备SN号" min-width="120" />
-          <el-table-column prop="inspector" label="巡检人员" min-width="110" />
-          <el-table-column label="状态" width="92" align="center">
+          <el-table-column prop="device_name" label="巡检设备名称" min-width="118" />
+          <el-table-column prop="device_sn" label="设备SN号" min-width="94" />
+          <el-table-column prop="inspector" label="巡检人员" width="84" />
+          <el-table-column label="状态" width="74" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="巡检内容数" width="110" align="center">
+          <el-table-column label="巡检内容数" width="80" align="center">
             <template #default="{ row }">{{ row.item_count || 0 }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="128" align="center" fixed="right">
+          <el-table-column label="操作" width="98" align="center">
             <template #default="{ row }">
               <el-button link type="primary" @click.stop="openDetail(row)">查看</el-button>
               <el-button link type="warning" @click.stop="handleEdit(row)">编辑</el-button>
@@ -229,13 +229,13 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
         </el-descriptions>
 
         <div class="drawer-title">巡检内容</div>
-        <el-table :data="currentRecord.items" border stripe>
-          <el-table-column type="index" label="序号" width="70" align="center" />
-          <el-table-column prop="content" label="巡检内容" min-width="240" />
-          <el-table-column label="是否需要拍照" width="126" align="center">
+        <el-table :data="currentRecord.items" border stripe class="detail-table">
+          <el-table-column type="index" label="序号" width="56" align="center" />
+          <el-table-column prop="content" label="巡检内容" min-width="170" />
+          <el-table-column label="是否需要拍照" width="100" align="center">
             <template #default="{ row }">{{ row.require_photo ? "是" : "否" }}</template>
           </el-table-column>
-          <el-table-column label="巡检图片" width="136" align="center">
+          <el-table-column label="巡检图片" width="108" align="center">
             <template #default="{ row }">
               <el-image
                 v-if="getPhotoUrl(row.photo)"
@@ -283,7 +283,7 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 
 .calendar-layout {
   display: grid;
-  grid-template-columns: minmax(640px, 1fr) 430px;
+  grid-template-columns: minmax(0, 1fr) minmax(620px, 0.58fr);
   gap: 16px;
   align-items: start;
 }
@@ -331,7 +331,7 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 
   :deep(.el-calendar-table) {
     border-collapse: separate;
-    border-spacing: 8px;
+    border-spacing: 6px;
   }
 
   :deep(.el-calendar-table thead th) {
@@ -353,7 +353,7 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
   }
 
   :deep(.el-calendar-table .el-calendar-day) {
-    height: 116px;
+    height: 88px;
     padding: 0;
   }
 }
@@ -366,7 +366,7 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 
 .calendar-month {
   color: var(--el-text-color-primary);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   line-height: 1.2;
 }
@@ -406,7 +406,7 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 .date-cell {
   width: 100%;
   height: 100%;
-  padding: 12px;
+  padding: 10px;
   cursor: pointer;
   background: #fff;
   border: 0;
@@ -438,7 +438,7 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 
 .day-number {
   color: var(--el-text-color-primary);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 700;
 }
 
@@ -458,8 +458,25 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
   border-radius: 999px;
 }
 
-.record-table {
+.record-table,
+.detail-table {
   cursor: pointer;
+
+  :deep(.cell) {
+    padding: 0 8px;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.4;
+  }
+
+  :deep(.el-table__header-wrapper),
+  :deep(.el-table__body-wrapper) {
+    overflow-x: hidden;
+  }
+
+  :deep(.el-scrollbar__bar.is-horizontal) {
+    display: none;
+  }
 }
 
 .drawer-title {

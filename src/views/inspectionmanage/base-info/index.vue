@@ -3,21 +3,16 @@
     <el-card shadow="never" class="search-wrapper">
       <el-form label-width="110px" class="inspection-form">
         <el-row :gutter="24">
-          <el-col :span="8">
+          <el-col :span="12">
             <el-form-item label="巡检设备名称" required>
               <el-select v-model="formData.device_name" placeholder="请选择">
                 <el-option v-for="item in deviceOptions" :key="item" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="12">
             <el-form-item label="巡检设备SN号" required>
               <el-input v-model="formData.device_sn" placeholder="请输入设备SN号" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="8">
-            <el-form-item label="巡检人员" required>
-              <el-input v-model="formData.inspector" placeholder="请输入巡检人员" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -203,7 +198,7 @@ function handleDeleteItem(id: string) {
 }
 
 async function handleSave() {
-  if (!formData.device_name || !formData.device_sn || !formData.inspector.trim()) {
+  if (!formData.device_name || !formData.device_sn) {
     ElMessage.warning("请完善巡检基础信息")
     return
   }

@@ -9,9 +9,11 @@ import type { TaskCenterItem } from "@/api/task-center"
 const props = withDefaults(
   defineProps<{
     compact?: boolean
+    listHeight?: number | string
   }>(),
   {
-    compact: false
+    compact: false,
+    listHeight: undefined
   }
 )
 
@@ -21,7 +23,7 @@ const activeGroup = ref("all")
 
 const groups = computed(() => taskStore.groupedTasks)
 const visibleTasks = computed(() => groups.value.find((item) => item.key === activeGroup.value)?.tasks || [])
-const listHeight = computed(() => (props.compact ? 280 : 330))
+const listHeight = computed(() => props.listHeight ?? (props.compact ? 280 : 330))
 
 const handleSelect = (task: TaskCenterItem) => {
   router.push({

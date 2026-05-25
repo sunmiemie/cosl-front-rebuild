@@ -44,6 +44,18 @@
             <el-option label="CCD显微镜" value="CCD显微镜" />
           </el-select>
         </el-form-item>
+        <el-form-item label="检测完成时间">
+          <el-date-picker
+            v-model="filters.doneDateRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            clearable
+            style="width: 260px"
+          />
+        </el-form-item>
         <el-form-item>
           <el-button @click="resetFilters">重置</el-button>
           <el-button type="primary" @click="applyFilters">查询</el-button>
@@ -56,29 +68,29 @@
         </el-tooltip>
       </div>
 
-      <el-table :data="tableData" v-loading="loading" style="width: 100%" max-height="600" stripe border>
-        <el-table-column label="SN号" min-width="120">
+      <el-table :data="tableData" v-loading="loading" class="summary-table" max-height="600" stripe border>
+        <el-table-column label="SN号" min-width="106">
           <template #default="{ row }">
             <span class="sn-code">{{ row.sn }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="样品名称" min-width="100" show-overflow-tooltip />
-        <el-table-column prop="spec" label="规格型号" min-width="100" show-overflow-tooltip />
-        <el-table-column prop="qty" label="数量" width="60" align="center" />
-        <el-table-column prop="device" label="检测设备" min-width="100" />
-        <el-table-column prop="hours" label="工时(h)" width="80" align="center" />
-        <el-table-column prop="inspector" label="检测人" width="80" />
-        <el-table-column prop="doneAt" label="检测完成时间" min-width="110" />
-        <el-table-column prop="applicant" label="申请人" width="80" />
-        <el-table-column prop="phone" label="申请人电话" min-width="110" />
-        <el-table-column label="委托人" width="80">
+        <el-table-column prop="name" label="样品名称" min-width="92" show-overflow-tooltip />
+        <el-table-column prop="spec" label="规格型号" min-width="92" show-overflow-tooltip />
+        <el-table-column prop="qty" label="数量" width="52" align="center" />
+        <el-table-column prop="device" label="检测设备" min-width="92" show-overflow-tooltip />
+        <el-table-column prop="hours" label="工时(h)" width="68" align="center" />
+        <el-table-column prop="inspector" label="检测人" width="68" show-overflow-tooltip />
+        <el-table-column prop="doneAt" label="检测完成时间" min-width="104" show-overflow-tooltip />
+        <el-table-column prop="applicant" label="申请人" width="68" show-overflow-tooltip />
+        <el-table-column prop="phone" label="申请人电话" min-width="96" show-overflow-tooltip />
+        <el-table-column label="委托人" width="68">
           <template #default="{ row }">
             <span :style="{ color: row.client ? 'inherit' : 'var(--el-text-color-secondary)' }">
               {{ row.client || "—" }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="委托单编号" min-width="140">
+        <el-table-column label="委托单编号" min-width="120">
           <template #default="{ row }">
             <template v-if="row.status === 'linked'">
               <el-button link type="primary" @click="showDetail(row.commNo)">
@@ -91,7 +103,7 @@
             <span v-else class="badge unlinked">未关联</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="124" align="center">
           <template #default="{ row, $index }">
             <el-button v-if="row.status === 'unlinked'" link type="primary" @click="openLinkModal($index)"
               >关联委托单</el-button
@@ -244,7 +256,8 @@ const stats = reactive({ total: 0, linked: 0, unlinked: 0 })
 const filters = reactive({
   search: "",
   status: "",
-  device: ""
+  device: "",
+  doneDateRange: [] as string[]
 })
 
 const normalizeRelationStatus = (row: any): "linked" | "unlinked" => {
@@ -267,8 +280,28 @@ const filterRowsByStatus = (rows: any[]) => {
   return normalizedRows.filter((row) => row.status === filters.status)
 }
 
+const getDoneDateTime = (value: unknown) => {
+  if (!value) return Number.NaN
+  const normalized = String(value).trim().replace(/\./g, "-").replace(/\//g, "-")
+  return new Date(normalized).getTime()
+}
+
+const filterRowsByDoneDate = (rows: any[]) => {
+  const [startDate, endDate] = filters.doneDateRange || []
+  if (!startDate && !endDate) return rows
+
+  const startTime = startDate ? new Date(`${startDate} 00:00:00`).getTime() : Number.NEGATIVE_INFINITY
+  const endTime = endDate ? new Date(`${endDate} 23:59:59`).getTime() : Number.POSITIVE_INFINITY
+
+  return rows.filter((row) => {
+    const doneTime = getDoneDateTime(row.doneAt)
+    return Number.isFinite(doneTime) && doneTime >= startTime && doneTime <= endTime
+  })
+}
+
 const getList = () => {
   loading.value = true
+  const [doneStartDate, doneEndDate] = filters.doneDateRange || []
   request({
     url: "data/commission-board-relation/list",
     method: "get",
@@ -276,11 +309,13 @@ const getList = () => {
       currentPage: 1,
       pageSize: 1000,
       search: filters.search,
-      device: filters.device
+      device: filters.device,
+      doneStartDate,
+      doneEndDate
     }
   })
     .then((res: any) => {
-      tableData.value = filterRowsByStatus(res.data.list || [])
+      tableData.value = filterRowsByDoneDate(filterRowsByStatus(res.data.list || []))
       const s = res.data.stats || {}
       stats.total = s.total || 0
       stats.linked = s.linked || 0
@@ -302,6 +337,7 @@ const resetFilters = () => {
   filters.search = ""
   filters.status = ""
   filters.device = ""
+  filters.doneDateRange = []
   getList()
 }
 
@@ -553,6 +589,29 @@ onMounted(() => {
 
 .search-form {
   margin-bottom: 12px;
+}
+
+.summary-table {
+  width: 100%;
+
+  :deep(.cell) {
+    padding: 0 6px;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+
+  :deep(.el-button + .el-button) {
+    margin-left: 0;
+  }
+
+  :deep(.el-table__header-wrapper),
+  :deep(.el-table__body-wrapper) {
+    overflow-x: hidden;
+  }
+
+  :deep(.el-scrollbar__bar.is-horizontal) {
+    display: none;
+  }
 }
 
 .sn-code {

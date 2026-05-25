@@ -41,7 +41,7 @@ const handleLogin = () => {
       useUserStore()
         .login(loginFormData)
         .then(() => {
-          router.push({ path: "/" })
+          router.push({ path: "/dashboard" })
         })
         .catch((err: any) => {
           loginFormData.password = ""
@@ -63,7 +63,7 @@ const handleSSOLogin = () => {
 onMounted(() => {
   if (router.currentRoute.value.query.token !== undefined) {
     setToken(router.currentRoute.value.query.token as string)
-    router.push({ path: "/" })
+    router.push({ path: "/dashboard" })
   }
   if (router.currentRoute.value.query.message !== undefined) {
     if (router.currentRoute.value.query.message === "illegal") {
