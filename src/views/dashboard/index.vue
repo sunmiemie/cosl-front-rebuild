@@ -5,14 +5,6 @@ import TaskPanel from "@/components/TaskCenter/TaskPanel.vue"
 <template>
   <div class="app-container home-task-page">
     <section class="task-hero">
-      <div class="task-hero__header">
-        <div>
-          <div class="task-hero__eyebrow">WORKFLOW CENTER</div>
-          <h1>待处理任务中心</h1>
-          <p>集中查看待审核、待处理、待推进事项，进入任务后可直接跳转到对应业务页面。</p>
-        </div>
-      </div>
-
       <el-card shadow="never" class="task-hero__card">
         <TaskPanel :list-height="620" />
       </el-card>
@@ -29,39 +21,6 @@ import TaskPanel from "@/components/TaskCenter/TaskPanel.vue"
 .task-hero {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-}
-
-.task-hero__header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 20px 4px 4px;
-
-  h1 {
-    margin: 0;
-    color: var(--el-text-color-primary);
-    font-size: 30px;
-    font-weight: 800;
-    line-height: 1.2;
-  }
-
-  p {
-    max-width: 620px;
-    margin: 10px 0 0;
-    color: var(--el-text-color-secondary);
-    font-size: 14px;
-    line-height: 1.7;
-  }
-}
-
-.task-hero__eyebrow {
-  margin-bottom: 8px;
-  color: var(--el-color-primary);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
 }
 
 .task-hero__card {
@@ -103,14 +62,6 @@ import TaskPanel from "@/components/TaskCenter/TaskPanel.vue"
 @media (max-width: 768px) {
   .home-task-page {
     padding: 14px;
-  }
-
-  .task-hero__header {
-    padding-top: 8px;
-
-    h1 {
-      font-size: 24px;
-    }
   }
 
   .task-hero__card :deep(.el-card__body) {
