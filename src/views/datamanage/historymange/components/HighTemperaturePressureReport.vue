@@ -111,12 +111,20 @@
     </el-dialog>
 
     <!-- 详情 对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="报告详情" width="700px">
+    <el-dialog v-model="detailDialogVisible" title="报告详情" width="980px">
       <el-descriptions :column="2" border v-if="currentReport">
         <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
         <el-descriptions-item label="任务单号">{{ currentReport.task_number }}</el-descriptions-item>
         <el-descriptions-item label="测试日期">{{ currentReport.test_date }}</el-descriptions-item>
         <el-descriptions-item label="测试人员">{{ currentReport.tester }}</el-descriptions-item>
+        <el-descriptions-item label="总体结论">
+          <el-tag :type="getResultTagType(currentReport.overall_result)">
+            {{ getResultText(currentReport.overall_result) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="关联工单">{{
+          currentReport.order_numbers?.join(" / ") || currentReport.task_number
+        }}</el-descriptions-item>
         <el-descriptions-item label="审核状态">
           <el-tag :type="getStatusType(currentReport.status)">{{ currentReport.status_text }}</el-tag>
         </el-descriptions-item>
@@ -124,6 +132,150 @@
         <el-descriptions-item label="审核时间">{{ formatTime(currentReport.audit_time) }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ currentReport.remark || "-" }}</el-descriptions-item>
       </el-descriptions>
+      <div v-if="currentReport" class="detail-block">
+        <h4>逐台仪器结论</h4>
+        <el-table :data="currentReport.instrument_results || []" border size="small">
+          <el-table-column prop="order_no" label="工单号" min-width="130" />
+          <el-table-column prop="instrument_name" label="仪器名称" min-width="150" />
+          <el-table-column prop="instrument_sn" label="SN" min-width="150" />
+          <el-table-column label="结论" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getResultTagType(row.result)">{{ row.result_text || getResultText(row.result) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="observation" label="观察记录" min-width="180">
+            <template #default="{ row }">{{ row.observation || "-" }}</template>
+          </el-table-column>
+          <el-table-column label="关键指标" min-width="220">
+            <template #default="{ row }">{{ formatMetricValue(row.metrics) }}</template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <div v-if="currentReport && currentPaperReportView.hasPaperReport" class="detail-block paper-report-block">
+        <h4>纸质报告检查项</h4>
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="报告格式">{{
+            displayReportValue(currentPaperReportView.paperReport.title)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="Ref No.">{{
+            displayReportValue(currentPaperReportView.paperReport.ref_no)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="名称 Name">{{
+            displayReportValue(currentPaperReportView.testingItemInformation.name)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="数量 Quantity">{{
+            displayReportValue(currentPaperReportView.testingItemInformation.quantity)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="编号 No.">{{
+            displayReportValue(currentPaperReportView.testingItemInformation.no)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="测试压力 Testing Pressure">{{
+            displayReportValue(currentPaperReportView.testingRequirements.testing_pressure)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="测试温度 Testing Temperature">{{
+            displayReportValue(currentPaperReportView.testingRequirements.testing_temperature)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="保温保压 Hold Time">{{
+            displayReportValue(currentPaperReportView.testingRequirements.hold_time)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="在线测试 Online Test">
+            <el-tag :type="booleanReportTagType(currentPaperReportView.testingRequirements.online_test)">
+              {{ formatReportYesNo(currentPaperReportView.testingRequirements.online_test) }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="其他要求 Other Requirements">{{
+            displayReportValue(currentPaperReportView.testingRequirements.other_requirements)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="试压护帽 Testing Protective Cap">{{
+            formatReportProvider(currentPaperReportView.fittingsProvided.testing_protective_cap)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="试压堵头 Testing Plug">{{
+            formatReportProvider(currentPaperReportView.fittingsProvided.testing_plug)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="外观未变形 No Distorted">
+            <el-tag :type="booleanReportTagType(currentPaperReportView.appearanceInspection.no_distorted)">
+              {{ formatReportYesNo(currentPaperReportView.appearanceInspection.no_distorted, "未变形", "已变形") }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="无明显泄漏 No Obvious Leakage">
+            <el-tag :type="booleanReportTagType(currentPaperReportView.appearanceInspection.no_obvious_leakage)">
+              {{
+                formatReportYesNo(
+                  currentPaperReportView.appearanceInspection.no_obvious_leakage,
+                  "无明显泄漏",
+                  "有明显泄漏"
+                )
+              }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="测试曲线 Testing Curve">
+            <el-tag :type="curveReportTagType(currentPaperReportView.testingResult.testing_curve)">
+              {{ formatReportCurveStatus(currentPaperReportView.testingResult.testing_curve) }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="其他描述 Other Descriptions">{{
+            displayReportValue(currentPaperReportView.testingResult.other_descriptions)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="测试曲线份数">{{
+            displayReportValue(currentPaperReportView.testingCurveAttachment.copies)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="其他附件份数">{{
+            displayReportValue(currentPaperReportView.otherAttachment.copies)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="测试曲线路径" :span="2">{{
+            displayReportValue(
+              currentPaperReportView.flowCurveAttachment?.file_url ||
+                currentPaperReportView.flowCurveAttachment?.local_path ||
+                currentPaperReportView.testingCurveAttachment.file_url ||
+                currentPaperReportView.testingCurveAttachment.local_path
+            )
+          }}</el-descriptions-item>
+        </el-descriptions>
+        <div v-if="currentCurveImageUrl" class="curve-preview-card">
+          <div class="curve-preview-head">
+            <span>测试曲线预览</span>
+            <el-link :href="currentCurveImageUrl" target="_blank" type="primary">下载/打开原图</el-link>
+          </div>
+          <el-image
+            :src="currentCurveImageUrl"
+            fit="contain"
+            :preview-src-list="[currentCurveImageUrl]"
+            class="curve-preview-image"
+          />
+        </div>
+      </div>
+      <div v-if="currentReport" class="detail-block detail-grid">
+        <div>
+          <el-collapse>
+            <el-collapse-item title="采集摘要（调试信息）" name="capture-json">
+              <pre>{{ compactJson(currentReport.report_json) }}</pre>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+        <div>
+          <h4>附件/文件</h4>
+          <el-empty v-if="!currentReport.attachments?.length" description="暂无附件" :image-size="64" />
+          <ul v-else class="attachment-list">
+            <li
+              v-for="(item, index) in currentReport.attachments"
+              :key="index"
+              :class="{ 'is-curve': isTestingCurveAttachment(item) }"
+            >
+              <el-tag v-if="isTestingCurveAttachment(item)" size="small" type="success">测试曲线</el-tag>
+              {{ getAttachmentTitle(item) }}
+              <span>{{ getAttachmentPath(item) }}</span>
+              <el-link
+                v-if="getAttachmentFileUrl(item)"
+                :href="getAttachmentFileUrl(item)"
+                target="_blank"
+                type="primary"
+              >
+                下载/打开
+              </el-link>
+            </li>
+          </ul>
+        </div>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -131,7 +283,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, defineExpose, computed } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
-import { Search, Refresh, CirclePlus, RefreshRight } from "@element-plus/icons-vue"
 import {
   getHighTempPressureReportListApi,
   createHighTempPressureReportApi,
@@ -140,6 +291,19 @@ import {
   deleteHighTempPressureReportApi,
   type HighTempPressureReportListItem
 } from "@/api/high-temp-pressure-report"
+import {
+  booleanReportTagType,
+  curveReportTagType,
+  displayReportValue,
+  formatReportCurveStatus,
+  formatReportProvider,
+  formatReportYesNo,
+  getAttachmentFileUrl,
+  getAttachmentPath,
+  getAttachmentTitle,
+  getHighTempPressurePaperReportView,
+  isTestingCurveAttachment
+} from "@/utils/high-temp-pressure-paper-report"
 
 const searchForm = reactive({
   taskNumber: "",
@@ -157,6 +321,10 @@ const tableData = ref<HighTempPressureReportListItem[]>([])
 
 const detailDialogVisible = ref(false)
 const currentReport = ref<HighTempPressureReportListItem | null>(null)
+const currentPaperReportView = computed(() =>
+  getHighTempPressurePaperReportView(currentReport.value?.report_json, currentReport.value?.attachments)
+)
+const currentCurveImageUrl = computed(() => getAttachmentFileUrl(currentPaperReportView.value.flowCurveAttachment))
 
 // 新增/编辑 相关
 const dialogVisible = ref(false)
@@ -263,9 +431,10 @@ const handleSubmit = async () => {
       }
       dialogVisible.value = false
       getList()
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("提交报告失败:", e)
-      const errorData = e.response?.data
+      const errorData = (e as { response?: { data?: { errors?: Record<string, unknown>; msg?: string } } }).response
+        ?.data
       let errorMsg = "操作失败"
       if (errorData?.errors) {
         errorMsg = Object.entries(errorData.errors)
@@ -294,9 +463,16 @@ const handleDetail = async (row: HighTempPressureReportListItem) => {
   }
 }
 
-const handleDownload = (row: HighTempPressureReportListItem) => {
+const handleDownload = async (row: HighTempPressureReportListItem) => {
+  let report = row
+  try {
+    const res = await getHighTempPressureReportDetailApi(row.id)
+    if (res.code === 0) report = res.data
+  } catch {
+    report = row
+  }
   const payload = {
-    ...row,
+    ...report,
     exportedAt: new Date().toISOString()
   }
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" })
@@ -304,7 +480,7 @@ const handleDownload = (row: HighTempPressureReportListItem) => {
 
   const a = document.createElement("a")
   a.href = url
-  a.download = `${row.report_no}.json`
+  a.download = `${report.report_no}.json`
   document.body.appendChild(a)
   a.click()
   a.remove()
@@ -338,6 +514,33 @@ const getStatusType = (status: number): "info" | "success" | "danger" | undefine
     default:
       return undefined
   }
+}
+
+const getResultText = (result?: string) => {
+  if (result === "pass") return "合格"
+  if (result === "fail") return "不合格"
+  return "待定"
+}
+
+const getResultTagType = (result?: string): "success" | "warning" | "danger" => {
+  if (result === "pass") return "success"
+  if (result === "fail") return "danger"
+  return "warning"
+}
+
+const compactJson = (value?: Record<string, unknown>) => {
+  if (!value || !Object.keys(value).length) return "-"
+  return JSON.stringify(value, null, 2)
+}
+
+const formatMetricValue = (metrics?: Record<string, unknown>) => {
+  if (!metrics || !Object.keys(metrics).length) return "-"
+  return (
+    Object.entries(metrics)
+      .filter(([, value]) => value !== undefined && value !== null && value !== "")
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("；") || "-"
+  )
 }
 
 const formatTime = (timeStr?: string) => {
@@ -374,5 +577,81 @@ onMounted(() => {
 }
 .el-link {
   margin-right: 8px;
+}
+.detail-block {
+  margin-top: 16px;
+}
+.detail-block h4 {
+  margin: 0 0 10px;
+  color: #24323a;
+  font-size: 14px;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.paper-report-block {
+  padding: 14px;
+  border: 1px solid #dce6ee;
+  border-radius: 12px;
+  background: #fbfcf8;
+}
+.curve-preview-card {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid #b8e3c6;
+  border-radius: 12px;
+  background: #f0fdf4;
+}
+.curve-preview-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: #166534;
+  font-size: 13px;
+  font-weight: 700;
+}
+.curve-preview-image {
+  width: 100%;
+  height: 320px;
+  border: 1px solid #dcfce7;
+  border-radius: 10px;
+  background: #fff;
+}
+.detail-grid pre {
+  max-height: 220px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #dce6ee;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.attachment-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #334155;
+  font-size: 13px;
+}
+.attachment-list li {
+  margin-bottom: 8px;
+}
+.attachment-list li.is-curve {
+  padding: 8px 10px;
+  border: 1px solid #b8e3c6;
+  border-radius: 8px;
+  background: #f0fdf4;
+  list-style: none;
+}
+.attachment-list span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  word-break: break-all;
 }
 </style>

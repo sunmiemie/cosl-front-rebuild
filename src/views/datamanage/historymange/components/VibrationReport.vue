@@ -111,12 +111,20 @@
     </el-dialog>
 
     <!-- 详情 对话框 -->
-    <el-dialog v-model="detailDialogVisible" title="报告详情" width="700px">
+    <el-dialog v-model="detailDialogVisible" title="报告详情" width="980px">
       <el-descriptions :column="2" border v-if="currentReport">
         <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
         <el-descriptions-item label="任务单号">{{ currentReport.task_number }}</el-descriptions-item>
         <el-descriptions-item label="测试日期">{{ currentReport.test_date }}</el-descriptions-item>
         <el-descriptions-item label="测试人员">{{ currentReport.tester }}</el-descriptions-item>
+        <el-descriptions-item label="总体结论">
+          <el-tag :type="getResultTagType(currentReport.overall_result)">
+            {{ getResultText(currentReport.overall_result) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="关联工单">{{
+          currentReport.order_numbers?.join(" / ") || currentReport.task_number
+        }}</el-descriptions-item>
         <el-descriptions-item label="审核状态">
           <el-tag :type="getStatusType(currentReport.status)">{{ currentReport.status_text }}</el-tag>
         </el-descriptions-item>
@@ -124,6 +132,41 @@
         <el-descriptions-item label="审核时间">{{ formatTime(currentReport.audit_time) }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ currentReport.remark || "-" }}</el-descriptions-item>
       </el-descriptions>
+      <div v-if="currentReport" class="detail-block">
+        <h4>逐台仪器结论</h4>
+        <el-table :data="currentReport.instrument_results || []" border size="small">
+          <el-table-column prop="order_no" label="工单号" min-width="130" />
+          <el-table-column prop="instrument_name" label="仪器名称" min-width="150" />
+          <el-table-column prop="instrument_sn" label="SN" min-width="150" />
+          <el-table-column label="结论" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getResultTagType(row.result)">{{ row.result_text || getResultText(row.result) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="observation" label="观察记录" min-width="180">
+            <template #default="{ row }">{{ row.observation || "-" }}</template>
+          </el-table-column>
+          <el-table-column label="关键指标" min-width="220">
+            <template #default="{ row }">{{ formatMetricValue(row.metrics) }}</template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <div v-if="currentReport" class="detail-block detail-grid">
+        <div>
+          <h4>采集摘要</h4>
+          <pre>{{ compactJson(currentReport.report_json) }}</pre>
+        </div>
+        <div>
+          <h4>附件/本地文件</h4>
+          <el-empty v-if="!currentReport.attachments?.length" description="暂无附件" :image-size="64" />
+          <ul v-else class="attachment-list">
+            <li v-for="(item, index) in currentReport.attachments" :key="index">
+              {{ item.name || item.file_name || item.type || "附件" }}
+              <span>{{ item.file_url || item.local_path || "" }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
     </el-dialog>
   </div>
 </template>
@@ -131,7 +174,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, defineExpose, computed } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
-import { Search, Refresh, CirclePlus, RefreshRight } from "@element-plus/icons-vue"
 import {
   getVibrationTableReportListApi,
   createVibrationTableReportApi,
@@ -263,9 +305,10 @@ const handleSubmit = async () => {
       }
       dialogVisible.value = false
       getList()
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error("提交报告失败:", e)
-      const errorData = e.response?.data
+      const errorData = (e as { response?: { data?: { errors?: Record<string, unknown>; msg?: string } } }).response
+        ?.data
       let errorMsg = "操作失败"
       if (errorData?.errors) {
         errorMsg = Object.entries(errorData.errors)
@@ -294,9 +337,16 @@ const handleDetail = async (row: VibrationTableReportListItem) => {
   }
 }
 
-const handleDownload = (row: VibrationTableReportListItem) => {
+const handleDownload = async (row: VibrationTableReportListItem) => {
+  let report = row
+  try {
+    const res = await getVibrationTableReportDetailApi(row.id)
+    if (res.code === 0) report = res.data
+  } catch {
+    report = row
+  }
   const payload = {
-    ...row,
+    ...report,
     exportedAt: new Date().toISOString()
   }
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" })
@@ -304,7 +354,7 @@ const handleDownload = (row: VibrationTableReportListItem) => {
 
   const a = document.createElement("a")
   a.href = url
-  a.download = `${row.report_no}.json`
+  a.download = `${report.report_no}.json`
   document.body.appendChild(a)
   a.click()
   a.remove()
@@ -338,6 +388,33 @@ const getStatusType = (status: number): "info" | "success" | "danger" | undefine
     default:
       return undefined
   }
+}
+
+const getResultText = (result?: string) => {
+  if (result === "pass") return "合格"
+  if (result === "fail") return "不合格"
+  return "待定"
+}
+
+const getResultTagType = (result?: string): "success" | "warning" | "danger" => {
+  if (result === "pass") return "success"
+  if (result === "fail") return "danger"
+  return "warning"
+}
+
+const compactJson = (value?: Record<string, unknown>) => {
+  if (!value || !Object.keys(value).length) return "-"
+  return JSON.stringify(value, null, 2)
+}
+
+const formatMetricValue = (metrics?: Record<string, unknown>) => {
+  if (!metrics || !Object.keys(metrics).length) return "-"
+  return (
+    Object.entries(metrics)
+      .filter(([, value]) => value !== undefined && value !== null && value !== "")
+      .map(([key, value]) => `${key}: ${value}`)
+      .join("；") || "-"
+  )
 }
 
 const formatTime = (timeStr?: string) => {
@@ -374,5 +451,44 @@ onMounted(() => {
 }
 .el-link {
   margin-right: 8px;
+}
+.detail-block {
+  margin-top: 16px;
+}
+.detail-block h4 {
+  margin: 0 0 10px;
+  color: #24323a;
+  font-size: 14px;
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.detail-grid pre {
+  max-height: 220px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid #dce6ee;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+.attachment-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #334155;
+  font-size: 13px;
+}
+.attachment-list li {
+  margin-bottom: 8px;
+}
+.attachment-list span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  word-break: break-all;
 }
 </style>

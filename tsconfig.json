@@ -7,6 +7,8 @@
     "moduleResolution": "bundler",
     /** TS 严格模式 */
     "strict": true,
+    /** 历史动态表单/报表代码大量使用动态索引，生产构建先允许隐式 any */
+    "noImplicitAny": false,
     "jsx": "preserve",
     "jsxImportSource": "vue",
     "importHelpers": true,
