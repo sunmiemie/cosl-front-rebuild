@@ -39,6 +39,7 @@ import {
 } from "@/utils/high-temp-pressure-paper-report"
 
 type ReportType = "water-cycle" | "high-temp-box" | "vibration-table" | "high-temp-high-pressure"
+type ReportReviewPayload = { status: number; audit_time: string; remark: string }
 
 interface ReportRow {
   id: number
@@ -86,28 +87,28 @@ const configs = {
     taskLabel: "水循环任务单号",
     getList: getWaterCycleReportListApi,
     getDetail: getWaterCycleReportDetailApi,
-    update: updateWaterCycleReportApi
+    update: (id: number, payload: ReportReviewPayload) => updateWaterCycleReportApi(id, payload as any)
   },
   "high-temp-box": {
     title: "高温箱报告审核",
     taskLabel: "高温箱任务单号",
     getList: getHighTempBoxReportListApi,
     getDetail: getHighTempBoxReportDetailApi,
-    update: updateHighTempBoxReportApi
+    update: (id: number, payload: ReportReviewPayload) => updateHighTempBoxReportApi(id, payload as any)
   },
   "vibration-table": {
     title: "振动台报告审核",
     taskLabel: "振动台任务单号",
     getList: getVibrationTableReportListApi,
     getDetail: getVibrationTableReportDetailApi,
-    update: updateVibrationTableReportApi
+    update: (id: number, payload: ReportReviewPayload) => updateVibrationTableReportApi(id, payload as any)
   },
   "high-temp-high-pressure": {
     title: "高温高压报告审核",
     taskLabel: "高温高压任务单号",
     getList: getHighTempPressureReportListApi,
     getDetail: getHighTempPressureReportDetailApi,
-    update: updateHighTempPressureReportApi
+    update: (id: number, payload: ReportReviewPayload) => updateHighTempPressureReportApi(id, payload as any)
   }
 }
 
