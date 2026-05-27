@@ -22,6 +22,10 @@ export interface HighTempBoxReportPayload {
   remark: string
 }
 
+export type HighTempBoxReportUpdatePayload = Partial<HighTempBoxReportPayload> & {
+  audit_time?: string
+}
+
 interface HighTempBoxReportMutationResponse {
   code: number
   msg?: string
@@ -66,7 +70,7 @@ export function getHighTempBoxReportDetailApi(pk: number) {
   })
 }
 
-export function updateHighTempBoxReportApi(pk: number, data: HighTempBoxReportPayload) {
+export function updateHighTempBoxReportApi(pk: number, data: HighTempBoxReportUpdatePayload) {
   return request<HighTempBoxReportMutationResponse>({
     url: `test/high-temp-box/report/detail/${pk}/`,
     method: "put",

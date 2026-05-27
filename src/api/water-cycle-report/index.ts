@@ -22,6 +22,10 @@ export interface WaterCycleReportPayload {
   remark: string
 }
 
+export type WaterCycleReportUpdatePayload = Partial<WaterCycleReportPayload> & {
+  audit_time?: string
+}
+
 interface WaterCycleReportMutationResponse {
   code: number
   msg?: string
@@ -66,7 +70,7 @@ export function getWaterCycleReportDetailApi(pk: number) {
   })
 }
 
-export function updateWaterCycleReportApi(pk: number, data: WaterCycleReportPayload) {
+export function updateWaterCycleReportApi(pk: number, data: WaterCycleReportUpdatePayload) {
   return request<WaterCycleReportMutationResponse>({
     url: `test/water-cycle/report/detail/${pk}/`,
     method: "put",
