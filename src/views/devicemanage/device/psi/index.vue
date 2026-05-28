@@ -1,404 +1,348 @@
-<!--主机管理-->
-
 <script lang="ts" setup>
-import { reactive, ref, watch } from "vue"
-import { createHostModelDataApi, getHostModelDataApi, updateHostModelDataApi } from "@/api/psi"
-import { getAnnualinspection } from "@/api/Annualinspection"
-import { fileDownoload } from "@/api/file"
-import { getPsiModelDataApi } from "@/api/psimodel"
+import { computed, reactive, ref, watch } from "vue"
+import { CirclePlus, Delete, Edit, Refresh, Search, View } from "@element-plus/icons-vue"
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
-import { CirclePlus, Printer, Refresh, RefreshRight, Search } from "@element-plus/icons-vue"
+import {
+  createDeviceInstanceApi,
+  deleteDeviceInstanceApi,
+  getDeviceInstanceListApi,
+  updateDeviceInstanceApi
+} from "@/api/device-instance"
+import type {
+  DeviceInstanceData,
+  DeviceInstancePayload,
+  DeviceInstanceStatus,
+  DeviceOnlineStatus
+} from "@/api/device-instance/types"
 import { usePagination } from "@/hooks/usePagination"
-import TableComponent from "@/components/Table/index.vue"
-import { GetPsiData } from "@/api/psi/types/psi"
-import QrcodeVue from "qrcode.vue"
-import { UploadFilled } from "@element-plus/icons-vue"
-import { getQRcodeImgApi } from "@/api/qrcode"
 
-const loading = ref<boolean>(false)
-const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
-//#region 增
-const dialogVisible = ref<boolean>(false)
-const qrcodeVisible = ref<boolean>(false)
-const qrcodeValue = ref<string>("")
-const checkVisible = ref<boolean>(false)
+interface DeviceInstanceRow {
+  id: string | number
+  serialNumber: string
+  deviceName: string
+  testBench: string
+  model: string
+  status: DeviceInstanceStatus
+  onlineStatus: DeviceOnlineStatus
+}
+
+const loading = ref(false)
+const dialogVisible = ref(false)
+const detailVisible = ref(false)
+const currentUpdateId = ref<string | number>()
 const formRef = ref<FormInstance | null>(null)
-const checkRef = ref<FormInstance | null>(null)
-const fileList = reactive<any>({
-  file: []
+const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
+
+const statusOptions: Array<{ label: string; value: "" | DeviceInstanceStatus }> = [
+  { label: "全部", value: "" },
+  { label: "正常", value: "normal" },
+  { label: "故障", value: "fault" },
+  { label: "维保中", value: "maintenance" },
+  { label: "维修中", value: "repair" }
+]
+
+const statusMap: Record<DeviceInstanceStatus, { label: string; className: string }> = {
+  normal: { label: "正常", className: "status-normal" },
+  fault: { label: "故障", className: "status-fault" },
+  maintenance: { label: "维保中", className: "status-maintenance" },
+  repair: { label: "维修中", className: "status-repair" }
+}
+
+const onlineMap: Record<DeviceOnlineStatus, { label: string; className: string }> = {
+  standby: { label: "待机", className: "standby" },
+  testing: { label: "测试中", className: "testing" },
+  offline: { label: "离线", className: "offline" },
+  abnormal: { label: "异常", className: "abnormal" },
+  paused: { label: "暂停", className: "paused" },
+  finished: { label: "完成", className: "finished" },
+  unknown: { label: "未知", className: "unknown" }
+}
+
+const searchData = reactive({
+  serialNumber: "",
+  testBench: "",
+  status: "" as "" | DeviceInstanceStatus
 })
 
-const getCurrentDate = () => {
-  const date = new Date()
-  const year = date.getFullYear()
-  const month = (date.getMonth() + 1).toString().padStart(2, "0") // 月份加 1 并补零
-  const day = date.getDate().toString().padStart(2, "0") // 日期补零
-  return `${year}-${month}-${day}`
-}
-
-const formData = reactive<any>({
-  psiName: "", // 主机名称
-  psiSeria: "", // 序列号
-  psiDate: getCurrentDate(), // 入库时间
-  psiModel: "" // 主机型号
+const formData = reactive<DeviceInstancePayload>({
+  serialNumber: "",
+  deviceName: "",
+  testBench: "",
+  model: "",
+  status: "normal",
+  onlineStatus: "standby"
 })
 
-const checkData = reactive<any>({
-  updateDate: ""
+const detailData = ref<DeviceInstanceRow | null>(null)
+const tableData = ref<DeviceInstanceRow[]>([])
+const stats = reactive({
+  total: 0,
+  normal: 0,
+  maintenance: 0,
+  repair: 0,
+  fault: 0
 })
-// 新增
-const handleCreate = () => {
-  formRef.value?.validate((valid: boolean) => {
-    if (valid) {
-      if (currentUpdateId.value === undefined) {
-        createHostModelDataApi(formData)
-          .then(() => {
-            ElMessage.success("新增成功")
-            getTableData()
-          })
-          .finally(() => {
-            dialogVisible.value = false
-          })
-      } else {
-        updateHostModelDataApi({
-          id: currentUpdateId.value,
-          psiModel: formData.psiModel,
-          psiSeria: formData.psiSeria,
-          psiName: formData.psiName
-        })
-          .then(() => {
-            ElMessage.success("修改成功")
-            getTableData()
-          })
-          .finally(() => {
-            dialogVisible.value = false
-          })
-      }
-    } else {
-      ElMessage.error("请填写完整")
-    }
-  })
-}
-const resetForm = (formEl: any) => {
-  dialogVisible.value = false
-  currentUpdateId.value = undefined
-  if (!formEl) return
-  formEl.resetFields()
-  formData.psiName = ""
-  formData.psiSeria = ""
-  formData.psiModel = ""
-}
-const resetCheck = (formEl: any) => {
-  checkVisible.value = false
-  currentUpdateId.value = undefined
-  if (!formEl) return
-  formEl.resetFields()
-  checkData.updateDate = ""
-  fileList.file = []
-}
-const handleCheck = () => {
-  const form = new FormData()
-  form.append("FileName", fileList.file[0].raw)
-  form.append("id", currentUpdateId.value)
-  form.append("date", checkData.updateDate)
-  form.append("type", "2")
-  getAnnualinspection(form)
-    .then(() => {
-      ElMessage.success("更新成功")
-    })
-    .finally(() => {
-      checkVisible.value = false
-    })
-}
-const currentUpdateId = ref<any>(undefined)
 
-const headers = ref([
-  { prop: "psi_id", label: "主机ID", align: "center" },
-  { prop: "psi_name", label: "主机名称", align: "center" },
-  { prop: "psimodel_name", label: "主机型号", align: "center" },
-  { prop: "psi_serialnumber", label: "主机序列号", align: "center" },
-  { prop: "psi_date", label: "入库时间", align: "center" },
-  { prop: "psi_status", label: "主机状态", type: "tag", align: "center" },
-  { prop: "link", label: "操作", type: "link", fixed: "right" },
-  { prop: "download", label: "下载", type: "btn", align: "center" }
+const formRules: FormRules = {
+  serialNumber: [{ required: true, message: "请输入SN号", trigger: "blur" }],
+  deviceName: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
+  testBench: [{ required: true, message: "请输入所属测试台", trigger: "blur" }],
+  model: [{ required: true, message: "请输入型号", trigger: "blur" }],
+  status: [{ required: true, message: "请选择设备状态", trigger: "change" }],
+  onlineStatus: [{ required: true, message: "请选择在线状态", trigger: "change" }]
+}
+
+const statCards = computed(() => [
+  { title: "设备总数", value: stats.total, desc: "全部设备实例", className: "total" },
+  { title: "运行正常", value: stats.normal, desc: "状态为正常的设备", className: "normal" },
+  { title: "维保/维修", value: stats.maintenance + stats.repair, desc: "维保中或维修中", className: "service" },
+  { title: "故障设备", value: stats.fault, desc: "需要处理的故障设备", className: "fault" }
 ])
 
-//表单校验
-const formRules: FormRules = reactive<any>({
-  psiName: [{ required: true, trigger: "blur", message: "请选择名称" }],
-  psiSeria: [{ required: true, trigger: "blur", message: "请输入序列号" }],
-  psiModel: [{ required: true, trigger: "blur", message: "请选择型号" }]
+const testBenchOptions = computed(() => Array.from(new Set(tableData.value.map((item) => item.testBench).filter(Boolean))))
+
+const normalizeStatus = (value: unknown): DeviceInstanceStatus => {
+  if (value === 0 || value === "0" || value === "normal" || value === "正常") return "normal"
+  if (value === 1 || value === "1" || value === "maintenance" || value === "维保中" || value === "临检") {
+    return "maintenance"
+  }
+  if (value === 3 || value === "3" || value === "repair" || value === "维修中") return "repair"
+  if (value === 2 || value === "2" || value === "fault" || value === "故障") return "fault"
+  return "normal"
+}
+
+const normalizeOnlineStatus = (value: unknown): DeviceOnlineStatus => {
+  if (value === true || value === 1 || value === "1" || value === "standby" || value === "待机" || value === "在线") {
+    return "standby"
+  }
+  if (value === "testing" || value === "测试中") return "testing"
+  if (value === false || value === 0 || value === "0" || value === "offline" || value === "离线") return "offline"
+  if (value === "abnormal" || value === "异常") return "abnormal"
+  if (value === "paused" || value === "暂停") return "paused"
+  if (value === "finished" || value === "完成") return "finished"
+  return "unknown"
+}
+
+const normalizeRow = (row: DeviceInstanceData): DeviceInstanceRow => ({
+  id: row.deviceId ?? row.device_id ?? row.id ?? row.psi_id ?? "",
+  serialNumber: row.serialNumber ?? row.serial_number ?? row.psi_serialnumber ?? "",
+  deviceName: row.deviceName ?? row.device_name ?? row.psi_name ?? "",
+  testBench: row.testBench ?? row.test_bench ?? "",
+  model: row.model ?? row.modelName ?? row.model_name ?? row.psimodel_name ?? "",
+  status: normalizeStatus(row.status ?? row.deviceStatus ?? row.device_status ?? row.psi_status),
+  onlineStatus: normalizeOnlineStatus(row.onlineStatus ?? row.online_status ?? row.onlineStatusText ?? row.online_status_text)
 })
 
-const TableData = ref<GetPsiData[]>([])
-const searchFormRef = ref<FormInstance | null>(null)
-const searchData = reactive<any>({
-  number: "",
-  name: "",
-  type: ""
-})
-const defineLink = (status: any) => {
-  switch (status) {
-    case 0:
-      return { 1: "编辑", 2: "二维码" }
-    case 1:
-      return { 1: "编辑", 2: "更新年检", 3: "二维码" }
-    case 2:
-      return { 1: "编辑", 2: "详情", 3: "查看故障工单" }
+const normalizeListData = (data: any) => {
+  const payload = data?.data ?? data ?? {}
+  const list = Array.isArray(payload)
+    ? payload
+    : payload.list ?? payload.records ?? payload.results ?? payload.items ?? []
+  const total = Number(payload.total ?? payload.count ?? list.length ?? 0)
+  const summary = payload.stats ?? payload.summary ?? payload.statistics ?? {}
+  return {
+    list: list.map(normalizeRow),
+    total,
+    stats: summary
   }
 }
-const ModelTypes = ref<any>([])
-const pisModelTypes = ref<any>([])
+
+const refreshStats = (summary: any = {}) => {
+  const rowStats = {
+    total: paginationData.total || tableData.value.length,
+    normal: tableData.value.filter((item) => item.status === "normal").length,
+    maintenance: tableData.value.filter((item) => item.status === "maintenance").length,
+    repair: tableData.value.filter((item) => item.status === "repair").length,
+    fault: tableData.value.filter((item) => item.status === "fault").length
+  }
+  stats.total = Number(summary.total ?? rowStats.total)
+  stats.normal = Number(summary.normal ?? rowStats.normal)
+  stats.maintenance = Number(summary.maintenance ?? rowStats.maintenance)
+  stats.repair = Number(summary.repair ?? rowStats.repair)
+  stats.fault = Number(summary.fault ?? rowStats.fault)
+}
+
 const getTableData = async () => {
   loading.value = true
-  getHostModelDataApi({
-    currentPage: paginationData.currentPage,
-    size: paginationData.pageSize,
-    number: searchData.number || undefined,
-    name: searchData.name || undefined,
-    type: searchData.type || undefined
-  })
-    .then((res: any) => {
-      paginationData.total = res.data.total
-      TableData.value = res.data.list
-      for (let i = 0; i < TableData.value.length; i++) {
-        TableData.value[i].link = defineLink(TableData.value[i].psi_status)
-      }
+  try {
+    const res = await getDeviceInstanceListApi({
+      currentPage: paginationData.currentPage,
+      size: paginationData.pageSize,
+      serialNumber: searchData.serialNumber || undefined,
+      testBench: searchData.testBench || undefined,
+      status: searchData.status || undefined
     })
-    .catch(() => {
-      TableData.value = []
-    })
-    .finally(() => {
-      loading.value = false
-    })
-  getPsiModelDataApi({ currentPage: 1, size: 999999 }).then((res) => {
-    ModelTypes.value = res.data.list
-    pisModelTypes.value = res.data.list
-  })
-}
-const selectedRows = ref<any>([])
-const handleSelectionChange = (val: any) => {
-  console.log("index", val)
-  selectedRows.value = val
-}
-
-// 打印二维码
-const getSelection = () => {
-  getQRcodeImgApi({
-    data: selectedRows.value,
-    headerKey: "psi_name",
-    seriaKey: "psi_serialnumber",
-    startTimeKey: "psi_date"
-  }).then((res) => {
-    if (res.code === 0) {
-      const imageData = res.data
-      const printWindow = window.open("", "_blank")
-      if (!printWindow) {
-        ElMessage.error("无法打开打印窗口")
-        return
-      }
-      printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
-
-      for (const key in imageData) {
-        if (Object.prototype.hasOwnProperty.call(imageData, key)) {
-          const img = new Image()
-          img.src = imageData[key]
-          img.alt = "QR Code"
-          printWindow.document.body.appendChild(img)
-          printWindow.document.body.appendChild(document.createElement("br"))
-        }
-      }
-
-      printWindow.document.write("</body></html>")
-      printWindow.document.close()
-      printWindow.onload = function () {
-        printWindow.print()
-        printWindow.close()
-      }
-    } else {
-      console.error("Error fetching QR codes", res)
-    }
-  })
-}
-
-const handleLink = (data: any, i: any) => {
-  if (i === "编辑") {
-    console.log(data)
-    currentUpdateId.value = data.psi_id
-    dialogVisible.value = true
-    formData.psiName = data.psi_name
-    formData.psiSeria = data.psi_serialnumber
-    formData.psiModel = data.psimodel_id
-    getTableData()
-  }
-  if (i === "二维码") {
-    qrcodeValue.value = data.psi_serialnumber
-    qrcodeVisible.value = true
-  }
-  if (i === "更新年检") {
-    currentUpdateId.value = data.psi_id
-    checkVisible.value = true
+    const data = normalizeListData(res)
+    tableData.value = data.list
+    paginationData.total = data.total
+    refreshStats(data.stats)
+  } catch {
+    tableData.value = []
+    paginationData.total = 0
+    refreshStats()
+  } finally {
+    loading.value = false
   }
 }
-// 新增主机
-const addhost = () => {
-  formData.psiName = ""
-  formData.psiSeria = ""
-  formData.psiDate = getCurrentDate()
-  dialogVisible.value = true
-}
+
 const handleSearch = () => {
   paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
 }
+
 const resetSearch = () => {
-  Object.keys(searchData).forEach((key) => (searchData[key] = ""))
-  getTableData()
-}
-const exceedFile = () => {
-  ElMessage.warning("最多只能上传一个文件！")
-}
-// 上传错误提示
-const handleError = () => {
-  ElMessage.error("导入数据失败，请您重新上传！")
-}
-//上传成功提示
-const handleSuccess = () => {
-  ElMessage.success("导入数据成功！")
-}
-const beforeUpload = (file: any) => {
-  const isExcel =
-    file.type === "application/vnd.ms-excel" ||
-    file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-
-  const isLt2M = file.size / 1024 / 1024 < 20
-
-  if (!isExcel)
-    ElMessageBox({
-      title: "温馨提示",
-      message: "上传文件只能是 xls / xlsx 格式！",
-      type: "warning"
-    })
-  if (!isLt2M)
-    ElMessageBox({
-      title: "温馨提示",
-      message: "上传文件大小不能超过 20MB!",
-      type: "warning"
-    })
-  return isExcel && isLt2M
+  searchData.serialNumber = ""
+  searchData.testBench = ""
+  searchData.status = ""
+  handleSearch()
 }
 
-const download = (file: any, fileType: string, fileName: string) => {
-  const blob = new Blob([file], {
-    type: fileType
-  })
-  const a = document.createElement("a")
-  const href = URL.createObjectURL(blob)
-  a.href = href
-  a.download = fileName
-  document.body.appendChild(a)
-  a.click()
-  // 下载完成移除a元素
-  document.body.removeChild(a)
-  // 释放blob对象
-  URL.revokeObjectURL(href)
+const resetForm = () => {
+  currentUpdateId.value = undefined
+  formData.id = undefined
+  formData.serialNumber = ""
+  formData.deviceName = ""
+  formData.testBench = ""
+  formData.model = ""
+  formData.status = "normal"
+  formData.onlineStatus = "standby"
+  formRef.value?.clearValidate()
 }
-interface infoType {
-  fileId: string
-  name: string
-  fileFormat: string
+
+const openCreateDialog = () => {
+  resetForm()
+  dialogVisible.value = true
 }
-// 下载
-const handleDownload = (info: infoType) => {
-  const { name } = info
-  fileDownoload(name).then((res) => {
-    download(res, "application/vnd.ms-excel", name)
+
+const openEditDialog = (row: DeviceInstanceRow) => {
+  currentUpdateId.value = row.id
+  formData.id = row.id
+  formData.serialNumber = row.serialNumber
+  formData.deviceName = row.deviceName
+  formData.testBench = row.testBench
+  formData.model = row.model
+  formData.status = row.status
+  formData.onlineStatus = row.onlineStatus
+  dialogVisible.value = true
+}
+
+const openDetailDialog = (row: DeviceInstanceRow) => {
+  detailData.value = row
+  detailVisible.value = true
+}
+
+const submitForm = () => {
+  formRef.value?.validate(async (valid) => {
+    if (!valid) return
+    try {
+      if (currentUpdateId.value === undefined) {
+        await createDeviceInstanceApi(formData)
+        ElMessage.success("新增成功")
+      } else {
+        await updateDeviceInstanceApi({ ...formData, id: currentUpdateId.value })
+        ElMessage.success("编辑成功")
+      }
+      dialogVisible.value = false
+      resetForm()
+      getTableData()
+    } catch {
+      // 请求拦截器会展示后端错误信息
+    }
   })
 }
-/** 监听分页参数的变化 */
+
+const handleDelete = async (row: DeviceInstanceRow) => {
+  try {
+    await ElMessageBox.confirm(`确认删除设备“${row.deviceName || row.serialNumber}”？`, "删除确认", {
+      confirmButtonText: "删除",
+      cancelButtonText: "取消",
+      type: "warning"
+    })
+    await deleteDeviceInstanceApi(row.id)
+    ElMessage.success("删除成功")
+    getTableData()
+  } catch {
+    // 用户取消或接口报错时无需额外处理
+  }
+}
+
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: true })
 </script>
 
 <template>
-  <div class="app-container">
-    <el-card v-loading="loading" shadow="never" class="search-wrapper">
-      <el-form ref="searchFormRef" :inline="true" :model="searchData">
-        <el-form-item prop="seria" label="序列号">
-          <el-input v-model="searchData.number" placeholder="请输入" />
+  <div class="app-container device-instance-page">
+    <div class="stat-grid">
+      <div v-for="item in statCards" :key="item.title" class="stat-card">
+        <div class="stat-title">{{ item.title }}</div>
+        <div class="stat-value" :class="item.className">{{ item.value }}</div>
+        <div class="stat-desc">{{ item.desc }}</div>
+      </div>
+    </div>
+
+    <el-card shadow="never" class="filter-card">
+      <el-form class="filter-form" :model="searchData" @submit.prevent>
+        <el-form-item label="SN号">
+          <el-input
+            v-model.trim="searchData.serialNumber"
+            :prefix-icon="Search"
+            clearable
+            placeholder="请输入SN号"
+            @keyup.enter="handleSearch"
+          />
         </el-form-item>
-        <el-form-item prop="name" label="主机名称">
-          <el-input v-model="searchData.name" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item prop="type" label="主机型号">
-          <el-select v-model="searchData.type" placeholder="请选择" style="width: 150px">
-            <el-option
-              v-for="item in ModelTypes"
-              :label="item.psimodel_name"
-              :value="item.psimodel_id"
-              :key="item.psimodel_id"
-            />
+        <el-form-item label="测试台">
+          <el-select
+            v-model="searchData.testBench"
+            allow-create
+            clearable
+            filterable
+            default-first-option
+            placeholder="请输入或选择测试台"
+          >
+            <el-option v-for="item in testBenchOptions" :key="item" :label="item" :value="item" />
           </el-select>
         </el-form-item>
-        <el-form-item>
-          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+        <el-form-item label="设备状态" class="status-filter">
+          <el-segmented v-model="searchData.status" :options="statusOptions" @change="handleSearch" />
         </el-form-item>
+        <div class="filter-actions">
+          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+          <el-button v-permission="['3']" type="primary" :icon="CirclePlus" @click="openCreateDialog">
+            新增设备
+          </el-button>
+        </div>
       </el-form>
     </el-card>
-    <el-card v-loading="loading" shadow="never">
-      <div class="toolbar-wrapper">
-        <div>
-          <el-button v-permission="['3']" type="primary" :icon="CirclePlus" @click="addhost">新增主机</el-button>
-          <el-button v-if="selectedRows.length > 0" type="warning" :icon="Printer" @click="getSelection"
-            >打印二维码</el-button
-          >
-        </div>
-        <div>
-          <el-tooltip content="刷新当前页">
-            <el-button type="primary" :icon="RefreshRight" circle @click="getTableData()" />
-          </el-tooltip>
-        </div>
-      </div>
-      <div class="table-wrapper">
-        <TableComponent
-          :tableData="TableData"
-          :column-data="headers"
-          selection
-          stripe
-          @selection-change="handleSelectionChange"
-        >
-          <template #psi_status="{ row }">
-            <el-tag v-if="row.psi_status === 0" type="success"> 正常 </el-tag>
-            <el-tag v-if="row.psi_status === 1" type="warning"> 临检 </el-tag>
-            <el-tag v-if="row.psi_status === 2" type="danger"> 故障 </el-tag>
-          </template>
-          <template #link="{ row }">
-            <el-link v-for="i in row.link" :key="i" type="primary" class="el-link" @click="handleLink(row, i)">{{
-              i
-            }}</el-link>
-          </template>
-          <!-- 文件下载 -->
-          <template #download="{ row }">
-            <el-popover placement="right" :width="300" trigger="click">
-              <template #reference>
-                <el-button style="margin-right: 16px" type="text">查看文件</el-button>
-              </template>
-              <el-table :data="row.fixture_checkpath">
-                <el-table-column width="150" property="name" label="文件名" />
-                <el-table-column property="address" label="操作">
-                  <template #default="scope">
-                    <el-button size="small" type="primary" @click="handleDownload(scope.row)">下载</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </el-popover>
 
-            <el-popover
-              :width="300"
-              popper-style="box-shadow: rgb(14 18 22 / 35%) 0px 10px 38px -10px, rgb(14 18 22 / 20%) 0px 10px 20px -15px; padding: 20px;"
-            />
-          </template>
-        </TableComponent>
+    <el-card v-loading="loading" shadow="never" class="table-card">
+      <div class="table-header">
+        <div class="table-title">主机管理</div>
+        <div class="table-total">共 {{ paginationData.total }} 条</div>
       </div>
+      <el-table :data="tableData" row-key="id" class="device-table" height="calc(100vh - 390px)">
+        <el-table-column prop="serialNumber" label="SN号" min-width="132" show-overflow-tooltip />
+        <el-table-column prop="deviceName" label="设备名称" min-width="130" show-overflow-tooltip />
+        <el-table-column prop="testBench" label="所属测试台" min-width="132" show-overflow-tooltip />
+        <el-table-column prop="model" label="型号" min-width="118" show-overflow-tooltip />
+        <el-table-column label="设备状态" min-width="104">
+          <template #default="{ row }">
+            <span class="pill-tag" :class="statusMap[row.status].className">{{ statusMap[row.status].label }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="在线状态" min-width="96">
+          <template #default="{ row }">
+            <span class="online-tag" :class="onlineMap[row.onlineStatus].className">
+              {{ onlineMap[row.onlineStatus].label }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="170" align="center">
+          <template #default="{ row }">
+            <el-button link type="primary" :icon="View" @click="openDetailDialog(row)">查看</el-button>
+            <el-button link type="primary" :icon="Edit" @click="openEditDialog(row)">编辑</el-button>
+            <el-button link type="danger" :icon="Delete" @click="handleDelete(row)">删除</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
       <div class="pager-wrapper">
         <el-pagination
           background
@@ -406,121 +350,352 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           :page-sizes="paginationData.pageSizes"
           :total="paginationData.total"
           :page-size="paginationData.pageSize"
-          :currentPage="paginationData.currentPage"
+          :current-page="paginationData.currentPage"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
         />
       </div>
     </el-card>
-    <!-- 新增/修改 -->
+
     <el-dialog
       v-model="dialogVisible"
-      :title="currentUpdateId === undefined ? '新增主机' : '编辑主机'"
-      @close="resetForm(formRef)"
-      width="30%"
+      :title="currentUpdateId === undefined ? '新增设备' : '编辑设备'"
+      width="520px"
+      @closed="resetForm"
     >
-      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" label-position="left">
-        <el-form-item v-if="currentUpdateId !== undefined" prop="psiId" label="ID">
-          <el-input disabled v-model="currentUpdateId" />
+      <el-form ref="formRef" :model="formData" :rules="formRules" label-width="96px">
+        <el-form-item label="SN号" prop="serialNumber">
+          <el-input v-model.trim="formData.serialNumber" placeholder="请输入SN号" />
         </el-form-item>
-        <el-form-item prop="psiName" label="名称">
-          <el-input v-model="formData.psiName" />
+        <el-form-item label="设备名称" prop="deviceName">
+          <el-input v-model.trim="formData.deviceName" placeholder="请输入设备名称" />
         </el-form-item>
-        <el-form-item prop="psiSeria" label="序列号">
-          <el-input v-model="formData.psiSeria" />
+        <el-form-item label="所属测试台" prop="testBench">
+          <el-select
+            v-model="formData.testBench"
+            allow-create
+            filterable
+            default-first-option
+            placeholder="请输入或选择测试台"
+            style="width: 100%"
+          >
+            <el-option v-for="item in testBenchOptions" :key="item" :label="item" :value="item" />
+          </el-select>
         </el-form-item>
-        <el-form-item v-if="currentUpdateId === undefined" label="入库时间">
-          <el-input disabled v-model="formData.psiDate" />
+        <el-form-item label="型号" prop="model">
+          <el-input v-model.trim="formData.model" placeholder="请输入型号" />
         </el-form-item>
-        <el-form-item prop="psiModel" label="主机型号">
-          <el-select v-model="formData.psiModel" placeholder="请选择">
+        <el-form-item label="设备状态" prop="status">
+          <el-select v-model="formData.status" placeholder="请选择设备状态" style="width: 100%">
             <el-option
-              v-for="item in pisModelTypes"
-              :label="item.psimodel_name"
-              :value="item.psimodel_id"
-              :key="item.psimodel_id"
+              v-for="item in statusOptions.slice(1)"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
             />
           </el-select>
         </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="resetForm(formRef)">取消</el-button>
-        <el-button type="primary" @click="handleCreate">确认</el-button>
-      </template>
-    </el-dialog>
-    <el-dialog v-model="qrcodeVisible" width="340px">
-      <qrcode-vue :value="qrcodeValue" :size="300" />
-    </el-dialog>
-    <el-dialog title="更新年检" v-model="checkVisible" width="30%">
-      <el-form ref="checkRef" label-width="100px" label-position="left">
-        <el-form-item prop="checkFile" label="年检文件:">
-          <el-upload
-            class="upload-demo"
-            drag
-            accept=".xls,.xlsx"
-            :headers="{ 'Content-Type': 'multipart/form-data' }"
-            action=""
-            v-model:file-list="fileList.file"
-            multiple
-            style="width: 100%"
-            :on-exceed="exceedFile"
-            :on-error="handleError"
-            :on-success="handleSuccess"
-            :before-upload="beforeUpload"
-            :show-file-list="true"
-            :auto-upload="false"
-            :limit="1"
-          >
-            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-            <div class="el-upload__text">拖拽文件至此 或 <em>点击选择文件上传</em></div>
-            <template #tip>
-              <div class="el-upload__tip">Tip：请上传xlsx后缀的表格文件</div>
-            </template>
-          </el-upload>
-        </el-form-item>
-        <el-form-item prop="updateDate" label="下次年检:">
-          <el-date-picker
-            v-model="checkData.updateDate"
-            type="date"
-            value-format="YYYY-MM-DD"
-            placeholder="选择一个日期"
-            size="default"
-          />
+        <el-form-item label="在线状态" prop="onlineStatus">
+          <el-radio-group v-model="formData.onlineStatus">
+            <el-radio-button label="standby">待机</el-radio-button>
+            <el-radio-button label="testing">测试中</el-radio-button>
+            <el-radio-button label="offline">离线</el-radio-button>
+            <el-radio-button label="abnormal">异常</el-radio-button>
+            <el-radio-button label="paused">暂停</el-radio-button>
+            <el-radio-button label="finished">完成</el-radio-button>
+          </el-radio-group>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="resetCheck(checkRef)">取消</el-button>
-        <el-button type="primary" @click="handleCheck">确认</el-button>
+        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitForm">确认</el-button>
       </template>
+    </el-dialog>
+
+    <el-dialog v-model="detailVisible" title="设备详情" width="520px">
+      <el-descriptions v-if="detailData" :column="1" border>
+        <el-descriptions-item label="SN号">{{ detailData.serialNumber }}</el-descriptions-item>
+        <el-descriptions-item label="设备名称">{{ detailData.deviceName }}</el-descriptions-item>
+        <el-descriptions-item label="所属测试台">{{ detailData.testBench }}</el-descriptions-item>
+        <el-descriptions-item label="型号">{{ detailData.model }}</el-descriptions-item>
+        <el-descriptions-item label="设备状态">
+          <span class="pill-tag" :class="statusMap[detailData.status].className">
+            {{ statusMap[detailData.status].label }}
+          </span>
+        </el-descriptions-item>
+        <el-descriptions-item label="在线状态">
+          <span class="online-tag" :class="onlineMap[detailData.onlineStatus].className">
+            {{ onlineMap[detailData.onlineStatus].label }}
+          </span>
+        </el-descriptions-item>
+      </el-descriptions>
     </el-dialog>
   </div>
 </template>
 
 <style lang="scss" scoped>
-.search-wrapper {
-  margin-bottom: 20px;
-
-  :deep(.el-card__body) {
-    padding-bottom: 2px;
-  }
+.device-instance-page {
+  --page-gap: 14px;
+  --border-color: #e8edf3;
+  background: #f6f8fb;
 }
 
-.toolbar-wrapper {
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--page-gap);
+  margin-bottom: var(--page-gap);
+}
+
+.stat-card {
+  min-height: 108px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.stat-title {
+  color: #5d6675;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.stat-value {
+  margin-top: 10px;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 34px;
+}
+
+.stat-value.total {
+  color: #2563eb;
+}
+
+.stat-value.normal {
+  color: #16a34a;
+}
+
+.stat-value.service {
+  color: #d97706;
+}
+
+.stat-value.fault {
+  color: #dc2626;
+}
+
+.stat-desc {
+  margin-top: 8px;
+  color: #8b95a5;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.filter-card,
+.table-card {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.filter-card {
+  margin-bottom: var(--page-gap);
+}
+
+.filter-card :deep(.el-card__body) {
+  padding: 14px 16px;
+}
+
+.filter-form {
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 20px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
 }
 
-.table-wrapper {
-  margin-bottom: 20px;
+.filter-form :deep(.el-form-item) {
+  margin: 0;
+}
+
+.filter-form :deep(.el-form-item__label) {
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.filter-form :deep(.el-input),
+.filter-form :deep(.el-select) {
+  width: 190px;
+}
+
+.status-filter {
+  flex: 1;
+  min-width: 360px;
+}
+
+.status-filter :deep(.el-segmented) {
+  --el-segmented-item-selected-color: #1d4ed8;
+  --el-segmented-item-selected-bg-color: #fff;
+  padding: 3px;
+  background: #f1f5f9;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.table-card :deep(.el-card__body) {
+  padding: 0;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table-title {
+  color: #111827;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.table-total {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.device-table {
+  width: 100%;
+}
+
+.device-table :deep(.el-table__header th) {
+  height: 42px;
+  background: #f8fafc;
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.device-table :deep(.el-table__row) {
+  height: 48px;
+}
+
+.device-table :deep(.el-table__cell) {
+  padding: 7px 0;
+}
+
+.pill-tag,
+.online-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 58px;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.status-normal {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.status-fault {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.status-maintenance {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.status-repair {
+  color: #7c3aed;
+  background: #ede9fe;
+}
+
+.online-tag.standby {
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.online-tag.testing {
+  color: #047857;
+  background: #d1fae5;
+}
+
+.online-tag.offline {
+  color: #64748b;
+  background: #e2e8f0;
+}
+
+.online-tag.abnormal {
+  color: #b91c1c;
+  background: #fee2e2;
+}
+
+.online-tag.paused {
+  color: #b45309;
+  background: #fef3c7;
+}
+
+.online-tag.finished {
+  color: #0f766e;
+  background: #ccfbf1;
+}
+
+.online-tag.unknown {
+  color: #6b7280;
+  background: #f3f4f6;
 }
 
 .pager-wrapper {
   display: flex;
   justify-content: flex-end;
+  padding: 14px 18px 16px;
+  border-top: 1px solid var(--border-color);
 }
 
-.el-link {
-  margin-right: 8px;
+@media (max-width: 1200px) {
+  .stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .filter-form {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .status-filter {
+    min-width: 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-form,
+  .filter-actions {
+    width: 100%;
+  }
+
+  .filter-form :deep(.el-input),
+  .filter-form :deep(.el-select),
+  .status-filter {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .filter-actions {
+    justify-content: flex-end;
+  }
 }
 </style>

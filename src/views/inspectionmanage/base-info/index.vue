@@ -1,30 +1,26 @@
 <template>
   <div class="app-container">
     <el-card shadow="never" class="search-wrapper">
-      <el-form label-width="110px" class="inspection-form">
+      <el-form label-width="132px" class="inspection-form">
         <el-row :gutter="24">
           <el-col :span="12">
             <el-form-item label="巡检设备名称" required>
-              <el-select v-model="formData.device_name" placeholder="请选择">
+              <el-select v-model="formData.device_name" placeholder="请选择" @change="handleDeviceNameChange">
                 <el-option v-for="item in deviceOptions" :key="item" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
             <el-form-item label="巡检设备SN号" required>
-              <el-input v-model="formData.device_sn" placeholder="请输入设备SN号" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="24">
-          <el-col :span="12">
-            <el-form-item label="状态">
-              <el-radio-group v-model="formData.status">
-                <el-radio label="正常">正常</el-radio>
-                <el-radio label="维保中">维保中</el-radio>
-                <el-radio label="维修中">维修中</el-radio>
-              </el-radio-group>
+              <el-select
+                v-model="formData.device_sn"
+                placeholder="请选择SN号"
+                :loading="snLoading"
+                clearable
+                filterable
+              >
+                <el-option v-for="sn in snOptions" :key="sn" :label="sn" :value="sn" />
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -82,6 +78,8 @@ import { reactive, ref, watch } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { useRoute, useRouter } from "vue-router"
 import { inspectionDeviceOptions, type InspectionItem } from "../shared"
+import { getDeviceInstanceListApi } from "@/api/device-instance"
+import type { DeviceInstanceData } from "@/api/device-instance/types"
 import { getInspectionBaseInfoDetailApi, saveInspectionBaseInfoApi } from "@/api/inspection-base"
 import type { InspectionBaseInfoDetail } from "@/api/inspection-base/types"
 
@@ -91,6 +89,9 @@ const route = useRoute()
 const createItemId = () => `item-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 
 const deviceOptions = inspectionDeviceOptions
+const snOptions = ref<string[]>([])
+const snLoading = ref(false)
+let snRequestId = 0
 
 const formData = reactive({
   id: "",
@@ -103,6 +104,50 @@ const formData = reactive({
   created_at: "",
   updated_at: ""
 })
+
+function normalizeDeviceInstanceList(data: any): DeviceInstanceData[] {
+  const payload = data?.data ?? data ?? {}
+  return Array.isArray(payload) ? payload : payload.list ?? payload.records ?? payload.results ?? payload.items ?? []
+}
+
+function getDeviceInstanceName(row: DeviceInstanceData) {
+  return row.deviceName ?? row.device_name ?? row.psi_name ?? ""
+}
+
+function getDeviceInstanceSn(row: DeviceInstanceData) {
+  return row.serialNumber ?? row.serial_number ?? row.psi_serialnumber ?? ""
+}
+
+async function loadSnOptions(deviceName: string, keepSn = "") {
+  const requestId = ++snRequestId
+  if (!deviceName) {
+    snOptions.value = keepSn ? [keepSn] : []
+    return
+  }
+  snLoading.value = true
+  try {
+    const res = await getDeviceInstanceListApi({ currentPage: 1, size: 1000, deviceName })
+    if (requestId !== snRequestId) return
+    const options = normalizeDeviceInstanceList(res)
+      .filter((item) => getDeviceInstanceName(item) === deviceName)
+      .map(getDeviceInstanceSn)
+      .filter((sn): sn is string => Boolean(sn))
+    snOptions.value = Array.from(new Set(keepSn ? [keepSn, ...options] : options))
+  } catch {
+    if (requestId !== snRequestId) return
+    snOptions.value = keepSn ? [keepSn] : []
+    ElMessage.error("加载设备SN号失败")
+  } finally {
+    if (requestId === snRequestId) {
+      snLoading.value = false
+    }
+  }
+}
+
+function handleDeviceNameChange() {
+  formData.device_sn = ""
+  void loadSnOptions(formData.device_name)
+}
 
 function applyDetail(detail: InspectionBaseInfoDetail) {
   formData.id = String(detail.id)
@@ -133,6 +178,7 @@ async function fetchDetail() {
   try {
     const res = await getInspectionBaseInfoDetailApi(id)
     applyDetail(res.data)
+    await loadSnOptions(formData.device_name, formData.device_sn)
   } catch (e) {
     ElMessage.error("加载巡检明细失败")
   }
@@ -239,6 +285,10 @@ function handleClose() {
 
 .inspection-form {
   margin-bottom: 4px;
+
+  :deep(.el-form-item__label) {
+    white-space: nowrap;
+  }
 }
 
 .toolbar-wrapper {

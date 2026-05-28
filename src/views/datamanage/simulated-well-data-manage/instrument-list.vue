@@ -23,7 +23,7 @@
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="getTableData">查询</el-button>
+          <el-button type="primary" @click="handleSearch">查询</el-button>
           <el-button @click="resetSearch">重置</el-button>
         </el-form-item>
       </el-form>
@@ -170,6 +170,11 @@ const resetSearch = () => {
   getTableData()
 }
 
+const handleSearch = () => {
+  paginationData.currentPage = 1
+  getTableData()
+}
+
 const getModels = () => {
   getInstrumentModelListApi({ currentPage: 1, pageSize: 1000 }).then((res) => {
     modelOptions.value = res.data.list || []
@@ -189,6 +194,7 @@ const getTableData = () => {
     .then((res) => {
       tableData.value = res.data.list || []
       paginationData.total = res.data.total || 0
+      paginationData.currentPage = res.data.currentPage || paginationData.currentPage
     })
     .catch((err) => {
       const raw = err?.response?.data
