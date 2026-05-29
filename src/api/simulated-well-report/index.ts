@@ -11,15 +11,26 @@ export interface SimulatedWellReportListItem {
   submit_time: string
   audit_time: string
   remark: string
+  reviewer_id?: number | null
+  report_json?: Record<string, any>
+  attachments?: Array<Record<string, any>>
+  order_ids?: number[]
+  order_numbers?: string[]
+  client_submit_id?: string | null
 }
 
 export interface SimulatedWellReportPayload {
-  report_no: string
-  task_number: string
-  test_date: string
-  tester: string
-  status: number
-  remark: string
+  report_no?: string
+  task_number?: string
+  test_date?: string
+  tester?: string
+  status?: number
+  remark?: string
+  report_json?: Record<string, any>
+  attachments?: Array<Record<string, any>>
+  order_ids?: number[]
+  order_numbers?: string[]
+  client_submit_id?: string | null
 }
 
 interface SimulatedWellReportMutationResponse {
@@ -32,6 +43,7 @@ export function getSimulatedWellReportListApi(params: {
   pageSize: number
   taskNumber?: string
   tester?: string
+  status?: number | string
 }) {
   return request<{
     code: number

@@ -1,176 +1,23 @@
-<template>
-  <div class="simulation-well-audit">
-    <el-card class="search-wrapper reviewer-card" shadow="never">
-      <div class="toolbar-wrapper reviewer-toolbar">
-        <div class="section-title">当前审核人员</div>
-        <div>
-          <el-tooltip content="刷新当前页">
-            <el-button type="primary" icon="RefreshRight" circle @click="getList" />
-          </el-tooltip>
-        </div>
-      </div>
-
-      <div class="reviewer-body">
-        <div class="reviewer-info">
-          <div class="reviewer-name">{{ reviewerName }}</div>
-        </div>
-        <div class="reviewer-sign">
-          <div class="reviewer-sign-label">签字确认</div>
-          <div class="reviewer-sign-box">
-            <img v-if="signImageUrl" class="reviewer-sign-image" :src="signImageUrl" alt="签字图片" />
-            <div v-else class="reviewer-sign-placeholder">{{ reviewerName }}</div>
-          </div>
-          <div class="reviewer-sign-actions">
-            <el-upload
-              v-model:file-list="signFileList"
-              :auto-upload="false"
-              :show-file-list="false"
-              :limit="1"
-              accept="image/*"
-              :on-change="handleSignChange"
-              :on-exceed="handleSignExceed"
-            >
-              <el-button size="small" type="primary" plain>上传签字图片</el-button>
-            </el-upload>
-            <el-button v-if="signImageUrl" size="small" type="danger" plain @click="clearSignImage"> 清除 </el-button>
-          </div>
-        </div>
-      </div>
-    </el-card>
-
-    <el-card class="audit-card" shadow="never" v-loading="loading">
-      <div class="toolbar-wrapper">
-        <div class="section-title">待审核报告列表</div>
-        <div>
-          <el-tooltip content="刷新当前页">
-            <el-button type="primary" icon="RefreshRight" circle @click="getList" />
-          </el-tooltip>
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <el-table :data="pendingTableData" stripe border style="width: 100%">
-          <el-table-column prop="report_no" label="报告编号" width="120" align="center" />
-          <el-table-column prop="template_no" label="模板编号" width="160" align="center" />
-          <el-table-column prop="job_no" label="作业编号" width="160" align="center" />
-          <el-table-column prop="test_product" label="测试产品" min-width="180" align="center" />
-          <el-table-column prop="operator_engineer" label="操作工程师" width="120" align="center" />
-          <el-table-column prop="submit_time" label="提交时间" width="170" align="center">
-            <template #default="{ row }">
-              {{ formatTime(row.submit_time) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="status_text" label="状态" width="100" align="center">
-            <template #default="{ row }">
-              <el-tag type="warning">{{ row.status_text }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="160" align="center" fixed="right">
-            <template #default="{ row }">
-              <el-link type="primary" class="el-link" @click="handleDetail(row)">查看</el-link>
-              <el-link type="success" class="el-link" @click="handleApprove(row)">通过</el-link>
-              <el-link type="danger" class="el-link" @click="handleReject(row)">驳回</el-link>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-
-      <div class="pager-wrapper">
-        <el-pagination
-          v-model:current-page="pendingPagination.page"
-          v-model:page-size="pendingPagination.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="pendingTotal"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handlePendingSizeChange"
-          @current-change="handlePendingCurrentChange"
-        />
-      </div>
-    </el-card>
-
-    <el-card class="audit-card" shadow="never" v-loading="loading">
-      <div class="toolbar-wrapper">
-        <div class="section-title">已审核报告</div>
-        <div>
-          <el-tooltip content="刷新当前页">
-            <el-button type="primary" icon="RefreshRight" circle @click="getList" />
-          </el-tooltip>
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <el-table :data="reviewedTableData" stripe border style="width: 100%">
-          <el-table-column prop="report_no" label="报告编号" width="120" align="center" />
-          <el-table-column prop="template_no" label="模板编号" width="160" align="center" />
-          <el-table-column prop="job_no" label="作业编号" width="160" align="center" />
-          <el-table-column prop="test_product" label="测试产品" min-width="180" align="center" />
-          <el-table-column prop="operator_engineer" label="操作工程师" width="120" align="center" />
-          <el-table-column prop="submit_time" label="提交时间" width="170" align="center">
-            <template #default="{ row }">
-              {{ formatTime(row.submit_time) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="status_text" label="状态" width="100" align="center">
-            <template #default="{ row }">
-              <el-tag :type="getReviewedStatusType(row.status)">{{ row.status_text }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="center" fixed="right">
-            <template #default="{ row }">
-              <el-link type="primary" class="el-link" @click="handleDetail(row)">查看</el-link>
-              <el-link type="success" class="el-link" @click="handleDownload(row)">下载</el-link>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-
-      <div class="pager-wrapper">
-        <el-pagination
-          v-model:current-page="reviewedPagination.page"
-          v-model:page-size="reviewedPagination.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="reviewedTotal"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleReviewedSizeChange"
-          @current-change="handleReviewedCurrentChange"
-        />
-      </div>
-    </el-card>
-
-    <el-dialog v-model="detailDialogVisible" title="报告详情" width="720px">
-      <el-descriptions v-if="currentReport" :column="2" border>
-        <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
-        <el-descriptions-item label="模板编号">{{ currentReport.template_no }}</el-descriptions-item>
-        <el-descriptions-item label="作业编号">{{ currentReport.job_no }}</el-descriptions-item>
-        <el-descriptions-item label="测试产品">{{ currentReport.test_product }}</el-descriptions-item>
-        <el-descriptions-item label="操作工程师">{{ currentReport.operator_engineer }}</el-descriptions-item>
-        <el-descriptions-item label="提交时间">{{ formatTime(currentReport.submit_time) }}</el-descriptions-item>
-        <el-descriptions-item label="状态">
-          <el-tag :type="currentReport.status === 0 ? 'warning' : getReviewedStatusType(currentReport.status)">
-            {{ currentReport.status_text }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="备注" :span="2">{{ currentReport.remark || "-" }}</el-descriptions-item>
-      </el-descriptions>
-    </el-dialog>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { ElMessage, ElMessageBox, type UploadFile, type UploadProps, type UploadUserFile } from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
 import { useUserStoreHook } from "@/store/modules/user"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
-  getSimulatedWellReportListApi,
   getSimulatedWellReportDetailApi,
+  getSimulatedWellReportListApi,
   updateSimulatedWellReportApi,
   type SimulatedWellReportListItem
 } from "@/api/simulated-well-report"
+import { displayReportValue, resolveReportFileUrl } from "@/utils/high-temp-pressure-paper-report"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
+type ReportJson = Record<string, any>
+type AttachmentItem = Record<string, any>
+
 type AuditRow = SimulatedWellReportListItem & {
+  meta: ReportJson
   template_no: string
   job_no: string
   test_product: string
@@ -182,8 +29,24 @@ const route = useRoute()
 const taskCenterStore = useTaskCenterStoreHook()
 const reviewerName = computed(() => userStore.nickName || userStore.username || "-")
 
-const signImageUrl = ref("")
-const signFileList = ref<UploadUserFile[]>([])
+const loading = ref(false)
+const rows = ref<AuditRow[]>([])
+const detailDialogVisible = ref(false)
+const currentReport = ref<AuditRow | null>(null)
+const rejectDialogVisible = ref(false)
+const rejectReason = ref("")
+const rejectingRow = ref<AuditRow | null>(null)
+const previewImage = ref<{ title: string; url: string } | null>(null)
+const previewImageVisible = computed({
+  get: () => Boolean(previewImage.value),
+  set: (value: boolean) => {
+    if (!value) previewImage.value = null
+  }
+})
+
+const pendingPagination = reactive({ page: 1, pageSize: 10 })
+const reviewedPagination = reactive({ page: 1, pageSize: 10 })
+
 const shouldSyncRouteTask = () => {
   const { tab } = route.query
   return typeof tab !== "string" || tab === "simulation"
@@ -195,57 +58,14 @@ const taskNumberFilter = computed(() => {
   return typeof value === "string" ? value.trim().toLowerCase() : ""
 })
 
-const clearSignImage = () => {
-  signImageUrl.value = ""
-  signFileList.value = []
-}
-
-const handleSignExceed: UploadProps["onExceed"] = (_files) => {
-  clearSignImage()
-}
-
-const handleSignChange: UploadProps["onChange"] = (file: UploadFile) => {
-  const raw = file.raw
-  if (!raw) return
-  if (!raw.type.startsWith("image/")) {
-    ElMessage.error("请上传图片格式文件")
-    clearSignImage()
-    return
-  }
-  if (raw.size > 5 * 1024 * 1024) {
-    ElMessage.error("图片大小不能超过 5MB")
-    clearSignImage()
-    return
-  }
-  const reader = new FileReader()
-  reader.onload = () => {
-    signImageUrl.value = String(reader.result || "")
-    signFileList.value = [{ name: raw.name, status: "success" }]
-  }
-  reader.readAsDataURL(raw)
-}
-
-const loading = ref(false)
-const rows = ref<AuditRow[]>([])
-
 const pendingAllRows = computed(() =>
   rows.value.filter(
-    (r) =>
-      r.status === 0 &&
-      (!taskNumberFilter.value || r.task_number.toLowerCase().includes(taskNumberFilter.value))
+    (row) =>
+      row.status === 0 &&
+      (!taskNumberFilter.value || row.task_number.toLowerCase().includes(taskNumberFilter.value))
   )
 )
-const reviewedAllRows = computed(() => rows.value.filter((r) => r.status !== 0))
-
-const pendingPagination = reactive({
-  page: 1,
-  pageSize: 10
-})
-const reviewedPagination = reactive({
-  page: 1,
-  pageSize: 10
-})
-
+const reviewedAllRows = computed(() => rows.value.filter((row) => row.status !== 0))
 const pendingTotal = computed(() => pendingAllRows.value.length)
 const reviewedTotal = computed(() => reviewedAllRows.value.length)
 
@@ -258,48 +78,115 @@ const reviewedTableData = computed(() => {
   return reviewedAllRows.value.slice(start, start + reviewedPagination.pageSize)
 })
 
-const detailDialogVisible = ref(false)
-const currentReport = ref<AuditRow | null>(null)
-
-const formatTime = (timeStr?: string) => {
-  if (!timeStr) return "-"
-  const date = new Date(timeStr)
-  return date.toLocaleString()
+const safeParseRemark = (remark?: string): ReportJson => {
+  if (!remark) return {}
+  try {
+    const parsed = JSON.parse(remark)
+    return parsed && typeof parsed === "object" ? parsed : {}
+  } catch {
+    return {}
+  }
 }
 
-const getReviewedStatusType = (status: number): TagType => {
+const getMeta = (report: SimulatedWellReportListItem): ReportJson => ({
+  ...safeParseRemark(report.remark),
+  ...(report.report_json && typeof report.report_json === "object" ? report.report_json : {})
+})
+
+const firstText = (...values: unknown[]) => {
+  for (const value of values) {
+    const text = displayReportValue(value)
+    if (text !== "-") return text
+  }
+  return "-"
+}
+
+const getDeviceText = (meta: ReportJson) => {
+  const device = meta.selected_device || meta.device || {}
+  return firstText(device.deviceName, device.name, meta.device_name, meta.test_product)
+}
+
+const normalizeRow = (report: SimulatedWellReportListItem): AuditRow => {
+  const meta = getMeta(report)
+  return {
+    ...report,
+    meta,
+    template_no: firstText(meta.template_code, meta.selected_template?.report_no),
+    job_no: firstText(meta.operation_no, report.task_number),
+    test_product: getDeviceText(meta),
+    operator_engineer: firstText(meta.operator_engineer, report.tester)
+  }
+}
+
+const formatTime = (time?: string) => (time ? String(time).replace("T", " ").slice(0, 19) : "-")
+
+const statusText = (status: number) => {
+  if (status === 1) return "审核通过"
+  if (status === 2) return "审核未通过"
+  return "待审核"
+}
+
+const statusType = (status: number): TagType => {
   if (status === 1) return "success"
   if (status === 2) return "danger"
-  return "info"
+  return "warning"
 }
 
-const normalizeRow = (r: SimulatedWellReportListItem): AuditRow => ({
-  ...r,
-  template_no: "-",
-  job_no: r.task_number,
-  test_product: "-",
-  operator_engineer: r.tester
+const reportAttachments = (report?: AuditRow | null): AttachmentItem[] =>
+  Array.isArray(report?.attachments) ? (report!.attachments as AttachmentItem[]) : []
+
+const attachmentTitle = (attachment: AttachmentItem) =>
+  firstText(attachment.name, attachment.file_name, attachment.type, attachment.field, "附件")
+
+const attachmentType = (attachment: AttachmentItem) => {
+  const raw = String(attachment.type || attachment.field || "")
+  if (raw.includes("curve")) return "曲线图"
+  if (raw.includes("report")) return "报告文件"
+  return "附件"
+}
+
+const attachmentUrl = (attachment: AttachmentItem) => resolveReportFileUrl(attachment.file_url)
+
+const isImageAttachment = (attachment: AttachmentItem) => {
+  const name = String(attachment.name || attachment.file_name || attachment.file_url || "").toLowerCase()
+  const contentType = String(attachment.content_type || "").toLowerCase()
+  return contentType.startsWith("image/") || /\.(png|jpe?g|gif|bmp|webp|tiff?)$/i.test(name)
+}
+
+const openAttachment = (attachment: AttachmentItem) => {
+  const url = attachmentUrl(attachment)
+  if (!url) {
+    ElMessage.warning("附件暂无可访问地址")
+    return
+  }
+  if (isImageAttachment(attachment)) {
+    previewImage.value = { title: attachmentTitle(attachment), url }
+    return
+  }
+  window.open(url, "_blank", "noopener,noreferrer")
+}
+
+const compactJson = (value?: ReportJson) => {
+  if (!value || !Object.keys(value).length) return "-"
+  return JSON.stringify(value, null, 2)
+}
+
+const reviewPayload = (row: AuditRow, status: number, remark?: string) => ({
+  status,
+  remark: remark ?? row.remark ?? ""
 })
 
 const getList = async () => {
   loading.value = true
   try {
     const res = await getSimulatedWellReportListApi({ page: 1, pageSize: 1000 })
-    if (res.code === 0) {
-      rows.value = res.data.list.map(normalizeRow)
-    } else {
-      rows.value = []
-    }
-    if ((pendingPagination.page - 1) * pendingPagination.pageSize >= pendingTotal.value) {
-      pendingPagination.page = 1
-    }
-    if ((reviewedPagination.page - 1) * reviewedPagination.pageSize >= reviewedTotal.value) {
-      reviewedPagination.page = 1
-    }
-  } catch (e) {
-    console.error(e)
-    ElMessage.error("获取列表失败")
+    rows.value = res.code === 0 ? res.data.list.map(normalizeRow) : []
+    if ((pendingPagination.page - 1) * pendingPagination.pageSize >= pendingTotal.value) pendingPagination.page = 1
+    if ((reviewedPagination.page - 1) * reviewedPagination.pageSize >= reviewedTotal.value) reviewedPagination.page = 1
+  } catch (error) {
+    console.error(error)
     rows.value = []
+    ElMessage.error("获取模拟井报告列表失败")
   } finally {
     loading.value = false
   }
@@ -326,80 +213,49 @@ const handleReviewedCurrentChange = (page: number) => {
 const handleDetail = async (row: AuditRow) => {
   try {
     const res = await getSimulatedWellReportDetailApi(row.id)
-    if (res.code === 0) {
-      currentReport.value = normalizeRow(res.data)
-      detailDialogVisible.value = true
-    }
-  } catch (e) {
-    console.error(e)
-    ElMessage.error("获取详情失败")
+    currentReport.value = res.code === 0 ? normalizeRow(res.data) : row
+  } catch (error) {
+    console.error(error)
+    currentReport.value = row
+    ElMessage.warning("详情接口异常，已展示列表缓存数据")
   }
-}
-
-const openRouteReportDetail = async () => {
-  if (!shouldSyncRouteTask()) return
-  const reportId = Number(route.query.reportId)
-  if (!reportId) return
-  try {
-    const res = await getSimulatedWellReportDetailApi(reportId)
-    if (res.code === 0) {
-      currentReport.value = normalizeRow(res.data)
-      detailDialogVisible.value = true
-    }
-  } catch (e) {
-    console.error(e)
-  }
+  detailDialogVisible.value = true
 }
 
 const handleApprove = async (row: AuditRow) => {
-  await ElMessageBox.confirm("确认通过该报告审核吗？", "审核通过", { type: "warning" })
-  try {
-    const payload = {
-      report_no: row.report_no,
-      task_number: row.task_number,
-      test_date: row.test_date,
-      tester: row.tester,
-      status: 1,
-      remark: row.remark || ""
-    }
-    const res = await updateSimulatedWellReportApi(row.id, payload as any)
-    if (res.code === 0) {
-      ElMessage.success("已通过")
-      void taskCenterStore.refresh(true)
-      getList()
-    } else {
-      ElMessage.error(res.msg || "操作失败")
-    }
-  } catch (e: any) {
-    const errorData = e.response?.data
-    const msg = errorData?.msg || "操作失败"
-    ElMessage.error(msg)
+  await ElMessageBox.confirm("确认通过该模拟井报告审核吗？", "审核通过", { type: "success" })
+  const res = await updateSimulatedWellReportApi(row.id, reviewPayload(row, 1))
+  if (res.code === 0) {
+    ElMessage.success("审核通过成功")
+    detailDialogVisible.value = false
+    void taskCenterStore.refresh(true)
+    await getList()
+  } else {
+    ElMessage.error(res.msg || "审核失败")
   }
 }
 
-const handleReject = async (row: AuditRow) => {
-  await ElMessageBox.confirm("确认驳回该报告吗？", "审核驳回", { type: "warning" })
-  try {
-    const payload = {
-      report_no: row.report_no,
-      task_number: row.task_number,
-      test_date: row.test_date,
-      tester: row.tester,
-      status: 2,
-      remark: row.remark || ""
-    }
-    const res = await updateSimulatedWellReportApi(row.id, payload as any)
-    if (res.code === 0) {
-      ElMessage.success("已驳回")
-      void taskCenterStore.refresh(true)
-      getList()
-    } else {
-      ElMessage.error(res.msg || "操作失败")
-    }
-  } catch (e: any) {
-    const errorData = e.response?.data
-    const msg = errorData?.msg || "操作失败"
-    ElMessage.error(msg)
+const showRejectDialog = (row: AuditRow) => {
+  rejectingRow.value = row
+  rejectReason.value = ""
+  rejectDialogVisible.value = true
+}
+
+const handleReject = async () => {
+  if (!rejectingRow.value) return
+  if (!rejectReason.value.trim()) {
+    ElMessage.warning("请填写驳回原因")
+    return
+  }
+  const res = await updateSimulatedWellReportApi(rejectingRow.value.id, reviewPayload(rejectingRow.value, 2, rejectReason.value))
+  if (res.code === 0) {
+    ElMessage.success("已驳回")
+    rejectDialogVisible.value = false
+    detailDialogVisible.value = false
+    void taskCenterStore.refresh(true)
+    await getList()
+  } else {
+    ElMessage.error(res.msg || "驳回失败")
   }
 }
 
@@ -416,8 +272,23 @@ const handleDownload = (row: AuditRow) => {
   URL.revokeObjectURL(url)
 }
 
+const openRouteReportDetail = async () => {
+  if (!shouldSyncRouteTask()) return
+  const reportId = Number(route.query.reportId)
+  if (!reportId) return
+  try {
+    const res = await getSimulatedWellReportDetailApi(reportId)
+    if (res.code === 0) {
+      currentReport.value = normalizeRow(res.data)
+      detailDialogVisible.value = true
+    }
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 onMounted(() => {
-  getList()
+  void getList()
   void openRouteReportDetail()
 })
 
@@ -430,136 +301,402 @@ watch(
   }
 )
 
-defineExpose({
-  resetSearch: getList
-})
+defineExpose({ resetSearch: getList })
 </script>
 
+<template>
+  <div class="simulation-well-audit">
+    <el-card class="reviewer-card" shadow="never">
+      <div class="reviewer-strip">
+        <div>
+          <div class="eyebrow">SIMULATION WELL REPORT</div>
+          <div class="reviewer-title">模拟井测试报告审核</div>
+        </div>
+        <div class="reviewer-pill">当前审核人：{{ reviewerName }}</div>
+      </div>
+    </el-card>
+
+    <el-card class="audit-card" shadow="never" v-loading="loading">
+      <div class="toolbar-wrapper">
+        <div>
+          <div class="section-title">待审核报告</div>
+          <div class="section-sub">测试端提交的模拟井报告会进入这里，由管理端完成审核。</div>
+        </div>
+        <el-button type="primary" icon="RefreshRight" circle @click="getList" />
+      </div>
+
+      <el-table :data="pendingTableData" stripe border>
+        <el-table-column prop="report_no" label="报告编号" min-width="160" />
+        <el-table-column prop="job_no" label="作业编号" min-width="150" />
+        <el-table-column prop="test_product" label="测试产品" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="operator_engineer" label="操作工程师" width="120" />
+        <el-table-column prop="submit_time" label="提交时间" width="170">
+          <template #default="{ row }">{{ formatTime(row.submit_time) }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="210" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleDetail(row)">查看</el-button>
+            <el-button link type="success" @click="handleApprove(row)">通过</el-button>
+            <el-button link type="danger" @click="showRejectDialog(row)">驳回</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="pager-wrapper">
+        <el-pagination
+          v-model:current-page="pendingPagination.page"
+          v-model:page-size="pendingPagination.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="pendingTotal"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handlePendingSizeChange"
+          @current-change="handlePendingCurrentChange"
+        />
+      </div>
+    </el-card>
+
+    <el-card class="audit-card" shadow="never" v-loading="loading">
+      <div class="toolbar-wrapper">
+        <div>
+          <div class="section-title">已审核报告</div>
+          <div class="section-sub">已通过或已驳回的报告记录，可继续查看附件和下载归档。</div>
+        </div>
+        <el-button type="primary" icon="RefreshRight" circle @click="getList" />
+      </div>
+
+      <el-table :data="reviewedTableData" stripe border>
+        <el-table-column prop="report_no" label="报告编号" min-width="160" />
+        <el-table-column prop="job_no" label="作业编号" min-width="150" />
+        <el-table-column prop="test_product" label="测试产品" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="operator_engineer" label="操作工程师" width="120" />
+        <el-table-column prop="audit_time" label="审核时间" width="170">
+          <template #default="{ row }">{{ formatTime(row.audit_time) }}</template>
+        </el-table-column>
+        <el-table-column label="状态" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button link type="primary" @click="handleDetail(row)">查看</el-button>
+            <el-button link type="success" @click="handleDownload(row)">下载</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="pager-wrapper">
+        <el-pagination
+          v-model:current-page="reviewedPagination.page"
+          v-model:page-size="reviewedPagination.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="reviewedTotal"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleReviewedSizeChange"
+          @current-change="handleReviewedCurrentChange"
+        />
+      </div>
+    </el-card>
+
+    <el-dialog v-model="detailDialogVisible" title="模拟井报告详情" width="980px" append-to-body>
+      <div v-if="currentReport" class="detail-shell">
+        <div class="detail-card">
+          <div class="detail-card-title">基础信息</div>
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
+            <el-descriptions-item label="任务编号">{{ currentReport.task_number }}</el-descriptions-item>
+            <el-descriptions-item label="测试日期">{{ currentReport.test_date }}</el-descriptions-item>
+            <el-descriptions-item label="测试人员">{{ currentReport.tester }}</el-descriptions-item>
+            <el-descriptions-item label="模板编号">{{ currentReport.template_no }}</el-descriptions-item>
+            <el-descriptions-item label="关联工单">
+              {{ currentReport.order_numbers?.join(" / ") || currentReport.task_number }}
+            </el-descriptions-item>
+            <el-descriptions-item label="提交时间">{{ formatTime(currentReport.submit_time) }}</el-descriptions-item>
+            <el-descriptions-item label="审核时间">{{ formatTime(currentReport.audit_time) }}</el-descriptions-item>
+            <el-descriptions-item label="审核状态">
+              <el-tag :type="statusType(currentReport.status)">{{ statusText(currentReport.status) }}</el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+
+        <div class="detail-card">
+          <div class="detail-card-title">报告内容</div>
+          <div class="report-grid">
+            <div class="info-tile">
+              <span>报告名称</span>
+              <strong>{{ firstText(currentReport.meta.report_name, currentReport.report_no) }}</strong>
+            </div>
+            <div class="info-tile">
+              <span>测试产品</span>
+              <strong>{{ currentReport.test_product }}</strong>
+            </div>
+            <div class="info-tile">
+              <span>曲线图编号</span>
+              <strong>{{ firstText(currentReport.meta.curve_chart_no, currentReport.meta.curve_no) }}</strong>
+            </div>
+            <div class="info-tile">
+              <span>总体结论</span>
+              <strong>{{ currentReport.meta.conclusion === "unqualified" ? "不合格" : "合格" }}</strong>
+            </div>
+          </div>
+          <el-collapse class="report-json-collapse">
+            <el-collapse-item title="查看完整结构化报告数据" name="json">
+              <pre>{{ compactJson(currentReport.meta) }}</pre>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+
+        <div v-if="currentReport.remark && currentReport.status !== 0" class="detail-card">
+          <div class="detail-card-title">审核意见</div>
+          <div class="review-comment">{{ currentReport.remark }}</div>
+        </div>
+
+        <div class="detail-card">
+          <div class="detail-card-title">曲线图与上传文件</div>
+          <el-empty v-if="!reportAttachments(currentReport).length" description="暂无附件" :image-size="72" />
+          <div v-else class="attachment-list">
+            <div v-for="(item, index) in reportAttachments(currentReport)" :key="index" class="attachment-row">
+              <div class="attachment-main">
+                <el-tag :type="isImageAttachment(item) ? 'success' : 'info'" effect="plain">
+                  {{ attachmentType(item) }}
+                </el-tag>
+                <div>
+                  <div class="attachment-title">{{ attachmentTitle(item) }}</div>
+                  <div class="attachment-path">{{ displayReportValue(item.file_url || item.local_path) }}</div>
+                </div>
+              </div>
+              <el-button type="primary" plain @click="openAttachment(item)">
+                {{ isImageAttachment(item) ? "预览图片" : "打开文件" }}
+              </el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="detailDialogVisible = false">关闭</el-button>
+        <el-button v-if="currentReport && currentReport.status === 0" type="success" @click="handleApprove(currentReport)">
+          审核通过
+        </el-button>
+        <el-button v-if="currentReport && currentReport.status === 0" type="danger" @click="showRejectDialog(currentReport)">
+          审核驳回
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="rejectDialogVisible" title="审核驳回" width="520px" append-to-body>
+      <el-input v-model="rejectReason" type="textarea" :rows="5" placeholder="请输入驳回原因" />
+      <template #footer>
+        <el-button @click="rejectDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="handleReject">确认驳回</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="previewImageVisible" :title="previewImage?.title || '图片预览'" width="860px" append-to-body>
+      <el-image
+        v-if="previewImage"
+        class="preview-image"
+        :src="previewImage.url"
+        fit="contain"
+        :preview-src-list="[previewImage.url]"
+      />
+    </el-dialog>
+  </div>
+</template>
+
 <style lang="scss" scoped>
-.search-wrapper {
-  margin-bottom: 20px;
-  :deep(.el-card__body) {
-    padding-bottom: 2px;
-  }
+.simulation-well-audit {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
 }
-.reviewer-card {
-  :deep(.el-card__body) {
-    padding-top: 14px;
-  }
-}
+
+.reviewer-card,
 .audit-card {
-  margin-bottom: 20px;
+  border-radius: 14px;
 }
+
+.reviewer-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 4px 2px;
+}
+
+.eyebrow {
+  color: #0b78d0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.reviewer-title,
 .section-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--el-text-color-primary);
-  line-height: 32px;
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 800;
 }
+
+.reviewer-pill {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: #edf5ff;
+  color: #0b78d0;
+  font-weight: 700;
+}
+
+.section-sub {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
 .toolbar-wrapper {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  margin-bottom: 20px;
+  gap: 16px;
+  margin-bottom: 16px;
 }
-.reviewer-toolbar {
-  margin-bottom: 10px;
-}
-.table-wrapper {
-  margin-bottom: 20px;
-}
+
 .pager-wrapper {
   display: flex;
   justify-content: flex-end;
-}
-.el-link {
-  margin-right: 8px;
-}
-.el-link:last-child {
-  margin-right: 0;
+  margin-top: 16px;
 }
 
-.reviewer-body {
+.detail-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.detail-card {
+  padding: 16px;
+  border: 1px solid #dce6ee;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.detail-card-title {
+  margin-bottom: 12px;
+  padding-left: 10px;
+  border-left: 4px solid #0b78d0;
+  color: #111827;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.info-tile {
+  padding: 14px;
+  border: 1px solid #e1eaf2;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.info-tile span {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 13px;
+}
+
+.info-tile strong {
+  color: #111827;
+  font-size: 16px;
+}
+
+.report-json-collapse {
+  margin-top: 12px;
+}
+
+.report-json-collapse pre {
+  max-height: 280px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #dbeafe;
+  font-size: 12px;
+}
+
+.review-comment {
+  padding: 12px 14px;
+  border: 1px solid #fed7aa;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #9a3412;
+  font-weight: 700;
+  line-height: 1.7;
+}
+
+.attachment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.attachment-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 112px;
-  padding: 18px 24px;
-  border-radius: 10px;
-  background: var(--el-fill-color-lighter);
-  gap: 24px;
-}
-.reviewer-info {
-  min-width: 120px;
-}
-.reviewer-name {
-  font-size: 16px;
-  font-weight: 600;
-}
-.reviewer-sign {
-  flex: 1;
-  max-width: 320px;
-  margin: 0 auto;
-  text-align: center;
-}
-.reviewer-sign-label {
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 10px;
-}
-.reviewer-sign-box {
-  height: 68px;
-  border: 1px dashed #dcdfe6;
-  border-radius: 10px;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #e1eaf2;
+  border-radius: 12px;
   background: #fff;
+}
+
+.attachment-main {
+  min-width: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  color: #303133;
-  overflow: hidden;
+  gap: 12px;
 }
 
-.reviewer-sign-image {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.attachment-title {
+  color: #111827;
+  font-weight: 700;
 }
 
-.reviewer-sign-placeholder {
-  width: 100%;
-  text-align: center;
-  padding: 0 10px;
-  white-space: nowrap;
+.attachment-path {
+  max-width: 620px;
+  margin-top: 3px;
   overflow: hidden;
+  color: #64748b;
+  font-size: 12px;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.reviewer-sign-actions {
-  margin-top: 12px;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
+.preview-image {
+  width: 100%;
+  height: 68vh;
+  border-radius: 12px;
+  background: #f8fafc;
 }
 
 @media (max-width: 900px) {
-  .reviewer-body {
+  .reviewer-strip,
+  .toolbar-wrapper,
+  .attachment-row {
+    align-items: stretch;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px;
-  }
-  .reviewer-info {
-    padding-left: 0;
-  }
-  .reviewer-sign {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    text-align: left;
   }
 
-  .reviewer-sign-actions {
-    justify-content: flex-start;
+  .report-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

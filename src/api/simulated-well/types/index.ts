@@ -1,6 +1,23 @@
 export interface SimulatedWellOrderListItem {
   id: number
+  table_number?: string
   task_number: string
+  applicant?: string
+  applicant_phone?: string
+  test_unit?: string
+  test_unit_manager?: string
+  application_date?: string | null
+  research_no?: string
+  project_budget_no?: string
+  project_name?: string
+  tested_instrument?: string
+  instrument_sn_numbers?: string
+  quantity?: number
+  client?: string
+  entrusted_time?: string
+  test_purpose?: string
+  test_steps?: string
+  safety_risks?: string
   customer_unit?: string
   task_desc?: string
   device_count?: number
@@ -42,15 +59,34 @@ export interface SimulatedWellOrderListResponse {
 }
 
 export interface CreateSimulatedWellOrderRequest {
-  test_platform: string
-  test_date: string
-  device_name: string
-  device_number: string
+  table_number?: string
   task_number: string
-  well_depth: number
-  well_temp: number
-  applicant: string
-  remark?: string
+  applicant?: string
+  applicant_phone?: string
+  test_unit?: string
+  test_unit_manager?: string
+  application_date?: string
+  research_no?: string
+  project_budget_no?: string
+  project_name?: string
+  tested_instrument?: string
+  instrument_sn_numbers?: string
+  quantity?: number
+  client?: string
+  entrusted_time?: string
+  test_purpose?: string
+  test_steps?: string
+  safety_risks?: string
+  customer_unit?: string
+  task_desc?: string
+  device_count?: number
+  devices?: { device_name: string; device_number: string }[]
+  sanxin_applicant_item_1?: "yes" | "no"
+  sanxin_applicant_item_2?: "yes" | "no"
+  sanxin_applicant_item_3?: "yes" | "no"
+  sanxin_applicant_item_4?: "yes" | "no"
+  sanxin_applicant_item_5?: "yes" | "no"
+  sanxin_applicant_signer?: string
 }
 
 export interface SimulatedWellOrderDetailResponse {

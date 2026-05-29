@@ -1,8 +1,16 @@
 <script setup lang="ts">
 import { computed, defineExpose, onMounted, reactive, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-import { ElMessage, ElMessageBox, type UploadFile, type UploadProps, type UploadUserFile } from "element-plus"
 import {
+  ElMessage,
+  ElMessageBox,
+  type FormInstance,
+  type UploadFile,
+  type UploadProps,
+  type UploadUserFile
+} from "element-plus"
+import {
+  createSimulatedWellOrderApi,
   deleteSimulatedWellOrderApi,
   getSimulatedWellOrderDetailApi,
   getSimulatedWellOrderListApi,
@@ -41,6 +49,55 @@ const pagination = reactive({
 
 const loading = ref(false)
 const tableData = ref<SimulatedWellOrderListItem[]>([])
+const createDialogVisible = ref(false)
+const createLoading = ref(false)
+const createFormRef = ref<FormInstance>()
+const todayText = () => {
+  const d = new Date()
+  const m = String(d.getMonth() + 1).padStart(2, "0")
+  const day = String(d.getDate()).padStart(2, "0")
+  return `${d.getFullYear()}-${m}-${day}`
+}
+const createDefaultForm = () => ({
+  table_number: "WT3-TC/ZZ-01-R04",
+  task_number: `TASK${Date.now()}`,
+  applicant: "",
+  applicant_phone: "",
+  test_unit: "",
+  test_unit_manager: "",
+  application_date: todayText(),
+  research_no: "",
+  project_budget_no: "",
+  project_name: "",
+  tested_instrument: "",
+  instrument_sn_numbers: "",
+  quantity: 1,
+  client: "",
+  entrusted_time: todayText(),
+  test_purpose: "",
+  test_steps: "",
+  safety_risks: "",
+  sanxin_applicant_item_1: "no" as "yes" | "no",
+  sanxin_applicant_item_2: "no" as "yes" | "no",
+  sanxin_applicant_item_3: "no" as "yes" | "no",
+  sanxin_applicant_item_4: "no" as "yes" | "no",
+  sanxin_applicant_item_5: "no" as "yes" | "no",
+  sanxin_applicant_signer: ""
+})
+const createForm = reactive(createDefaultForm())
+const createRules = {
+  table_number: [{ required: true, message: "请输入表格编号", trigger: "blur" }],
+  task_number: [{ required: true, message: "请输入任务单编号", trigger: "blur" }],
+  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }],
+  test_unit: [{ required: true, message: "请输入测试申请单位", trigger: "blur" }],
+  project_name: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
+  tested_instrument: [{ required: true, message: "请输入待测仪器", trigger: "blur" }],
+  instrument_sn_numbers: [{ required: true, message: "请输入仪器SN号", trigger: "blur" }],
+  quantity: [{ required: true, message: "请输入数量", trigger: "change" }],
+  test_purpose: [{ required: true, message: "请输入测试目的", trigger: "blur" }],
+  test_steps: [{ required: true, message: "请输入测试步骤", trigger: "blur" }],
+  safety_risks: [{ required: true, message: "请输入安全风险及预防措施", trigger: "blur" }]
+}
 
 const detailDialogVisible = ref(false)
 const currentOrder = ref<SimulatedWellOrderListItem | null>(null)
@@ -175,6 +232,57 @@ const getList = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const resetCreateForm = () => {
+  Object.assign(createForm, createDefaultForm())
+  createFormRef.value?.clearValidate()
+}
+
+const openCreateDialog = () => {
+  resetCreateForm()
+  createDialogVisible.value = true
+}
+
+const splitInstrumentSnNumbers = (value: string) =>
+  String(value || "")
+    .split(/[\n,，;；]+/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+
+const handleCreate = async () => {
+  if (!createFormRef.value) return
+  await createFormRef.value.validate(async (valid) => {
+    if (!valid) return
+    createLoading.value = true
+    try {
+      const sns = splitInstrumentSnNumbers(createForm.instrument_sn_numbers)
+      const payload = {
+        ...createForm,
+        customer_unit: createForm.test_unit,
+        task_desc: createForm.project_name,
+        device_count: createForm.quantity,
+        devices: sns.map((sn) => ({
+          device_name: createForm.tested_instrument,
+          device_number: sn
+        }))
+      }
+      const res = await createSimulatedWellOrderApi(payload)
+      if (res.code === 0) {
+        ElMessage.success("模拟井工单已创建")
+        createDialogVisible.value = false
+        void taskCenterStore.refresh(true)
+        getList()
+        return
+      }
+      ElMessage.error(res.msg || "创建失败")
+    } catch (error) {
+      console.error(error)
+      ElMessage.error("创建失败")
+    } finally {
+      createLoading.value = false
+    }
+  })
 }
 
 const handleSearch = () => {
@@ -382,7 +490,9 @@ onMounted(() => {
 
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
-        <div />
+        <div>
+          <el-button type="primary" icon="Plus" @click="openCreateDialog">新增模拟井工单</el-button>
+        </div>
         <div>
           <el-tooltip content="刷新当前页">
             <el-button type="primary" icon="RefreshRight" circle @click="getList" />
@@ -392,20 +502,31 @@ onMounted(() => {
 
       <div class="table-wrapper">
         <el-table :data="tableData" stripe border style="width: 100%">
-          <el-table-column prop="task_number" label="工单编号" width="180" align="center" />
-          <el-table-column label="客户单位" min-width="140" align="center">
+          <el-table-column prop="table_number" label="表格编号" width="150" align="center" />
+          <el-table-column prop="task_number" label="任务单编号" width="180" align="center" />
+          <el-table-column label="申请人" min-width="110" align="center">
             <template #default="{ row }">
-              <span>{{ row.customer_unit || row.applicant || "-" }}</span>
+              <span>{{ row.applicant || "-" }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="任务描述" min-width="180" align="center">
+          <el-table-column label="测试申请单位" min-width="160" align="center">
             <template #default="{ row }">
-              <span>{{ row.task_desc || row.remark || "-" }}</span>
+              <span>{{ row.test_unit || row.customer_unit || "-" }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="设备数量" width="100" align="center">
+          <el-table-column label="项目名称" min-width="170" align="center" show-overflow-tooltip>
             <template #default="{ row }">
-              <span>{{ row.device_count ?? 1 }}</span>
+              <span>{{ row.project_name || row.task_desc || "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="待测仪器" min-width="180" align="center" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span>{{ row.tested_instrument || "-" }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="数量" width="90" align="center">
+            <template #default="{ row }">
+              <span>{{ row.quantity ?? row.device_count ?? 1 }}</span>
             </template>
           </el-table-column>
           <el-table-column label="状态" width="100" align="center">
@@ -438,18 +559,133 @@ onMounted(() => {
       </div>
     </el-card>
 
+    <el-dialog v-model="createDialogVisible" title="新增模拟井工单" width="980px" :close-on-click-modal="false">
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="150px" class="create-form">
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="表格编号" prop="table_number">
+              <el-input v-model="createForm.table_number" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="任务单编号" prop="task_number">
+              <el-input v-model="createForm.task_number" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="申请人" prop="applicant">
+              <el-input v-model="createForm.applicant" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="申请人电话" prop="applicant_phone">
+              <el-input v-model="createForm.applicant_phone" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="测试申请单位" prop="test_unit">
+              <el-input v-model="createForm.test_unit" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="单位负责人" prop="test_unit_manager">
+              <el-input v-model="createForm.test_unit_manager" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="申请日期" prop="application_date">
+              <el-date-picker v-model="createForm.application_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="科研编号" prop="research_no">
+              <el-input v-model="createForm.research_no" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="项目预算编号" prop="project_budget_no">
+              <el-input v-model="createForm.project_budget_no" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="项目名称" prop="project_name">
+              <el-input v-model="createForm.project_name" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="待测仪器" prop="tested_instrument">
+              <el-input v-model="createForm.tested_instrument" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="16">
+            <el-form-item label="仪器SN号（资产号，多个）" prop="instrument_sn_numbers">
+              <el-input v-model="createForm.instrument_sn_numbers" type="textarea" :rows="2" placeholder="多个 SN 可用逗号、分号或换行分隔" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="数量" prop="quantity">
+              <el-input-number v-model="createForm.quantity" :min="1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="委托人" prop="client">
+              <el-input v-model="createForm.client" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="时间" prop="entrusted_time">
+              <el-input v-model="createForm.entrusted_time" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="测试目的" prop="test_purpose">
+              <el-input v-model="createForm.test_purpose" type="textarea" :rows="3" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="测试步骤" prop="test_steps">
+              <el-input v-model="createForm.test_steps" type="textarea" :rows="4" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="安全风险及预防措施" prop="safety_risks">
+              <el-input v-model="createForm.safety_risks" type="textarea" :rows="4" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="createLoading" @click="handleCreate">保存</el-button>
+      </template>
+    </el-dialog>
+
     <el-drawer v-model="detailDialogVisible" title="工单详情" size="600px">
       <div v-if="currentOrder" style="padding: 0 20px">
         <el-descriptions :column="1" border>
-          <el-descriptions-item label="工单编号">{{ currentOrder.task_number }}</el-descriptions-item>
-          <el-descriptions-item label="客户单位">{{ currentOrder.customer_unit || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="表格编号">{{ currentOrder.table_number || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="任务单编号">{{ currentOrder.task_number }}</el-descriptions-item>
+          <el-descriptions-item label="申请人">{{ currentOrder.applicant || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="申请人电话">{{ currentOrder.applicant_phone || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试申请单位">{{ currentOrder.test_unit || currentOrder.customer_unit || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试申请单位负责人">{{ currentOrder.test_unit_manager || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="申请日期">{{ currentOrder.application_date || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="科研编号">{{ currentOrder.research_no || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="项目预算编号">{{ currentOrder.project_budget_no || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="项目名称">{{ currentOrder.project_name || currentOrder.task_desc || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="待测仪器">{{ currentOrder.tested_instrument || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="仪器SN号（资产号，多个）">{{ currentOrder.instrument_sn_numbers || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="数量">{{ currentOrder.quantity ?? currentOrder.device_count ?? 1 }}</el-descriptions-item>
+          <el-descriptions-item label="委托人">{{ currentOrder.client || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="时间">{{ currentOrder.entrusted_time || "-" }}</el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.status_text }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ currentOrder.created_at || "-" }}</el-descriptions-item>
           <el-descriptions-item label="计划时间">{{ currentOrder.plan_date || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="设备数量">{{ currentOrder.device_count ?? 1 }}</el-descriptions-item>
-          <el-descriptions-item label="任务描述">{{ currentOrder.task_desc || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试目的">{{ currentOrder.test_purpose || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试步骤">{{ currentOrder.test_steps || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="安全风险及预防措施">{{ currentOrder.safety_risks || "-" }}</el-descriptions-item>
         </el-descriptions>
 
         <div style="margin-top: 16px">

@@ -5,7 +5,13 @@ export interface SimInstrumentItem {
   status: string
   manufacturer?: string | null
   model_id: number
+  model_name?: string | null
   model_number?: string | null
+  temperature?: string | null
+  normal_cycle?: number | null
+  high_cycle?: number | null
+  coefficient?: number | null
+  model_remark?: string | null
   used_count: number
   remain_count: number
   created_at?: string | null
@@ -30,6 +36,12 @@ export interface SimInstrumentListResponse {
     currentPage: number
     pageSize: number
   }
+}
+
+export interface SimInstrumentDetailResponse {
+  code: number
+  msg?: string
+  data: SimInstrumentItem
 }
 
 export interface CreateSimInstrumentRequest {

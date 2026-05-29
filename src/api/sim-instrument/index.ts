@@ -9,6 +9,13 @@ export function getSimInstrumentListApi(params: SimInstrument.SimInstrumentListR
   })
 }
 
+export function getSimInstrumentDetailApi(instrumentId: number) {
+  return request<SimInstrument.SimInstrumentDetailResponse>({
+    url: `data/sim-instrument/detail/${instrumentId}/`,
+    method: "get"
+  })
+}
+
 export function createSimInstrumentApi(data: SimInstrument.CreateSimInstrumentRequest) {
   return request({
     url: "data/sim-instrument/create",

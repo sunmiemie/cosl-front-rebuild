@@ -540,6 +540,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
             name: "SimulatedWellUsageMaintenance",
             meta: {
               title: "使用与维保",
+              hidden: true,
               keepAlive: true
             }
           }
