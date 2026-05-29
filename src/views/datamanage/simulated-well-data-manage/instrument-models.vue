@@ -23,6 +23,7 @@
         <el-table :data="tableData" stripe border style="width: 100%" v-loading="loading">
           <el-table-column prop="model_name" label="型号名称" min-width="180" />
           <el-table-column prop="model_number" label="型号代号" min-width="180" />
+          <el-table-column prop="temperature" label="温度" min-width="120" show-overflow-tooltip />
           <el-table-column prop="remark" label="描述" min-width="180" show-overflow-tooltip />
           <el-table-column prop="normal_cycle" label="非高温维保周期(次)" min-width="170" align="center" />
           <el-table-column prop="high_cycle" label="高温维保周期(次)" min-width="160" align="center" />
@@ -56,6 +57,9 @@
         </el-form-item>
         <el-form-item label="型号代号" prop="model_number">
           <el-input v-model="formData.model_number" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="温度" prop="temperature">
+          <el-input v-model="formData.temperature" placeholder="请输入，如 150℃" />
         </el-form-item>
         <el-form-item label="描述" prop="remark">
           <el-input v-model="formData.remark" placeholder="请输入" type="textarea" :rows="2" />
@@ -149,6 +153,7 @@ const formRef = ref<FormInstance | null>(null)
 const formData = reactive({
   model_name: "",
   model_number: "",
+  temperature: "",
   remark: "",
   normal_cycle: 0,
   high_cycle: 0,
@@ -165,6 +170,7 @@ const closeDialog = () => {
   currentUpdateId.value = null
   formData.model_name = ""
   formData.model_number = ""
+  formData.temperature = ""
   formData.remark = ""
   formData.normal_cycle = 0
   formData.high_cycle = 0
@@ -183,6 +189,7 @@ const openEdit = (row: InstrumentModelItem) => {
   dialogVisible.value = true
   formData.model_name = row.model_name
   formData.model_number = row.model_number
+  formData.temperature = row.temperature || ""
   formData.remark = (row.remark as string) || ""
   formData.normal_cycle = row.normal_cycle ?? 0
   formData.high_cycle = row.high_cycle ?? 0
@@ -195,6 +202,7 @@ const handleSubmit = () => {
     const payload = {
       model_name: formData.model_name,
       model_number: formData.model_number,
+      temperature: formData.temperature,
       remark: formData.remark,
       normal_cycle: formData.normal_cycle,
       high_cycle: formData.high_cycle,

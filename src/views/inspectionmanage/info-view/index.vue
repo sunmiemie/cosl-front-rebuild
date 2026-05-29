@@ -174,9 +174,6 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
             >
               <span class="day-number">{{ Number(data.day.slice(8, 10)) }}</span>
               <span v-if="getDateCount(data.day)" class="record-count">{{ getDateCount(data.day) }} 条</span>
-              <el-tag v-if="getDateStatus(data.day)" class="status-tag" size="small" :type="getDateStatus(data.day)">
-                有记录
-              </el-tag>
             </button>
           </template>
         </el-calendar>
@@ -195,18 +192,18 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 
         <el-empty v-if="!selectedRecords.length" description="当天暂无巡检记录" />
         <el-table v-else :data="selectedRecords" border stripe class="record-table" @row-click="openDetail">
-          <el-table-column prop="device_name" label="巡检设备名称" min-width="118" />
-          <el-table-column prop="device_sn" label="设备SN号" min-width="94" />
-          <el-table-column prop="inspector" label="巡检人员" width="84" />
-          <el-table-column label="状态" width="74" align="center">
+          <el-table-column prop="device_name" label="巡检设备名称" min-width="150" />
+          <el-table-column prop="device_sn" label="设备SN号" min-width="150" />
+          <el-table-column prop="inspector" label="巡检人员" min-width="120" />
+          <el-table-column label="状态" min-width="96" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="巡检内容数" width="80" align="center">
+          <el-table-column label="巡检内容数" min-width="106" align="center">
             <template #default="{ row }">{{ row.item_count || 0 }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="98" align="center">
+          <el-table-column label="操作" min-width="116" align="center">
             <template #default="{ row }">
               <el-button link type="primary" @click.stop="openDetail(row)">查看</el-button>
               <el-button link type="warning" @click.stop="handleEdit(row)">编辑</el-button>
@@ -283,7 +280,7 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 
 .calendar-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(620px, 0.58fr);
+  grid-template-columns: minmax(500px, 620px) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -321,29 +318,29 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 
 .calendar-card {
   :deep(.el-calendar__body) {
-    padding: 16px 0 0;
+    padding: 10px 0 0;
   }
 
   :deep(.el-calendar__header) {
-    padding: 0 0 16px;
+    padding: 0 0 10px;
     border-bottom: 0;
   }
 
   :deep(.el-calendar-table) {
     border-collapse: separate;
-    border-spacing: 6px;
+    border-spacing: 4px;
   }
 
   :deep(.el-calendar-table thead th) {
-    padding: 0 0 8px;
+    padding: 0 0 4px;
     color: var(--el-text-color-secondary);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
   }
 
   :deep(.el-calendar-table td) {
     border: 0;
-    border-radius: 8px;
+    border-radius: 6px;
     overflow: hidden;
     background: #f6f8fb;
   }
@@ -353,7 +350,7 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
   }
 
   :deep(.el-calendar-table .el-calendar-day) {
-    height: 88px;
+    height: 50px;
     padding: 0;
   }
 }
@@ -366,21 +363,21 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 
 .calendar-month {
   color: var(--el-text-color-primary);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 800;
   line-height: 1.2;
 }
 
 .calendar-hint {
   color: var(--el-text-color-secondary);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .calendar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px;
+  gap: 6px;
+  padding: 4px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 999px;
   background: #fff;
@@ -388,7 +385,7 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 }
 
 .month-button {
-  --el-button-size: 32px;
+  --el-button-size: 28px;
   --el-button-bg-color: #f5f7fb;
   --el-button-border-color: transparent;
   --el-button-hover-bg-color: var(--el-color-primary-light-9);
@@ -397,8 +394,8 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 }
 
 .today-button {
-  height: 32px;
-  padding: 0 18px;
+  height: 28px;
+  padding: 0 14px;
   border-radius: 999px;
   font-weight: 700;
 }
@@ -406,15 +403,15 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 .date-cell {
   width: 100%;
   height: 100%;
-  padding: 10px;
+  padding: 6px 8px;
   cursor: pointer;
   background: #fff;
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   text-align: left;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 3px;
   transition:
     background-color 0.2s ease,
     box-shadow 0.2s ease;
@@ -438,24 +435,18 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 
 .day-number {
   color: var(--el-text-color-primary);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
 }
 
 .record-count {
   width: fit-content;
-  padding: 3px 8px;
+  padding: 1px 6px;
   border-radius: 999px;
   background: var(--el-color-primary-light-9);
   color: var(--el-color-primary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-}
-
-.status-tag {
-  width: fit-content;
-  margin-top: auto;
-  border-radius: 999px;
 }
 
 .record-table,

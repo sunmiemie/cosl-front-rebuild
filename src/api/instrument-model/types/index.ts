@@ -4,6 +4,7 @@ export interface InstrumentModelItem {
   instrument_manage_name?: string | null
   model_name: string
   model_number: string
+  temperature?: string | null
   normal_cycle: number
   high_cycle: number
   coefficient: number
@@ -34,6 +35,7 @@ export interface CreateInstrumentModelRequest {
   instrument_manage_id?: number
   model_name: string
   model_number: string
+  temperature?: string
   normal_cycle: number
   high_cycle: number
   coefficient: number

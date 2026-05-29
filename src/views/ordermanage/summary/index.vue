@@ -103,11 +103,12 @@
             <span v-else class="badge unlinked">未关联</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="124" align="center">
+        <el-table-column label="操作" width="142" align="center">
           <template #default="{ row, $index }">
-            <el-button v-if="row.status === 'unlinked'" link type="primary" @click="openLinkModal($index)"
-              >关联委托单</el-button
-            >
+            <el-button v-if="row.status === 'unlinked'" link type="primary" @click="openLinkModal($index)">
+              关联委托单
+            </el-button>
+            <el-button v-else link type="primary" @click="openLinkModal($index)">修改</el-button>
             <el-button link type="info" @click="openHoursModal($index)">编辑工时</el-button>
           </template>
         </el-table-column>
@@ -115,7 +116,7 @@
     </el-card>
 
     <!-- 关联委托单弹窗 -->
-    <el-dialog v-model="linkModalVisible" title="关联委托单" width="460px">
+    <el-dialog v-model="linkModalVisible" :title="linkDialogTitle" width="460px">
       <div class="modal-sub">SN：{{ pendingRow?.sn }} {{ pendingRow?.name }}</div>
       <el-form label-position="top">
         <el-form-item label="选择委托单">
@@ -345,6 +346,7 @@ const resetFilters = () => {
 const linkModalVisible = ref(false)
 const pendingRowIdx = ref<number | null>(null)
 const pendingRow = computed(() => (pendingRowIdx.value !== null ? tableData.value[pendingRowIdx.value] : null))
+const linkDialogTitle = computed(() => (pendingRow.value?.status === "linked" ? "修改关联委托单" : "关联委托单"))
 const linkForm = reactive<{ commNo: string; sampleId: number | null }>({ commNo: "", sampleId: null })
 const orderListLoading = ref(false)
 const orderList = ref<any[]>([])
@@ -387,10 +389,14 @@ const getOrderList = () => {
 
 const openLinkModal = (idx: number) => {
   pendingRowIdx.value = idx
-  linkForm.commNo = ""
-  linkForm.sampleId = null
+  const row = tableData.value[idx]
+  linkForm.commNo = row?.commNo || ""
+  linkForm.sampleId = row?.commissionSampleId || null
   sampleTreeData.value = []
   getOrderList()
+  if (linkForm.commNo) {
+    handleOrderChange(linkForm.commNo, linkForm.sampleId)
+  }
   linkModalVisible.value = true
 }
 
@@ -434,8 +440,8 @@ const buildSampleTree = (commissionNo: string, samples: any[]) => {
   ]
 }
 
-const handleOrderChange = (commissionNo: string) => {
-  linkForm.sampleId = null
+const handleOrderChange = (commissionNo: string, selectedSampleId: number | null = null) => {
+  linkForm.sampleId = selectedSampleId
   sampleTreeData.value = []
   if (!commissionNo) return
 
@@ -447,6 +453,7 @@ const handleOrderChange = (commissionNo: string) => {
   })
     .then((res: any) => {
       sampleTreeData.value = buildSampleTree(commissionNo, res.data?.samples || [])
+      linkForm.sampleId = selectedSampleId
     })
     .catch(() => {
       ElMessage.error("获取委托单样品明细失败")
@@ -477,7 +484,7 @@ const confirmLink = () => {
       }
     })
       .then(() => {
-        ElMessage.success("关联成功")
+        ElMessage.success(row.status === "linked" ? "修改成功" : "关联成功")
         linkModalVisible.value = false
         getList()
       })
