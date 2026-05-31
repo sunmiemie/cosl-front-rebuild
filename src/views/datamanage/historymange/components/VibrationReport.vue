@@ -151,6 +151,13 @@
           </el-table-column>
         </el-table>
       </div>
+      <div v-if="currentReport" class="detail-block">
+        <h4>doc 报告内容</h4>
+        <VibrationDocReportView
+          :report-json="currentReport.report_json"
+          :attachments="currentReport.attachments"
+        />
+      </div>
       <div v-if="currentReport" class="detail-block detail-grid">
         <div>
           <h4>采集摘要</h4>
@@ -182,6 +189,7 @@ import {
   deleteVibrationTableReportApi,
   type VibrationTableReportListItem
 } from "@/api/vibration-table-report"
+import VibrationDocReportView from "../../report/components/VibrationDocReportView.vue"
 
 const searchForm = reactive({
   taskNumber: "",

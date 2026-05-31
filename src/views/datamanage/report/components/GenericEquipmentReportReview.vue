@@ -37,6 +37,7 @@ import {
   getHighTempPressurePaperReportView,
   isTestingCurveAttachment
 } from "@/utils/high-temp-pressure-paper-report"
+import VibrationDocReportView from "./VibrationDocReportView.vue"
 
 type ReportType = "water-cycle" | "high-temp-box" | "vibration-table" | "high-temp-high-pressure"
 type ReportReviewPayload = { status: number; audit_time: string; remark: string }
@@ -486,6 +487,10 @@ defineExpose({ resetSearch })
             class="curve-preview-image"
           />
         </div>
+      </div>
+      <div v-if="currentReport && props.reportType === 'vibration-table'" class="detail-block paper-report-block">
+        <h4>doc 报告内容</h4>
+        <VibrationDocReportView :report-json="currentReport.report_json" :attachments="currentReport.attachments" />
       </div>
       <div v-if="currentReport" class="detail-block detail-grid">
         <div>
