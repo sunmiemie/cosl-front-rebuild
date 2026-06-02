@@ -171,8 +171,8 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="700px">
-      <div v-if="currentOrder" style="padding: 0 20px">
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
+      <div v-if="currentOrder" class="detail-content">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="任务单号">{{ currentOrder.taskNumber }}</el-descriptions-item>
           <el-descriptions-item label="委托单位">{{ currentOrder.testApplicationUnit || "-" }}</el-descriptions-item>
@@ -194,9 +194,9 @@
         </el-descriptions>
 
         <el-table :data="currentOrder.instruments || []" border stripe class="detail-instrument-table">
-          <el-table-column prop="instrumentName" label="仪器名称" min-width="160" />
-          <el-table-column prop="snNumbers" label="SN号（多个）" min-width="220" show-overflow-tooltip />
-          <el-table-column prop="quantity" label="数量" width="90" align="center" />
+          <el-table-column prop="instrumentName" label="仪器名称" min-width="130" />
+          <el-table-column prop="snNumbers" label="SN号（多个）" min-width="160" />
+          <el-table-column prop="quantity" label="数量" width="76" align="center" />
         </el-table>
       </div>
     </el-drawer>

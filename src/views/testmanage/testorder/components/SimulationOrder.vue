@@ -660,8 +660,8 @@ onMounted(() => {
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="600px">
-      <div v-if="currentOrder" style="padding: 0 20px">
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
+      <div v-if="currentOrder" class="detail-content">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="表格编号">{{ currentOrder.table_number || "-" }}</el-descriptions-item>
           <el-descriptions-item label="任务单编号">{{ currentOrder.task_number }}</el-descriptions-item>
@@ -691,8 +691,8 @@ onMounted(() => {
         <div style="margin-top: 16px">
           <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px">测试设备列表</div>
           <el-table :data="currentOrder.devices || []" stripe border style="width: 100%">
-            <el-table-column prop="device_name" label="设备名称" min-width="180" align="center" />
-            <el-table-column prop="device_number" label="设备编号" min-width="160" align="center" />
+            <el-table-column prop="device_name" label="设备名称" min-width="130" align="center" />
+            <el-table-column prop="device_number" label="设备编号" min-width="130" align="center" />
           </el-table>
           <el-empty v-if="(currentOrder.devices || []).length === 0" description="暂无测试设备" />
         </div>

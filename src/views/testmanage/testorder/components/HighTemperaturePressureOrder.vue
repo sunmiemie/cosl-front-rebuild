@@ -1058,8 +1058,8 @@ onMounted(() => {
       </div>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="760px">
-      <div v-if="currentOrder" style="padding: 0 20px 24px">
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
+      <div v-if="currentOrder" class="detail-content">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="表格编号">{{ currentOrder.table_no || "-" }}</el-descriptions-item>
           <el-descriptions-item label="任务单号">{{ currentOrder.task_number }}</el-descriptions-item>
@@ -1109,11 +1109,11 @@ onMounted(() => {
 
         <div class="detail-section-title">待测仪器</div>
         <el-table :data="currentOrder.instruments || []" border stripe>
-          <el-table-column prop="instrument_name" label="待测仪器" min-width="150" align="center" />
-          <el-table-column prop="instrument_sn" label="仪器SN号/资产号" min-width="180" align="center" />
-          <el-table-column prop="quantity" label="数量" width="90" align="center" />
-          <el-table-column prop="instrument_length" label="仪器长度" width="110" align="center" />
-          <el-table-column prop="max_diameter" label="最大直径" width="110" align="center" />
+          <el-table-column prop="instrument_name" label="待测仪器" min-width="130" align="center" />
+          <el-table-column prop="instrument_sn" label="仪器SN号/资产号" min-width="150" align="center" />
+          <el-table-column prop="quantity" label="数量" width="76" align="center" />
+          <el-table-column prop="instrument_length" label="仪器长度" width="96" align="center" />
+          <el-table-column prop="max_diameter" label="最大直径" width="96" align="center" />
         </el-table>
       </div>
     </el-drawer>

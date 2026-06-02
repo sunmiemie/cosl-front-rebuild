@@ -695,7 +695,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
   </div>
 
   <!-- 详情 -->
-  <el-drawer v-model="drawerVisible" :append-to-body="true" :with-header="false" size="1000">
+  <el-drawer
+    v-model="drawerVisible"
+    :append-to-body="true"
+    :with-header="false"
+    size="var(--test-order-detail-drawer-size)"
+    class="test-order-detail-drawer"
+  >
     <header class="drawer-head">
       <el-page-header @back="drawerVisible = false">
         <template #content>

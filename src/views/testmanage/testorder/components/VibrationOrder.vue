@@ -282,7 +282,7 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="760px">
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
       <div v-if="currentOrder" class="detail-content">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="表格编号">{{ currentOrder.tableNo }}</el-descriptions-item>
@@ -307,7 +307,7 @@
           <el-descriptions-item label="振动方向">{{ currentOrder.vibrationDirection || "-" }}</el-descriptions-item>
           <el-descriptions-item label="量级">{{ currentOrder.level || "-" }}</el-descriptions-item>
           <el-descriptions-item label="加速度">{{ currentOrder.acceleration || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="振动时长">{{ currentOrder.duration || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="振动时长(min)">{{ currentOrder.duration || "-" }}</el-descriptions-item>
           <el-descriptions-item label="斜率">{{ currentOrder.slope || "-" }}</el-descriptions-item>
           <el-descriptions-item label="频率">{{ currentOrder.frequency || "-" }}</el-descriptions-item>
           <el-descriptions-item label="振动次数">{{ currentOrder.vibrationTimes || "-" }}</el-descriptions-item>
@@ -334,12 +334,12 @@
 
         <div class="detail-section-title">待测仪器</div>
         <el-table :data="currentOrder.instruments || []" border stripe>
-          <el-table-column prop="instrumentName" label="待测仪器" min-width="150" align="center" />
-          <el-table-column prop="snNumbers" label="仪器 SN 号/资产号" min-width="180" align="center" />
-          <el-table-column prop="quantity" label="数量" width="90" align="center" />
-          <el-table-column prop="weight" label="重量" width="100" align="center" />
-          <el-table-column prop="length" label="长度" width="100" align="center" />
-          <el-table-column prop="maxDiameter" label="最大直径" width="110" align="center" />
+          <el-table-column prop="instrumentName" label="待测仪器" min-width="130" align="center" />
+          <el-table-column prop="snNumbers" label="仪器 SN 号/资产号" min-width="150" align="center" />
+          <el-table-column prop="quantity" label="数量" width="76" align="center" />
+          <el-table-column prop="weight" label="重量(kg)" width="86" align="center" />
+          <el-table-column prop="length" label="长度(m)" width="86" align="center" />
+          <el-table-column prop="maxDiameter" label="最大直径(mm)" width="96" align="center" />
         </el-table>
       </div>
     </el-drawer>
