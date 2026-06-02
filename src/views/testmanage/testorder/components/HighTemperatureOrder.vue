@@ -21,22 +21,22 @@
 
     <el-card v-loading="loading" shadow="never">
       <div class="toolbar-wrapper">
-        <div>
-          <el-button type="primary" icon="CirclePlus" @click="showCreateDialog">新增 高温箱 工单</el-button>
-        </div>
-        <div>
-          <el-tooltip content="刷新当前页">
-            <el-button type="primary" icon="RefreshRight" circle @click="getList" />
-          </el-tooltip>
-        </div>
+        <el-button type="primary" icon="CirclePlus" @click="showCreateDialog">新增高温箱工单</el-button>
+        <el-tooltip content="刷新当前页">
+          <el-button type="primary" icon="RefreshRight" circle @click="getList" />
+        </el-tooltip>
       </div>
 
       <div class="table-wrapper">
         <el-table :data="tableData" stripe border style="width: 100%">
           <el-table-column prop="taskNumber" label="任务单号" width="180" align="center" />
-          <el-table-column prop="applicant" label="申请人" min-width="120" align="center" />
-          <el-table-column prop="deviceName" label="设备名称" min-width="150" align="center" />
-          <el-table-column prop="targetTemp" label="目标温度(°C)" min-width="120" align="center" />
+          <el-table-column prop="testApplicationUnit" label="委托单位" min-width="150" align="center" show-overflow-tooltip />
+          <el-table-column prop="projectName" label="项目名称" min-width="160" align="center" show-overflow-tooltip />
+          <el-table-column prop="applicant" label="申请人" min-width="110" align="center" />
+          <el-table-column prop="specification" label="规格" width="90" align="center" />
+          <el-table-column prop="maxTemperature" label="最高温度(°C)" min-width="120" align="center" />
+          <el-table-column prop="holdTime" label="保温时间(分)" min-width="120" align="center" />
+          <el-table-column prop="humidity" label="湿度(%)" min-width="100" align="center" />
           <el-table-column prop="status" label="状态" width="100" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">{{ row.statusText || row.status }}</el-tag>
@@ -65,49 +65,102 @@
       </div>
     </el-card>
 
-    <el-dialog v-model="createDialogVisible" title="创建 高温箱 工单" width="700px" :close-on-click-modal="false">
-      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
-        <el-row :gutter="20">
+    <el-dialog v-model="createDialogVisible" title="创建高温箱工单" width="960px" :close-on-click-modal="false">
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="120px">
+        <el-divider content-position="left">申请信息</el-divider>
+        <el-row :gutter="18">
           <el-col :span="12">
-            <el-form-item label="测试台" prop="testPlatform">
-              <el-select v-model="createForm.testPlatform" placeholder="请选择测试台" style="width: 100%">
-                <el-option label="高温箱测试台" value="高温箱测试台" />
-                <el-option label="高温高压测试台" value="高温高压测试台" />
+            <el-form-item label="委托单位" prop="testApplicationUnit">
+              <el-input v-model="createForm.testApplicationUnit" placeholder="请输入委托单位" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="申请日期" prop="applicationDate">
+              <el-date-picker
+                v-model="createForm.applicationDate"
+                type="date"
+                value-format="YYYY-MM-DD"
+                placeholder="请选择申请日期"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="申请人" prop="applicant">
+              <el-input v-model="createForm.applicant" placeholder="请输入申请人" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="申请人电话" prop="applicantPhone">
+              <el-input v-model="createForm.applicantPhone" placeholder="请输入申请人电话" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-divider content-position="left">项目信息</el-divider>
+        <el-row :gutter="18">
+          <el-col :span="8">
+            <el-form-item label="科研编号" prop="researchNumber">
+              <el-input v-model="createForm.researchNumber" placeholder="请输入科研编号" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="项目预算编号" prop="projectBudgetNumber">
+              <el-input v-model="createForm.projectBudgetNumber" placeholder="请输入项目预算编号" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="项目名称" prop="projectName">
+              <el-input v-model="createForm.projectName" placeholder="请输入项目名称" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-divider content-position="left">仪器信息</el-divider>
+        <el-row :gutter="18">
+          <el-col :span="8">
+            <el-form-item label="规格" prop="specification">
+              <el-select v-model="createForm.specification" placeholder="请选择规格" style="width: 100%">
+                <el-option v-for="item in specificationOptions" :key="item" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="测试日期" prop="testDate">
-              <el-date-picker v-model="createForm.testDate" type="date" placeholder="选择日期" style="width: 100%" />
+          <el-col :span="8">
+            <el-form-item label="仪器名称" prop="instrumentName">
+              <el-input v-model="createForm.instrumentName" placeholder="请输入仪器名称" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="SN号（多个）" prop="snNumbers">
+              <el-input v-model="createForm.snNumbers" placeholder="多个 SN 可用逗号或换行分隔" />
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="运行时间(min)" prop="runTime">
-              <el-input-number v-model="createForm.runTime" placeholder="运行时间" style="width: 100%" />
+        <el-divider content-position="left">测试参数</el-divider>
+        <el-row :gutter="18">
+          <el-col :span="6">
+            <el-form-item label="最高温度" prop="maxTemperature">
+              <el-input-number v-model="createForm.maxTemperature" :min="0" :precision="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="斜率" prop="slope">
+              <el-input-number v-model="createForm.slope" :precision="2" :controls="false" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="保温时间" prop="holdTime">
+              <el-input-number v-model="createForm.holdTime" :min="0" :precision="0" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="6">
+            <el-form-item label="湿度" prop="humidity">
+              <el-input-number v-model="createForm.humidity" :min="0" :max="100" :precision="2" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item label="设备名称" prop="deviceName">
-          <el-input v-model="createForm.deviceName" />
-        </el-form-item>
-        <el-form-item label="设备编号" prop="deviceNumber">
-          <el-input v-model="createForm.deviceNumber" />
-        </el-form-item>
-        <el-form-item label="任务单号" prop="taskNumber">
-          <el-input v-model="createForm.taskNumber" />
-        </el-form-item>
-
-        <el-form-item label="目标温度(°C)" prop="targetTemp">
-          <el-input v-model="createForm.targetTemp" />
-        </el-form-item>
-
-        <el-form-item label="申请人" prop="applicant">
-          <el-input v-model="createForm.applicant" placeholder="请输入申请人姓名" />
-        </el-form-item>
         <el-form-item label="备注">
           <el-input v-model="createForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
         </el-form-item>
@@ -118,21 +171,33 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="600px">
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="700px">
       <div v-if="currentOrder" style="padding: 0 20px">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="任务单号">{{ currentOrder.taskNumber }}</el-descriptions-item>
+          <el-descriptions-item label="委托单位">{{ currentOrder.testApplicationUnit || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="科研编号">{{ currentOrder.researchNumber || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="项目预算编号">{{ currentOrder.projectBudgetNumber || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="项目名称">{{ currentOrder.projectName || "-" }}</el-descriptions-item>
           <el-descriptions-item label="申请人">{{ currentOrder.applicant }}</el-descriptions-item>
-          <el-descriptions-item label="设备名称">{{ currentOrder.deviceName }}</el-descriptions-item>
-          <el-descriptions-item label="目标温度(°C)">{{ currentOrder.targetTemp }}</el-descriptions-item>
+          <el-descriptions-item label="申请人电话">{{ currentOrder.applicantPhone || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="申请日期">{{ currentOrder.applicationDate || currentOrder.testDate || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="规格">{{ currentOrder.specification || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="最高温度">{{ displayWithUnit(currentOrder.maxTemperature, "°C") }}</el-descriptions-item>
+          <el-descriptions-item label="斜率">{{ currentOrder.slope ?? "-" }}</el-descriptions-item>
+          <el-descriptions-item label="保温时间">{{ displayWithUnit(currentOrder.holdTime, "分") }}</el-descriptions-item>
+          <el-descriptions-item label="湿度">{{ displayWithUnit(currentOrder.humidity, "%") }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="getStatusType(currentOrder.status)">{{
-              currentOrder.statusText || currentOrder.status
-            }}</el-tag>
+            <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.statusText || currentOrder.status }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="测试日期">{{ currentOrder.testDate }}</el-descriptions-item>
           <el-descriptions-item label="备注">{{ currentOrder.remark || "-" }}</el-descriptions-item>
         </el-descriptions>
+
+        <el-table :data="currentOrder.instruments || []" border stripe class="detail-instrument-table">
+          <el-table-column prop="instrumentName" label="仪器名称" min-width="160" />
+          <el-table-column prop="snNumbers" label="SN号（多个）" min-width="220" show-overflow-tooltip />
+          <el-table-column prop="quantity" label="数量" width="90" align="center" />
+        </el-table>
       </div>
     </el-drawer>
   </div>
@@ -150,8 +215,8 @@ import {
   deleteHighTemperatureOrder
 } from "@/api/high-temperature"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
-//api接口函数名称
 import type { HighTemperatureOrderListItem, HighTemperatureOrderDetail } from "@/api/high-temperature/types"
+
 const statusOptions = [
   { value: "0", label: "已创建" },
   { value: "1", label: "待领取" },
@@ -164,57 +229,78 @@ const statusOptions = [
   { value: "8", label: "疑问" }
 ]
 
+const specificationOptions = ["475", "675", "800", "950"]
 const searchForm = reactive({ taskNumber: "", status: "" })
 const route = useRoute()
 const taskCenterStore = useTaskCenterStoreHook()
 const pagination = reactive({ page: 1, pageSize: 20, total: 0 })
 const loading = ref(false)
-
 const tableData = ref<HighTemperatureOrderListItem[]>([])
-
 const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
 const createForm = reactive({
-  testPlatform: "高温箱测试台",
-  testDate: new Date(),
-  runTime: 0,
-  deviceName: "",
-  deviceNumber: "",
-  taskNumber: "",
-  targetTemp: "",
+  testApplicationUnit: "",
+  researchNumber: "",
+  projectBudgetNumber: "",
+  projectName: "",
   applicant: "",
+  applicantPhone: "",
+  applicationDate: "",
+  specification: "",
+  instrumentName: "",
+  snNumbers: "",
+  maxTemperature: undefined as number | undefined,
+  slope: undefined as number | undefined,
+  holdTime: undefined as number | undefined,
+  humidity: undefined as number | undefined,
   remark: ""
 })
 
 const createRules = {
-  testPlatform: [{ required: true, message: "请选择测试台", trigger: "change" }],
-  testDate: [{ required: true, message: "请选择测试日期", trigger: "change" }],
-  runTime: [{ required: true, message: "请输入运行时间", trigger: "change" }],
-  deviceName: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
-  deviceNumber: [{ required: true, message: "请输入设备编号", trigger: "blur" }],
-  taskNumber: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
-  targetTemp: [{ required: true, message: "请输入目标温度", trigger: "blur" }],
-  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }]
+  testApplicationUnit: [{ required: true, message: "请输入委托单位", trigger: "blur" }],
+  researchNumber: [{ required: true, message: "请输入科研编号", trigger: "blur" }],
+  projectBudgetNumber: [{ required: true, message: "请输入项目预算编号", trigger: "blur" }],
+  projectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
+  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }],
+  applicantPhone: [{ required: true, message: "请输入申请人电话", trigger: "blur" }],
+  applicationDate: [{ required: true, message: "请选择申请日期", trigger: "change" }],
+  specification: [{ required: true, message: "请选择规格", trigger: "change" }],
+  instrumentName: [{ required: true, message: "请输入仪器名称", trigger: "blur" }],
+  snNumbers: [{ required: true, message: "请输入SN号", trigger: "blur" }],
+  maxTemperature: [{ required: true, message: "请输入最高温度", trigger: "change" }],
+  slope: [{ required: true, message: "请输入斜率", trigger: "change" }],
+  holdTime: [{ required: true, message: "请输入保温时间", trigger: "change" }],
+  humidity: [{ required: true, message: "请输入湿度", trigger: "change" }]
 }
 
 const canCreate = computed(() => {
   return !!(
-    createForm.testPlatform &&
-    createForm.testDate &&
-    createForm.runTime &&
-    createForm.deviceName &&
-    createForm.deviceNumber &&
-    createForm.taskNumber &&
-    createForm.targetTemp &&
-    createForm.applicant
+    createForm.testApplicationUnit &&
+    createForm.researchNumber &&
+    createForm.projectBudgetNumber &&
+    createForm.projectName &&
+    createForm.applicant &&
+    createForm.applicantPhone &&
+    createForm.applicationDate &&
+    createForm.specification &&
+    createForm.instrumentName &&
+    createForm.snNumbers &&
+    createForm.maxTemperature !== undefined &&
+    createForm.slope !== undefined &&
+    createForm.holdTime !== undefined &&
+    createForm.humidity !== undefined
   )
 })
 
 const detailDialogVisible = ref(false)
 const currentOrder = ref<HighTemperatureOrderDetail | null>(null)
-
 type StatusTagType = "success" | "warning" | "info" | "primary" | "danger"
+
+const displayWithUnit = (value: unknown, unit: string) => {
+  if (value === undefined || value === null || value === "") return "-"
+  return `${value}${unit}`
+}
 
 const getStatusType = (status: number | string): StatusTagType | undefined => {
   const map: Record<string, StatusTagType | undefined> = {
@@ -287,18 +373,35 @@ const handleCurrentChange = (page: number) => {
 
 const showCreateDialog = () => {
   Object.assign(createForm, {
-    testPlatform: "高温箱测试台",
-    testDate: new Date(),
-    runTime: 0,
-    deviceName: "",
-    deviceNumber: "",
-    taskNumber: "",
-    targetTemp: "",
+    testApplicationUnit: "",
+    researchNumber: "",
+    projectBudgetNumber: "",
+    projectName: "",
     applicant: "",
+    applicantPhone: "",
+    applicationDate: new Date().toISOString().split("T")[0],
+    specification: "",
+    instrumentName: "",
+    snNumbers: "",
+    maxTemperature: undefined,
+    slope: undefined,
+    holdTime: undefined,
+    humidity: undefined,
     remark: ""
   })
   createDialogVisible.value = true
 }
+
+const buildCreatePayload = () => ({
+  ...createForm,
+  instruments: [
+    {
+      instrumentName: createForm.instrumentName.trim(),
+      snNumbers: createForm.snNumbers.trim(),
+      quantity: 1
+    }
+  ]
+})
 
 const handleCreate = async () => {
   if (!createFormRef.value) return
@@ -306,7 +409,7 @@ const handleCreate = async () => {
     if (!valid) return
     createLoading.value = true
     try {
-      const res = await createHighTemperatureOrder(createForm)
+      const res = await createHighTemperatureOrder(buildCreatePayload())
       if (res && res.code === 0) {
         ElMessage.success("创建成功")
         createDialogVisible.value = false
@@ -323,7 +426,7 @@ const handleCreate = async () => {
     }
   })
 }
-// 查看详情
+
 const handleDetail = async (row: HighTemperatureOrderListItem) => {
   try {
     const res = await getHighTemperatureOrderDetail(row.id)
@@ -411,5 +514,8 @@ onMounted(() => {
 }
 .el-link {
   margin-right: 8px;
+}
+.detail-instrument-table {
+  margin-top: 16px;
 }
 </style>

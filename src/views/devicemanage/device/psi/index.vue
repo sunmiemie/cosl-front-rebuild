@@ -15,6 +15,7 @@ import type {
   DeviceOnlineStatus
 } from "@/api/device-instance/types"
 import { usePagination } from "@/hooks/usePagination"
+import { getDeviceOnlineStatusOptions, resolveDeviceOnlineStatus } from "./status-options"
 
 interface DeviceInstanceRow {
   id: string | number
@@ -57,6 +58,8 @@ const onlineMap: Record<DeviceOnlineStatus, { label: string; className: string }
   finished: { label: "完成", className: "finished" },
   unknown: { label: "未知", className: "unknown" }
 }
+
+const onlineStatusOptions = computed(() => getDeviceOnlineStatusOptions(formData.status))
 
 const searchData = reactive({
   serialNumber: "",
@@ -265,6 +268,13 @@ const handleDelete = async (row: DeviceInstanceRow) => {
   }
 }
 
+watch(
+  () => formData.status,
+  () => {
+    formData.onlineStatus = resolveDeviceOnlineStatus(formData.status, formData.onlineStatus)
+  }
+)
+
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: true })
 </script>
 
@@ -397,12 +407,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         </el-form-item>
         <el-form-item label="在线状态" prop="onlineStatus">
           <el-radio-group v-model="formData.onlineStatus">
-            <el-radio-button label="standby">待机</el-radio-button>
-            <el-radio-button label="testing">测试中</el-radio-button>
-            <el-radio-button label="offline">离线</el-radio-button>
-            <el-radio-button label="abnormal">异常</el-radio-button>
-            <el-radio-button label="paused">暂停</el-radio-button>
-            <el-radio-button label="finished">完成</el-radio-button>
+            <el-radio-button v-for="item in onlineStatusOptions" :key="item" :label="item">
+              {{ onlineMap[item].label }}
+            </el-radio-button>
           </el-radio-group>
         </el-form-item>
       </el-form>
