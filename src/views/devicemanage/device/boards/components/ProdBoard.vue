@@ -76,6 +76,7 @@ const searchData = reactive({
   name: "",
   id: "",
   supplier: "",
+  serial: "",
   boardModel: ""
 })
 const DetailsearchData = reactive({
@@ -129,8 +130,8 @@ const getTableData = () => {
     size: paginationData.pageSize,
     boardmodel: searchData.boardModel,
     batchId: searchData.id,
-    batchName: searchData.name,
-    supplier: searchData.supplier
+    supplier: searchData.supplier,
+    serial: searchData.serial
   })
     .then((res) => {
       paginationData.total = res.data.total
@@ -252,6 +253,7 @@ const resetSearch = () => {
   searchData.name = ""
   searchData.id = ""
   searchData.supplier = ""
+  searchData.serial = ""
   getTableData()
 }
 
@@ -399,8 +401,8 @@ onMounted(() => {
               <el-form-item prop="seria" label="批次号">
                 <el-input v-model="searchData.id" placeholder="请输入" />
               </el-form-item>
-              <el-form-item prop="name" label="批次名称">
-                <el-input v-model="searchData.name" placeholder="请输入" />
+              <el-form-item prop="serial" label="电路板序列号">
+                <el-input v-model="searchData.serial" placeholder="请输入" />
               </el-form-item>
               <el-form-item prop="status" label="供应商">
                 <el-input v-model="searchData.supplier" placeholder="请输入" />

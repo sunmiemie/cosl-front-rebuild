@@ -42,7 +42,8 @@ const searchFormRef = ref<FormInstance | null>(null)
 // 查询
 const searchData = reactive({
   id: "",
-  user: ""
+  user: "",
+  batchId: ""
 })
 const clearSearchData = () => {
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
@@ -56,7 +57,8 @@ const getTableData = () => {
     currentPage: paginationData.currentPage,
     pageSize: paginationData.pageSize,
     id: searchData.id || undefined,
-    user: searchData.user || undefined
+    user: searchData.user || undefined,
+    batchId: searchData.batchId || undefined
   }).then((res) => {
     TableData.value = res.data.list
     paginationData.total = res.data.total
@@ -187,6 +189,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             </el-form-item>
             <el-form-item label="测试人">
               <el-input v-model="searchData.user" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item label="批次号">
+              <el-input v-model="searchData.batchId" placeholder="请输入" />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>

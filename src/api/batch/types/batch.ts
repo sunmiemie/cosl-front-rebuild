@@ -16,6 +16,7 @@ export interface GetBatchRequestData {
   batchId?: string
   batchName?: string
   supplier?: string
+  serial?: string
 }
 
 export interface GetBatchData {

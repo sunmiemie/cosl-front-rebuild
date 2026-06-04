@@ -57,6 +57,9 @@ const headers = checkPermission(["11"])
       { prop: "dev_testunit_id", label: "工单号", align: "center" },
       { prop: "order_no", label: "委托单号", align: "center" },
       { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
+      { prop: "batch_id", label: "批次号", align: "center" },
+      { prop: "sn", label: "电路板序列号", align: "center" },
+      { prop: "supplier", label: "供应商", align: "center" },
       { prop: "instrument", label: "仪器名称", align: "center" },
       { prop: "product", label: "所属产品", align: "center" },
       { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
@@ -69,6 +72,9 @@ const headers = checkPermission(["11"])
       { prop: "dev_testunit_id", label: "工单号", align: "center" },
       { prop: "order_no", label: "委托单号", align: "center" },
       { prop: "board_name_or_board_model", label: "电路板名称 / 电路板型号", align: "center" },
+      { prop: "batch_id", label: "批次号", align: "center" },
+      { prop: "sn", label: "电路板序列号", align: "center" },
+      { prop: "supplier", label: "供应商", align: "center" },
       { prop: "instrument", label: "仪器名称", align: "center" },
       { prop: "product", label: "所属产品", align: "center" },
       { prop: "dev_testunit_name", label: "测试名称", align: "center", width: "160" },
@@ -88,7 +94,10 @@ const searchData = reactive({
   TestStatus: "",
   Daterange: [] as string[],
   boardName: "",
-  boardModel: ""
+  boardModel: "",
+  batchId: "",
+  serial: "",
+  supplier: ""
 })
 const clearSearchData = () => {
   searchData.number = ""
@@ -98,6 +107,9 @@ const clearSearchData = () => {
   searchData.Daterange = []
   searchData.boardName = ""
   searchData.boardModel = ""
+  searchData.batchId = ""
+  searchData.serial = ""
+  searchData.supplier = ""
 }
 
 const initSearchFromRoute = () => {
@@ -593,6 +605,15 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         <el-form-item label="工单号">
           <el-input v-model="searchData.number" placeholder="请输入" />
         </el-form-item>
+        <el-form-item label="批次号">
+          <el-input v-model="searchData.batchId" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="电路板序列号">
+          <el-input v-model="searchData.serial" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="供应商">
+          <el-input v-model="searchData.supplier" placeholder="请输入" />
+        </el-form-item>
         <el-form-item label="电路板型号">
           <el-input v-model="searchData.boardModel" placeholder="请输入" />
         </el-form-item>
@@ -776,7 +797,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
           <el-form-item label="委托单号">
             <el-input v-model="detailform.orderNo" disabled />
           </el-form-item>
-          <el-form-item label="测试类别">
+          <el-form-item label="测试项目">
             <el-input v-model="detailform.testunitType" disabled />
           </el-form-item>
           <el-form-item label="测试内容">

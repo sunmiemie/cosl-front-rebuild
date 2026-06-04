@@ -6,6 +6,7 @@ import type * as TestMange from "@/api/testMangelist/types"
 export function getReportDataApi(params: {
   size: number
   serial: string | undefined
+  batchId?: string | undefined
   id: string | undefined
   currentPage: number
   type: string | undefined
@@ -22,6 +23,7 @@ export function getReportDataApi(params: {
 export function getBugReportDataApi(params: {
   pageSize: number
   serial: string | undefined
+  batchId?: string | undefined
   id: string | undefined
   currentPage: number
   user: string | undefined
@@ -37,6 +39,7 @@ export function getBatchReportDataApi(params: {
   currentPage: number
   id: string | undefined
   user: string | undefined
+  batchId?: string | undefined
 }) {
   return request<TestType.GetBatchReportResponseData>({
     url: "data/report/batch-report-list",
@@ -99,6 +102,7 @@ export const generateDevBatchReport = (data: any) => {
 export function getTempReportDataApi(params: {
   size: number
   serial: string | undefined
+  batchId?: string | undefined
   id: string | undefined
   currentPage: number
   type: string | undefined

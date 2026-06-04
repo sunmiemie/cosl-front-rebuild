@@ -113,6 +113,47 @@ const defineLink = (status: any) => {
   }
 }
 const TreeData = ref<any>([])
+const RawTreeData = ref<any[]>([])
+const onlyShowWithProcess = ref(false)
+const processFilterLoading = ref(false)
+const boardProcessCache = reactive<Record<string, boolean>>({})
+
+const hasProcess = async (boardModelId: string | number) => {
+  const cacheKey = String(boardModelId)
+  if (boardProcessCache[cacheKey] !== undefined) return boardProcessCache[cacheKey]
+  const res = await getTestProcessList({ boardModel_id: boardModelId })
+  const result = Array.isArray(res.data) && res.data.length > 0
+  boardProcessCache[cacheKey] = result
+  return result
+}
+
+const filterTreeWithProcess = async (nodes: any[]): Promise<any[]> => {
+  const result: any[] = []
+  for (const node of nodes) {
+    if (Array.isArray(node.children) && node.children.length > 0) {
+      const children = await filterTreeWithProcess(node.children)
+      if (children.length > 0) {
+        result.push({ ...node, children })
+      }
+    } else if (await hasProcess(node.id)) {
+      result.push(node)
+    }
+  }
+  return result
+}
+
+const syncTreeData = async () => {
+  if (!onlyShowWithProcess.value) {
+    TreeData.value = RawTreeData.value
+    return
+  }
+  processFilterLoading.value = true
+  try {
+    TreeData.value = await filterTreeWithProcess(RawTreeData.value)
+  } finally {
+    processFilterLoading.value = false
+  }
+}
 const getTreeData = () => {
   treeLoading.value = true
   // 仪器
@@ -122,7 +163,8 @@ const getTreeData = () => {
     isTree: true
   })
     .then((res) => {
-      TreeData.value = res.data.list
+      RawTreeData.value = res.data.list
+      syncTreeData()
     })
     .catch(() => {
       TreeData.value = []
@@ -271,6 +313,7 @@ const filterNode = (value: string, data: any) => {
 watch(filterText, (val) => {
   treeRef.value!.filter(val)
 })
+watch(onlyShowWithProcess, syncTreeData)
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTreeData, { immediate: true })
 watch([() => paginationData.currentPage, () => paginationData.pageSize], getTableData, { immediate: false })
 watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSize], getDetailTableData, {
@@ -438,9 +481,12 @@ onMounted(() => {
         <el-tab-pane label="普通测试工艺" name="normal">
           <el-row :gutter="20">
             <el-col :span="5">
-              <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
+              <el-card v-loading="treeLoading || processFilterLoading" shadow="never" style="height: 100%">
                 <template #header>
-                  <el-input v-model="filterText" placeholder="搜索" />
+                  <el-space direction="vertical" alignment="stretch" style="width: 100%">
+                    <el-input v-model="filterText" placeholder="搜索" />
+                    <el-checkbox v-model="onlyShowWithProcess">仅显示有工艺</el-checkbox>
+                  </el-space>
                 </template>
                 <el-tree
                   ref="treeRef"
