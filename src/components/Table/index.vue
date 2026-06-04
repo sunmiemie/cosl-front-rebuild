@@ -18,7 +18,7 @@ export default defineComponent({
     stripe: Boolean,
     rowKey: {
       type: [String, Function],
-      default: (row) => row.id || row.date || row.index
+      default: () => (row) => row.id ?? row.date ?? row.index
     }
   },
   emits: ["selection-change", "current-change"],
