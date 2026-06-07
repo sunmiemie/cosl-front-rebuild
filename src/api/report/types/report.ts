@@ -1,4 +1,5 @@
 export interface GetReportData {
+  report_number?: string
   id: string
   name: string
   type: string
@@ -28,6 +29,8 @@ export type GetSingleReportResponseData = ApiResponseData<ReportQueryData>
 export type CheckReportResponseData = ApiResponseData<any>
 
 export interface GetBugReportData {
+  report_id?: number | string
+  report_number?: string
   id: string
   name: string
   boardId: string
@@ -43,6 +46,8 @@ export type GetBugReportResponseData = ApiResponseData<{
 }>
 
 export interface GetBatchReportData {
+  report_id?: number | string
+  report_number?: string
   id: string
   name: string
   report_filepath: string

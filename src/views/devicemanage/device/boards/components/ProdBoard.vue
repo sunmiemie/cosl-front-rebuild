@@ -356,10 +356,10 @@ onMounted(() => {
 
 <template>
   <!-- 设置列之间的间距 -->
-  <el-row :gutter="20">
+  <el-row class="board-layout" :gutter="20">
     <!-- 设置列占据的宽度 -->
-    <el-col :span="5">
-      <el-card v-loading="treeLoading" shadow="never" style="height: 100%">
+    <el-col class="board-tree-col" :span="5">
+      <el-card v-loading="treeLoading" class="board-tree-card" shadow="never">
         <!-- 1 代表添加电路板权限 -->
         <template #header>
           <el-button
@@ -374,72 +374,80 @@ onMounted(() => {
           <el-input v-model="filterText" placeholder="搜索" />
         </template>
 
-        <el-tree
-          ref="treeRef"
-          class="filter-tree"
-          :data="TreeData"
-          :props="defaultProps"
-          node-key="id"
-          :default-expanded-keys="[1]"
-          accordion
-          :filter-node-method="filterNode"
-          @node-click="handleNodeClick"
-        />
+        <el-scrollbar class="tree-scrollbar" always>
+          <el-tree
+            ref="treeRef"
+            class="filter-tree"
+            :data="TreeData"
+            :props="defaultProps"
+            node-key="id"
+            :default-expanded-keys="[1]"
+            accordion
+            :filter-node-method="filterNode"
+            @node-click="handleNodeClick"
+          />
+        </el-scrollbar>
       </el-card>
     </el-col>
 
-    <el-col v-if="searchData.boardModel === ''" :span="19">
-      <el-card shadow="never" style="height: 100%">
+    <el-col v-if="searchData.boardModel === ''" class="board-result-col" :span="19">
+      <el-card class="board-empty-card" shadow="never">
         <el-empty description="请选择电路板型号" />
       </el-card>
     </el-col>
-    <el-col v-else :span="19">
-      <div class="affix-container">
-        <el-affix target=".affix-container" :offset="120">
-          <el-card shadow="never" class="search-wrapper">
-            <el-form ref="searchFormRef" :inline="true" :model="searchData">
-              <el-form-item prop="seria" label="批次号">
-                <el-input v-model="searchData.id" placeholder="请输入" />
-              </el-form-item>
-              <el-form-item prop="serial" label="电路板序列号">
-                <el-input v-model="searchData.serial" placeholder="请输入" />
-              </el-form-item>
-              <el-form-item prop="status" label="供应商">
-                <el-input v-model="searchData.supplier" placeholder="请输入" />
-              </el-form-item>
-              <el-form-item>
-                <el-button type="primary" icon="search" @click="handleSearch">查询</el-button>
-                <el-button icon="refresh" @click="resetSearch">重置</el-button>
-              </el-form-item>
-            </el-form>
-          </el-card>
-        </el-affix>
-        <el-card v-loading="loading" shadow="never">
-          <div class="toolbar-wrapper">
-            <div>
-              <el-tooltip content="刷新当前页">
-                <el-button type="primary" icon="refresh-right" circle @click="getTableData" />
-              </el-tooltip>
+    <el-col v-else class="board-result-col" :span="19">
+      <div class="board-result">
+        <el-card shadow="never" class="search-wrapper">
+          <el-form ref="searchFormRef" :inline="true" :model="searchData">
+            <el-form-item prop="seria" label="批次号">
+              <el-input v-model="searchData.id" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item prop="serial" label="电路板序列号">
+              <el-input v-model="searchData.serial" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item prop="status" label="供应商">
+              <el-input v-model="searchData.supplier" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item>
+              <el-button type="primary" icon="search" @click="handleSearch">查询</el-button>
+              <el-button icon="refresh" @click="resetSearch">重置</el-button>
+            </el-form-item>
+          </el-form>
+        </el-card>
+        <el-card v-loading="loading" class="board-table-card" shadow="never">
+          <div class="board-table-scroll">
+            <div class="toolbar-wrapper">
+              <div>
+                <el-tooltip content="刷新当前页">
+                  <el-button type="primary" icon="refresh-right" circle @click="getTableData" />
+                </el-tooltip>
+              </div>
             </div>
-          </div>
-          <div class="table-wrapper">
-            <TableComponent :tableData="BatchData" :column-data="batchHeaders" stripe>
-              <template #link="{ row }">
-                <el-link type="primary" class="el-link" @click="handleLink(row, '批次详情')"> 批次详情 </el-link>
-              </template>
-            </TableComponent>
-          </div>
-          <div class="pager-wrapper">
-            <el-pagination
-              background
-              :layout="paginationData.layout"
-              :page-sizes="paginationData.pageSizes"
-              :total="paginationData.total"
-              :page-size="paginationData.pageSize"
-              :currentPage="paginationData.currentPage"
-              @size-change="handleSizeChange"
-              @current-change="handleCurrentChange"
-            />
+            <div class="table-wrapper table-scroll-region">
+              <TableComponent
+                class="board-data-table"
+                height="100%"
+                :tableData="BatchData"
+                :column-data="batchHeaders"
+                stripe
+              >
+                <template #link="{ row }">
+                  <el-link type="primary" class="el-link" @click="handleLink(row, '批次详情')"> 批次详情 </el-link>
+                </template>
+              </TableComponent>
+            </div>
+            <div class="pager-wrapper">
+              <el-pagination
+                background
+                :layout="paginationData.layout"
+                :page-sizes="paginationData.pageSizes"
+                :total="paginationData.total"
+                :page-size="paginationData.pageSize"
+                :currentPage="paginationData.currentPage"
+                @size-change="handleSizeChange"
+                @current-change="handleCurrentChange"
+              />
+            </div>
           </div>
         </el-card>
       </div>
@@ -598,8 +606,97 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
+.board-layout {
+  height: 100%;
+  min-height: 0;
+}
+
+.board-tree-col,
+.board-result-col {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.board-tree-card,
+.board-empty-card,
+.board-result,
+.board-table-card {
+  height: 100%;
+  min-height: 0;
+}
+
+.board-tree-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  :deep(> .el-card__body) {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+  }
+}
+
+.tree-scrollbar {
+  height: 100%;
+
+  :deep(.el-scrollbar__view) {
+    padding: 12px 16px 16px;
+  }
+}
+
+.board-empty-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.board-result {
+  display: flex;
+  flex-direction: column;
+}
+
+.board-table-card {
+  flex: 1;
+  overflow: hidden;
+
+  :deep(> .el-card__body) {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+}
+
+.board-table-scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.table-scroll-region {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.board-data-table {
+  height: 100%;
+
+  :deep(.el-table__body-wrapper) {
+    scrollbar-gutter: stable;
+  }
+}
+
 .search-wrapper {
   margin-bottom: 20px;
+  flex: 0 0 auto;
 
   :deep(.el-card__body) {
     padding-bottom: 2px;

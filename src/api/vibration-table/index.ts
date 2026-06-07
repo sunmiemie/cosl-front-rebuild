@@ -1,5 +1,11 @@
 import { request } from "@/utils/service"
-import type { VibrationInstrument, VibrationTableOrderDetail, VibrationTableOrderListItem } from "./types"
+import type {
+  VibrationInstrument,
+  VibrationPreExperiment,
+  VibrationPreExperimentAttachment,
+  VibrationTableOrderDetail,
+  VibrationTableOrderListItem
+} from "./types"
 
 type SnakeInstrument = {
   id?: number
@@ -10,6 +16,33 @@ type SnakeInstrument = {
   weight?: string
   length?: string
   max_diameter?: string
+}
+
+type SnakePreExperimentAttachment = {
+  field?: string
+  type?: string
+  name?: string
+  file_name?: string
+  file_url?: string
+  media_path?: string
+  local_path?: string
+  size?: number
+  content_type?: string
+}
+
+type SnakePreExperiment = {
+  id: number
+  order?: number
+  order_id?: number
+  experiment_no?: number
+  tester?: string
+  summary?: Record<string, any>
+  records?: Array<Record<string, any>>
+  attachments?: SnakePreExperimentAttachment[]
+  export_dir?: string
+  client_submit_id?: string
+  created_at?: string
+  updated_at?: string
 }
 
 type SnakeOrder = {
@@ -42,6 +75,7 @@ type SnakeOrder = {
   test_steps?: string
   safety_risks?: string
   instruments?: SnakeInstrument[]
+  pre_experiments?: SnakePreExperiment[]
   instrument_count?: number
   status?: number
   status_text?: string
@@ -80,6 +114,32 @@ const toSnakeInstrument = (instrument: VibrationInstrument): SnakeInstrument => 
   max_diameter: instrument.maxDiameter || ""
 })
 
+const toPreExperimentAttachment = (attachment: SnakePreExperimentAttachment): VibrationPreExperimentAttachment => ({
+  field: attachment.field,
+  type: attachment.type,
+  name: attachment.name,
+  fileName: attachment.file_name,
+  fileUrl: attachment.file_url,
+  mediaPath: attachment.media_path,
+  localPath: attachment.local_path,
+  size: attachment.size,
+  contentType: attachment.content_type
+})
+
+const toPreExperiment = (item: SnakePreExperiment): VibrationPreExperiment => ({
+  id: item.id,
+  orderId: item.order_id ?? item.order ?? 0,
+  experimentNo: item.experiment_no ?? 0,
+  tester: item.tester || "",
+  summary: item.summary || {},
+  records: Array.isArray(item.records) ? item.records : [],
+  attachments: (item.attachments || []).map(toPreExperimentAttachment),
+  exportDir: item.export_dir || "",
+  clientSubmitId: item.client_submit_id || "",
+  createdAt: item.created_at,
+  updatedAt: item.updated_at
+})
+
 function toListItem(order: SnakeOrder): VibrationTableOrderListItem {
   const instruments = (order.instruments || []).map(toInstrument)
   return {
@@ -112,6 +172,7 @@ function toListItem(order: SnakeOrder): VibrationTableOrderListItem {
     safetyRisks: order.safety_risks || "",
     instrumentCount: order.instrument_count ?? instruments.length,
     instruments,
+    preExperiments: (order.pre_experiments || []).map(toPreExperiment),
     status: order.status ?? 0,
     statusText: order.status_text
   }
@@ -216,5 +277,21 @@ export function deleteVibrationTableOrder(id: number) {
   return request<any>({
     url: `test/vibration-table/order/delete/${id}/`,
     method: "delete"
+  })
+}
+
+export function downloadVibrationTablePreExperimentZip(id: number) {
+  return request<Blob>({
+    url: `test/vibration-table/pre-experiment/download/${id}/`,
+    method: "get",
+    responseType: "blob"
+  })
+}
+
+export function downloadVibrationTableOrderPreExperimentsZip(orderId: number) {
+  return request<Blob>({
+    url: `test/vibration-table/order/pre-experiments/download/${orderId}/`,
+    method: "get",
+    responseType: "blob"
   })
 }

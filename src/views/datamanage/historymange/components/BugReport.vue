@@ -30,7 +30,7 @@ watch(
 const loading = ref(false)
 
 const headers = ref([
-  { prop: "report_id", label: "报告编号", align: "center" },
+  { prop: "report_number", label: "报告编号", align: "center" },
   { prop: "report_name", label: "报告名称", align: "center" },
   { prop: "board_info", label: "电路板", align: "center" },
   { prop: "batch_id", label: "批次号", align: "center" },
