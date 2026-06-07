@@ -8,6 +8,32 @@ export type VibrationInstrument = {
   maxDiameter?: string
 }
 
+export type VibrationPreExperimentAttachment = {
+  field?: string
+  type?: string
+  name?: string
+  fileName?: string
+  fileUrl?: string
+  mediaPath?: string
+  localPath?: string
+  size?: number
+  contentType?: string
+}
+
+export type VibrationPreExperiment = {
+  id: number
+  orderId: number
+  experimentNo: number
+  tester?: string
+  summary: Record<string, any>
+  records: Array<Record<string, any>>
+  attachments: VibrationPreExperimentAttachment[]
+  exportDir?: string
+  clientSubmitId?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 export type VibrationTableOrderListItem = {
   id: number
   tableNo: string
@@ -38,6 +64,7 @@ export type VibrationTableOrderListItem = {
   safetyRisks?: string
   instrumentCount?: number
   instruments?: VibrationInstrument[]
+  preExperiments?: VibrationPreExperiment[]
   status: number
   statusText?: string
 }

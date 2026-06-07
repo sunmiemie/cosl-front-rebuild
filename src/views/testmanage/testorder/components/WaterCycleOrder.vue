@@ -274,7 +274,7 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="760px">
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
       <div v-if="currentOrder" class="detail-content">
         <div class="detail-section-title">基础编号</div>
         <el-descriptions :column="2" border>
@@ -302,9 +302,9 @@
 
         <div class="detail-section-title">待测仪器</div>
         <el-table :data="getInstrumentRows(currentOrder)" border>
-          <el-table-column prop="instrument_name" label="待测仪器" min-width="160" />
-          <el-table-column prop="sn_numbers" label="仪器SN号（资产号，多个）" min-width="220" show-overflow-tooltip />
-          <el-table-column prop="quantity" label="数量" width="90" align="center" />
+          <el-table-column prop="instrument_name" label="待测仪器" min-width="130" />
+          <el-table-column prop="sn_numbers" label="仪器SN号（资产号，多个）" min-width="160" />
+          <el-table-column prop="quantity" label="数量" width="76" align="center" />
         </el-table>
 
         <div class="detail-section-title">测试配置</div>

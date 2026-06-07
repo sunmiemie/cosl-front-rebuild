@@ -50,6 +50,7 @@ const headers = ref([
   { prop: "product", label: "产品", align: "center" },
   { prop: "instrument", label: "仪器", align: "center" },
   { prop: "model_or_name", label: "电路板型号名称", align: "center" },
+  { prop: "batch_id", label: "批次号", align: "center" },
   { prop: "boardSerial", label: "序列号", align: "center" },
   { prop: "type", label: "报告类型", align: "center" },
   { prop: "user", label: "测试人", align: "center" },
@@ -75,6 +76,7 @@ const searchData = reactive({
   id: "",
   user: "",
   type: "",
+  batchId: "",
   serial: "",
   dateTimeRange: [] as string[],
   instrument: ""
@@ -83,6 +85,7 @@ const clearSearchData = () => {
   searchData.id = ""
   searchData.user = ""
   searchData.type = ""
+  searchData.batchId = ""
   searchData.serial = ""
   searchData.dateTimeRange = []
   searchData.instrument = ""
@@ -109,6 +112,7 @@ const getTableData = () => {
     id: searchData.id || undefined,
     user: searchData.user || undefined,
     type: searchData.type || undefined,
+    batchId: searchData.batchId || undefined,
     serial: searchData.serial || undefined,
     dateTimeRange: dateTimeRange || undefined,
     instrument: searchData.instrument || undefined
@@ -344,6 +348,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       </el-form-item>
       <el-form-item label="测试人">
         <el-input v-model="searchData.user" placeholder="请输入" />
+      </el-form-item>
+      <el-form-item label="批次号">
+        <el-input v-model="searchData.batchId" placeholder="请输入" />
       </el-form-item>
       <el-form-item label="电路板序列号">
         <el-input v-model="searchData.serial" placeholder="请输入" />

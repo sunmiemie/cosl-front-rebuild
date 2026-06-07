@@ -27,6 +27,8 @@ const viewerVisible = ref<boolean>(false)
 const headers = ref([
   { prop: "questionunit_id", label: "疑问工单号", align: "center" },
   { prop: "testunit_id", label: "关联测试工单", align: "center" },
+  { prop: "batch_id", label: "批次号", align: "center" },
+  { prop: "board_serial", label: "电路板序列号", align: "center" },
   { prop: "questionunit_name", label: "疑问工单名称", align: "center" },
   { prop: "questionunit_starttime", label: "生成时间", align: "center" },
   { prop: "questionunit_endtime", label: "结束时间", align: "center" },
@@ -40,7 +42,10 @@ const questionList = ref<any>([])
 const reportJson = ref<any>([])
 const searchData = reactive({
   id: "",
-  status: ""
+  status: "",
+  batchId: "",
+  serial: "",
+  supplier: ""
 })
 const defineLink = (status: string) => {
   switch (status) {
@@ -58,7 +63,10 @@ const getTableData = () => {
     currentPage: paginationData.currentPage,
     size: paginationData.pageSize,
     id: searchData.id,
-    status: searchData.status
+    status: searchData.status,
+    batchId: searchData.batchId,
+    serial: searchData.serial,
+    supplier: searchData.supplier
   })
     .then((res) => {
       TableData.value = res.list
@@ -135,6 +143,9 @@ const hasProperty = (obj, prop) => {
 const resetSearch = () => {
   searchData.id = ""
   searchData.status = ""
+  searchData.batchId = ""
+  searchData.serial = ""
+  searchData.supplier = ""
   handleSearch()
 }
 const uploadFunc = () => {
@@ -333,6 +344,15 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
       <el-form :inline="true" :model="searchData">
         <el-form-item label="疑问工单号" prop="number">
           <el-input v-model="searchData.id" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="批次号" prop="batchId">
+          <el-input v-model="searchData.batchId" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="电路板序列号" prop="serial">
+          <el-input v-model="searchData.serial" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="供应商" prop="supplier">
+          <el-input v-model="searchData.supplier" placeholder="请输入" />
         </el-form-item>
         <el-form-item label="工单状态" prop="username">
           <el-select v-model="searchData.status" placeholder="请选择" style="width: 200px">

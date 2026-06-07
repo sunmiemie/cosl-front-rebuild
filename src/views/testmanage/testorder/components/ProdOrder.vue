@@ -60,6 +60,9 @@ const headers = checkPermission(["11"])
   ? ref([
       { prop: "testunit_id", label: "工单号", align: "center" },
       { prop: "boardmodel_name", label: "电路板类型", align: "center" },
+      { prop: "batch_id", label: "批次号", align: "center" },
+      { prop: "board_serial", label: "电路板序列号", align: "center" },
+      { prop: "supplier", label: "供应商", align: "center" },
       { prop: "instrument", label: "仪器名称", align: "center" },
       { prop: "product", label: "所属产品", align: "center" },
       { prop: "testunit_name", label: "测试名称", align: "center" },
@@ -73,6 +76,9 @@ const headers = checkPermission(["11"])
   : ref([
       { prop: "testunit_id", label: "工单号", align: "center" },
       { prop: "boardmodel_name", label: "电路板类型", align: "center" },
+      { prop: "batch_id", label: "批次号", align: "center" },
+      { prop: "board_serial", label: "电路板序列号", align: "center" },
+      { prop: "supplier", label: "供应商", align: "center" },
       { prop: "instrument", label: "仪器名称", align: "center" },
       { prop: "product", label: "所属产品", align: "center" },
       { prop: "testunit_name", label: "测试名称", align: "center" },
@@ -95,6 +101,9 @@ const searchFormRef = ref<FormInstance | null>(null)
 
 const searchData = reactive({
   number: "",
+  batchId: "",
+  serial: "",
+  supplier: "",
   TestName: "",
   TestType: "",
   TestStatus: "",
@@ -102,6 +111,9 @@ const searchData = reactive({
 })
 const clearSearchData = () => {
   searchData.number = ""
+  searchData.batchId = ""
+  searchData.serial = ""
+  searchData.supplier = ""
   searchData.TestName = ""
   searchData.TestType = ""
   searchData.TestStatus = ""
@@ -415,6 +427,9 @@ const TestStatus = [
   { status: 8, mes: "疑问待处理" }
 ]
 
+const testProjectOptions = ["PCBA", "部件类", "连接器及线束线缆", "电子器件"]
+const testContentOptions = ["焊接质量", "压接质量", "故障排查", "质量排查"]
+
 // 确认发布或删除
 const confirm = async (value: string) => {
   if (value === "发布") {
@@ -468,6 +483,7 @@ const clickNode = async (data: NodeData & any, node: any) => {
     boardModelId: CircuitBoardModelId.value
   })
   boardTableData.value = result.data
+  syncSelectedTestsByOrderType()
   boardInfoLoading.value = false
   getTestTypeData()
   getTestProcessList({
@@ -571,11 +587,24 @@ defineExpose({ getTestunits })
 
 const orderFormRef = ref<FormInstance | null>(null)
 const orderInfo = reactive<any>({
+  testType: "",
   testUnitType: "",
   testUnitDesc: "",
   consignor: "",
   orderNo: ""
 })
+
+function syncSelectedTestsByOrderType() {
+  const selectedType = orderInfo.testType
+  boardTableData.value.forEach((row: any) => {
+    const available = Array.isArray(row.available) ? row.available : []
+    row.selectedTest = selectedType
+      ? available.filter((item: any) => String(item.id) === String(selectedType))
+      : [...available]
+    row.checkAll = available.length > 0 && row.selectedTest.length === available.length
+    row.isInd = row.selectedTest.length > 0 && row.selectedTest.length < available.length
+  })
+}
 
 /** 监听分页参数的变化 */
 watch(
@@ -602,6 +631,15 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
         <el-form ref="searchFormRef" :inline="true" :model="searchData">
           <el-form-item label="工单号">
             <el-input v-model="searchData.number" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="批次号">
+            <el-input v-model="searchData.batchId" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="电路板序列号">
+            <el-input v-model="searchData.serial" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="供应商">
+            <el-input v-model="searchData.supplier" placeholder="请输入" />
           </el-form-item>
           <el-form-item label="测试名称">
             <el-input v-model="searchData.TestName" placeholder="请输入" />
@@ -705,7 +743,13 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
   </div>
 
   <!-- 详情 -->
-  <el-drawer v-model="drawerVisible" :append-to-body="true" :with-header="false" size="1005">
+  <el-drawer
+    v-model="drawerVisible"
+    :append-to-body="true"
+    :with-header="false"
+    size="var(--test-order-detail-drawer-size)"
+    class="test-order-detail-drawer"
+  >
     <header class="drawer-head">
       <el-page-header @back="drawerVisible = false">
         <template #content>
@@ -864,11 +908,32 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
                   <el-col :span="9">
                     <el-card shadow="never" style="margin-top: 10px">
                       <el-form ref="orderFormRef" :model="orderInfo" label-position="left" label-width="auto">
-                        <el-form-item label="测试类别">
-                          <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
+                        <el-form-item label="测试类型">
+                          <el-select
+                            v-model="orderInfo.testType"
+                            placeholder="请选择"
+                            clearable
+                            filterable
+                            @visible-change="getTestTypeData"
+                            @change="syncSelectedTestsByOrderType"
+                          >
+                            <el-option
+                              v-for="item in testTypeList"
+                              :label="item.name"
+                              :value="item.number"
+                              :key="item.id"
+                            />
+                          </el-select>
+                        </el-form-item>
+                        <el-form-item label="测试项目">
+                          <el-select v-model="orderInfo.testUnitType" placeholder="请选择">
+                            <el-option v-for="item in testProjectOptions" :key="item" :label="item" :value="item" />
+                          </el-select>
                         </el-form-item>
                         <el-form-item label="测试内容">
-                          <el-input v-model="orderInfo.testUnitDesc" type="textarea" placeholder="请输入" />
+                          <el-select v-model="orderInfo.testUnitDesc" placeholder="请选择">
+                            <el-option v-for="item in testContentOptions" :key="item" :label="item" :value="item" />
+                          </el-select>
                         </el-form-item>
                         <el-form-item label="委托人">
                           <el-input v-model="orderInfo.consignor" placeholder="请输入" />

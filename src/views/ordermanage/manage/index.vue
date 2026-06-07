@@ -246,8 +246,8 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailVisible" title="委托单详情" size="680px">
-      <div v-if="detailData">
+    <el-drawer v-model="detailVisible" title="委托单详情" size="860px" class="commission-detail-drawer">
+      <div v-if="detailData" class="commission-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="委托单编号">{{ detailData.basic?.["委托单编号"] }}</el-descriptions-item>
           <el-descriptions-item label="委托单位">{{ detailData.basic?.["委托单位"] }}</el-descriptions-item>
@@ -272,13 +272,32 @@
         </el-descriptions>
 
         <el-divider>样品明细</el-divider>
-        <el-table :data="detailData.samples || []" border stripe style="width: 100%">
-          <el-table-column prop="样品名称" label="样品名称" min-width="140" />
-          <el-table-column prop="分类" label="分类" min-width="120" />
-          <el-table-column prop="规格型号" label="规格型号" min-width="140" />
-          <el-table-column prop="数量" label="数量" width="80" />
-          <el-table-column prop="生产厂家" label="生产厂家" min-width="140" />
-          <el-table-column prop="项目名称" label="项目名称" min-width="140" />
+        <el-table :data="detailData.samples || []" border stripe class="detail-sample-table">
+          <el-table-column prop="样品名称" label="样品名称" min-width="130" show-overflow-tooltip />
+          <el-table-column prop="分类" label="分类" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="规格型号" label="规格型号" min-width="130" show-overflow-tooltip />
+          <el-table-column prop="数量" label="数量" width="72" align="center" />
+          <el-table-column prop="生产厂家" label="生产厂家" min-width="130" show-overflow-tooltip />
+          <el-table-column prop="项目名称" label="项目名称" min-width="130" show-overflow-tooltip />
+        </el-table>
+
+        <el-divider>相关项目</el-divider>
+        <el-table
+          v-loading="relatedProjectLoading"
+          :data="relatedProjects"
+          border
+          stripe
+          class="related-project-table"
+          empty-text="暂无关联项目"
+        >
+          <el-table-column prop="sn" label="SN号" min-width="110" show-overflow-tooltip />
+          <el-table-column prop="name" label="样品名称" min-width="110" show-overflow-tooltip />
+          <el-table-column prop="spec" label="规格型号" min-width="110" show-overflow-tooltip />
+          <el-table-column prop="qty" label="数量" width="64" align="center" />
+          <el-table-column prop="device" label="检测设备" min-width="110" show-overflow-tooltip />
+          <el-table-column prop="hours" label="工时(h)" width="80" align="center" />
+          <el-table-column prop="inspector" label="检测人" width="82" show-overflow-tooltip />
+          <el-table-column prop="doneAt" label="完成时间" min-width="120" show-overflow-tooltip />
         </el-table>
       </div>
     </el-drawer>
@@ -290,6 +309,7 @@ import { ref, reactive, onMounted } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
 import { Plus } from "@element-plus/icons-vue"
 import { request } from "@/utils/service"
+import { getRelatedProjectsByCommissionNo, type RelatedProjectRow } from "./related-projects"
 
 type Row = {
   id: number
@@ -548,8 +568,35 @@ const handleDelete = async (row: Row) => {
 
 const detailVisible = ref(false)
 const detailData = ref<any>(null)
+const relatedProjectLoading = ref(false)
+const relatedProjects = ref<RelatedProjectRow[]>([])
+
+const loadRelatedProjects = (commissionNo: string) => {
+  relatedProjectLoading.value = true
+  relatedProjects.value = []
+  request({
+    url: "data/commission-board-relation/list",
+    method: "get",
+    params: {
+      currentPage: 1,
+      pageSize: 1000,
+      search: commissionNo
+    }
+  })
+    .then((res: any) => {
+      relatedProjects.value = getRelatedProjectsByCommissionNo(res.data?.list || [], commissionNo)
+    })
+    .catch(() => {
+      relatedProjects.value = []
+      ElMessage.error("获取相关项目失败")
+    })
+    .finally(() => {
+      relatedProjectLoading.value = false
+    })
+}
 
 const openDetail = (row: Row) => {
+  relatedProjects.value = []
   request({
     url: "data/commission-order/detail",
     method: "get",
@@ -558,6 +605,7 @@ const openDetail = (row: Row) => {
     .then((res: any) => {
       detailData.value = res.data
       detailVisible.value = true
+      loadRelatedProjects(row.commission_no)
     })
     .catch(() => {
       ElMessage.error("获取详情失败")
@@ -587,5 +635,18 @@ onMounted(() => {
   margin-bottom: 12px;
   display: flex;
   justify-content: flex-end;
+}
+.commission-detail {
+  min-width: 0;
+}
+.detail-sample-table,
+.related-project-table {
+  width: 100%;
+}
+
+@media (max-width: 920px) {
+  :deep(.commission-detail-drawer) {
+    width: 92vw !important;
+  }
 }
 </style>

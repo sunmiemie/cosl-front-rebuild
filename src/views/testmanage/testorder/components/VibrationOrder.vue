@@ -282,7 +282,7 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="760px">
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
       <div v-if="currentOrder" class="detail-content">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="表格编号">{{ currentOrder.tableNo }}</el-descriptions-item>
@@ -307,7 +307,7 @@
           <el-descriptions-item label="振动方向">{{ currentOrder.vibrationDirection || "-" }}</el-descriptions-item>
           <el-descriptions-item label="量级">{{ currentOrder.level || "-" }}</el-descriptions-item>
           <el-descriptions-item label="加速度">{{ currentOrder.acceleration || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="振动时长">{{ currentOrder.duration || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="振动时长(min)">{{ currentOrder.duration || "-" }}</el-descriptions-item>
           <el-descriptions-item label="斜率">{{ currentOrder.slope || "-" }}</el-descriptions-item>
           <el-descriptions-item label="频率">{{ currentOrder.frequency || "-" }}</el-descriptions-item>
           <el-descriptions-item label="振动次数">{{ currentOrder.vibrationTimes || "-" }}</el-descriptions-item>
@@ -334,13 +334,82 @@
 
         <div class="detail-section-title">待测仪器</div>
         <el-table :data="currentOrder.instruments || []" border stripe>
-          <el-table-column prop="instrumentName" label="待测仪器" min-width="150" align="center" />
-          <el-table-column prop="snNumbers" label="仪器 SN 号/资产号" min-width="180" align="center" />
-          <el-table-column prop="quantity" label="数量" width="90" align="center" />
-          <el-table-column prop="weight" label="重量" width="100" align="center" />
-          <el-table-column prop="length" label="长度" width="100" align="center" />
-          <el-table-column prop="maxDiameter" label="最大直径" width="110" align="center" />
+          <el-table-column prop="instrumentName" label="待测仪器" min-width="130" align="center" />
+          <el-table-column prop="snNumbers" label="仪器 SN 号/资产号" min-width="150" align="center" />
+          <el-table-column prop="quantity" label="数量" width="76" align="center" />
+          <el-table-column prop="weight" label="重量(kg)" width="86" align="center" />
+          <el-table-column prop="length" label="长度(m)" width="86" align="center" />
+          <el-table-column prop="maxDiameter" label="最大直径(mm)" width="96" align="center" />
         </el-table>
+
+        <div class="detail-section-title pre-experiment-title">
+          <span>预实验数据</span>
+          <el-button
+            v-if="currentOrder.preExperiments?.length"
+            link
+            type="success"
+            @click="handleDownloadAllPreExperiments"
+          >
+            全部打包下载
+          </el-button>
+        </div>
+        <el-empty v-if="!currentOrder.preExperiments?.length" description="暂无预实验数据" :image-size="64" />
+        <div v-else class="pre-experiment-list">
+          <el-card
+            v-for="item in currentOrder.preExperiments"
+            :key="item.id"
+            class="pre-experiment-card"
+            shadow="never"
+          >
+            <template #header>
+              <div class="pre-experiment-card-head">
+                <div>
+                  <strong>第 {{ item.experimentNo }} 次预实验</strong>
+                  <span>{{ formatTime(item.createdAt) }}</span>
+                </div>
+                <el-button link type="success" @click="handleDownloadPreExperiment(item)">打包下载</el-button>
+              </div>
+            </template>
+            <el-descriptions :column="3" border size="small">
+              <el-descriptions-item label="操作员">{{ item.tester || "-" }}</el-descriptions-item>
+              <el-descriptions-item label="视频文件">{{ displaySummaryValue(item.summary, "source_video_name") }}</el-descriptions-item>
+              <el-descriptions-item label="采样记录">{{ displaySummaryValue(item.summary, "record_count") }}</el-descriptions-item>
+              <el-descriptions-item label="有效图像">{{
+                displaySummaryValue(item.summary, "screen_detected_count")
+              }}</el-descriptions-item>
+              <el-descriptions-item label="平均响应">{{ displaySummaryValue(item.summary, "avg_response") }}</el-descriptions-item>
+              <el-descriptions-item label="最大驱动">{{ displaySummaryValue(item.summary, "max_drive") }}</el-descriptions-item>
+              <el-descriptions-item label="本地目录" :span="3">{{ item.exportDir || "-" }}</el-descriptions-item>
+            </el-descriptions>
+            <el-table :data="item.attachments || []" border size="small" class="pre-experiment-attachment-table">
+              <el-table-column label="文件" min-width="160">
+                <template #default="{ row }">{{ attachmentTitle(row) }}</template>
+              </el-table-column>
+              <el-table-column label="路径" min-width="220">
+                <template #default="{ row }">{{ row.fileUrl || row.localPath || "-" }}</template>
+              </el-table-column>
+              <el-table-column label="大小" width="100" align="center">
+                <template #default="{ row }">{{ formatBytes(row.size) }}</template>
+              </el-table-column>
+              <el-table-column label="预览/打开" width="140" align="center">
+                <template #default="{ row }">
+                  <el-image
+                    v-if="isImageAttachment(row) && attachmentUrl(row)"
+                    :src="attachmentUrl(row)"
+                    :preview-src-list="[attachmentUrl(row)]"
+                    fit="cover"
+                    class="pre-experiment-preview"
+                    preview-teleported
+                  />
+                  <el-link v-else-if="attachmentUrl(row)" :href="attachmentUrl(row)" target="_blank" type="primary">
+                    打开
+                  </el-link>
+                  <span v-else>-</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+        </div>
       </div>
     </el-drawer>
   </div>
@@ -353,6 +422,8 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "elem
 import {
   createVibrationTableOrder,
   deleteVibrationTableOrder,
+  downloadVibrationTableOrderPreExperimentsZip,
+  downloadVibrationTablePreExperimentZip,
   getVibrationTableOrderDetail,
   getVibrationTableOrderList,
   publishVibrationTableOrder
@@ -360,6 +431,8 @@ import {
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import type {
   VibrationInstrument,
+  VibrationPreExperiment,
+  VibrationPreExperimentAttachment,
   VibrationTableOrderDetail,
   VibrationTableOrderListItem
 } from "@/api/vibration-table/types"
@@ -489,6 +562,80 @@ const getStatusType = (status: number | string): TagType => {
     "8": "warning"
   }
   return map[String(status)]
+}
+
+const formatTime = (time?: string) => {
+  if (!time) return "-"
+  const date = new Date(time)
+  if (Number.isNaN(date.getTime())) return time
+  return date.toLocaleString("zh-CN", { hour12: false })
+}
+
+const absoluteFileUrl = (url?: string) => {
+  const text = String(url || "").trim()
+  if (!text) return ""
+  if (/^https?:\/\//i.test(text)) return text
+  const base = String(import.meta.env.VITE_BASE_API || "").replace(/\/+$/, "")
+  return `${base}${text.startsWith("/") ? text : `/${text}`}`
+}
+
+const attachmentUrl = (item: VibrationPreExperimentAttachment) => absoluteFileUrl(item.fileUrl)
+
+const attachmentTitle = (item: VibrationPreExperimentAttachment) => item.name || item.fileName || item.type || "附件"
+
+const isImageAttachment = (item: VibrationPreExperimentAttachment) => {
+  const text = `${item.contentType || ""} ${item.name || ""} ${item.fileName || ""} ${item.fileUrl || ""}`.toLowerCase()
+  return text.includes("image/") || /\.(png|jpe?g|gif|webp|bmp)$/i.test(text)
+}
+
+const displaySummaryValue = (summary: Record<string, any> | undefined, key: string) => {
+  const value = summary?.[key]
+  return value === undefined || value === null || value === "" ? "-" : value
+}
+
+const formatBytes = (size?: number) => {
+  const value = Number(size || 0)
+  if (!value) return "-"
+  if (value < 1024) return `${value} B`
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`
+  return `${(value / 1024 / 1024).toFixed(1)} MB`
+}
+
+const safeFileName = (text: string) => text.replace(/[\\/:*?"<>|]+/g, "_").trim() || "预实验"
+
+const saveBlob = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+const handleDownloadPreExperiment = async (item: VibrationPreExperiment) => {
+  try {
+    const blob = await downloadVibrationTablePreExperimentZip(item.id)
+    saveBlob(blob, safeFileName(`第${item.experimentNo}次预实验.zip`))
+    ElMessage.success("下载开始")
+  } catch (error) {
+    console.error(error)
+    ElMessage.error("下载失败")
+  }
+}
+
+const handleDownloadAllPreExperiments = async () => {
+  if (!currentOrder.value) return
+  try {
+    const blob = await downloadVibrationTableOrderPreExperimentsZip(currentOrder.value.id)
+    const prefix = currentOrder.value.taskNumber || currentOrder.value.tableNo || "振动台工单"
+    saveBlob(blob, safeFileName(`${prefix}-预实验数据.zip`))
+    ElMessage.success("下载开始")
+  } catch (error) {
+    console.error(error)
+    ElMessage.error("下载失败")
+  }
 }
 
 const addInstrument = () => {
@@ -703,6 +850,46 @@ onMounted(() => {
   font-size: 14px;
   font-weight: 600;
   color: #303133;
+}
+
+.pre-experiment-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.pre-experiment-list {
+  display: grid;
+  gap: 12px;
+}
+
+.pre-experiment-card {
+  border-radius: 8px;
+}
+
+.pre-experiment-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pre-experiment-card-head span {
+  display: block;
+  margin-top: 4px;
+  color: #909399;
+  font-size: 12px;
+}
+
+.pre-experiment-attachment-table {
+  margin-top: 12px;
+}
+
+.pre-experiment-preview {
+  width: 56px;
+  height: 42px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
 }
 
 :deep(.vibration-order-dialog .el-dialog__body) {

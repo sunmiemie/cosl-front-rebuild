@@ -30,7 +30,7 @@ watch(
 const loading = ref(false)
 
 const headers = ref([
-  { prop: "report_id", label: "报告编号", align: "center" },
+  { prop: "report_number", label: "报告编号", align: "center" },
   { prop: "report_name", label: "报告名称", align: "center" },
   { prop: "user_info", label: "测试人", align: "center" },
   { prop: "created_at", label: "生成时间", align: "center" },
@@ -42,7 +42,8 @@ const searchFormRef = ref<FormInstance | null>(null)
 // 查询
 const searchData = reactive({
   id: "",
-  user: ""
+  user: "",
+  batchId: ""
 })
 const clearSearchData = () => {
   Object.keys(searchData).forEach((key) => (searchData[key] = ""))
@@ -56,7 +57,8 @@ const getTableData = () => {
     currentPage: paginationData.currentPage,
     pageSize: paginationData.pageSize,
     id: searchData.id || undefined,
-    user: searchData.user || undefined
+    user: searchData.user || undefined,
+    batchId: searchData.batchId || undefined
   }).then((res) => {
     TableData.value = res.data.list
     paginationData.total = res.data.total
@@ -187,6 +189,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             </el-form-item>
             <el-form-item label="测试人">
               <el-input v-model="searchData.user" placeholder="请输入" />
+            </el-form-item>
+            <el-form-item label="批次号">
+              <el-input v-model="searchData.batchId" placeholder="请输入" />
             </el-form-item>
             <el-form-item>
               <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>

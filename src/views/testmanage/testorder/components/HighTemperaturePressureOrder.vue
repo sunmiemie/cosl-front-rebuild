@@ -630,43 +630,49 @@ onMounted(() => {
       </div>
 
       <div class="table-wrapper">
-        <el-table :data="tableData" stripe border style="width: 100%">
-          <el-table-column prop="table_no" label="表格编号" width="160" align="center" />
-          <el-table-column prop="task_number" label="任务单编号" width="160" align="center" />
-          <el-table-column prop="applicant" label="申请人" min-width="100" align="center" />
-          <el-table-column prop="test_application_unit" label="测试申请单位" min-width="150" align="center" />
-          <el-table-column prop="project_name" label="项目名称" min-width="160" align="center" show-overflow-tooltip />
-          <el-table-column label="待测仪器" min-width="160" align="center">
+        <el-table
+          :data="tableData"
+          stripe
+          border
+          class="high-pressure-order-table"
+          table-layout="fixed"
+          style="width: 100%"
+        >
+          <el-table-column prop="table_no" label="表格编号" min-width="110" align="center" />
+          <el-table-column prop="task_number" label="任务单编号" min-width="130" align="center" />
+          <el-table-column prop="applicant" label="申请人" min-width="80" align="center" />
+          <el-table-column prop="test_application_unit" label="测试申请单位" min-width="110" align="center" />
+          <el-table-column label="待测仪器" min-width="130" align="center">
             <template #default="{ row }">
               <span>{{ row.instrument_names || "-" }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="仪器SN号" min-width="160" align="center">
+          <el-table-column label="仪器SN号" min-width="130" align="center">
             <template #default="{ row }">
               <span>{{ row.instrument_sns || "-" }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="测试类型" min-width="140" align="center">
+          <el-table-column label="测试类型" min-width="105" align="center">
             <template #default="{ row }">
               <span>{{ row.test_types || "-" }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="待测数量" width="90" align="center">
+          <el-table-column label="待测数量" min-width="70" align="center">
             <template #default="{ row }">
               <span>{{ row.instrument_count ?? 0 }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="使用设备" min-width="140" align="center">
+          <el-table-column label="使用设备" min-width="100" align="center">
             <template #default="{ row }">
               <span>{{ row.use_device || row.device_name || "-" }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="100" align="center">
+          <el-table-column label="状态" min-width="75" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">{{ row.status_text || row.status }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="160" align="center" fixed="right">
+          <el-table-column label="操作" min-width="105" align="center">
             <template #default="{ row }">
               <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
               <el-link v-if="row.status === 0" type="success" class="el-link" @click="showPublishDialog(row)"
@@ -1058,8 +1064,8 @@ onMounted(() => {
       </div>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="760px">
-      <div v-if="currentOrder" style="padding: 0 20px 24px">
+    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
+      <div v-if="currentOrder" class="detail-content">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="表格编号">{{ currentOrder.table_no || "-" }}</el-descriptions-item>
           <el-descriptions-item label="任务单号">{{ currentOrder.task_number }}</el-descriptions-item>
@@ -1109,11 +1115,11 @@ onMounted(() => {
 
         <div class="detail-section-title">待测仪器</div>
         <el-table :data="currentOrder.instruments || []" border stripe>
-          <el-table-column prop="instrument_name" label="待测仪器" min-width="150" align="center" />
-          <el-table-column prop="instrument_sn" label="仪器SN号/资产号" min-width="180" align="center" />
-          <el-table-column prop="quantity" label="数量" width="90" align="center" />
-          <el-table-column prop="instrument_length" label="仪器长度" width="110" align="center" />
-          <el-table-column prop="max_diameter" label="最大直径" width="110" align="center" />
+          <el-table-column prop="instrument_name" label="待测仪器" min-width="130" align="center" />
+          <el-table-column prop="instrument_sn" label="仪器SN号/资产号" min-width="150" align="center" />
+          <el-table-column prop="quantity" label="数量" width="76" align="center" />
+          <el-table-column prop="instrument_length" label="仪器长度" width="96" align="center" />
+          <el-table-column prop="max_diameter" label="最大直径" width="96" align="center" />
         </el-table>
       </div>
     </el-drawer>
@@ -1132,7 +1138,23 @@ onMounted(() => {
 }
 
 .table-wrapper {
+  width: 100%;
   margin-bottom: 20px;
+  overflow-x: hidden;
+}
+
+.table-wrapper :deep(.high-pressure-order-table) {
+  width: 100%;
+}
+
+.table-wrapper :deep(.el-table__inner-wrapper),
+.table-wrapper :deep(.el-table__header-wrapper),
+.table-wrapper :deep(.el-table__body-wrapper) {
+  width: 100%;
+}
+
+.table-wrapper :deep(.el-table__body-wrapper) {
+  overflow-x: hidden;
 }
 
 .pager-wrapper {

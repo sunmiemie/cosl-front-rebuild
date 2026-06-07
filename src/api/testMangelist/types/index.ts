@@ -32,6 +32,8 @@ export type inpTestMangeTableDataType = {
   boardName?: string
   boardModel?: string
   batchId?: string
+  serial?: string
+  supplier?: string
   currentPage?: any
   pageSize?: any
 }

@@ -107,7 +107,9 @@ export const getTestMangeTable = ({
   Daterange,
   currentPage,
   pageSize,
-  batchId
+  batchId,
+  serial,
+  supplier
 }: TestMange.inpTestMangeTableDataType): Promise<TestMange.getTestMangeTableType> => {
   return request<TestMange.getTestMangeTableType>({
     url: "/test/getTableData",
@@ -120,7 +122,9 @@ export const getTestMangeTable = ({
       Daterange,
       currentPage,
       pageSize,
-      batchId
+      batchId,
+      serial,
+      supplier
     }
   })
 }
@@ -160,6 +164,9 @@ export const getTempTestMangeTable = ({
   Daterange,
   boardName,
   boardModel,
+  batchId,
+  serial,
+  supplier,
   currentPage,
   pageSize
 }: TestMange.inpTestMangeTableDataType): Promise<TestMange.getTestMangeTableType> => {
@@ -174,6 +181,9 @@ export const getTempTestMangeTable = ({
       Daterange,
       boardName,
       boardModel,
+      batchId,
+      serial,
+      supplier,
       currentPage,
       pageSize
     }

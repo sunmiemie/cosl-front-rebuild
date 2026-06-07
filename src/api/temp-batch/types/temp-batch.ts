@@ -6,6 +6,7 @@ export interface GetTempBatchRequestData {
   batchId?: string
   batchName?: string
   supplier?: string
+  serial?: string
 }
 
 export interface GetTempBatchData {

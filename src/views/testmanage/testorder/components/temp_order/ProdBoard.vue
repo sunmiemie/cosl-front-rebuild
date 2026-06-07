@@ -39,6 +39,8 @@ const orderInfo = reactive<any>({
 const clearOrderInfo = () => {
   Object.keys(orderInfo).forEach((key: any) => (orderInfo[key] = ""))
 }
+const testProjectOptions = ["PCBA", "部件类", "连接器及线束线缆", "电子器件"]
+const testContentOptions = ["焊接质量", "压接质量", "故障排查", "质量排查"]
 
 const tableRef = ref<InstanceType<typeof TableComponent> | null>(null)
 
@@ -141,8 +143,8 @@ defineExpose({ getTreeData, clearOrderInfo, clearTableSelection })
 
 const formRules: FormRules = reactive({
   testType: [{ required: true, trigger: "blur", message: "请选择测试类型" }],
-  testUnitType: [{ required: true, trigger: "blur", message: "请输入测试类别" }],
-  testUnitDesc: [{ required: true, trigger: "blur", message: "请输入测试内容" }],
+  testUnitType: [{ required: true, trigger: "change", message: "请选择测试项目" }],
+  testUnitDesc: [{ required: true, trigger: "change", message: "请选择测试内容" }],
   consignor: [{ required: true, trigger: "blur", message: "请输入委托人" }]
 })
 const emit = defineEmits(["add-order", "stop-adding-order"])
@@ -288,11 +290,15 @@ onMounted(getTreeData)
                         <el-input-number v-model="orderInfo.testCount" :min="1" />
                       </el-form-item>
                     </div>
-                    <el-form-item prop="testUnitType" label="测试类别">
-                      <el-input v-model="orderInfo.testUnitType" placeholder="请输入" />
+                    <el-form-item prop="testUnitType" label="测试项目">
+                      <el-select v-model="orderInfo.testUnitType" placeholder="请选择">
+                        <el-option v-for="item in testProjectOptions" :key="item" :label="item" :value="item" />
+                      </el-select>
                     </el-form-item>
                     <el-form-item prop="testUnitDesc" label="测试内容">
-                      <el-input v-model="orderInfo.testUnitDesc" type="textarea" placeholder="请输入" />
+                      <el-select v-model="orderInfo.testUnitDesc" placeholder="请选择">
+                        <el-option v-for="item in testContentOptions" :key="item" :label="item" :value="item" />
+                      </el-select>
                     </el-form-item>
                     <el-form-item prop="consignor" label="委托人">
                       <el-input v-model="orderInfo.consignor" placeholder="请输入" />
