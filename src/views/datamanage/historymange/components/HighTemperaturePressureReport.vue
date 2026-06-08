@@ -293,6 +293,7 @@ import {
 } from "@/api/high-temp-pressure-report"
 import {
   booleanReportTagType,
+  buildHighTempPressureReportDoc,
   curveReportTagType,
   displayReportValue,
   formatReportCurveStatus,
@@ -471,16 +472,13 @@ const handleDownload = async (row: HighTempPressureReportListItem) => {
   } catch {
     report = row
   }
-  const payload = {
-    ...report,
-    exportedAt: new Date().toISOString()
-  }
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" })
+  const doc = buildHighTempPressureReportDoc(report)
+  const blob = new Blob(["\ufeff", doc.html], { type: doc.mimeType })
   const url = URL.createObjectURL(blob)
 
   const a = document.createElement("a")
   a.href = url
-  a.download = `${report.report_no}.json`
+  a.download = doc.filename
   document.body.appendChild(a)
   a.click()
   a.remove()

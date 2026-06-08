@@ -5,7 +5,7 @@ import { reactive, ref, watch, type Ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { ElMessage, ElMessageBox, ElTree, type FormInstance, type TabsPaneContext } from "element-plus"
 import { ElButton, ElDrawer } from "element-plus"
-import { CirclePlus, Refresh, RefreshRight, Search, View, Delete } from "@element-plus/icons-vue"
+import { CirclePlus, Refresh, RefreshRight, Search, View, Delete, Download } from "@element-plus/icons-vue"
 import { useDetailPagination, usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { getInstrumentDataApi } from "@/api/instrument"
@@ -116,6 +116,7 @@ const TreeData = ref<any>([])
 const RawTreeData = ref<any[]>([])
 const onlyShowWithProcess = ref(false)
 const processFilterLoading = ref(false)
+const exportProcessLoading = ref(false)
 const boardProcessCache = reactive<Record<string, boolean>>({})
 
 const hasProcess = async (boardModelId: string | number) => {
@@ -140,6 +141,107 @@ const filterTreeWithProcess = async (nodes: any[]): Promise<any[]> => {
     }
   }
   return result
+}
+
+interface ProcessTreeExportRow {
+  index: number
+  category: string
+  boardModel: string
+  boardModelId: string | number
+}
+
+const flattenProcessTreeForExport = (nodes: any[], parents: string[] = []): Omit<ProcessTreeExportRow, "index">[] => {
+  const rows: Omit<ProcessTreeExportRow, "index">[] = []
+  for (const node of nodes) {
+    const label = String(node.label ?? "")
+    const children = Array.isArray(node.children) ? node.children : []
+    if (children.length > 0) {
+      rows.push(...flattenProcessTreeForExport(children, [...parents, label]))
+    } else {
+      rows.push({
+        category: parents.join(" / "),
+        boardModel: label,
+        boardModelId: node.id ?? ""
+      })
+    }
+  }
+  return rows
+}
+
+const getProcessExportRows = (nodes: any[]) => {
+  const keyword = String(filterText.value ?? "").trim()
+  return flattenProcessTreeForExport(nodes)
+    .filter((row) => {
+      if (!keyword) return true
+      return `${row.category} ${row.boardModel} ${row.boardModelId}`.includes(keyword)
+    })
+    .map((row, index) => ({
+      index: index + 1,
+      ...row
+    }))
+}
+
+const escapeExcelCell = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+
+const exportProcessTreeToExcel = (rows: ProcessTreeExportRow[]) => {
+  const headers = ["序号", "分类路径", "电路板型号", "电路板型号ID"]
+  const bodyRows = rows
+    .map(
+      (row) => `
+        <tr>
+          <td>${escapeExcelCell(row.index)}</td>
+          <td>${escapeExcelCell(row.category)}</td>
+          <td>${escapeExcelCell(row.boardModel)}</td>
+          <td>${escapeExcelCell(row.boardModelId)}</td>
+        </tr>`
+    )
+    .join("")
+  const table = `
+    <html>
+      <head>
+        <meta charset="UTF-8" />
+      </head>
+      <body>
+        <table border="1">
+          <thead>
+            <tr>${headers.map((header) => `<th>${escapeExcelCell(header)}</th>`).join("")}</tr>
+          </thead>
+          <tbody>${bodyRows}</tbody>
+        </table>
+      </body>
+    </html>`
+  const blob = new Blob(["\ufeff", table], { type: "application/vnd.ms-excel;charset=utf-8;" })
+  const link = document.createElement("a")
+  const href = URL.createObjectURL(blob)
+  link.href = href
+  link.download = `有工艺电路板_${new Date().toISOString().slice(0, 10)}.xls`
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(href)
+}
+
+const downloadFilteredProcessBoards = async () => {
+  exportProcessLoading.value = true
+  try {
+    const sourceTree = onlyShowWithProcess.value ? TreeData.value : await filterTreeWithProcess(RawTreeData.value)
+    const rows = getProcessExportRows(sourceTree)
+    if (rows.length === 0) {
+      ElMessage.warning("暂无可导出的有工艺电路板")
+      return
+    }
+    exportProcessTreeToExcel(rows)
+    ElMessage.success("导出成功")
+  } catch {
+    ElMessage.error("导出失败")
+  } finally {
+    exportProcessLoading.value = false
+  }
 }
 
 const syncTreeData = async () => {
@@ -486,6 +588,16 @@ onMounted(() => {
                   <el-space direction="vertical" alignment="stretch" style="width: 100%">
                     <el-input v-model="filterText" placeholder="搜索" />
                     <el-checkbox v-model="onlyShowWithProcess">仅显示有工艺</el-checkbox>
+                    <el-button
+                      :disabled="treeLoading || processFilterLoading"
+                      :icon="Download"
+                      :loading="exportProcessLoading"
+                      plain
+                      type="primary"
+                      @click="downloadFilteredProcessBoards"
+                    >
+                      导出Excel
+                    </el-button>
                   </el-space>
                 </template>
                 <el-tree

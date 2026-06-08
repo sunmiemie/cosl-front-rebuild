@@ -34,6 +34,14 @@ describe("检验检测查询功能需求", () => {
     ])
   })
 
+  it("测试工艺列表可以导出筛选后的有工艺电路板", () => {
+    expectContains("src/views/testmanage/process/index.vue", [
+      "downloadFilteredProcessBoards",
+      "exportProcessTreeToExcel",
+      "导出Excel"
+    ])
+  })
+
   it("生产和临时测试工单支持批次号、电路板序列号、供应商查询", () => {
     for (const file of [
       "src/views/testmanage/testorder/components/ProdOrder.vue",
