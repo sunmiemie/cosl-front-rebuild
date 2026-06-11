@@ -1,17 +1,18 @@
-import { computed, ref } from "vue"
+import { computed, onScopeDispose, ref } from "vue"
 import store from "@/store"
 import { defineStore } from "pinia"
 import { getPendingTaskCenterApi, type TaskCenterItem } from "@/api/task-center"
 
 const POLL_INTERVAL_MS = 30_000
 
-let pollingTimer: ReturnType<typeof setInterval> | null = null
-let pollingConsumers = 0
-let refreshPromise: Promise<void> | null = null
-let refreshQueued = false
-let queuedRefreshSilent = true
-
 export const useTaskCenterStore = defineStore("task-center", () => {
+  // 请求队列属于当前 store，不能跨登录会话或 Pinia 实例共用。
+  let pollingTimer: ReturnType<typeof setInterval> | null = null
+  let pollingConsumers = 0
+  let refreshPromise: Promise<void> | null = null
+  let refreshQueued = false
+  let queuedRefreshSilent = true
+  let generation = 0
   const tasks = ref<TaskCenterItem[]>([])
   const total = ref(0)
   const loading = ref(false)
@@ -43,8 +44,9 @@ export const useTaskCenterStore = defineStore("task-center", () => {
     queuedRefreshSilent = queuedRefreshSilent && silent
     if (refreshPromise) return refreshPromise
 
+    const requestGeneration = generation
     refreshPromise = (async () => {
-      while (refreshQueued) {
+      while (refreshQueued && requestGeneration === generation) {
         const currentSilent = queuedRefreshSilent
         refreshQueued = false
         queuedRefreshSilent = true
@@ -56,6 +58,7 @@ export const useTaskCenterStore = defineStore("task-center", () => {
 
         try {
           const res = await getPendingTaskCenterApi({ limit: 100 })
+          if (requestGeneration !== generation) continue
           if (res.code === 0) {
             tasks.value = res.data.list || []
             total.value = res.data.total || 0
@@ -68,12 +71,14 @@ export const useTaskCenterStore = defineStore("task-center", () => {
           }
           loaded.value = true
         } catch (error: any) {
-          errorMessage.value = error?.message || "加载任务中心失败"
+          if (requestGeneration === generation) errorMessage.value = error?.message || "加载任务中心失败"
         } finally {
-          loading.value = false
+          if (requestGeneration === generation) loading.value = false
         }
       }
     })().finally(() => {
+      // 旧会话的请求结束后，不能清理新会话的队列和加载状态。
+      if (requestGeneration !== generation) return
       loading.value = false
       refreshPromise = null
     })
@@ -101,6 +106,12 @@ export const useTaskCenterStore = defineStore("task-center", () => {
   }
 
   const reset = () => {
+    generation += 1
+    // 分离仍在等待网络的旧请求，让新会话可以立即重新请求。
+    refreshPromise = null
+    if (pollingTimer) clearInterval(pollingTimer)
+    pollingTimer = null
+    pollingConsumers = 0
     refreshQueued = false
     queuedRefreshSilent = true
     tasks.value = []
@@ -110,6 +121,8 @@ export const useTaskCenterStore = defineStore("task-center", () => {
     errorMessage.value = ""
     lastUpdatedAt.value = ""
   }
+
+  onScopeDispose(reset)
 
   return {
     tasks,
