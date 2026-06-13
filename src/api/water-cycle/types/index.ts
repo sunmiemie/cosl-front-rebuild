@@ -3,6 +3,11 @@ export interface WaterCycleInstrumentItem {
   instrument_name: string
   sn_numbers: string
   quantity: number
+  scheduled_start_at?: string | null
+  scheduled_end_at?: string | null
+  instrument_status?: number
+  is_completed?: boolean
+  completed_at?: string | null
 }
 
 export interface WaterCycleOrderListItem {
@@ -34,6 +39,14 @@ export interface WaterCycleOrderListItem {
   safety_risks?: string
   status: number
   status_text: string
+  scheduled_start_at?: string | null
+  scheduled_end_at?: string | null
+  schedule_segments?:
+    | Array<{
+        scheduled_start_at?: string | null
+        scheduled_end_at?: string | null
+      }>
+    | null
   created_at: string
 }
 

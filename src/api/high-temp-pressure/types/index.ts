@@ -51,12 +51,24 @@ export interface HighTempPressureOrderListItem {
 }
 
 export interface HighTempPressureOrderInstrumentItem {
+  id?: number
   instrument_name: string
   instrument_sn: string
   test_type?: string
   quantity?: number
   instrument_length?: string
   max_diameter?: number | null
+  scheduled_start_at?: string | null
+  scheduled_end_at?: string | null
+  schedule_segments?:
+    | Array<{
+        scheduled_start_at?: string | null
+        scheduled_end_at?: string | null
+      }>
+    | null
+  instrument_status?: number
+  is_completed?: boolean
+  completed_at?: string | null
 }
 
 export interface HighTempPressureOrderListRequest {

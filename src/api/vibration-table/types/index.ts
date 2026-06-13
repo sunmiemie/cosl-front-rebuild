@@ -6,6 +6,10 @@ export type VibrationInstrument = {
   weight?: string
   length?: string
   maxDiameter?: string
+  instrumentStatus?: number
+  statusText?: string
+  isCompleted?: boolean
+  completedAt?: string | null
 }
 
 export type VibrationPreExperimentAttachment = {
@@ -65,6 +69,12 @@ export type VibrationTableOrderListItem = {
   instrumentCount?: number
   instruments?: VibrationInstrument[]
   preExperiments?: VibrationPreExperiment[]
+  scheduledStartAt?: string | null
+  scheduledEndAt?: string | null
+  scheduleSegments?: Array<{
+    scheduledStartAt: string
+    scheduledEndAt: string
+  }>
   status: number
   statusText?: string
 }

@@ -80,7 +80,13 @@ export interface CreateSimulatedWellOrderRequest {
   customer_unit?: string
   task_desc?: string
   device_count?: number
-  devices?: { device_name: string; device_number: string }[]
+  devices?: {
+    id?: number
+    device_name: string
+    device_number: string
+    scheduled_start_at?: string | null
+    scheduled_end_at?: string | null
+  }[]
   sanxin_applicant_item_1?: "yes" | "no"
   sanxin_applicant_item_2?: "yes" | "no"
   sanxin_applicant_item_3?: "yes" | "no"

@@ -26,6 +26,8 @@ type SnakeOrder = {
   feedback_reason?: string
   status?: number
   status_text?: string
+  scheduled_start_at?: string | null
+  scheduled_end_at?: string | null
   instruments?: SnakeInstrument[]
   created_at?: string
   updated_at?: string
@@ -95,6 +97,8 @@ function toListItem(order: SnakeOrder): HighTemperatureOrderListItem {
     status: order.status ?? 0,
     statusText: order.status_text,
     testDate: order.test_date,
+    scheduledStartAt: order.scheduled_start_at || null,
+    scheduledEndAt: order.scheduled_end_at || null,
     instruments
   }
 }

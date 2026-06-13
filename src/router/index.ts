@@ -72,6 +72,15 @@ export const constantRoutes: RouteRecordRaw[] = [
           title: "数据看板",
           elIcon: "DataLine"
         }
+      },
+      {
+        path: "work-order-schedule",
+        component: () => import("@/views/dashboard/work-order-schedule/index.vue"),
+        name: "WorkOrderSchedule",
+        meta: {
+          title: "工单排程",
+          elIcon: "Calendar"
+        }
       }
     ]
   },
@@ -331,6 +340,16 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         meta: {
           title: "测试工单列表",
           roles: ["11"],
+          permissions: AddOrderPermissionCodes,
+          keepAlive: true
+        }
+      },
+      {
+        path: "circuit-module-inspection",
+        component: () => import("@/views/testmanage/circuit-module-inspection/index.vue"),
+        name: "CircuitModuleInspection",
+        meta: {
+          title: "电路模块检验",
           permissions: AddOrderPermissionCodes,
           keepAlive: true
         }

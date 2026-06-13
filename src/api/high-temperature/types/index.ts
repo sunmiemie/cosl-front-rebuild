@@ -28,6 +28,8 @@ export type HighTemperatureOrderListItem = {
   status: number
   statusText?: string
   testDate?: string
+  scheduledStartAt?: string | null
+  scheduledEndAt?: string | null
   instruments?: HighTemperatureInstrument[]
 }
 

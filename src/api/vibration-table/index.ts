@@ -16,6 +16,10 @@ type SnakeInstrument = {
   weight?: string
   length?: string
   max_diameter?: string
+  instrument_status?: number
+  status_text?: string
+  is_completed?: boolean
+  completed_at?: string | null
 }
 
 type SnakePreExperimentAttachment = {
@@ -79,6 +83,12 @@ type SnakeOrder = {
   instrument_count?: number
   status?: number
   status_text?: string
+  scheduled_start_at?: string | null
+  scheduled_end_at?: string | null
+  schedule_segments?: Array<{
+    scheduled_start_at?: string | null
+    scheduled_end_at?: string | null
+  }>
   created_at?: string
   updated_at?: string
   // 兼容旧接口字段
@@ -101,7 +111,11 @@ const toInstrument = (instrument: SnakeInstrument): VibrationInstrument => ({
   quantity: instrument.quantity ?? 1,
   weight: instrument.weight || "",
   length: instrument.length || "",
-  maxDiameter: instrument.max_diameter || ""
+  maxDiameter: instrument.max_diameter || "",
+  instrumentStatus: instrument.instrument_status,
+  statusText: instrument.status_text,
+  isCompleted: instrument.is_completed,
+  completedAt: instrument.completed_at
 })
 
 const toSnakeInstrument = (instrument: VibrationInstrument): SnakeInstrument => ({
@@ -142,6 +156,16 @@ const toPreExperiment = (item: SnakePreExperiment): VibrationPreExperiment => ({
 
 function toListItem(order: SnakeOrder): VibrationTableOrderListItem {
   const instruments = (order.instruments || []).map(toInstrument)
+  const scheduleSegments = Array.isArray(order.schedule_segments)
+    ? order.schedule_segments
+        .map((segment) => {
+          const scheduledStartAt = segment.scheduled_start_at || ""
+          const scheduledEndAt = segment.scheduled_end_at || ""
+          if (!scheduledStartAt || !scheduledEndAt) return null
+          return { scheduledStartAt, scheduledEndAt }
+        })
+        .filter(Boolean)
+    : []
   return {
     id: order.id,
     tableNo: order.table_no || order.order_no || "",
@@ -173,6 +197,9 @@ function toListItem(order: SnakeOrder): VibrationTableOrderListItem {
     instrumentCount: order.instrument_count ?? instruments.length,
     instruments,
     preExperiments: (order.pre_experiments || []).map(toPreExperiment),
+    scheduledStartAt: order.scheduled_start_at || null,
+    scheduledEndAt: order.scheduled_end_at || null,
+    scheduleSegments: scheduleSegments as VibrationTableOrderListItem["scheduleSegments"],
     status: order.status ?? 0,
     statusText: order.status_text
   }
