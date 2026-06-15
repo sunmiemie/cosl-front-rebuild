@@ -6,8 +6,11 @@ export type WorkOrderScheduleEquipment =
   | "high-temp-box"
   | "high-temp-pressure"
   | "simulated-well"
+  | "halt-hass"
+  | "circuit-board-module"
 
 export type ScheduleTargetKind = "order" | "instrument" | "device"
+export type EndpointScheduleEquipment = WorkOrderScheduleEquipment
 
 export type WorkOrderScheduleSegment = {
   scheduled_start_at: string
@@ -25,7 +28,7 @@ type ScheduleEndpointConfig = {
   baseUrl: string
 }
 
-const scheduleEndpointMap: Record<WorkOrderScheduleEquipment, ScheduleEndpointConfig> = {
+const scheduleEndpointMap: Record<EndpointScheduleEquipment, ScheduleEndpointConfig> = {
   "water-cycle": {
     targetKind: "order",
     baseUrl: "test/water-cycle/order/schedule/"
@@ -45,20 +48,29 @@ const scheduleEndpointMap: Record<WorkOrderScheduleEquipment, ScheduleEndpointCo
   "simulated-well": {
     targetKind: "device",
     baseUrl: "test/simulated-well/order/device-schedule/"
+  },
+  "halt-hass": {
+    targetKind: "order",
+    baseUrl: "test/halt-hass/order/schedule/"
+  },
+  "circuit-board-module": {
+    targetKind: "order",
+    baseUrl: "test/circuit-board-module/order/schedule/"
   }
 }
 
-const buildScheduleUrl = (equipment: WorkOrderScheduleEquipment, targetId: number) => {
+const buildScheduleUrl = (equipment: EndpointScheduleEquipment, targetId: number) => {
   const config = scheduleEndpointMap[equipment]
   return `${config.baseUrl}${targetId}/`
 }
 
 export function getScheduleTargetKind(equipment: WorkOrderScheduleEquipment) {
+  if (equipment === "circuit-board-module") return "order"
   return scheduleEndpointMap[equipment].targetKind
 }
 
 export function saveWorkOrderSchedule(
-  equipment: WorkOrderScheduleEquipment,
+  equipment: EndpointScheduleEquipment,
   targetId: number,
   data: WorkOrderSchedulePayload
 ) {
@@ -69,7 +81,7 @@ export function saveWorkOrderSchedule(
   })
 }
 
-export function clearWorkOrderSchedule(equipment: WorkOrderScheduleEquipment, targetId: number) {
+export function clearWorkOrderSchedule(equipment: EndpointScheduleEquipment, targetId: number) {
   return request<any>({
     url: buildScheduleUrl(equipment, targetId),
     method: "delete"

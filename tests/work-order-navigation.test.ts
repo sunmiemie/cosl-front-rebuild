@@ -41,4 +41,11 @@ describe("测试工单导航拆分", () => {
     expect(router).toContain("WorkOrderSchedule")
     expect(router).toContain("work-order-schedule")
   })
+
+  it("dashboard task center route has a child menu icon", () => {
+    const router = read("src/router/index.ts")
+    const dashboardMeta = router.match(/path:\s*"dashboard"[\s\S]*?name:\s*"Dashboard"[\s\S]*?meta:\s*{([\s\S]*?)\n\s*}/)?.[1] || ""
+
+    expect(dashboardMeta).toContain('elIcon: "Tickets"')
+  })
 })

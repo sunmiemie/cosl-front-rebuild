@@ -15,6 +15,8 @@ describe("工单排程页面", () => {
     expect(content).toContain("水循环工单")
     expect(content).toContain("模拟井工单")
     expect(content).toContain("高温箱工单")
+    expect(content).toContain("HALT-HASS 工单")
+    expect(content).toContain("电路板模块")
   })
 
   it("不显示排程页大标题并沿用电路模块检验的朴素标签页样式", () => {
@@ -69,6 +71,17 @@ describe("工单排程页面", () => {
     expect(content).toContain("Number(rawOrder?.status ?? order.status) === PENDING_CLAIM_STATUS")
   })
 
+  it("接入 HALT-HASS 和电路板模块发布后的排程数据源", () => {
+    expect(content).toContain("getHaltHassOrderList")
+    expect(content).toContain("getCircuitModuleApplicationList")
+    expect(content).toContain('key: "halt-hass"')
+    expect(content).toContain('key: "circuit-board-module"')
+    expect(content).toContain("normalizeHaltHassOrders")
+    expect(content).toContain("normalizeCircuitBoardModuleOrders")
+    expect(content).toContain("syncCircuitBoardModuleSchedule")
+    expect(content).toContain("isCircuitModuleScheduleStatus")
+  })
+
   it("静默轮询后端排程数据，让测试端删除排程后管理端自动刷新", () => {
     expect(content).toContain("onUnmounted")
     expect(content).toContain("const SCHEDULE_AUTO_REFRESH_MS = 5000")
@@ -91,5 +104,46 @@ describe("工单排程页面", () => {
     expect(content).toContain("hasRunningScheduleInstrument")
     expect(content).toContain("isRunningTarget: hasRunningScheduleInstrument(item.instruments)")
     expect(content).toContain("isRunningTarget: hasRunningScheduleInstrument([instrument])")
+  })
+
+  it("排程弹窗支持一个工单维护多个时间段", () => {
+    expect(content).toContain("排程时间段")
+    expect(content).toContain("scheduleForm.segments")
+    expect(content).toContain("addScheduleSegment")
+    expect(content).toContain("removeScheduleSegment")
+    expect(content).toContain("buildScheduleFormSegments")
+    expect(content).toContain("validateScheduleSegments")
+    expect(content).toContain("添加时间段")
+    expect(content).not.toContain("scheduleForm.durationHours")
+    expect(content).not.toContain("addHours(start, scheduleForm.durationHours)")
+  })
+
+  it("保存排程时所有设备类型都提交 schedule_segments 多段数据", () => {
+    expect(content).toContain("buildSchedulePayload")
+    expect(content).toContain("payload.schedule_segments")
+    expect(content).toContain("payload.schedule_segments.map")
+    expect(content).toContain("saveWorkOrderSchedule(order.scheduleEquipment")
+    expect(content).not.toContain('["water-cycle", "vibration-table", "high-temp-pressure", "halt-hass"].includes')
+  })
+
+  it("高温箱和模拟井读取后端 schedule_segments 以显示多个日历方块", () => {
+    expect(content).toContain("normalizeSnakeSegments(item.schedule_segments")
+    expect(content).toContain("normalizeSnakeSegments(device?.schedule_segments")
+    expect(content).not.toContain("scheduleSegments: []")
+  })
+
+  it("schedule segment controls stay inside the dialog", () => {
+    expect(content).toMatch(/\.schedule-segment-row\s*{[^}]*min-width:\s*0/s)
+    expect(content).toMatch(/\.schedule-segment-row\s*{[\s\S]*:deep\(\.el-date-editor\.el-input\)\s*{[^}]*width:\s*100%/s)
+    expect(content).toMatch(/\.schedule-segment-row\s*{[\s\S]*:deep\(\.el-date-editor\.el-input\)\s*{[^}]*min-width:\s*0/s)
+    expect(content).toMatch(/@media \(max-width:\s*900px\)[\s\S]*\.schedule-segment-row\s*{[^}]*grid-template-columns:\s*1fr 1fr/s)
+  })
+
+  it("支持从待处理任务中心按 tab 和 keyword 跳转到对应未排期工单", () => {
+    expect(content).toContain("useRoute")
+    expect(content).toContain("function applyRouteQuery")
+    expect(content).toContain("route.query")
+    expect(content).toContain("query.tab")
+    expect(content).toContain("searchForm.keyword = keyword")
   })
 })

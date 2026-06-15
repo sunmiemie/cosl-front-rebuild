@@ -151,6 +151,12 @@ export interface HaltHassOrderListItem {
   createdAt: string
   startedAt: string
   completedAt: string
+  scheduledStartAt?: string | null
+  scheduledEndAt?: string | null
+  scheduleSegments?: Array<{
+    scheduled_start_at: string
+    scheduled_end_at: string
+  }>
   remark: string
 }
 
@@ -193,6 +199,12 @@ export interface HaltHassOrderDetail {
   createdAt: string
   startedAt: string
   completedAt: string
+  scheduledStartAt?: string | null
+  scheduledEndAt?: string | null
+  scheduleSegments?: Array<{
+    scheduled_start_at: string
+    scheduled_end_at: string
+  }>
   feedbackReason: string
   remark: string
 }
