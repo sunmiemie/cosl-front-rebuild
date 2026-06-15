@@ -8,12 +8,30 @@ import {
   getDeviceInstanceListApi,
   updateDeviceInstanceApi
 } from "@/api/device-instance"
+import {
+  createHostMaintenanceRecordApi,
+  createHostUsageRecordApi,
+  deleteHostMaintenanceRecordApi,
+  deleteHostUsageRecordApi,
+  getHostMaintenanceConfigApi,
+  getHostMaintenanceRecordListApi,
+  getHostMaintenanceReminderListApi,
+  getHostUsageRecordListApi,
+  updateHostMaintenanceConfigApi,
+  updateHostMaintenanceRecordApi,
+  updateHostUsageRecordApi
+} from "@/api/host-maintenance"
 import type {
   DeviceInstanceData,
   DeviceInstancePayload,
   DeviceInstanceStatus,
   DeviceOnlineStatus
 } from "@/api/device-instance/types"
+import type {
+  HostMaintenanceConfigItem,
+  HostMaintenanceRecordItem,
+  HostUsageRecordItem
+} from "@/api/host-maintenance/types"
 import { usePagination } from "@/hooks/usePagination"
 import { getDeviceOnlineStatusOptions, resolveDeviceOnlineStatus } from "./status-options"
 
@@ -27,9 +45,12 @@ interface DeviceInstanceRow {
   onlineStatus: DeviceOnlineStatus
 }
 
+type RecordMode = "create" | "edit"
+
 const loading = ref(false)
 const dialogVisible = ref(false)
 const detailVisible = ref(false)
+const detailLoading = ref(false)
 const currentUpdateId = ref<string | number>()
 const formRef = ref<FormInstance | null>(null)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
@@ -78,6 +99,43 @@ const formData = reactive<DeviceInstancePayload>({
 
 const detailData = ref<DeviceInstanceRow | null>(null)
 const tableData = ref<DeviceInstanceRow[]>([])
+const detailTab = ref("usage")
+const usageRecords = ref<HostUsageRecordItem[]>([])
+const maintenanceRecords = ref<HostMaintenanceRecordItem[]>([])
+const reminderRecords = ref<HostMaintenanceConfigItem[]>([])
+const hostConfig = ref<HostMaintenanceConfigItem | null>(null)
+const usageLoading = ref(false)
+const maintenanceLoading = ref(false)
+const configLoading = ref(false)
+const reminderLoading = ref(false)
+const usageDialogVisible = ref(false)
+const maintenanceDialogVisible = ref(false)
+const configDialogVisible = ref(false)
+const usageMode = ref<RecordMode>("create")
+const maintenanceMode = ref<RecordMode>("create")
+const editingUsageId = ref<string | number | null>(null)
+const editingMaintenanceId = ref<string | number | null>(null)
+const usageForm = reactive({
+  work_order_no: "",
+  usage_date: "",
+  duration_hours: 0,
+  status: "正常",
+  remark: ""
+})
+const maintenanceForm = reactive({
+  maintenance_date: "",
+  maintenance_type: "常规维保",
+  maintainer: "",
+  content: "",
+  result: "合格",
+  remark: ""
+})
+const configForm = reactive({
+  cycle_hours: 500,
+  warning_threshold_hours: 50,
+  last_maintenance_date: "",
+  next_maintenance_date: ""
+})
 const stats = reactive({
   total: 0,
   normal: 0,
@@ -85,6 +143,13 @@ const stats = reactive({
   repair: 0,
   fault: 0
 })
+
+const detailTitle = computed(() => (detailData.value ? `主机详情：${detailData.value.serialNumber}` : "主机详情"))
+const usageDialogTitle = computed(() => (usageMode.value === "create" ? "新增使用记录" : "编辑使用记录"))
+const maintenanceDialogTitle = computed(() => (maintenanceMode.value === "create" ? "新增维保记录" : "编辑维保记录"))
+const totalUsageHours = computed(() =>
+  usageRecords.value.reduce((total, item) => total + Number(item.duration_hours || 0), 0)
+)
 
 const formRules: FormRules = {
   serialNumber: [{ required: true, message: "请输入SN号", trigger: "blur" }],
@@ -102,7 +167,9 @@ const statCards = computed(() => [
   { title: "故障设备", value: stats.fault, desc: "需要处理的故障设备", className: "fault" }
 ])
 
-const testBenchOptions = computed(() => Array.from(new Set(tableData.value.map((item) => item.testBench).filter(Boolean))))
+const testBenchOptions = computed(() =>
+  Array.from(new Set(tableData.value.map((item) => item.testBench).filter(Boolean)))
+)
 
 const normalizeStatus = (value: unknown): DeviceInstanceStatus => {
   if (value === 0 || value === "0" || value === "normal" || value === "正常") return "normal"
@@ -127,13 +194,15 @@ const normalizeOnlineStatus = (value: unknown): DeviceOnlineStatus => {
 }
 
 const normalizeRow = (row: DeviceInstanceData): DeviceInstanceRow => ({
-  id: row.deviceId ?? row.device_id ?? row.id ?? row.psi_id ?? "",
+  id: row.id ?? row.psi_id ?? row.device_id ?? row.deviceId ?? "",
   serialNumber: row.serialNumber ?? row.serial_number ?? row.psi_serialnumber ?? "",
   deviceName: row.deviceName ?? row.device_name ?? row.psi_name ?? "",
   testBench: row.testBench ?? row.test_bench ?? "",
   model: row.model ?? row.modelName ?? row.model_name ?? row.psimodel_name ?? "",
   status: normalizeStatus(row.status ?? row.deviceStatus ?? row.device_status ?? row.psi_status),
-  onlineStatus: normalizeOnlineStatus(row.onlineStatus ?? row.online_status ?? row.onlineStatusText ?? row.online_status_text)
+  onlineStatus: normalizeOnlineStatus(
+    row.onlineStatus ?? row.online_status ?? row.onlineStatusText ?? row.online_status_text
+  )
 })
 
 const normalizeListData = (data: any) => {
@@ -228,9 +297,272 @@ const openEditDialog = (row: DeviceInstanceRow) => {
   dialogVisible.value = true
 }
 
-const openDetailDialog = (row: DeviceInstanceRow) => {
+const currentHostId = () => detailData.value?.id
+
+const todayString = () => new Date().toISOString().slice(0, 10)
+
+const extractList = <T,>(response: any): T[] => {
+  const payload = response?.data ?? response ?? {}
+  const list = Array.isArray(payload)
+    ? payload
+    : payload.list ?? payload.records ?? payload.results ?? payload.items ?? []
+  return Array.isArray(list) ? list : []
+}
+
+const extractItem = <T,>(response: any): T | null => {
+  const payload = response?.data ?? response ?? null
+  if (!payload) return null
+  return (payload.data ?? payload) as T
+}
+
+const resetUsageForm = () => {
+  editingUsageId.value = null
+  usageForm.work_order_no = ""
+  usageForm.usage_date = todayString()
+  usageForm.duration_hours = 0
+  usageForm.status = "正常"
+  usageForm.remark = ""
+}
+
+const resetMaintenanceForm = () => {
+  editingMaintenanceId.value = null
+  maintenanceForm.maintenance_date = todayString()
+  maintenanceForm.maintenance_type = "常规维保"
+  maintenanceForm.maintainer = ""
+  maintenanceForm.content = ""
+  maintenanceForm.result = "合格"
+  maintenanceForm.remark = ""
+}
+
+const loadUsageRecords = async () => {
+  const hostId = currentHostId()
+  if (!hostId) {
+    usageRecords.value = []
+    return
+  }
+  usageLoading.value = true
+  try {
+    const res = await getHostUsageRecordListApi({ host_id: hostId, currentPage: 1, pageSize: 2000 })
+    usageRecords.value = extractList<HostUsageRecordItem>(res)
+  } finally {
+    usageLoading.value = false
+  }
+}
+
+const loadMaintenanceRecords = async () => {
+  const hostId = currentHostId()
+  if (!hostId) {
+    maintenanceRecords.value = []
+    return
+  }
+  maintenanceLoading.value = true
+  try {
+    const res = await getHostMaintenanceRecordListApi({ host_id: hostId, currentPage: 1, pageSize: 2000 })
+    maintenanceRecords.value = extractList<HostMaintenanceRecordItem>(res)
+  } finally {
+    maintenanceLoading.value = false
+  }
+}
+
+const loadHostConfig = async () => {
+  const hostId = currentHostId()
+  if (!hostId) {
+    hostConfig.value = null
+    return
+  }
+  configLoading.value = true
+  try {
+    const res = await getHostMaintenanceConfigApi({ host_id: hostId })
+    hostConfig.value = extractItem<HostMaintenanceConfigItem>(res)
+  } finally {
+    configLoading.value = false
+  }
+}
+
+const loadReminderRecords = async () => {
+  const hostId = currentHostId()
+  if (!hostId) {
+    reminderRecords.value = []
+    return
+  }
+  reminderLoading.value = true
+  try {
+    const res = await getHostMaintenanceReminderListApi({ host_id: hostId, currentPage: 1, pageSize: 20 })
+    reminderRecords.value = extractList<HostMaintenanceConfigItem>(res)
+  } finally {
+    reminderLoading.value = false
+  }
+}
+
+const loadHostMaintenanceData = async () => {
+  detailLoading.value = true
+  try {
+    await Promise.all([loadUsageRecords(), loadMaintenanceRecords(), loadHostConfig(), loadReminderRecords()])
+  } catch {
+    // 请求拦截器会展示后端错误信息
+  } finally {
+    detailLoading.value = false
+  }
+}
+
+const openDetailDialog = async (row: DeviceInstanceRow) => {
   detailData.value = row
+  detailTab.value = "usage"
   detailVisible.value = true
+  await loadHostMaintenanceData()
+}
+
+const openUsageCreate = () => {
+  usageMode.value = "create"
+  resetUsageForm()
+  usageDialogVisible.value = true
+}
+
+const openUsageEdit = (row: HostUsageRecordItem) => {
+  usageMode.value = "edit"
+  editingUsageId.value = row.id
+  usageForm.work_order_no = row.work_order_no || ""
+  usageForm.usage_date = row.usage_date || row.date || todayString()
+  usageForm.duration_hours = Number(row.duration_hours || 0)
+  usageForm.status = row.status || "正常"
+  usageForm.remark = row.remark || ""
+  usageDialogVisible.value = true
+}
+
+const submitUsageRecord = async () => {
+  const hostId = currentHostId()
+  if (!hostId) return
+  if (!usageForm.usage_date) {
+    ElMessage.warning("请选择使用日期")
+    return
+  }
+  if (Number(usageForm.duration_hours) <= 0) {
+    ElMessage.warning("使用时长必须大于0")
+    return
+  }
+  const payload = {
+    host_id: hostId,
+    work_order_no: usageForm.work_order_no,
+    usage_date: usageForm.usage_date,
+    duration_hours: Number(usageForm.duration_hours),
+    status: usageForm.status,
+    remark: usageForm.remark
+  }
+  if (usageMode.value === "edit" && editingUsageId.value !== null) {
+    await updateHostUsageRecordApi(editingUsageId.value, payload)
+  } else {
+    await createHostUsageRecordApi(payload)
+  }
+  ElMessage.success("使用记录已保存")
+  usageDialogVisible.value = false
+  await loadHostMaintenanceData()
+}
+
+const deleteUsageRecord = async (row: HostUsageRecordItem) => {
+  try {
+    await ElMessageBox.confirm(`确认删除使用记录“${row.work_order_no || row.usage_date || row.id}”？`, "删除确认", {
+      confirmButtonText: "删除",
+      cancelButtonText: "取消",
+      type: "warning"
+    })
+    await deleteHostUsageRecordApi(row.id)
+    ElMessage.success("使用记录已删除")
+    await loadHostMaintenanceData()
+  } catch {
+    // 用户取消或接口报错时无需额外处理
+  }
+}
+
+const openMaintenanceCreate = () => {
+  maintenanceMode.value = "create"
+  resetMaintenanceForm()
+  maintenanceDialogVisible.value = true
+}
+
+const openMaintenanceEdit = (row: HostMaintenanceRecordItem) => {
+  maintenanceMode.value = "edit"
+  editingMaintenanceId.value = row.id
+  maintenanceForm.maintenance_date = row.maintenance_date || row.date || todayString()
+  maintenanceForm.maintenance_type = row.maintenance_type || row.type || "常规维保"
+  maintenanceForm.maintainer = row.maintainer || row.person || ""
+  maintenanceForm.content = row.content || ""
+  maintenanceForm.result = row.result || "合格"
+  maintenanceForm.remark = row.remark || ""
+  maintenanceDialogVisible.value = true
+}
+
+const submitMaintenanceRecord = async () => {
+  const hostId = currentHostId()
+  if (!hostId) return
+  if (!maintenanceForm.maintenance_date) {
+    ElMessage.warning("请选择维保日期")
+    return
+  }
+  const payload = {
+    host_id: hostId,
+    maintenance_date: maintenanceForm.maintenance_date,
+    maintenance_type: maintenanceForm.maintenance_type,
+    maintainer: maintenanceForm.maintainer,
+    content: maintenanceForm.content,
+    result: maintenanceForm.result,
+    remark: maintenanceForm.remark
+  }
+  if (maintenanceMode.value === "edit" && editingMaintenanceId.value !== null) {
+    await updateHostMaintenanceRecordApi(editingMaintenanceId.value, payload)
+  } else {
+    await createHostMaintenanceRecordApi(payload)
+  }
+  ElMessage.success("维保记录已保存")
+  maintenanceDialogVisible.value = false
+  await loadHostMaintenanceData()
+}
+
+const deleteMaintenanceRecord = async (row: HostMaintenanceRecordItem) => {
+  try {
+    await ElMessageBox.confirm(`确认删除维保记录“${row.maintenance_date || row.date || row.id}”？`, "删除确认", {
+      confirmButtonText: "删除",
+      cancelButtonText: "取消",
+      type: "warning"
+    })
+    await deleteHostMaintenanceRecordApi(row.id)
+    ElMessage.success("维保记录已删除")
+    await loadHostMaintenanceData()
+  } catch {
+    // 用户取消或接口报错时无需额外处理
+  }
+}
+
+const openConfigEdit = () => {
+  configForm.cycle_hours = Number(hostConfig.value?.cycle_hours || 500)
+  configForm.warning_threshold_hours = Number(hostConfig.value?.warning_threshold_hours || 50)
+  configForm.last_maintenance_date = hostConfig.value?.last_maintenance_date || ""
+  configForm.next_maintenance_date = hostConfig.value?.next_maintenance_date || ""
+  configDialogVisible.value = true
+}
+
+const submitConfig = async () => {
+  const hostId = currentHostId()
+  if (!hostId) return
+  if (Number(configForm.cycle_hours) <= 0) {
+    ElMessage.warning("维保周期必须大于0")
+    return
+  }
+  await updateHostMaintenanceConfigApi({
+    host_id: hostId,
+    cycle_hours: Number(configForm.cycle_hours),
+    warning_threshold_hours: Number(configForm.warning_threshold_hours || 0),
+    last_maintenance_date: configForm.last_maintenance_date || null,
+    next_maintenance_date: configForm.next_maintenance_date || null
+  })
+  ElMessage.success("维保周期已保存")
+  configDialogVisible.value = false
+  await Promise.all([loadHostConfig(), loadReminderRecords()])
+}
+
+const reminderTagType = (status: string) => {
+  if (["已过期", "超期", "逾期"].includes(status)) return "danger"
+  if (["即将维保", "预警"].includes(status)) return "warning"
+  return "success"
 }
 
 const submitForm = () => {
@@ -419,23 +751,279 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailVisible" title="设备详情" width="520px">
-      <el-descriptions v-if="detailData" :column="1" border>
-        <el-descriptions-item label="SN号">{{ detailData.serialNumber }}</el-descriptions-item>
-        <el-descriptions-item label="设备名称">{{ detailData.deviceName }}</el-descriptions-item>
-        <el-descriptions-item label="所属测试台">{{ detailData.testBench }}</el-descriptions-item>
-        <el-descriptions-item label="型号">{{ detailData.model }}</el-descriptions-item>
-        <el-descriptions-item label="设备状态">
-          <span class="pill-tag" :class="statusMap[detailData.status].className">
-            {{ statusMap[detailData.status].label }}
-          </span>
-        </el-descriptions-item>
-        <el-descriptions-item label="在线状态">
-          <span class="online-tag" :class="onlineMap[detailData.onlineStatus].className">
-            {{ onlineMap[detailData.onlineStatus].label }}
-          </span>
-        </el-descriptions-item>
-      </el-descriptions>
+    <el-drawer v-model="detailVisible" :title="detailTitle" size="76%" destroy-on-close>
+      <div v-loading="detailLoading" class="host-detail">
+        <template v-if="detailData">
+          <div class="detail-summary">
+            <div class="summary-main">
+              <div class="summary-title">{{ detailData.deviceName || detailData.serialNumber }}</div>
+              <div class="summary-subtitle">
+                <span>{{ detailData.serialNumber }}</span>
+                <span>{{ detailData.testBench || "未关联测试台" }}</span>
+                <span>{{ detailData.model || "未填写型号" }}</span>
+              </div>
+            </div>
+            <div class="summary-stats">
+              <div class="summary-stat">
+                <span class="stat-label">累计使用</span>
+                <strong>{{ totalUsageHours }}</strong>
+                <span>h</span>
+              </div>
+              <div class="summary-stat">
+                <span class="stat-label">维保周期</span>
+                <strong>{{ hostConfig ? hostConfig.cycle_hours : "-" }}</strong>
+                <span>h</span>
+              </div>
+              <div class="summary-stat">
+                <span class="stat-label">剩余时长</span>
+                <strong>{{ hostConfig ? hostConfig.remaining_hours : "-" }}</strong>
+                <span>h</span>
+              </div>
+            </div>
+          </div>
+
+          <el-descriptions :column="3" border class="detail-descriptions">
+            <el-descriptions-item label="SN号">{{ detailData.serialNumber }}</el-descriptions-item>
+            <el-descriptions-item label="设备名称">{{ detailData.deviceName }}</el-descriptions-item>
+            <el-descriptions-item label="所属测试台">{{ detailData.testBench }}</el-descriptions-item>
+            <el-descriptions-item label="型号">{{ detailData.model }}</el-descriptions-item>
+            <el-descriptions-item label="设备状态">
+              <span class="pill-tag" :class="statusMap[detailData.status].className">
+                {{ statusMap[detailData.status].label }}
+              </span>
+            </el-descriptions-item>
+            <el-descriptions-item label="在线状态">
+              <span class="online-tag" :class="onlineMap[detailData.onlineStatus].className">
+                {{ onlineMap[detailData.onlineStatus].label }}
+              </span>
+            </el-descriptions-item>
+          </el-descriptions>
+
+          <el-tabs v-model="detailTab" class="detail-tabs">
+            <el-tab-pane label="使用记录" name="usage">
+              <div class="tab-toolbar">
+                <div>
+                  <div class="tab-title">主机使用记录</div>
+                  <div class="tab-subtitle">记录主机关联工单、使用日期和使用时长</div>
+                </div>
+                <el-button type="primary" :icon="CirclePlus" @click="openUsageCreate">新增使用记录</el-button>
+              </div>
+              <el-table v-loading="usageLoading" :data="usageRecords" height="360" border>
+                <el-table-column prop="host_sn" label="主机SN" min-width="140" show-overflow-tooltip />
+                <el-table-column prop="work_order_no" label="工单号" min-width="150" show-overflow-tooltip />
+                <el-table-column prop="usage_date" label="使用日期" width="120" />
+                <el-table-column prop="duration_hours" label="使用时长(h)" width="120" />
+                <el-table-column prop="status" label="状态" width="110" />
+                <el-table-column prop="remark" label="备注" min-width="180" show-overflow-tooltip />
+                <el-table-column label="操作" width="136" fixed="right" align="center">
+                  <template #default="{ row }">
+                    <el-button link type="primary" :icon="Edit" @click="openUsageEdit(row)">编辑</el-button>
+                    <el-button link type="danger" :icon="Delete" @click="deleteUsageRecord(row)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-tab-pane>
+
+            <el-tab-pane label="维保记录" name="maintenance">
+              <div class="tab-toolbar">
+                <div>
+                  <div class="tab-title">主机维保记录</div>
+                  <div class="tab-subtitle">记录维保日期、类型、人员、内容和结果</div>
+                </div>
+                <el-button type="primary" :icon="CirclePlus" @click="openMaintenanceCreate">新增维保记录</el-button>
+              </div>
+              <el-table v-loading="maintenanceLoading" :data="maintenanceRecords" height="360" border>
+                <el-table-column prop="host_sn" label="主机SN" min-width="140" show-overflow-tooltip />
+                <el-table-column prop="maintenance_date" label="维保日期" width="120" />
+                <el-table-column prop="maintenance_type" label="维保类型" width="120" />
+                <el-table-column prop="maintainer" label="维保人" width="120" />
+                <el-table-column prop="content" label="维保内容" min-width="180" show-overflow-tooltip />
+                <el-table-column prop="result" label="结果" width="100" />
+                <el-table-column prop="remark" label="备注" min-width="160" show-overflow-tooltip />
+                <el-table-column label="操作" width="136" fixed="right" align="center">
+                  <template #default="{ row }">
+                    <el-button link type="primary" :icon="Edit" @click="openMaintenanceEdit(row)">编辑</el-button>
+                    <el-button link type="danger" :icon="Delete" @click="deleteMaintenanceRecord(row)">删除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-tab-pane>
+
+            <el-tab-pane label="维保周期配置" name="cycle">
+              <div class="tab-toolbar">
+                <div>
+                  <div class="tab-title">维保周期配置</div>
+                  <div class="tab-subtitle">按主机累计使用时长计算维保提醒</div>
+                </div>
+                <el-button type="primary" plain :icon="Edit" @click="openConfigEdit">编辑周期</el-button>
+              </div>
+              <div v-loading="configLoading" class="cycle-grid">
+                <div class="cycle-item">
+                  <span>主机SN</span>
+                  <strong>{{ hostConfig ? hostConfig.host_sn : detailData.serialNumber }}</strong>
+                </div>
+                <div class="cycle-item">
+                  <span>维保周期</span>
+                  <strong>{{ hostConfig ? hostConfig.cycle_hours : "-" }} h</strong>
+                </div>
+                <div class="cycle-item">
+                  <span>预警阈值</span>
+                  <strong>{{ hostConfig ? hostConfig.warning_threshold_hours : "-" }} h</strong>
+                </div>
+                <div class="cycle-item">
+                  <span>累计使用</span>
+                  <strong>{{ hostConfig ? hostConfig.total_hours : totalUsageHours }} h</strong>
+                </div>
+                <div class="cycle-item">
+                  <span>剩余时长</span>
+                  <strong>{{ hostConfig ? hostConfig.remaining_hours : "-" }} h</strong>
+                </div>
+                <div class="cycle-item">
+                  <span>提醒状态</span>
+                  <el-tag :type="reminderTagType(hostConfig ? hostConfig.status : '')">
+                    {{ hostConfig ? hostConfig.status : "未配置" }}
+                  </el-tag>
+                </div>
+                <div class="cycle-item">
+                  <span>上次维保日期</span>
+                  <strong>{{ hostConfig ? hostConfig.last_maintenance_date || "-" : "-" }}</strong>
+                </div>
+                <div class="cycle-item">
+                  <span>下次维保日期</span>
+                  <strong>{{ hostConfig ? hostConfig.next_maintenance_date || "-" : "-" }}</strong>
+                </div>
+              </div>
+            </el-tab-pane>
+
+            <el-tab-pane label="维保提醒" name="reminder">
+              <div class="tab-toolbar">
+                <div>
+                  <div class="tab-title">维保提醒</div>
+                  <div class="tab-subtitle">展示当前主机的周期状态和提醒结果</div>
+                </div>
+                <el-button :icon="Refresh" @click="loadReminderRecords">刷新提醒</el-button>
+              </div>
+              <el-table v-loading="reminderLoading" :data="reminderRecords" height="360" border>
+                <el-table-column prop="host_sn" label="主机SN" min-width="150" show-overflow-tooltip />
+                <el-table-column prop="host_name" label="主机名称" min-width="150" show-overflow-tooltip />
+                <el-table-column prop="total_hours" label="累计使用(h)" width="120" />
+                <el-table-column prop="cycle_hours" label="周期(h)" width="100" />
+                <el-table-column prop="remaining_hours" label="剩余(h)" width="100" />
+                <el-table-column label="状态" width="120">
+                  <template #default="{ row }">
+                    <el-tag :type="reminderTagType(row.status)">{{ row.status }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="next_maintenance_date" label="下次维保日期" width="130" />
+              </el-table>
+            </el-tab-pane>
+          </el-tabs>
+        </template>
+      </div>
+    </el-drawer>
+
+    <el-dialog v-model="usageDialogVisible" :title="usageDialogTitle" width="560px" @closed="resetUsageForm">
+      <el-form :model="usageForm" label-width="106px">
+        <el-form-item label="工单号">
+          <el-input v-model.trim="usageForm.work_order_no" placeholder="请输入关联工单号" />
+        </el-form-item>
+        <el-form-item label="使用日期" required>
+          <el-date-picker v-model="usageForm.usage_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="使用时长(h)" required>
+          <el-input-number v-model="usageForm.duration_hours" :min="0" :precision="1" :step="0.5" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="usageForm.status" style="width: 100%">
+            <el-option label="正常" value="正常" />
+            <el-option label="异常" value="异常" />
+            <el-option label="停用" value="停用" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model.trim="usageForm.remark" type="textarea" :rows="3" placeholder="请输入备注" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="usageDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitUsageRecord">确认</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="maintenanceDialogVisible"
+      :title="maintenanceDialogTitle"
+      width="620px"
+      @closed="resetMaintenanceForm"
+    >
+      <el-form :model="maintenanceForm" label-width="106px">
+        <el-form-item label="维保日期" required>
+          <el-date-picker
+            v-model="maintenanceForm.maintenance_date"
+            type="date"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="维保类型">
+          <el-select v-model="maintenanceForm.maintenance_type" allow-create filterable style="width: 100%">
+            <el-option label="常规维保" value="常规维保" />
+            <el-option label="故障检修" value="故障检修" />
+            <el-option label="周期保养" value="周期保养" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="维保人">
+          <el-input v-model.trim="maintenanceForm.maintainer" placeholder="请输入维保人" />
+        </el-form-item>
+        <el-form-item label="维保内容">
+          <el-input v-model.trim="maintenanceForm.content" type="textarea" :rows="3" placeholder="请输入维保内容" />
+        </el-form-item>
+        <el-form-item label="维保结果">
+          <el-select v-model="maintenanceForm.result" style="width: 100%">
+            <el-option label="合格" value="合格" />
+            <el-option label="需复检" value="需复检" />
+            <el-option label="不合格" value="不合格" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="备注">
+          <el-input v-model.trim="maintenanceForm.remark" type="textarea" :rows="2" placeholder="请输入备注" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="maintenanceDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitMaintenanceRecord">确认</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="configDialogVisible" title="编辑维保周期" width="560px">
+      <el-form :model="configForm" label-width="120px">
+        <el-form-item label="维保周期(h)" required>
+          <el-input-number v-model="configForm.cycle_hours" :min="1" :step="50" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="预警阈值(h)">
+          <el-input-number v-model="configForm.warning_threshold_hours" :min="0" :step="10" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="上次维保日期">
+          <el-date-picker
+            v-model="configForm.last_maintenance_date"
+            type="date"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
+        </el-form-item>
+        <el-form-item label="下次维保日期">
+          <el-date-picker
+            v-model="configForm.next_maintenance_date"
+            type="date"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="configDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="submitConfig">确认</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -669,6 +1257,143 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
   border-top: 1px solid var(--border-color);
 }
 
+.host-detail {
+  min-height: 100%;
+  color: #1f2937;
+}
+
+.host-detail :deep(.el-drawer__body) {
+  padding: 0;
+}
+
+.detail-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.summary-main {
+  min-width: 0;
+}
+
+.summary-title {
+  color: #111827;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 26px;
+}
+
+.summary-subtitle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 6px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(96px, 1fr));
+  gap: 10px;
+  min-width: 330px;
+}
+
+.summary-stat {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.summary-stat .stat-label {
+  display: block;
+  margin-bottom: 5px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.summary-stat strong {
+  margin-right: 3px;
+  color: #2563eb;
+  font-size: 20px;
+  line-height: 24px;
+}
+
+.detail-descriptions {
+  margin-top: 14px;
+}
+
+.detail-tabs {
+  margin-top: 14px;
+  padding: 0 2px;
+}
+
+.detail-tabs :deep(.el-tabs__header) {
+  margin-bottom: 14px;
+}
+
+.detail-tabs :deep(.el-tabs__item) {
+  height: 42px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tab-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.tab-title {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+}
+
+.tab-subtitle {
+  margin-top: 2px;
+  color: #8b95a5;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.cycle-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.cycle-item {
+  min-height: 86px;
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.cycle-item span {
+  display: block;
+  margin-bottom: 10px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.cycle-item strong {
+  color: #111827;
+  font-size: 18px;
+  line-height: 24px;
+}
+
 @media (max-width: 1200px) {
   .stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -681,6 +1406,20 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 
   .status-filter {
     min-width: 320px;
+  }
+
+  .detail-summary {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .summary-stats {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .cycle-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -703,6 +1442,16 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 
   .filter-actions {
     justify-content: flex-end;
+  }
+
+  .summary-stats,
+  .cycle-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 </style>
