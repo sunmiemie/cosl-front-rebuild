@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { computed } from "vue"
+import { formatDateTime } from "@/utils"
 import type { TaskCenterItem } from "@/api/task-center"
 
 defineOptions({ name: "TaskList" })
@@ -19,7 +20,7 @@ const emptyText = computed(() => props.emptyText || "暂无待处理任务")
 
 const formatTime = (value?: string) => {
   if (!value) return "-"
-  return value.replace("T", " ").slice(0, 19)
+  return formatDateTime(value)
 }
 </script>
 
@@ -61,9 +62,7 @@ const formatTime = (value?: string) => {
   padding: 12px 14px;
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)),
-    var(--el-bg-color);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)), var(--el-bg-color);
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.04);
   cursor: pointer;
   text-align: left;

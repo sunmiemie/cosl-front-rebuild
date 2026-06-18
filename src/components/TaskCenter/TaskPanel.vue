@@ -5,6 +5,7 @@ import { RefreshRight } from "@element-plus/icons-vue"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import TaskList from "./TaskList.vue"
 import type { TaskCenterItem } from "@/api/task-center"
+import { formatDateTime } from "@/utils"
 
 const props = withDefaults(
   defineProps<{
@@ -71,8 +72,8 @@ watch(
       </div>
     </div>
 
-    <div class="task-panel__meta" v-if="taskStore.lastUpdatedAt">
-      <span>最近同步：{{ taskStore.lastUpdatedAt.replace("T", " ").slice(0, 19) }}</span>
+    <div class="task-panel__meta" v-if="taskStore.lastUpdatedAt || taskStore.errorMessage">
+      <span v-if="taskStore.lastUpdatedAt">最近同步：{{ formatDateTime(taskStore.lastUpdatedAt) }}</span>
       <span v-if="taskStore.errorMessage" class="task-panel__error">{{ taskStore.errorMessage }}</span>
     </div>
 
