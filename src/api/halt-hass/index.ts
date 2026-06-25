@@ -83,6 +83,8 @@ export const getHaltHassProcessByBoard = (boardId: number): Promise<HaltHass.Hal
  */
 export const getHaltHassVersionList = (params: {
   boardGroupId: string
+  experimentType?: HaltHass.HaltHassExperimentType
+  experiment_type?: HaltHass.HaltHassExperimentType
 }): Promise<HaltHass.HaltHassVersionListResponse> => {
   return request({
     url: "/test/halt-hass/versions/",

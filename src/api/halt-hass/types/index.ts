@@ -111,6 +111,10 @@ export interface HaltHassProcessUpdateParams {
   processJson?: ProcessJson
 }
 
+export type HaltHassExperimentType = "halt" | "hass"
+export type HaltHassCircuitBoardStatus = "development" | "fault_excitation" | "manufacturing"
+export type HaltHassProcessSelectionType = "existing" | "other"
+
 export interface HaltHassVersionItem {
   id: number
   name: string
@@ -118,6 +122,8 @@ export interface HaltHassVersionItem {
   status: number
   active: number
   createdAt: string
+  experimentType?: HaltHassExperimentType | string
+  experiment_type?: HaltHassExperimentType | string
 }
 
 export interface HaltHassVersionListResponse {
@@ -138,7 +144,30 @@ export interface HaltHassOrderProcess {
   version: string
 }
 
-export interface HaltHassOrderListItem {
+export interface HaltHassOrderBusinessFields {
+  testApplicationUnit?: string
+  test_application_unit?: string
+  researchNumber?: string
+  research_number?: string
+  projectBudgetNumber?: string
+  project_budget_number?: string
+  projectName?: string
+  project_name?: string
+  address?: string
+  applicant?: string
+  phone?: string
+  mobile?: string
+  experimentType?: HaltHassExperimentType | string
+  experiment_type?: HaltHassExperimentType | string
+  circuitBoardStatus?: HaltHassCircuitBoardStatus | string
+  circuit_board_status?: HaltHassCircuitBoardStatus | string
+  processSelection?: HaltHassProcessSelectionType
+  process_selection?: HaltHassProcessSelectionType
+  otherProcessName?: string
+  other_process_name?: string
+}
+
+export interface HaltHassOrderListItem extends HaltHassOrderBusinessFields {
   id: number
   orderNo: string
   boardGroup: HaltHassOrderBoardGroup | null
@@ -183,7 +212,7 @@ export interface ScannedBoard {
   scannedAt: string
 }
 
-export interface HaltHassOrderDetail {
+export interface HaltHassOrderDetail extends HaltHassOrderBusinessFields {
   id: number
   orderNo: string
   boardGroup: HaltHassOrderBoardGroup | null
@@ -216,14 +245,42 @@ export interface HaltHassOrderDetailResponse {
 
 export interface HaltHassOrderCreateParams {
   boardGroupId: number
-  processId: number
+  processId?: number | null
   boardCount: number
   creatorId: number
+  board_group_id?: number
+  process_id?: number | null
+  board_count?: number
+  creator_id?: number
   remark?: string
   boardSerials?: Array<{
     serial: string
     boardModelId: number
   }>
+  board_serials?: Array<{
+    serial: string
+    board_model_id: number
+  }>
+  testApplicationUnit: string
+  test_application_unit: string
+  researchNumber: string
+  research_number: string
+  projectBudgetNumber: string
+  project_budget_number: string
+  projectName: string
+  project_name: string
+  address: string
+  applicant: string
+  phone: string
+  mobile: string
+  experimentType: HaltHassExperimentType
+  experiment_type: HaltHassExperimentType
+  circuitBoardStatus: HaltHassCircuitBoardStatus
+  circuit_board_status: HaltHassCircuitBoardStatus
+  processSelection: HaltHassProcessSelectionType
+  process_selection: HaltHassProcessSelectionType
+  otherProcessName?: string
+  other_process_name?: string
 }
 
 // ==================== HALT-HASS 报告类型 ====================

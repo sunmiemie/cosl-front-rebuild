@@ -34,43 +34,60 @@
       </div>
 
       <div class="table-wrapper">
-        <el-table :data="tableData" stripe border style="width: 100%">
-          <el-table-column prop="orderNo" label="工单号" width="180" align="center" />
-          <el-table-column prop="boardGroup" label="电路板组" min-width="150" align="center">
+        <el-table class="halt-hass-table" :data="tableData" stripe border style="width: 100%" table-layout="fixed">
+          <el-table-column prop="orderNo" label="工单号" min-width="118" align="center" show-overflow-tooltip />
+          <el-table-column label="委托单位" min-width="112" align="center">
+            <template #default="{ row }">
+              {{ getOrderField(row, "testApplicationUnit", "test_application_unit") }}
+            </template>
+          </el-table-column>
+          <el-table-column label="项目名称" min-width="124" align="center">
+            <template #default="{ row }">
+              {{ getOrderField(row, "projectName", "project_name") }}
+            </template>
+          </el-table-column>
+          <el-table-column label="实验类型" min-width="136" align="center">
+            <template #default="{ row }">
+              {{ getOrderExperimentTypeText(row) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="boardGroup" label="电路板组" min-width="108" align="center">
             <template #default="{ row }">
               {{ row.boardGroup?.name || "-" }}
             </template>
           </el-table-column>
-          <el-table-column prop="process" label="工艺" min-width="150" align="center">
+          <el-table-column prop="process" label="工艺" min-width="112" align="center">
             <template #default="{ row }">
-              {{ row.process?.name || "-" }}
-              <el-tag v-if="row.process?.version" size="small" type="info" style="margin-left: 4px">
+              <span class="process-name">{{ getOrderProcessName(row) }}</span>
+              <el-tag v-if="row.process?.version" class="process-version-tag" size="small" type="info">
                 v{{ row.process.version }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="boardCount" label="电路板数" width="100" align="center" />
-          <el-table-column prop="status" label="状态" width="100" align="center">
+          <el-table-column prop="boardCount" label="电路板数" width="78" align="center" />
+          <el-table-column prop="status" label="状态" width="82" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">{{ row.statusText }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="createdAt" label="创建时间" width="170" align="center" />
-          <el-table-column prop="startedAt" label="开始时间" width="170" align="center">
+          <el-table-column prop="createdAt" label="创建时间" width="136" align="center" />
+          <el-table-column prop="startedAt" label="开始时间" width="96" align="center">
             <template #default="{ row }">
               {{ row.startedAt || "-" }}
             </template>
           </el-table-column>
-          <el-table-column prop="completedAt" label="完成时间" width="170" align="center">
+          <el-table-column prop="completedAt" label="完成时间" width="96" align="center">
             <template #default="{ row }">
               {{ row.completedAt || "-" }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="180" align="center" fixed="right">
+          <el-table-column label="操作" width="128" align="center">
             <template #default="{ row }">
-              <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
-              <el-link v-if="row.status === 0" type="success" class="el-link" @click="handlePublish(row)">发布</el-link>
-              <el-link v-if="row.status === 0" type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
+              <div class="table-actions">
+                <el-link type="primary" @click="handleDetail(row)">详情</el-link>
+                <el-link v-if="row.status === 0" type="success" @click="handlePublish(row)">发布</el-link>
+                <el-link v-if="row.status === 0" type="danger" @click="handleDelete(row)">删除</el-link>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -91,8 +108,82 @@
 
     <!-- 创建工单对话框 -->
     <el-dialog v-model="createDialogVisible" title="创建 HALT-HASS 工单" width="1100px" :close-on-click-modal="false">
-      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="130px">
+        <el-divider content-position="left">委托与项目信息</el-divider>
         <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="委托单位" prop="testApplicationUnit">
+              <el-input v-model="createForm.testApplicationUnit" placeholder="请输入委托单位" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="科研编号" prop="researchNumber">
+              <el-input v-model="createForm.researchNumber" placeholder="请输入科研编号" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="项目预算编号" prop="projectBudgetNumber">
+              <el-input v-model="createForm.projectBudgetNumber" placeholder="请输入项目预算编号" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="项目名称" prop="projectName">
+              <el-input v-model="createForm.projectName" placeholder="请输入项目名称" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="地址" prop="address">
+              <el-input v-model="createForm.address" placeholder="请输入地址" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="联系人（申请人）" prop="applicant">
+              <el-input v-model="createForm.applicant" placeholder="请输入联系人" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="电话" prop="phone">
+              <el-input v-model="createForm.phone" placeholder="请输入电话" clearable />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="手机" prop="mobile">
+              <el-input v-model="createForm.mobile" placeholder="请输入手机" clearable />
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-divider content-position="left">实验配置</el-divider>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="实验类型" prop="experimentType">
+              <el-select
+                v-model="createForm.experimentType"
+                placeholder="请选择实验类型"
+                style="width: 100%"
+                @change="handleExperimentTypeChange"
+              >
+                <el-option
+                  v-for="item in experimentTypeOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="试验电路板状态" prop="circuitBoardStatus">
+              <el-select v-model="createForm.circuitBoardStatus" placeholder="请选择状态" style="width: 100%">
+                <el-option
+                  v-for="item in circuitBoardStatusOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
           <el-col :span="12">
             <el-form-item label="电路板组" prop="boardGroupId">
               <el-select
@@ -106,20 +197,27 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="工艺" prop="processId">
+            <el-form-item label="选择测试工艺" prop="processSelection">
               <el-select
-                v-model="createForm.processId"
-                placeholder="请选择工艺"
+                v-model="createForm.processSelection"
+                placeholder="请选择对应实验类型下的工艺流程或其他"
                 style="width: 100%"
-                :disabled="!createForm.boardGroupId"
+                :disabled="!createForm.boardGroupId || !createForm.experimentType"
+                @change="handleProcessSelectionChange"
               >
                 <el-option
-                  v-for="item in processList"
+                  v-for="item in filteredProcessList"
                   :key="item.id"
                   :label="`${item.name} (v${item.version})${item.active === 1 ? ' [当前激活]' : ''}`"
                   :value="item.id"
                 />
+                <el-option label="其他" :value="OTHER_PROCESS_VALUE" />
               </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col v-if="isOtherProcessSelected" :span="12">
+            <el-form-item label="其他工艺" prop="otherProcessName">
+              <el-input v-model="createForm.otherProcessName" placeholder="请输入其他工艺名称" clearable />
             </el-form-item>
           </el-col>
         </el-row>
@@ -236,9 +334,37 @@
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.statusText }}</el-tag>
         </el-descriptions-item>
+        <el-descriptions-item label="委托单位">
+          {{ getOrderField(currentOrder, "testApplicationUnit", "test_application_unit") }}
+        </el-descriptions-item>
+        <el-descriptions-item label="科研编号">
+          {{ getOrderField(currentOrder, "researchNumber", "research_number") }}
+        </el-descriptions-item>
+        <el-descriptions-item label="项目预算编号">
+          {{ getOrderField(currentOrder, "projectBudgetNumber", "project_budget_number") }}
+        </el-descriptions-item>
+        <el-descriptions-item label="项目名称">
+          {{ getOrderField(currentOrder, "projectName", "project_name") }}
+        </el-descriptions-item>
+        <el-descriptions-item label="地址" :span="2">
+          {{ getOrderField(currentOrder, "address", "address") }}
+        </el-descriptions-item>
+        <el-descriptions-item label="联系人（申请人）">
+          {{ getOrderField(currentOrder, "applicant", "applicant") }}
+        </el-descriptions-item>
+        <el-descriptions-item label="电话">
+          {{ getOrderField(currentOrder, "phone", "phone") }}
+        </el-descriptions-item>
+        <el-descriptions-item label="手机">
+          {{ getOrderField(currentOrder, "mobile", "mobile") }}
+        </el-descriptions-item>
+        <el-descriptions-item label="实验类型">{{ getOrderExperimentTypeText(currentOrder) }}</el-descriptions-item>
+        <el-descriptions-item label="试验电路板状态">
+          {{ getOrderCircuitBoardStatusText(currentOrder) }}
+        </el-descriptions-item>
         <el-descriptions-item label="电路板组">{{ currentOrder.boardGroup?.name || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="工艺">
-          {{ currentOrder.process?.name || "-" }}
+        <el-descriptions-item label="选择测试工艺">
+          {{ getOrderProcessName(currentOrder) }}
           <span v-if="currentOrder.process?.version">(v{{ currentOrder.process.version }})</span>
         </el-descriptions-item>
         <el-descriptions-item label="电路板数量">{{ currentOrder.boardCount }}</el-descriptions-item>
@@ -286,8 +412,24 @@ import {
 } from "@/api/halt-hass"
 import { getBoardGroupListApi, getBoardGroupDetailApi } from "@/api/boardgroup"
 import { getTestMangePath } from "@/api/testMangelist"
-import type { HaltHassOrderListItem, HaltHassOrderDetail } from "@/api/halt-hass/types"
-import type { BoardGroup, BoardModelItem } from "@/api/boardgroup/types/boardgroup"
+import {
+  OTHER_PROCESS_VALUE,
+  buildHaltHassCreatePayload,
+  filterHaltHassProcesses,
+  getHaltHassCircuitBoardStatusText,
+  getHaltHassExperimentTypeText,
+  getHaltHassOrderField,
+  isHaltHassCreateFormReady,
+  type HaltHassProcessSelection
+} from "./halt-hass-order-helpers"
+import type {
+  HaltHassCircuitBoardStatus,
+  HaltHassExperimentType,
+  HaltHassOrderDetail,
+  HaltHassOrderListItem,
+  HaltHassVersionItem
+} from "@/api/halt-hass/types"
+import type { BoardGroup } from "@/api/boardgroup/types/boardgroup"
 
 const userStore = useUserStore()
 const route = useRoute()
@@ -304,6 +446,17 @@ const statusOptions = [
   { value: "6", label: "异常" },
   { value: "7", label: "暂存" },
   { value: "8", label: "疑问" }
+]
+
+const experimentTypeOptions: Array<{ value: HaltHassExperimentType; label: string }> = [
+  { value: "halt", label: "HALT（高温-低温-振动三项）" },
+  { value: "hass", label: "HASS" }
+]
+
+const circuitBoardStatusOptions: Array<{ value: HaltHassCircuitBoardStatus; label: string }> = [
+  { value: "development", label: "研发" },
+  { value: "fault_excitation", label: "故障激发" },
+  { value: "manufacturing", label: "制造" }
 ]
 
 // 搜索表单
@@ -323,7 +476,7 @@ const pagination = reactive({
 const loading = ref(false)
 const tableData = ref<HaltHassOrderListItem[]>([])
 const boardGroupList = ref<BoardGroup[]>([])
-const processList = ref<any[]>([])
+const processList = ref<HaltHassVersionItem[]>([])
 
 // 创建对话框
 const createDialogVisible = ref(false)
@@ -332,12 +485,46 @@ const createFormRef = ref<FormInstance>()
 const createForm = reactive({
   boardGroupId: null as number | null,
   processId: null as number | null,
+  processSelection: "" as HaltHassProcessSelection,
+  testApplicationUnit: "",
+  researchNumber: "",
+  projectBudgetNumber: "",
+  projectName: "",
+  address: "",
+  applicant: "",
+  phone: "",
+  mobile: "",
+  experimentType: "" as HaltHassExperimentType | "",
+  circuitBoardStatus: "" as HaltHassCircuitBoardStatus | "",
+  otherProcessName: "",
   remark: ""
 })
 
 const createRules = {
+  testApplicationUnit: [{ required: true, message: "请输入委托单位", trigger: "blur" }],
+  researchNumber: [{ required: true, message: "请输入科研编号", trigger: "blur" }],
+  projectBudgetNumber: [{ required: true, message: "请输入项目预算编号", trigger: "blur" }],
+  projectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
+  address: [{ required: true, message: "请输入地址", trigger: "blur" }],
+  applicant: [{ required: true, message: "请输入联系人（申请人）", trigger: "blur" }],
+  phone: [{ required: true, message: "请输入电话", trigger: "blur" }],
+  mobile: [{ required: true, message: "请输入手机", trigger: "blur" }],
+  experimentType: [{ required: true, message: "请选择实验类型", trigger: "change" }],
+  circuitBoardStatus: [{ required: true, message: "请选择试验电路板状态", trigger: "change" }],
   boardGroupId: [{ required: true, message: "请选择电路板组", trigger: "change" }],
-  processId: [{ required: true, message: "请选择工艺", trigger: "change" }]
+  processSelection: [{ required: true, message: "请选择测试工艺", trigger: "change" }],
+  otherProcessName: [
+    {
+      validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+        if (createForm.processSelection === OTHER_PROCESS_VALUE && !String(value || "").trim()) {
+          callback(new Error("请输入其他工艺名称"))
+          return
+        }
+        callback()
+      },
+      trigger: "blur"
+    }
+  ]
 }
 
 // 选中的电路板组详情
@@ -371,8 +558,10 @@ const allBoardsSelected = computed(() => {
   if (!selectedBoardGroup.value) return false
   return selectedBoardGroup.value.boards.every((board) => selectedBoards[board.id])
 })
+const filteredProcessList = computed(() => filterHaltHassProcesses(processList.value, createForm.experimentType))
+const isOtherProcessSelected = computed(() => createForm.processSelection === OTHER_PROCESS_VALUE)
 const canCreate = computed(() => {
-  return createForm.boardGroupId && createForm.processId && allBoardsSelected.value
+  return isHaltHassCreateFormReady(createForm, allBoardsSelected.value)
 })
 
 // 详情对话框
@@ -395,6 +584,36 @@ const getStatusType = (status: number): StatusTagType | undefined => {
     8: "warning"
   }
   return map[status]
+}
+
+const getOrderRawField = (
+  order: HaltHassOrderListItem | HaltHassOrderDetail,
+  camelKey: string,
+  snakeKey: string
+) => {
+  const target = order as unknown as Record<string, unknown>
+  return target[camelKey] ?? target[snakeKey] ?? ""
+}
+
+const getOrderField = (order: HaltHassOrderListItem | HaltHassOrderDetail, camelKey: string, snakeKey: string) => {
+  return getHaltHassOrderField(order as unknown as Record<string, unknown>, camelKey, snakeKey)
+}
+
+const getOrderExperimentTypeText = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
+  return getHaltHassExperimentTypeText(String(getOrderRawField(order, "experimentType", "experiment_type")))
+}
+
+const getOrderCircuitBoardStatusText = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
+  return getHaltHassCircuitBoardStatusText(String(getOrderRawField(order, "circuitBoardStatus", "circuit_board_status")))
+}
+
+const getOrderOtherProcessName = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
+  const value = getOrderRawField(order, "otherProcessName", "other_process_name")
+  return String(value || "").trim()
+}
+
+const getOrderProcessName = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
+  return order.process?.name || getOrderOtherProcessName(order) || "-"
 }
 
 // 获取工单列表
@@ -514,11 +733,68 @@ const handleCurrentChange = (page: number) => {
   getList()
 }
 
+const resetCreateForm = () => {
+  Object.assign(createForm, {
+    boardGroupId: null,
+    processId: null,
+    processSelection: "",
+    testApplicationUnit: "",
+    researchNumber: "",
+    projectBudgetNumber: "",
+    projectName: "",
+    address: "",
+    applicant: "",
+    phone: "",
+    mobile: "",
+    experimentType: "",
+    circuitBoardStatus: "",
+    otherProcessName: "",
+    remark: ""
+  })
+}
+
+const handleProcessSelectionChange = (value: HaltHassProcessSelection) => {
+  if (value === OTHER_PROCESS_VALUE || value === "") {
+    createForm.processId = null
+  } else {
+    createForm.processId = Number(value)
+    createForm.otherProcessName = ""
+  }
+  createFormRef.value?.clearValidate(["processSelection", "otherProcessName"])
+}
+
+const selectDefaultProcess = () => {
+  const activeProcess = filteredProcessList.value.find((item) => item.active === 1)
+  const defaultProcess = activeProcess || filteredProcessList.value[0]
+  createForm.processSelection = defaultProcess?.id || ""
+  handleProcessSelectionChange(createForm.processSelection)
+}
+
+const loadHaltHassProcessList = async (boardGroupId: number) => {
+  const versionParams: Parameters<typeof getHaltHassVersionList>[0] = { boardGroupId: String(boardGroupId) }
+  if (createForm.experimentType) {
+    versionParams.experimentType = createForm.experimentType
+    versionParams.experiment_type = createForm.experimentType
+  }
+
+  const res = await getHaltHassVersionList(versionParams)
+  if (res.code === 0) {
+    processList.value = res.data || []
+    selectDefaultProcess()
+  }
+}
+
+const handleExperimentTypeChange = async () => {
+  createForm.processSelection = ""
+  handleProcessSelectionChange("")
+  if (createForm.boardGroupId) {
+    await loadHaltHassProcessList(createForm.boardGroupId)
+  }
+}
+
 // 显示创建对话框
 const showCreateDialog = async () => {
-  createForm.boardGroupId = null
-  createForm.processId = null
-  createForm.remark = ""
+  resetCreateForm()
   processList.value = []
   selectedBoardGroup.value = null
 
@@ -540,6 +816,8 @@ const showCreateDialog = async () => {
 // 电路板组变化时获取对应的工艺列表和组详情
 const handleBoardGroupChange = async (boardGroupId: number) => {
   createForm.processId = null
+  createForm.processSelection = ""
+  createForm.otherProcessName = ""
   processList.value = []
   selectedBoardGroup.value = null
   treeData.value = originalTreeData.value // 重置树数据
@@ -553,17 +831,7 @@ const handleBoardGroupChange = async (boardGroupId: number) => {
 
   try {
     // 获取工艺列表（所有审核通过的工艺都可选，status === 3 表示已通过）
-    const res = await getHaltHassVersionList({ boardGroupId: String(boardGroupId) })
-    if (res.code === 0) {
-      // 筛选审核通过的工艺（status === 3）
-      processList.value = res.data.filter((item) => item.status === 3)
-
-      // 默认选择当前激活的工艺
-      const activeProcess = processList.value.find((item) => item.active === 1)
-      if (activeProcess) {
-        createForm.processId = activeProcess.id
-      }
-    }
+    await loadHaltHassProcessList(boardGroupId)
 
     // 获取电路板组详情
     const detailRes = await getBoardGroupDetailApi(boardGroupId)
@@ -676,20 +944,14 @@ const handleCreate = async () => {
         return
       }
 
-      // 收集选中的电路板信息（包含序列号和型号ID）
-      const boardSerials = Object.entries(selectedBoards).map(([boardModelId, board]) => ({
-        serial: board.serial,
-        boardModelId: Number(boardModelId)
-      }))
-
-      const res = await createHaltHassOrder({
-        boardGroupId: createForm.boardGroupId!,
-        processId: createForm.processId!,
-        boardCount: selectedBoardGroup.value!.boards.length,
+      const payload = buildHaltHassCreatePayload({
+        form: createForm,
         creatorId,
-        remark: createForm.remark,
-        boardSerials // 包含选中的电路板信息
-      } as any)
+        boardCount: selectedBoardGroup.value!.boards.length,
+        selectedBoards
+      })
+
+      const res = await createHaltHassOrder(payload)
       if (res.code === 0) {
         ElMessage.success("创建成功")
         createDialogVisible.value = false
@@ -787,30 +1049,84 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .search-wrapper {
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 
   :deep(.el-card__body) {
-    padding-bottom: 2px;
+    padding: 16px 18px 2px;
   }
+}
+
+:deep(.el-card__body) {
+  padding: 18px;
 }
 
 .toolbar-wrapper {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 20px;
+  margin-bottom: 18px;
 }
 
 .table-wrapper {
-  margin-bottom: 20px;
+  width: 100%;
+  margin-bottom: 14px;
+  overflow-x: hidden;
+}
+
+.halt-hass-table {
+  :deep(.el-table__inner-wrapper),
+  :deep(.el-table__body-wrapper),
+  :deep(.el-scrollbar__wrap) {
+    overflow-x: hidden !important;
+  }
+
+  :deep(.el-scrollbar__bar.is-horizontal) {
+    display: none;
+  }
+
+  :deep(.el-table__cell) {
+    padding: 7px 0;
+  }
+
+  :deep(.cell) {
+    padding: 0 6px;
+    line-height: 1.35;
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  :deep(.el-table__header .cell) {
+    font-weight: 600;
+  }
+}
+
+.process-name {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.process-version-tag {
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 8px;
+  line-height: 1.35;
 }
 
 .pager-wrapper {
   display: flex;
   justify-content: flex-end;
-}
 
-.el-link {
-  margin-right: 8px;
+  :deep(.el-pagination) {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 8px;
+  }
 }
 
 .board-selection-area {
