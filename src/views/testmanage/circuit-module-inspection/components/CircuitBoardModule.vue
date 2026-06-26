@@ -8,10 +8,10 @@
             <el-option label="全部状态" value="all" />
             <el-option v-for="item in statusOptions" :key="item.key" :label="item.label" :value="item.key" />
           </el-select>
-          <el-select v-model="searchForm.nature" class="filter-select" placeholder="全部性质">
-            <el-option label="全部性质" value="all" />
-            <el-option label="生产" value="生产" />
-            <el-option label="临时" value="临时" />
+          <el-select v-model="searchForm.orderType" class="filter-select" placeholder="全部类型">
+            <el-option label="全部类型" value="all" />
+            <el-option label="生产测试工单" value="production" />
+            <el-option label="临时测试工单" value="temporary" />
           </el-select>
           <el-button :icon="Refresh" @click="resetFilters">重置</el-button>
         </div>
@@ -52,8 +52,8 @@
             <div class="application-name">{{ application.name }}</div>
             <div class="application-meta">
               <el-tag effect="light">{{ application.typeLabel }}</el-tag>
-              <el-tag :type="application.nature === '生产' ? 'warning' : 'primary'" effect="plain">
-                {{ application.nature }}
+              <el-tag :type="application.generatedOrderType === 'production' ? 'warning' : 'primary'" effect="plain">
+                {{ application.generatedOrderTypeText }}
               </el-tag>
               <span>{{ application.boardCount }} 块板</span>
               <el-tag :type="application.statusTagType" effect="light">{{ application.statusLabel }}</el-tag>
@@ -120,10 +120,10 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="工单性质" prop="nature">
-              <el-select v-model="createForm.nature" style="width: 100%">
-                <el-option label="生产" value="生产" />
-                <el-option label="临时" value="临时" />
+            <el-form-item label="是否需要检测工艺" prop="sfxyjcgy">
+              <el-select v-model="createForm.sfxyjcgy" style="width: 100%">
+                <el-option label="是" value="是" />
+                <el-option label="否" value="否" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -167,7 +167,10 @@
           <el-descriptions :column="4" border>
             <el-descriptions-item label="申请单号">{{ selectedApplication.orderNo }}</el-descriptions-item>
             <el-descriptions-item label="测试类型">{{ selectedApplication.typeLabel }}</el-descriptions-item>
-            <el-descriptions-item label="工单性质">{{ selectedApplication.nature }}</el-descriptions-item>
+            <el-descriptions-item label="是否需要检测工艺">{{ selectedApplication.sfxyjcgy }}</el-descriptions-item>
+            <el-descriptions-item label="将生成工单类型">{{
+              selectedApplication.generatedOrderTypeText
+            }}</el-descriptions-item>
             <el-descriptions-item label="电路板数量">{{ selectedApplication.boardCount }} 块</el-descriptions-item>
             <el-descriptions-item label="创建日期">{{ selectedApplication.createDate || "-" }}</el-descriptions-item>
             <el-descriptions-item label="工艺绑定">{{ selectedApplication.craft || "未绑定" }}</el-descriptions-item>
@@ -225,6 +228,10 @@
                 <div class="board-model">{{ row.name }}</div>
               </template>
             </el-table-column>
+            <el-table-column prop="batchNo" label="批次号" min-width="150" />
+            <el-table-column prop="supplier" label="供应商" min-width="140" />
+            <el-table-column prop="materialNo" label="物料号" min-width="130" />
+            <el-table-column prop="quantity" label="数量" width="90" />
             <el-table-column label="状态" width="120">
               <template #default="{ row }">
                 <el-tag :type="getBoardStatus(row.status).tagType" effect="light">
@@ -259,13 +266,23 @@ import {
   type CircuitModuleApplicationRelation
 } from "@/api/circuit-module-application"
 import { printBoardQrcodes, type QrcodeBoardRow } from "@/utils/printQrcode"
+import {
+  getCraftFlagText,
+  getGeneratedOrderType,
+  getGeneratedOrderTypeText,
+  getString,
+  mapDlbBoardToUiBoard,
+  type CircuitApplicationUiBoard
+} from "./circuit-application-helpers"
 
 type ApplicationTypeKey = "电路板模块"
 type ApplicationStatus = "draft" | "published" | "scheduling" | "in_progress" | "done"
 type StatusFilter = ApplicationStatus | "all"
-type NatureFilter = "生产" | "临时" | "all"
+type GeneratedOrderFilter = "production" | "temporary" | "all"
 
-interface CircuitApplicationBoard extends QrcodeBoardRow {
+interface CircuitApplicationBoard
+  extends Omit<QrcodeBoardRow, "id" | "model" | "name" | "seria" | "sn" | "startTime">,
+    CircuitApplicationUiBoard {
   seria: string
   name: string
   serial: string
@@ -280,7 +297,9 @@ interface CircuitApplication {
   name: string
   type: ApplicationTypeKey
   typeLabel: string
-  nature: "生产" | "临时"
+  sfxyjcgy: string
+  generatedOrderType: "production" | "temporary"
+  generatedOrderTypeText: string
   status: ApplicationStatus
   statusLabel: string
   statusTagType: "primary" | "success" | "warning" | "info" | "danger"
@@ -307,7 +326,7 @@ interface CreateApplicationForm {
   client: string
   phone: string
   commissionNo: string
-  nature: CircuitApplication["nature"]
+  sfxyjcgy: "是" | "否"
   remark: string
 }
 
@@ -347,10 +366,10 @@ const applications = ref<CircuitApplication[]>([])
 const selectedApplicationKey = ref("")
 const selectedApplicationIds = ref<string[]>([])
 const selectedBoardRows = ref<CircuitApplicationBoard[]>([])
-const searchForm = reactive<{ keyword: string; status: StatusFilter; nature: NatureFilter }>({
+const searchForm = reactive<{ keyword: string; status: StatusFilter; orderType: GeneratedOrderFilter }>({
   keyword: "",
   status: "all",
-  nature: "all"
+  orderType: "all"
 })
 
 const todayKey = () => new Date().toISOString().slice(0, 10).replaceAll("-", "")
@@ -371,7 +390,7 @@ function createDefaultForm(): CreateApplicationForm {
     client: "",
     phone: "",
     commissionNo: "",
-    nature: "生产",
+    sfxyjcgy: "是",
     remark: ""
   }
 }
@@ -393,24 +412,19 @@ const filteredApplications = computed(() => {
   const keyword = searchForm.keyword.trim().toLowerCase()
   return applications.value.filter((application) => {
     const matchesStatus = searchForm.status === "all" || application.status === searchForm.status
-    const matchesNature = searchForm.nature === "all" || application.nature === searchForm.nature
+    const matchesOrderType = searchForm.orderType === "all" || application.generatedOrderType === searchForm.orderType
     const matchesKeyword =
       !keyword ||
       [application.orderNo, application.name, application.applicant, application.remark]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword))
-    return matchesStatus && matchesNature && matchesKeyword
+    return matchesStatus && matchesOrderType && matchesKeyword
   })
 })
 
 const canBatchPublish = computed(() =>
   selectedApplicationIds.value.some((key) => applications.value.find((item) => item.key === key)?.status === "draft")
 )
-
-function getString(...values: unknown[]) {
-  const value = values.find((item) => typeof item === "string" && item.trim())
-  return typeof value === "string" ? value.trim() : ""
-}
 
 function normalizeStatus(status: unknown): ApplicationStatus {
   const text = String(status ?? "")
@@ -422,11 +436,6 @@ function normalizeStatus(status: unknown): ApplicationStatus {
   if (["2", "testing", "in_progress", "running", "测试中"].includes(text)) return "in_progress"
   if (["3", "5", "6", "done", "complete", "completed", "finished", "已完成"].includes(text)) return "done"
   return "draft"
-}
-
-function inferNature(row: any) {
-  const text = [row?.nature, row?.sampleName, row?.specModel, row?.commissionNo].filter(Boolean).join(" ")
-  return text.includes("临时") || /temp/i.test(text) ? "临时" : "生产"
 }
 
 function applyApplicationStatus(application: CircuitApplication, status: ApplicationStatus) {
@@ -449,7 +458,7 @@ function getGroupStatus(rows: CircuitModuleApplicationRelation[]): ApplicationSt
 
 function mapRelationToBoard(row: CircuitModuleApplicationRelation, index: number): CircuitApplicationBoard {
   const serial = getString(row.sn) || `PCB-${index + 1}`
-  const model = getString(row.specModel, row.sampleName, "电路板模块")
+  const model = getString(row.specModel, row.sampleName, row.ggxh, "电路板模块")
   return {
     id: serial,
     seria: serial,
@@ -457,16 +466,27 @@ function mapRelationToBoard(row: CircuitModuleApplicationRelation, index: number
     serial,
     name: model,
     model,
+    batchNo: getString(row.commissionNo),
+    supplier: getString(row.client),
+    materialNo: "",
+    quantity: String(row.quantity ?? row.sl ?? ""),
     startTime: getString(row.updatedAt, row.doneAt),
     status: normalizeStatus(row.status)
   }
 }
 
 function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, index: number): CircuitApplicationBoard {
+  const applicationNo = getString(row.djbh, row.orderNo, row.commissionNo, row.sn)
+  if (board?.pch || board?.gysmc || board?.wlh || board?.ypmc) {
+    return {
+      ...mapDlbBoardToUiBoard(board, index, applicationNo),
+      status: normalizeStatus(board?.status ?? row.status)
+    }
+  }
+
   const serial =
-    getString(board?.seria, board?.sn, board?.serial, board?.id) ||
-    `${getString(row.orderNo, row.commissionNo, row.sn) || "PCB"}-${index + 1}`
-  const model = getString(board?.model, board?.name, row.specModel, row.sampleName, "电路板模块")
+    getString(board?.seria, board?.sn, board?.serial, board?.id) || `${applicationNo || "PCB"}-${index + 1}`
+  const model = getString(board?.model, board?.name, row.specModel, row.sampleName, row.ggxh, "电路板模块")
   return {
     id: serial,
     seria: serial,
@@ -474,6 +494,10 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
     serial,
     name: model,
     model,
+    batchNo: getString(board?.batchNo, board?.pch),
+    supplier: getString(board?.supplier, board?.gysmc),
+    materialNo: getString(board?.materialNo, board?.wlh),
+    quantity: String(board?.quantity ?? board?.sl ?? ""),
     startTime: getString(board?.startTime, row.updatedAt, row.doneAt),
     status: normalizeStatus(board?.status ?? row.status)
   }
@@ -481,14 +505,20 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
 
 function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicationRelation[]): CircuitApplication {
   const first = rows[0] || ({} as CircuitModuleApplicationRelation)
-  const rawBoards = Array.isArray(first.boards) && first.boards.length ? first.boards : null
+  const rawBoards =
+    Array.isArray(first.dlbTestBoardList) && first.dlbTestBoardList.length
+      ? first.dlbTestBoardList
+      : Array.isArray(first.boards) && first.boards.length
+        ? first.boards
+        : null
   const boards = rawBoards
     ? rawBoards.map((board, index) => mapApiBoardToBoard(first, board, index))
     : rows.map(mapRelationToBoard)
   const status = getGroupStatus(rows)
   const meta = statusMeta[status]
-  const orderNo = getString(first.orderNo, first.commissionNo, first.sn, groupKey)
-  const name = getString(first.moduleName, first.sampleName, first.specModel, `${orderNo} 电路板模块申请单`)
+  const orderNo = getString(first.djbh, first.orderNo, first.commissionNo, first.sn, groupKey)
+  const name = getString(first.xmmc, first.moduleName, first.sampleName, first.specModel, `${orderNo} 电路板模块申请单`)
+  const sfxyjcgy = getCraftFlagText(first.sfxyjcgy ?? first.nature)
   const remark = [
     first.client ? `客户：${first.client}` : "",
     first.phone ? `电话：${first.phone}` : "",
@@ -501,21 +531,26 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
   return {
     key: `circuitBoardModule-${orderNo}`,
     sourceTypeId: "circuitBoardModule",
-    dbId: orderNo,
+    dbId: first.id ?? orderNo,
     orderNo,
     name,
     type: "电路板模块",
     typeLabel: "电路板模块",
-    nature: inferNature(first),
+    sfxyjcgy,
+    generatedOrderType: getGeneratedOrderType(sfxyjcgy),
+    generatedOrderTypeText: getGeneratedOrderTypeText(sfxyjcgy),
     status,
     statusLabel: meta.label,
     statusTagType: meta.tagType,
     primaryText: meta.primaryText,
     primaryType: meta.primaryType,
     boardCount: boards.length,
-    craft: getString(first.device),
-    createDate: getString(first.updatedAt, first.doneAt).slice(0, 10),
-    applicant: getString(first.applicant),
+    craft: sfxyjcgy,
+    createDate: getString(first.sqrq, (first as { createTime?: string }).createTime, first.updatedAt, first.doneAt).slice(
+      0,
+      10
+    ),
+    applicant: getString(first.sqrmc, first.applicant),
     remark,
     boards,
     raw: rows
@@ -525,7 +560,7 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
 function mapRelationsToApplications(rows: CircuitModuleApplicationRelation[]) {
   const groups = new Map<string, CircuitModuleApplicationRelation[]>()
   rows.forEach((row, index) => {
-    const groupKey = getString(row.orderNo, row.commissionNo, row.sn) || `PCB-${index + 1}`
+    const groupKey = getString(row.djbh, row.orderNo, row.commissionNo, row.sn) || `PCB-${index + 1}`
     groups.set(groupKey, [...(groups.get(groupKey) || []), row])
   })
   return Array.from(groups.entries()).map(([groupKey, groupRows]) => mapRelationsToApplication(groupKey, groupRows))
@@ -555,7 +590,7 @@ async function loadApplications() {
 function resetFilters() {
   searchForm.keyword = ""
   searchForm.status = "all"
-  searchForm.nature = "all"
+  searchForm.orderType = "all"
 }
 
 function toggleApplicationSelection(key: string) {
@@ -583,7 +618,13 @@ function getApplicationPrintableBoards(application: CircuitApplication): Circuit
   if (application.boards.length) return application.boards
 
   const rows = getApplicationRelationRows(application)
-  const rawBoards = rows.flatMap((row) => (Array.isArray(row.boards) ? row.boards : []))
+  const rawBoards = rows.flatMap((row) =>
+    Array.isArray(row.dlbTestBoardList) && row.dlbTestBoardList.length
+      ? row.dlbTestBoardList
+      : Array.isArray(row.boards)
+        ? row.boards
+        : []
+  )
   if (rawBoards.length) {
     const first = rows[0] || ({} as CircuitModuleApplicationRelation)
     return rawBoards.map((board, index) => mapApiBoardToBoard(first, board, index))
@@ -730,7 +771,7 @@ async function handleSaveApplication() {
     client: createForm.client.trim(),
     phone: createForm.phone.trim(),
     commissionNo: createForm.commissionNo.trim(),
-    nature: createForm.nature,
+    sfxyjcgy: createForm.sfxyjcgy,
     remark: createForm.remark.trim(),
     status: 0,
     boards,
