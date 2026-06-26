@@ -85,7 +85,7 @@ function createService() {
         default:
           // 不是正确的 code
           ElMessage.error(apiData.message || "Error")
-          const error = new Error(apiData.message || apiData.msg || "Error") as Error & {
+          const error = new Error("Error") as Error & {
             data?: unknown
             response?: { data?: unknown }
           }
