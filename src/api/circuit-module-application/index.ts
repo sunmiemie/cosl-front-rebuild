@@ -8,6 +8,53 @@ export interface GetCircuitModuleApplicationsParams {
   commissionNo?: string
 }
 
+export type CircuitModuleGeneratedOrderType = "production" | "temporary"
+
+export interface DlbCircuitBoardItem {
+  id?: string | number
+  dlbTestId?: string | number
+  sscp?: string
+  ypmc?: string
+  wlh?: string
+  ggxh?: string
+  gysmc?: string
+  pch?: string
+  sl?: string | number
+  sn?: string
+  wtr?: string
+  createBy?: string
+  createTime?: string
+  updateBy?: string
+  updateTime?: string
+}
+
+export interface DlbCircuitApplicationRaw {
+  id?: string | number
+  djbh?: string
+  wtdw?: string
+  kybh?: string
+  xmysbh?: string
+  xmmc?: string
+  address?: string
+  sqrq?: string
+  sqrmc?: string
+  sqrdh?: string
+  zj?: string
+  ssdw?: string
+  ssdwqt?: string
+  sfxyjcgy?: string
+  ggxh?: string
+  sl?: string | number
+  sccj?: string
+  bsh?: string
+  zt?: string | number
+  createBy?: string
+  createTime?: string
+  updateBy?: string
+  updateTime?: string
+  dlbTestBoardList?: DlbCircuitBoardItem[]
+}
+
 export interface CircuitModuleScheduleSegment {
   scheduled_start_at: string
   scheduled_end_at: string
@@ -27,6 +74,25 @@ export interface CircuitModuleBoardItem {
 export interface CircuitModuleApplicationRelation {
   id?: number
   sn: string
+  djbh?: string
+  wtdw?: string
+  kybh?: string
+  xmysbh?: string
+  xmmc?: string
+  address?: string
+  sqrq?: string
+  sqrmc?: string
+  sqrdh?: string
+  zj?: string
+  ssdw?: string
+  ssdwqt?: string
+  sfxyjcgy?: string
+  ggxh?: string
+  sl?: string | number
+  sccj?: string
+  bsh?: string
+  zt?: string | number
+  dlbTestBoardList?: DlbCircuitBoardItem[]
   orderNo?: string
   moduleName?: string
   sampleName?: string
@@ -73,6 +139,36 @@ export interface CircuitModuleApplicationSyncResponse {
   }
 }
 
+export interface PublishCircuitModuleApplicationRequest {
+  applicationId: string | number
+  orderNo: string
+}
+
+export interface PublishCircuitModuleMissingBoard {
+  sn: string
+  pch: string
+  gysmc: string
+  ggxh: string
+}
+
+export interface PublishCircuitModuleApplicationResponse {
+  code: number
+  msg?: string
+  data?: {
+    status?: string | number
+    orderType?: CircuitModuleGeneratedOrderType
+    generatedCount?: number
+    generatedOrders?: Array<{
+      id: string | number
+      name: string
+      boardSn: string
+      boardBatchNo: string
+    }>
+    reason?: "missing_board_match"
+    missingBoards?: PublishCircuitModuleMissingBoard[]
+  }
+}
+
 export function getCircuitModuleApplicationList(params: GetCircuitModuleApplicationsParams = {}) {
   return request<CircuitModuleApplicationListResponse>({
     url: "data/assistant/circuit-board-module-order/list",
@@ -88,5 +184,13 @@ export function syncCircuitModuleApplicationList(items: CircuitModuleApplication
     data: {
       list: items
     }
+  })
+}
+
+export function publishCircuitModuleApplicationAndGenerateOrders(data: PublishCircuitModuleApplicationRequest) {
+  return request<PublishCircuitModuleApplicationResponse>({
+    url: "data/assistant/circuit-board-module-order/publish-generate",
+    method: "post",
+    data
   })
 }
