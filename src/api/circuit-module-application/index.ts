@@ -190,25 +190,66 @@ function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object"
 }
 
+function isStringValue(value: unknown): value is string {
+  return typeof value === "string"
+}
+
+function isStringOrNumberValue(value: unknown): value is string | number {
+  return typeof value === "string" || typeof value === "number"
+}
+
+function isPublishMissingBoard(value: unknown): value is PublishCircuitModuleMissingBoard {
+  return (
+    isObjectRecord(value) &&
+    isStringValue(value.sn) &&
+    isStringValue(value.pch) &&
+    isStringValue(value.gysmc) &&
+    isStringValue(value.ggxh)
+  )
+}
+
+function isPublishGeneratedOrder(value: unknown): value is PublishCircuitModuleGeneratedOrder {
+  return (
+    isObjectRecord(value) &&
+    isStringOrNumberValue(value.id) &&
+    isStringValue(value.name) &&
+    isStringValue(value.boardSn) &&
+    isStringValue(value.boardBatchNo)
+  )
+}
+
+export function isCircuitModulePublishSuccessData(
+  data: unknown
+): data is PublishCircuitModuleApplicationSuccessData {
+  return (
+    isObjectRecord(data) &&
+    isStringOrNumberValue(data.status) &&
+    (data.orderType === "production" || data.orderType === "temporary") &&
+    typeof data.generatedCount === "number" &&
+    Array.isArray(data.generatedOrders) &&
+    data.generatedOrders.every(isPublishGeneratedOrder)
+  )
+}
+
 export function isCircuitModulePublishMissingBoardData(
   data: unknown
 ): data is PublishCircuitModuleApplicationMissingBoardData {
-  return isObjectRecord(data) && data.reason === "missing_board_match" && Array.isArray(data.missingBoards)
+  return (
+    isObjectRecord(data) &&
+    data.reason === "missing_board_match" &&
+    Array.isArray(data.missingBoards) &&
+    data.missingBoards.every(isPublishMissingBoard)
+  )
 }
 
 export function getCircuitModulePublishResponseData(
   errorOrResponse: unknown
 ): PublishCircuitModuleApplicationData | undefined {
   const value = errorOrResponse as any
-  const candidates = [value?.data, value?.response?.data?.data, value?.response?.data]
+  const candidates = [value, value?.data?.data, value?.data, value?.response?.data?.data, value?.response?.data]
   return candidates.find((candidate) => {
     if (isCircuitModulePublishMissingBoardData(candidate)) return true
-    return (
-      isObjectRecord(candidate) &&
-      (candidate.orderType === "production" || candidate.orderType === "temporary") &&
-      typeof candidate.generatedCount === "number" &&
-      Array.isArray(candidate.generatedOrders)
-    )
+    return isCircuitModulePublishSuccessData(candidate)
   }) as PublishCircuitModuleApplicationData | undefined
 }
 
