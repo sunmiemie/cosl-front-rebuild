@@ -151,22 +151,70 @@ export interface PublishCircuitModuleMissingBoard {
   ggxh: string
 }
 
+export interface PublishCircuitModuleGeneratedOrder {
+  id: string | number
+  name: string
+  boardSn: string
+  boardBatchNo: string
+}
+
+export interface PublishCircuitModuleApplicationSuccessData {
+  status: string | number
+  orderType: CircuitModuleGeneratedOrderType
+  generatedCount: number
+  generatedOrders: PublishCircuitModuleGeneratedOrder[]
+  reason?: never
+  missingBoards?: never
+}
+
+export interface PublishCircuitModuleApplicationMissingBoardData {
+  reason: "missing_board_match"
+  missingBoards: PublishCircuitModuleMissingBoard[]
+  status?: string | number
+  orderType?: CircuitModuleGeneratedOrderType
+  generatedCount?: number
+  generatedOrders?: never
+}
+
+export type PublishCircuitModuleApplicationData =
+  | PublishCircuitModuleApplicationSuccessData
+  | PublishCircuitModuleApplicationMissingBoardData
+
 export interface PublishCircuitModuleApplicationResponse {
   code: number
   msg?: string
-  data?: {
-    status?: string | number
-    orderType?: CircuitModuleGeneratedOrderType
-    generatedCount?: number
-    generatedOrders?: Array<{
-      id: string | number
-      name: string
-      boardSn: string
-      boardBatchNo: string
-    }>
-    reason?: "missing_board_match"
-    missingBoards?: PublishCircuitModuleMissingBoard[]
-  }
+  data?: PublishCircuitModuleApplicationData
+}
+
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object"
+}
+
+export function isCircuitModulePublishMissingBoardData(
+  data: unknown
+): data is PublishCircuitModuleApplicationMissingBoardData {
+  return isObjectRecord(data) && data.reason === "missing_board_match" && Array.isArray(data.missingBoards)
+}
+
+export function getCircuitModulePublishResponseData(
+  errorOrResponse: unknown
+): PublishCircuitModuleApplicationData | undefined {
+  const value = errorOrResponse as any
+  const candidates = [value?.data, value?.response?.data?.data, value?.response?.data]
+  return candidates.find((candidate) => {
+    if (isCircuitModulePublishMissingBoardData(candidate)) return true
+    return (
+      isObjectRecord(candidate) &&
+      (candidate.orderType === "production" || candidate.orderType === "temporary") &&
+      typeof candidate.generatedCount === "number" &&
+      Array.isArray(candidate.generatedOrders)
+    )
+  }) as PublishCircuitModuleApplicationData | undefined
+}
+
+export function getCircuitModulePublishMissingBoards(errorOrResponse: unknown) {
+  const data = getCircuitModulePublishResponseData(errorOrResponse)
+  return isCircuitModulePublishMissingBoardData(data) ? data.missingBoards : []
 }
 
 export function getCircuitModuleApplicationList(params: GetCircuitModuleApplicationsParams = {}) {
