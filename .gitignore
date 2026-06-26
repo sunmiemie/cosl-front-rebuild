@@ -5,6 +5,7 @@ node_modules
 dist
 dist-ssr
 .eslintcache
+.worktrees/
 
 # Local env files
 *.local
