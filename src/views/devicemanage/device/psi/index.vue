@@ -21,6 +21,7 @@ import {
   updateHostMaintenanceRecordApi,
   updateHostUsageRecordApi
 } from "@/api/host-maintenance"
+import { getPsiModelDataApi } from "@/api/psimodel"
 import type {
   DeviceInstanceData,
   DeviceInstancePayload,
@@ -33,13 +34,20 @@ import type {
   HostUsageRecordItem
 } from "@/api/host-maintenance/types"
 import { usePagination } from "@/hooks/usePagination"
+import {
+  extractHostModelList,
+  getHostModelDisplayName,
+  getHostModelId,
+  normalizeHostModelOptions,
+  type HostModelOption
+} from "./model-options"
 import { getDeviceOnlineStatusOptions, resolveDeviceOnlineStatus } from "./status-options"
 
 interface DeviceInstanceRow {
   id: string | number
   serialNumber: string
   deviceName: string
-  testBench: string
+  modelId: string
   model: string
   status: DeviceInstanceStatus
   onlineStatus: DeviceOnlineStatus
@@ -51,6 +59,7 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const detailVisible = ref(false)
 const detailLoading = ref(false)
+const hostModelLoading = ref(false)
 const currentUpdateId = ref<string | number>()
 const formRef = ref<FormInstance | null>(null)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
@@ -84,14 +93,12 @@ const onlineStatusOptions = computed(() => getDeviceOnlineStatusOptions(formData
 
 const searchData = reactive({
   serialNumber: "",
-  testBench: "",
   status: "" as "" | DeviceInstanceStatus
 })
 
 const formData = reactive<DeviceInstancePayload>({
   serialNumber: "",
   deviceName: "",
-  testBench: "",
   model: "",
   status: "normal",
   onlineStatus: "standby"
@@ -99,6 +106,7 @@ const formData = reactive<DeviceInstancePayload>({
 
 const detailData = ref<DeviceInstanceRow | null>(null)
 const tableData = ref<DeviceInstanceRow[]>([])
+const hostModelOptions = ref<HostModelOption[]>([])
 const detailTab = ref("usage")
 const usageRecords = ref<HostUsageRecordItem[]>([])
 const maintenanceRecords = ref<HostMaintenanceRecordItem[]>([])
@@ -154,8 +162,7 @@ const totalUsageHours = computed(() =>
 const formRules: FormRules = {
   serialNumber: [{ required: true, message: "请输入SN号", trigger: "blur" }],
   deviceName: [{ required: true, message: "请输入设备名称", trigger: "blur" }],
-  testBench: [{ required: true, message: "请输入所属测试台", trigger: "blur" }],
-  model: [{ required: true, message: "请输入型号", trigger: "blur" }],
+  model: [{ required: true, message: "请选择型号", trigger: "change" }],
   status: [{ required: true, message: "请选择设备状态", trigger: "change" }],
   onlineStatus: [{ required: true, message: "请选择在线状态", trigger: "change" }]
 }
@@ -166,10 +173,6 @@ const statCards = computed(() => [
   { title: "维保/维修", value: stats.maintenance + stats.repair, desc: "维保中或维修中", className: "service" },
   { title: "故障设备", value: stats.fault, desc: "需要处理的故障设备", className: "fault" }
 ])
-
-const testBenchOptions = computed(() =>
-  Array.from(new Set(tableData.value.map((item) => item.testBench).filter(Boolean)))
-)
 
 const normalizeStatus = (value: unknown): DeviceInstanceStatus => {
   if (value === 0 || value === "0" || value === "normal" || value === "正常") return "normal"
@@ -197,8 +200,8 @@ const normalizeRow = (row: DeviceInstanceData): DeviceInstanceRow => ({
   id: row.id ?? row.psi_id ?? row.device_id ?? row.deviceId ?? "",
   serialNumber: row.serialNumber ?? row.serial_number ?? row.psi_serialnumber ?? "",
   deviceName: row.deviceName ?? row.device_name ?? row.psi_name ?? "",
-  testBench: row.testBench ?? row.test_bench ?? "",
-  model: row.model ?? row.modelName ?? row.model_name ?? row.psimodel_name ?? "",
+  modelId: getHostModelId(row),
+  model: getHostModelDisplayName(row),
   status: normalizeStatus(row.status ?? row.deviceStatus ?? row.device_status ?? row.psi_status),
   onlineStatus: normalizeOnlineStatus(
     row.onlineStatus ?? row.online_status ?? row.onlineStatusText ?? row.online_status_text
@@ -234,6 +237,34 @@ const refreshStats = (summary: any = {}) => {
   stats.fault = Number(summary.fault ?? rowStats.fault)
 }
 
+const loadHostModelOptions = async () => {
+  if (hostModelOptions.value.length) return
+  hostModelLoading.value = true
+  try {
+    const res = await getPsiModelDataApi({
+      currentPage: 1,
+      size: 2000
+    })
+    hostModelOptions.value = normalizeHostModelOptions(extractHostModelList(res))
+  } catch {
+    hostModelOptions.value = []
+  } finally {
+    hostModelLoading.value = false
+  }
+}
+
+const ensureHostModelOptions = () => {
+  if (hostModelOptions.value.length || hostModelLoading.value) return
+  void loadHostModelOptions()
+}
+
+const handleModelDropdownVisible = (visible: boolean) => {
+  if (visible) ensureHostModelOptions()
+}
+
+const resolveFormModelValue = (row: DeviceInstanceRow) =>
+  row.modelId || hostModelOptions.value.find((item) => item.name === row.model)?.id || row.model
+
 const getTableData = async () => {
   loading.value = true
   try {
@@ -241,7 +272,6 @@ const getTableData = async () => {
       currentPage: paginationData.currentPage,
       size: paginationData.pageSize,
       serialNumber: searchData.serialNumber || undefined,
-      testBench: searchData.testBench || undefined,
       status: searchData.status || undefined
     })
     const data = normalizeListData(res)
@@ -263,7 +293,6 @@ const handleSearch = () => {
 
 const resetSearch = () => {
   searchData.serialNumber = ""
-  searchData.testBench = ""
   searchData.status = ""
   handleSearch()
 }
@@ -273,7 +302,6 @@ const resetForm = () => {
   formData.id = undefined
   formData.serialNumber = ""
   formData.deviceName = ""
-  formData.testBench = ""
   formData.model = ""
   formData.status = "normal"
   formData.onlineStatus = "standby"
@@ -282,16 +310,17 @@ const resetForm = () => {
 
 const openCreateDialog = () => {
   resetForm()
+  ensureHostModelOptions()
   dialogVisible.value = true
 }
 
-const openEditDialog = (row: DeviceInstanceRow) => {
+const openEditDialog = async (row: DeviceInstanceRow) => {
+  await loadHostModelOptions()
   currentUpdateId.value = row.id
   formData.id = row.id
   formData.serialNumber = row.serialNumber
   formData.deviceName = row.deviceName
-  formData.testBench = row.testBench
-  formData.model = row.model
+  formData.model = resolveFormModelValue(row)
   formData.status = row.status
   formData.onlineStatus = row.onlineStatus
   dialogVisible.value = true
@@ -631,18 +660,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             @keyup.enter="handleSearch"
           />
         </el-form-item>
-        <el-form-item label="测试台">
-          <el-select
-            v-model="searchData.testBench"
-            allow-create
-            clearable
-            filterable
-            default-first-option
-            placeholder="请输入或选择测试台"
-          >
-            <el-option v-for="item in testBenchOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </el-form-item>
         <el-form-item label="设备状态" class="status-filter">
           <el-segmented v-model="searchData.status" :options="statusOptions" @change="handleSearch" />
         </el-form-item>
@@ -663,7 +680,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
       <el-table :data="tableData" row-key="id" class="device-table" height="calc(100vh - 390px)">
         <el-table-column prop="serialNumber" label="SN号" min-width="132" show-overflow-tooltip />
         <el-table-column prop="deviceName" label="设备名称" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="testBench" label="所属测试台" min-width="132" show-overflow-tooltip />
         <el-table-column prop="model" label="型号" min-width="118" show-overflow-tooltip />
         <el-table-column label="设备状态" min-width="104">
           <template #default="{ row }">
@@ -712,20 +728,18 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         <el-form-item label="设备名称" prop="deviceName">
           <el-input v-model.trim="formData.deviceName" placeholder="请输入设备名称" />
         </el-form-item>
-        <el-form-item label="所属测试台" prop="testBench">
-          <el-select
-            v-model="formData.testBench"
-            allow-create
-            filterable
-            default-first-option
-            placeholder="请输入或选择测试台"
-            style="width: 100%"
-          >
-            <el-option v-for="item in testBenchOptions" :key="item" :label="item" :value="item" />
-          </el-select>
-        </el-form-item>
         <el-form-item label="型号" prop="model">
-          <el-input v-model.trim="formData.model" placeholder="请输入型号" />
+          <el-select
+            v-model="formData.model"
+            clearable
+            filterable
+            :loading="hostModelLoading"
+            placeholder="请选择型号"
+            style="width: 100%"
+            @visible-change="handleModelDropdownVisible"
+          >
+            <el-option v-for="item in hostModelOptions" :key="item.id" :label="item.name" :value="item.id" />
+          </el-select>
         </el-form-item>
         <el-form-item label="设备状态" prop="status">
           <el-select v-model="formData.status" placeholder="请选择设备状态" style="width: 100%">
@@ -759,7 +773,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
               <div class="summary-title">{{ detailData.deviceName || detailData.serialNumber }}</div>
               <div class="summary-subtitle">
                 <span>{{ detailData.serialNumber }}</span>
-                <span>{{ detailData.testBench || "未关联测试台" }}</span>
                 <span>{{ detailData.model || "未填写型号" }}</span>
               </div>
             </div>
@@ -785,7 +798,6 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-descriptions :column="3" border class="detail-descriptions">
             <el-descriptions-item label="SN号">{{ detailData.serialNumber }}</el-descriptions-item>
             <el-descriptions-item label="设备名称">{{ detailData.deviceName }}</el-descriptions-item>
-            <el-descriptions-item label="所属测试台">{{ detailData.testBench }}</el-descriptions-item>
             <el-descriptions-item label="型号">{{ detailData.model }}</el-descriptions-item>
             <el-descriptions-item label="设备状态">
               <span class="pill-tag" :class="statusMap[detailData.status].className">

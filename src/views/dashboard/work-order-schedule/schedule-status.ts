@@ -1,7 +1,7 @@
 import type { TagProps } from "element-plus"
 
 export type WorkOrderScheduleStatusInput = {
-  status?: number
+  status?: number | string
   statusText?: string
   isRunningTarget?: boolean
   scheduledStartAt?: string | null
@@ -29,11 +29,14 @@ function toNumber(value: unknown) {
   return Number.isFinite(numberValue) ? numberValue : undefined
 }
 
-export function hasRunningScheduleInstrument(instruments?: Array<WorkOrderScheduleInstrumentInput | null | undefined> | null) {
+export function hasRunningScheduleInstrument(
+  instruments?: Array<WorkOrderScheduleInstrumentInput | null | undefined> | null
+) {
   return Boolean(
     instruments?.some((instrument) => {
       if (!instrument) return false
-      if (instrument.completed === true || instrument.isCompleted === true || instrument.is_completed === true) return false
+      if (instrument.completed === true || instrument.isCompleted === true || instrument.is_completed === true)
+        return false
       const status = toNumber(instrument.instrumentStatus ?? instrument.instrument_status ?? instrument.status)
       return status === 1
     })

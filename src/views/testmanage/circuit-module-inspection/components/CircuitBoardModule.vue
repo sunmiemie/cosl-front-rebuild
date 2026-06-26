@@ -20,23 +20,27 @@
       <div class="list-actions">
         <el-button type="primary" :icon="Plus" @click="handleCreateApplication">新建</el-button>
         <el-button :disabled="!canBatchPublish" @click="batchPublishApplications">批量发布</el-button>
-        <el-button :disabled="!canBatchSchedule" class="schedule-action" @click="batchScheduleApplications">
-          批量排期
-        </el-button>
-        <span v-if="selectedApplicationIds.length" class="selected-count">已选 {{ selectedApplicationIds.length }} 项</span>
-        <el-button class="refresh-action" :icon="RefreshRight" :loading="loading" @click="loadApplications">刷新</el-button>
+        <span v-if="selectedApplicationIds.length" class="selected-count"
+          >已选 {{ selectedApplicationIds.length }} 项</span
+        >
+        <el-button class="refresh-action" :icon="RefreshRight" :loading="loading" @click="loadApplications"
+          >刷新</el-button
+        >
       </div>
 
       <el-scrollbar v-loading="loading" class="application-list">
         <el-empty v-if="filteredApplications.length === 0" description="该条件下暂无申请单" />
-        <button
+        <div
           v-for="application in filteredApplications"
           v-else
           :key="application.key"
           class="application-card"
           :class="{ selected: selectedApplication?.key === application.key }"
-          type="button"
+          role="button"
+          tabindex="0"
           @click="openApplicationDetail(application)"
+          @keydown.enter.prevent="openApplicationDetail(application)"
+          @keydown.space.prevent="openApplicationDetail(application)"
         >
           <el-checkbox
             :model-value="selectedApplicationIds.includes(application.key)"
@@ -68,16 +72,97 @@
               打印二维码
             </el-button>
           </div>
-        </button>
+        </div>
       </el-scrollbar>
     </section>
+
+    <el-dialog v-model="createDialogVisible" title="新建电路板模块申请单" width="760px" :close-on-click-modal="false">
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="120px">
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="申请单号" prop="orderNo">
+              <el-input v-model="createForm.orderNo" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="电路板编号" prop="sn">
+              <el-input v-model="createForm.sn" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="模块名称" prop="moduleName">
+              <el-input v-model="createForm.moduleName" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="规格型号" prop="specModel">
+              <el-input v-model="createForm.specModel" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="设备" prop="device">
+              <el-input v-model="createForm.device" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="数量" prop="quantity">
+              <el-input-number v-model="createForm.quantity" :min="1" :max="999" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="时长" prop="hours">
+              <el-input-number v-model="createForm.hours" :min="1" :max="999" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="委托编号" prop="commissionNo">
+              <el-input v-model="createForm.commissionNo" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="工单性质" prop="nature">
+              <el-select v-model="createForm.nature" style="width: 100%">
+                <el-option label="生产" value="生产" />
+                <el-option label="临时" value="临时" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="申请人" prop="applicant">
+              <el-input v-model="createForm.applicant" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="客户" prop="client">
+              <el-input v-model="createForm.client" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="联系电话" prop="phone">
+              <el-input v-model="createForm.phone" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item label="备注" prop="remark">
+              <el-input v-model="createForm.remark" :rows="2" type="textarea" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+      </el-form>
+      <template #footer>
+        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="createSaving" @click="handleSaveApplication">保存</el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="detailVisible" title="申请单详情" width="920px" :close-on-click-modal="false">
       <template v-if="selectedApplication">
         <div class="detail-top">
           <div class="detail-title">
             {{ selectedApplication.name }}
-            <el-tag :type="selectedApplication.statusTagType" effect="light">{{ selectedApplication.statusLabel }}</el-tag>
+            <el-tag :type="selectedApplication.statusTagType" effect="light">{{
+              selectedApplication.statusLabel
+            }}</el-tag>
           </div>
           <el-descriptions :column="4" border>
             <el-descriptions-item label="申请单号">{{ selectedApplication.orderNo }}</el-descriptions-item>
@@ -95,14 +180,13 @@
               type="success"
               @click="publishApplication(selectedApplication)"
             >
-              发布申请单
+              发布
             </el-button>
             <el-button
-              v-if="selectedApplication.status === 'published'"
-              class="schedule-action"
-              @click="scheduleApplication(selectedApplication)"
+              v-if="selectedApplication.status !== 'draft'"
+              @click="openApplicationDetail(selectedApplication)"
             >
-              加入排期顺序
+              查看
             </el-button>
             <el-button
               v-if="selectedApplication.boards.length"
@@ -150,9 +234,7 @@
             </el-table-column>
             <el-table-column label="操作" width="190" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" :icon="Printer" @click="handlePrintBoardQrcode(row)">
-                  二维码
-                </el-button>
+                <el-button link type="primary" :icon="Printer" @click="handlePrintBoardQrcode(row)"> 二维码 </el-button>
                 <el-button v-if="row.status === 'draft'" link type="success" @click="publishBoard(row)">发布</el-button>
                 <el-button v-if="row.status === 'in_progress'" link @click="completeBoard(row)">完成</el-button>
               </template>
@@ -169,7 +251,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue"
-import { ElMessage } from "element-plus"
+import { ElMessage, type FormInstance, type FormRules } from "element-plus"
 import { Plus, Printer, Refresh, RefreshRight } from "@element-plus/icons-vue"
 import {
   getCircuitModuleApplicationList,
@@ -186,6 +268,7 @@ type NatureFilter = "生产" | "临时" | "all"
 interface CircuitApplicationBoard extends QrcodeBoardRow {
   seria: string
   name: string
+  serial: string
   status: ApplicationStatus
 }
 
@@ -212,6 +295,22 @@ interface CircuitApplication {
   raw: any
 }
 
+interface CreateApplicationForm {
+  sn: string
+  orderNo: string
+  moduleName: string
+  specModel: string
+  quantity: number
+  device: string
+  hours: number | null
+  applicant: string
+  client: string
+  phone: string
+  commissionNo: string
+  nature: CircuitApplication["nature"]
+  remark: string
+}
+
 const statusOptions: Array<{ key: ApplicationStatus; label: string; sub: string; color: string }> = [
   { key: "draft", label: "未发布", sub: "草稿", color: "#6b7280" },
   { key: "published", label: "已发布", sub: "等待排期", color: "#2563eb" },
@@ -222,19 +321,28 @@ const statusOptions: Array<{ key: ApplicationStatus; label: string; sub: string;
 
 const statusMeta: Record<
   ApplicationStatus,
-  { label: string; tagType: CircuitApplication["statusTagType"]; primaryText: string; primaryType: CircuitApplication["primaryType"] }
+  {
+    label: string
+    tagType: CircuitApplication["statusTagType"]
+    primaryText: string
+    primaryType: CircuitApplication["primaryType"]
+  }
 > = {
   draft: { label: "未发布", tagType: "info", primaryText: "发布", primaryType: "primary" },
-  published: { label: "已发布", tagType: "success", primaryText: "加入排期", primaryType: "warning" },
+  published: { label: "已发布", tagType: "success", primaryText: "查看", primaryType: "" },
   scheduling: { label: "排期中", tagType: "warning", primaryText: "查看", primaryType: "" },
-  in_progress: { label: "测试中", tagType: "success", primaryText: "标记完成", primaryType: "" },
+  in_progress: { label: "测试中", tagType: "success", primaryText: "查看", primaryType: "" },
   done: { label: "已完成", tagType: "success", primaryText: "查看", primaryType: "" }
 }
 
 const circuitPublishedSyncState = { status: 1 } as const
+const defaultModuleName = "电路板模块"
 
 const loading = ref(false)
 const detailVisible = ref(false)
+const createDialogVisible = ref(false)
+const createSaving = ref(false)
+const createFormRef = ref<FormInstance>()
 const applications = ref<CircuitApplication[]>([])
 const selectedApplicationKey = ref("")
 const selectedApplicationIds = ref<string[]>([])
@@ -244,6 +352,38 @@ const searchForm = reactive<{ keyword: string; status: StatusFilter; nature: Nat
   status: "all",
   nature: "all"
 })
+
+const todayKey = () => new Date().toISOString().slice(0, 10).replaceAll("-", "")
+const randomSuffix = () => String(Math.floor(Math.random() * 10000)).padStart(4, "0")
+const createOrderNo = () => `CBM-${todayKey()}-${randomSuffix()}`
+
+function createDefaultForm(): CreateApplicationForm {
+  const orderNo = createOrderNo()
+  return {
+    sn: orderNo,
+    orderNo,
+    moduleName: defaultModuleName,
+    specModel: defaultModuleName,
+    quantity: 1,
+    device: defaultModuleName,
+    hours: 2,
+    applicant: "",
+    client: "",
+    phone: "",
+    commissionNo: "",
+    nature: "生产",
+    remark: ""
+  }
+}
+
+const createForm = reactive<CreateApplicationForm>(createDefaultForm())
+const createRules: FormRules<CreateApplicationForm> = {
+  orderNo: [{ required: true, message: "请输入申请单号", trigger: "blur" }],
+  sn: [{ required: true, message: "请输入电路板编号", trigger: "blur" }],
+  moduleName: [{ required: true, message: "请输入模块名称", trigger: "blur" }],
+  specModel: [{ required: true, message: "请输入规格型号", trigger: "blur" }],
+  quantity: [{ required: true, type: "number", message: "请输入数量", trigger: "change" }]
+}
 
 const selectedApplication = computed(
   () => applications.value.find((application) => application.key === selectedApplicationKey.value) || null
@@ -266,9 +406,6 @@ const filteredApplications = computed(() => {
 const canBatchPublish = computed(() =>
   selectedApplicationIds.value.some((key) => applications.value.find((item) => item.key === key)?.status === "draft")
 )
-const canBatchSchedule = computed(() =>
-  selectedApplicationIds.value.some((key) => applications.value.find((item) => item.key === key)?.status === "published")
-)
 
 function getString(...values: unknown[]) {
   const value = values.find((item) => typeof item === "string" && item.trim())
@@ -288,9 +425,7 @@ function normalizeStatus(status: unknown): ApplicationStatus {
 }
 
 function inferNature(row: any) {
-  const text = [row?.nature, row?.sampleName, row?.specModel, row?.commissionNo]
-    .filter(Boolean)
-    .join(" ")
+  const text = [row?.nature, row?.sampleName, row?.specModel, row?.commissionNo].filter(Boolean).join(" ")
   return text.includes("临时") || /temp/i.test(text) ? "临时" : "生产"
 }
 
@@ -319,6 +454,7 @@ function mapRelationToBoard(row: CircuitModuleApplicationRelation, index: number
     id: serial,
     seria: serial,
     sn: serial,
+    serial,
     name: model,
     model,
     startTime: getString(row.updatedAt, row.doneAt),
@@ -335,6 +471,7 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
     id: serial,
     seria: serial,
     sn: serial,
+    serial,
     name: model,
     model,
     startTime: getString(board?.startTime, row.updatedAt, row.doneAt),
@@ -345,7 +482,9 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
 function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicationRelation[]): CircuitApplication {
   const first = rows[0] || ({} as CircuitModuleApplicationRelation)
   const rawBoards = Array.isArray(first.boards) && first.boards.length ? first.boards : null
-  const boards = rawBoards ? rawBoards.map((board, index) => mapApiBoardToBoard(first, board, index)) : rows.map(mapRelationToBoard)
+  const boards = rawBoards
+    ? rawBoards.map((board, index) => mapApiBoardToBoard(first, board, index))
+    : rows.map(mapRelationToBoard)
   const status = getGroupStatus(rows)
   const meta = statusMeta[status]
   const orderNo = getString(first.orderNo, first.commissionNo, first.sn, groupKey)
@@ -396,8 +535,9 @@ async function loadApplications() {
   loading.value = true
   try {
     const res = await getCircuitModuleApplicationList()
-    applications.value = mapRelationsToApplications(res.data?.list || [])
-      .sort((a, b) => String(b.createDate || b.orderNo).localeCompare(String(a.createDate || a.orderNo)))
+    applications.value = mapRelationsToApplications(res.data?.list || []).sort((a, b) =>
+      String(b.createDate || b.orderNo).localeCompare(String(a.createDate || a.orderNo))
+    )
     selectedApplicationKey.value = applications.value.some((item) => item.key === selectedApplicationKey.value)
       ? selectedApplicationKey.value
       : ""
@@ -470,37 +610,12 @@ async function publishApplication(application: CircuitApplication, silent = fals
     if (board.status === "draft") board.status = "published"
   })
   refreshSelectedApplication(application)
-  if (!silent) ElMessage.success(`${application.orderNo} 已发布，可加入排期`)
-}
-
-async function scheduleApplication(application: CircuitApplication, silent = false) {
-  await persistApplicationStatus(application, circuitPublishedSyncState.status)
-  applyApplicationStatus(application, "published")
-  refreshSelectedApplication(application)
-  if (!silent) ElMessage.success(`「${application.name}」已加入排期顺序`)
-}
-
-async function completeApplication(application: CircuitApplication, silent = false) {
-  await persistApplicationStatus(application, 3)
-  applyApplicationStatus(application, "done")
-  application.boards.forEach((board) => {
-    board.status = "done"
-  })
-  refreshSelectedApplication(application)
-  if (!silent) ElMessage.success(`「${application.name}」已完成`)
+  if (!silent) ElMessage.success(`${application.orderNo} 已发布`)
 }
 
 function handlePrimaryAction(application: CircuitApplication) {
   if (application.status === "draft") {
     void publishApplication(application)
-    return
-  }
-  if (application.status === "published") {
-    void scheduleApplication(application)
-    return
-  }
-  if (application.status === "in_progress") {
-    void completeApplication(application)
     return
   }
   openApplicationDetail(application)
@@ -512,14 +627,6 @@ async function batchPublishApplications() {
   )
   await Promise.all(targets.map((application) => publishApplication(application, true)))
   ElMessage.success(`已批量发布 ${targets.length} 条申请单`)
-}
-
-async function batchScheduleApplications() {
-  const targets = applications.value.filter(
-    (application) => selectedApplicationIds.value.includes(application.key) && application.status === "published"
-  )
-  await Promise.all(targets.map((application) => scheduleApplication(application, true)))
-  ElMessage.success(`已批量加入排期顺序：${targets.length} 项`)
 }
 
 function getBoardStatus(status: ApplicationStatus) {
@@ -579,8 +686,69 @@ async function handlePrintSelectedBoards() {
   })
 }
 
+function resetCreateForm() {
+  Object.assign(createForm, createDefaultForm())
+  createFormRef.value?.clearValidate()
+}
+
 function handleCreateApplication() {
-  ElMessage.info("请先同步或导入电路板模块申请数据")
+  resetCreateForm()
+  createDialogVisible.value = true
+}
+
+function buildCreateBoards() {
+  const quantity = Math.max(1, Number(createForm.quantity) || 1)
+  const baseSerial = getString(createForm.sn, createForm.orderNo) || createOrderNo()
+  const model = getString(createForm.specModel, createForm.moduleName, defaultModuleName) || defaultModuleName
+  return Array.from({ length: quantity }, (_, index) => {
+    const serial = quantity === 1 ? baseSerial : `${baseSerial}-${String(index + 1).padStart(2, "0")}`
+    return {
+      seria: serial,
+      sn: serial,
+      serial: serial,
+      model,
+      name: model,
+      status: 0
+    }
+  })
+}
+
+async function handleSaveApplication() {
+  const valid = await createFormRef.value?.validate().catch(() => false)
+  if (!valid) return
+
+  const boards = buildCreateBoards()
+  const payload: CircuitModuleApplicationRelation = {
+    sn: boards[0]?.sn || createForm.sn.trim(),
+    orderNo: createForm.orderNo.trim(),
+    moduleName: createForm.moduleName.trim(),
+    specModel: createForm.specModel.trim(),
+    quantity: Number(createForm.quantity) || boards.length,
+    device: createForm.device.trim(),
+    hours: createForm.hours ? Number(createForm.hours) : null,
+    applicant: createForm.applicant.trim(),
+    client: createForm.client.trim(),
+    phone: createForm.phone.trim(),
+    commissionNo: createForm.commissionNo.trim(),
+    nature: createForm.nature,
+    remark: createForm.remark.trim(),
+    status: 0,
+    boards,
+    updatedAt: new Date().toISOString()
+  }
+
+  createSaving.value = true
+  try {
+    await syncCircuitModuleApplicationList([payload])
+    createDialogVisible.value = false
+    await loadApplications()
+    selectedApplicationKey.value = `circuitBoardModule-${payload.orderNo || payload.sn}`
+    ElMessage.success("新增成功")
+  } catch (error) {
+    ElMessage.error("新增失败")
+  } finally {
+    createSaving.value = false
+  }
 }
 
 defineExpose({ refresh: loadApplications })
@@ -625,17 +793,6 @@ onMounted(() => {
   padding: 8px 14px;
   border-bottom: 1px solid var(--el-border-color-light);
   background: var(--el-fill-color-lighter);
-}
-
-.schedule-action {
-  color: #7c3aed;
-  border-color: #c4b5fd;
-
-  &:not(.is-disabled):hover {
-    color: #6d28d9;
-    background: #f5f3ff;
-    border-color: #a78bfa;
-  }
 }
 
 .refresh-action {

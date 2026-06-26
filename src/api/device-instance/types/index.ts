@@ -7,7 +7,6 @@ export interface DeviceInstanceQuery {
   size: number
   serialNumber?: string
   deviceName?: string
-  testBench?: string
   status?: DeviceInstanceStatus
 }
 
@@ -15,7 +14,6 @@ export interface DeviceInstancePayload {
   id?: string | number
   serialNumber: string
   deviceName: string
-  testBench: string
   model: string
   status: DeviceInstanceStatus
   onlineStatus: DeviceOnlineStatus
@@ -26,6 +24,10 @@ export interface DeviceInstanceData {
   psi_id?: string | number
   deviceId?: string | number
   device_id?: string | number
+  psimodel_id?: string | number
+  psimodelId?: string | number
+  model_id?: string | number
+  modelId?: string | number
   serialNumber?: string
   serial_number?: string
   psi_serialnumber?: string

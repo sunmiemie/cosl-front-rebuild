@@ -350,7 +350,7 @@ export const dynamicRoutes: RouteRecordRaw[] = [
         component: () => import("@/views/testmanage/circuit-module-inspection/index.vue"),
         name: "CircuitModuleInspection",
         meta: {
-          title: "电路模块检验",
+          title: "申请单管理",
           permissions: AddOrderPermissionCodes,
           keepAlive: true
         }

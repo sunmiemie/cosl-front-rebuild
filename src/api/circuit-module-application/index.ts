@@ -40,6 +40,8 @@ export interface CircuitModuleApplicationRelation {
   phone?: string
   client?: string
   commissionNo?: string
+  nature?: string
+  remark?: string
   status?: string | number
   statusText?: string
   boards?: CircuitModuleBoardItem[]

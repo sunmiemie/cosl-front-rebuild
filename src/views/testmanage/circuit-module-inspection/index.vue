@@ -28,7 +28,7 @@
           <CircuitBoardModule ref="circuitBoardModuleComponent" />
         </el-tab-pane>
       </el-tabs>
-      <el-empty v-if="availableTabs.length === 0" description="当前角色没有电路模块检验工单权限" />
+      <el-empty v-if="availableTabs.length === 0" description="当前角色没有申请单管理权限" />
     </el-card>
   </div>
 </template>
