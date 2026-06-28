@@ -518,7 +518,7 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
   const meta = statusMeta[status]
   const orderNo = getString(first.djbh, first.orderNo, first.commissionNo, first.sn, groupKey)
   const name = getString(first.xmmc, first.moduleName, first.sampleName, first.specModel, `${orderNo} 电路板模块申请单`)
-  const sfxyjcgy = getCraftFlagText(first.sfxyjcgy ?? first.nature)
+  const sfxyjcgy = getCraftFlagText(first.sfxyjcgy ?? first.nature ?? "是")
   const remark = [
     first.client ? `客户：${first.client}` : "",
     first.phone ? `电话：${first.phone}` : "",
@@ -545,7 +545,7 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
     primaryText: meta.primaryText,
     primaryType: meta.primaryType,
     boardCount: boards.length,
-    craft: sfxyjcgy,
+    craft: getString(first.device, first.sccj, first.ggxh),
     createDate: getString(first.sqrq, (first as { createTime?: string }).createTime, first.updatedAt, first.doneAt).slice(
       0,
       10

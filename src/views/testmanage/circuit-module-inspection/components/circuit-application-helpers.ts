@@ -28,7 +28,9 @@ export function getGeneratedOrderType(sfxyjcgy: unknown): CircuitModuleGenerated
   const value = String(sfxyjcgy ?? "")
     .trim()
     .toLowerCase()
-  return ["是", "yes", "y", "true", "1", "需要"].includes(value) ? "production" : "temporary"
+  if (["是", "yes", "y", "true", "1", "需要", "生产"].includes(value)) return "production"
+  if (["否", "no", "n", "false", "0", "不需要", "临时", "temporary", "temp"].includes(value)) return "temporary"
+  return "temporary"
 }
 
 export function getCraftFlagText(sfxyjcgy: unknown) {
