@@ -60,7 +60,13 @@
             </div>
           </div>
           <div class="application-actions">
-            <el-button size="small" :type="application.primaryType" @click.stop="handlePrimaryAction(application)">
+            <el-button
+              size="small"
+              :type="application.primaryType"
+              :loading="isPublishing(application)"
+              :disabled="application.status === 'draft' && !application.boards.length"
+              @click.stop="handlePrimaryAction(application)"
+            >
               {{ application.primaryText }}
             </el-button>
             <el-button
@@ -181,6 +187,8 @@
             <el-button
               v-if="selectedApplication.status === 'draft'"
               type="success"
+              :loading="selectedApplication ? isPublishing(selectedApplication) : false"
+              :disabled="!selectedApplication.boards.length"
               @click="publishApplication(selectedApplication)"
             >
               发布
@@ -211,7 +219,6 @@
               <el-button :disabled="selectedBoardRows.length === 0" :icon="Printer" @click="handlePrintSelectedBoards">
                 打印选中二维码
               </el-button>
-              <el-button :disabled="selectedBoardRows.length === 0" @click="batchPublishBoards">批量发布</el-button>
             </div>
           </div>
           <el-table
@@ -242,7 +249,6 @@
             <el-table-column label="操作" width="190" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" :icon="Printer" @click="handlePrintBoardQrcode(row)"> 二维码 </el-button>
-                <el-button v-if="row.status === 'draft'" link type="success" @click="publishBoard(row)">发布</el-button>
                 <el-button v-if="row.status === 'in_progress'" link @click="completeBoard(row)">完成</el-button>
               </template>
             </el-table-column>
@@ -258,10 +264,13 @@
 
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref } from "vue"
-import { ElMessage, type FormInstance, type FormRules } from "element-plus"
+import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
 import { Plus, Printer, Refresh, RefreshRight } from "@element-plus/icons-vue"
 import {
   getCircuitModuleApplicationList,
+  getCircuitModulePublishMissingBoards,
+  getCircuitModulePublishResponseData,
+  publishCircuitModuleApplicationAndGenerateOrders,
   syncCircuitModuleApplicationList,
   type CircuitModuleApplicationRelation
 } from "@/api/circuit-module-application"
@@ -271,6 +280,7 @@ import {
   getGeneratedOrderType,
   getGeneratedOrderTypeText,
   getString,
+  formatMissingBoards,
   mapDlbBoardToUiBoard,
   type CircuitApplicationUiBoard
 } from "./circuit-application-helpers"
@@ -363,6 +373,7 @@ const createDialogVisible = ref(false)
 const createSaving = ref(false)
 const createFormRef = ref<FormInstance>()
 const applications = ref<CircuitApplication[]>([])
+const publishingKeys = ref<string[]>([])
 const selectedApplicationKey = ref("")
 const selectedApplicationIds = ref<string[]>([])
 const selectedBoardRows = ref<CircuitApplicationBoard[]>([])
@@ -621,6 +632,10 @@ function refreshSelectedApplication(application: CircuitApplication) {
   applications.value = [...applications.value]
 }
 
+function isPublishing(application: CircuitApplication) {
+  return publishingKeys.value.includes(application.key)
+}
+
 function getApplicationRelationRows(application: CircuitApplication): CircuitModuleApplicationRelation[] {
   return Array.isArray(application.raw) ? application.raw : []
 }
@@ -656,13 +671,56 @@ async function persistApplicationStatus(application: CircuitApplication, status:
 }
 
 async function publishApplication(application: CircuitApplication, silent = false) {
-  await persistApplicationStatus(application, circuitPublishedSyncState.status)
-  applyApplicationStatus(application, "published")
-  application.boards.forEach((board) => {
-    if (board.status === "draft") board.status = "published"
-  })
-  refreshSelectedApplication(application)
-  if (!silent) ElMessage.success(`${application.orderNo} 已发布`)
+  if (isPublishing(application)) return
+  if (!application.boards.length) {
+    if (!silent) ElMessage.warning("当前申请单没有电路板列表，不能发布生成测试工单")
+    return
+  }
+
+  publishingKeys.value = [...publishingKeys.value, application.key]
+  try {
+    const response = await publishCircuitModuleApplicationAndGenerateOrders({
+      applicationId: application.dbId,
+      orderNo: application.orderNo
+    })
+
+    const resolvedMissingBoards = getCircuitModulePublishMissingBoards(response)
+    if (resolvedMissingBoards.length) {
+      await ElMessageBox.alert(formatMissingBoards(resolvedMissingBoards), "以下电路板未匹配，未生成工单", {
+        confirmButtonText: "知道了",
+        type: "warning"
+      })
+      return
+    }
+
+    const result = getCircuitModulePublishResponseData(response)
+    await persistApplicationStatus(application, result?.status ?? circuitPublishedSyncState.status)
+    applyApplicationStatus(application, "published")
+    application.boards.forEach((board) => {
+      if (board.status === "draft") board.status = "published"
+    })
+    refreshSelectedApplication(application)
+    await loadApplications()
+    if (!silent) {
+      ElMessage.success(
+        `${application.orderNo} 已发布，已生成 ${result?.generatedCount ?? application.boardCount} 条${
+          application.generatedOrderTypeText
+        }`
+      )
+    }
+  } catch (error) {
+    const missingBoards = getCircuitModulePublishMissingBoards(error)
+    if (missingBoards.length) {
+      await ElMessageBox.alert(formatMissingBoards(missingBoards), "以下电路板未匹配，未生成工单", {
+        confirmButtonText: "知道了",
+        type: "warning"
+      })
+    } else {
+      ElMessage.error("发布失败，未生成测试工单")
+    }
+  } finally {
+    publishingKeys.value = publishingKeys.value.filter((key) => key !== application.key)
+  }
 }
 
 function handlePrimaryAction(application: CircuitApplication) {
@@ -685,28 +743,10 @@ function getBoardStatus(status: ApplicationStatus) {
   return statusMeta[status] || statusMeta.draft
 }
 
-function publishBoard(row: CircuitApplicationBoard) {
-  row.status = "published"
-  selectedBoardRows.value = []
-  ElMessage.success(`${row.seria} 已发布`)
-}
-
 function completeBoard(row: CircuitApplicationBoard) {
   row.status = "done"
   selectedBoardRows.value = []
   ElMessage.success(`${row.seria} 已完成`)
-}
-
-function batchPublishBoards() {
-  let count = 0
-  selectedBoardRows.value.forEach((row) => {
-    if (row.status === "draft") {
-      row.status = "published"
-      count += 1
-    }
-  })
-  selectedBoardRows.value = []
-  ElMessage.success(`已批量发布 ${count} 块电路板`)
 }
 
 async function handlePrintOrderQrcodes(application: CircuitApplication) {
