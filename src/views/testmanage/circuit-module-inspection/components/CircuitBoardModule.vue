@@ -287,6 +287,7 @@ import {
 
 type ApplicationTypeKey = "电路板模块"
 type ApplicationStatus = "draft" | "published" | "scheduling" | "in_progress" | "done"
+type PublishApplicationResult = "success" | "missing_boards" | "failed" | "skipped"
 type StatusFilter = ApplicationStatus | "all"
 type GeneratedOrderFilter = "production" | "temporary" | "all"
 
@@ -671,10 +672,10 @@ async function persistApplicationStatus(application: CircuitApplication, status:
 }
 
 async function publishApplication(application: CircuitApplication, silent = false) {
-  if (isPublishing(application)) return
+  if (isPublishing(application)) return "skipped"
   if (!application.boards.length) {
     if (!silent) ElMessage.warning("当前申请单没有电路板列表，不能发布生成测试工单")
-    return
+    return "skipped"
   }
 
   publishingKeys.value = [...publishingKeys.value, application.key]
@@ -686,11 +687,13 @@ async function publishApplication(application: CircuitApplication, silent = fals
 
     const resolvedMissingBoards = getCircuitModulePublishMissingBoards(response)
     if (resolvedMissingBoards.length) {
-      await ElMessageBox.alert(formatMissingBoards(resolvedMissingBoards), "以下电路板未匹配，未生成工单", {
-        confirmButtonText: "知道了",
-        type: "warning"
-      })
-      return
+      if (!silent) {
+        await ElMessageBox.alert(formatMissingBoards(resolvedMissingBoards), "以下电路板未匹配，未生成工单", {
+          confirmButtonText: "知道了",
+          type: "warning"
+        })
+      }
+      return "missing_boards"
     }
 
     const result = getCircuitModulePublishResponseData(response)
@@ -701,6 +704,7 @@ async function publishApplication(application: CircuitApplication, silent = fals
     })
     refreshSelectedApplication(application)
     await loadApplications()
+    selectedBoardRows.value = []
     if (!silent) {
       ElMessage.success(
         `${application.orderNo} 已发布，已生成 ${result?.generatedCount ?? application.boardCount} 条${
@@ -708,15 +712,20 @@ async function publishApplication(application: CircuitApplication, silent = fals
         }`
       )
     }
+    return "success"
   } catch (error) {
     const missingBoards = getCircuitModulePublishMissingBoards(error)
     if (missingBoards.length) {
-      await ElMessageBox.alert(formatMissingBoards(missingBoards), "以下电路板未匹配，未生成工单", {
-        confirmButtonText: "知道了",
-        type: "warning"
-      })
+      if (!silent) {
+        await ElMessageBox.alert(formatMissingBoards(missingBoards), "以下电路板未匹配，未生成工单", {
+          confirmButtonText: "知道了",
+          type: "warning"
+        })
+      }
+      return "missing_boards"
     } else {
-      ElMessage.error("发布失败，未生成测试工单")
+      if (!silent) ElMessage.error("发布失败，未生成测试工单")
+      return "failed"
     }
   } finally {
     publishingKeys.value = publishingKeys.value.filter((key) => key !== application.key)
@@ -735,8 +744,25 @@ async function batchPublishApplications() {
   const targets = applications.value.filter(
     (application) => selectedApplicationIds.value.includes(application.key) && application.status === "draft"
   )
-  await Promise.all(targets.map((application) => publishApplication(application, true)))
-  ElMessage.success(`已批量发布 ${targets.length} 条申请单`)
+  const results = await Promise.all(targets.map((application) => publishApplication(application, true)))
+  const successCount = results.filter((result) => result === "success").length
+  const missingCount = results.filter((result) => result === "missing_boards").length
+  const failedCount = results.filter((result) => result === "failed").length
+  const skippedCount = results.filter((result) => result === "skipped").length
+
+  const succeededKeys = targets
+    .filter((application, index) => results[index] === "success")
+    .map((application) => application.key)
+  selectedApplicationIds.value = selectedApplicationIds.value.filter((key) => !succeededKeys.includes(key))
+
+  if (successCount === targets.length) {
+    ElMessage.success(`已批量发布 ${successCount} 条申请单`)
+    return
+  }
+
+  ElMessage.warning(
+    `批量发布完成：成功 ${successCount} 条，未匹配 ${missingCount} 条，失败 ${failedCount} 条，跳过 ${skippedCount} 条`
+  )
 }
 
 function getBoardStatus(status: ApplicationStatus) {
