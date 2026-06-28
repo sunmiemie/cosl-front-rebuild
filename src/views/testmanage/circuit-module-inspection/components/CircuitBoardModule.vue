@@ -697,7 +697,18 @@ async function publishApplication(application: CircuitApplication, silent = fals
     }
 
     const result = getCircuitModulePublishResponseData(response)
-    await persistApplicationStatus(application, result?.status ?? circuitPublishedSyncState.status)
+    if (!result || result.reason === "missing_board_match") {
+      if (!silent) ElMessage.error("发布返回数据异常，未更新申请单状态")
+      return "failed"
+    }
+
+    try {
+      await persistApplicationStatus(application, result.status ?? circuitPublishedSyncState.status)
+    } catch (statusError) {
+      if (!silent) ElMessage.warning("测试工单已生成，但申请单状态同步失败，请刷新后确认")
+      return "failed"
+    }
+
     applyApplicationStatus(application, "published")
     application.boards.forEach((board) => {
       if (board.status === "draft") board.status = "published"
