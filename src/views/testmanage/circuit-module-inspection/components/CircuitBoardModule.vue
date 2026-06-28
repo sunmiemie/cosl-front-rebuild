@@ -503,6 +503,17 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
   }
 }
 
+function resolveCraftFlag(row: CircuitModuleApplicationRelation) {
+  const explicitCraft = getString(row.sfxyjcgy)
+  if (explicitCraft) return getCraftFlagText(explicitCraft)
+
+  const legacyNature = getString(row.nature)
+  if (legacyNature) return getCraftFlagText(legacyNature)
+
+  const legacyText = [row.sampleName, row.specModel, row.commissionNo].filter(Boolean).join(" ")
+  return legacyText.includes("临时") || /temp/i.test(legacyText) ? "否" : "是"
+}
+
 function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicationRelation[]): CircuitApplication {
   const first = rows[0] || ({} as CircuitModuleApplicationRelation)
   const rawBoards =
@@ -518,7 +529,7 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
   const meta = statusMeta[status]
   const orderNo = getString(first.djbh, first.orderNo, first.commissionNo, first.sn, groupKey)
   const name = getString(first.xmmc, first.moduleName, first.sampleName, first.specModel, `${orderNo} 电路板模块申请单`)
-  const sfxyjcgy = getCraftFlagText(first.sfxyjcgy ?? first.nature ?? "是")
+  const sfxyjcgy = resolveCraftFlag(first)
   const remark = [
     first.client ? `客户：${first.client}` : "",
     first.phone ? `电话：${first.phone}` : "",
