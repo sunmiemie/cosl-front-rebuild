@@ -316,6 +316,49 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       }
     ]
+  },
+  {
+    path: "/scale-well-cluster",
+    component: Layouts,
+    redirect: "/scale-well-cluster/data-board",
+    name: "ScaleWellCluster",
+    meta: {
+      title: "刻度井群",
+      elIcon: "Odometer",
+      alwaysShow: true
+    },
+    children: [
+      {
+        path: "data-board",
+        component: () => import("@/views/scale-well-cluster/data-board/index.vue"),
+        name: "ScaleWellDataBoard",
+        meta: {
+          title: "数据看板",
+          elIcon: "DataLine",
+          keepAlive: true
+        }
+      },
+      {
+        path: "work-order",
+        component: () => import("@/views/scale-well-cluster/work-order/index.vue"),
+        name: "ScaleWellWorkOrder",
+        meta: {
+          title: "工单管理",
+          elIcon: "Tickets",
+          keepAlive: true
+        }
+      },
+      {
+        path: "report-review",
+        component: () => import("@/views/scale-well-cluster/report-review/index.vue"),
+        name: "ScaleWellReportReview",
+        meta: {
+          title: "报告审核",
+          elIcon: "DocumentChecked",
+          keepAlive: true
+        }
+      }
+    ]
   }
 ]
 
