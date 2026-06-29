@@ -1,6 +1,20 @@
 import { request } from "@/utils/service"
 import type * as TestMange from "./types/index"
 
+export interface GeneratedTestOrderApiResponse {
+  status?: string
+  message?: string
+  data?: {
+    generatedCount?: number
+    generatedOrders?: Array<{
+      id: string | number
+      name: string
+      boardSn?: string
+      boardBatchNo?: string
+    }>
+  }
+}
+
 /**
  * @description 获取新增测试工单二级导航
  * @returns {Promise<TestMange.getTestMangePathType>} 测试工单二级导航
@@ -43,8 +57,8 @@ export const downloadOrderJson = (fileid: any) => {
     responseType: "blob"
   })
 }
-export const createTestUnitApi = (data: any) => {
-  return request({
+export const createTestUnitApi = (data: any): Promise<GeneratedTestOrderApiResponse> => {
+  return request<GeneratedTestOrderApiResponse>({
     url: "/test/testunit/add/",
     method: "post",
     data
@@ -64,8 +78,8 @@ export const postDevUnits = (data: any) => {
     data
   })
 }
-export const createDevTestUnitApi = (data: any): Promise<{ status?: string; message?: string }> => {
-  return request<{ status?: string; message?: string }>({
+export const createDevTestUnitApi = (data: any): Promise<GeneratedTestOrderApiResponse> => {
+  return request<GeneratedTestOrderApiResponse>({
     url: "/test/dev-testunit/add/",
     method: "post",
     data
@@ -108,6 +122,7 @@ export const getTestMangeTable = ({
   currentPage,
   pageSize,
   batchId,
+  orderNo,
   serial,
   supplier
 }: TestMange.inpTestMangeTableDataType): Promise<TestMange.getTestMangeTableType> => {
@@ -123,6 +138,7 @@ export const getTestMangeTable = ({
       currentPage,
       pageSize,
       batchId,
+      orderNo,
       serial,
       supplier
     }
@@ -165,6 +181,7 @@ export const getTempTestMangeTable = ({
   boardName,
   boardModel,
   batchId,
+  orderNo,
   serial,
   supplier,
   currentPage,
@@ -182,6 +199,7 @@ export const getTempTestMangeTable = ({
       boardName,
       boardModel,
       batchId,
+      orderNo,
       serial,
       supplier,
       currentPage,

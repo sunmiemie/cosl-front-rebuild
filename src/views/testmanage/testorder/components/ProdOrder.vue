@@ -22,8 +22,7 @@ import {
 import { getTestTypeDataApi } from "@/api/testtype"
 import { getTestProcessList } from "@/api/addprocess"
 import { checkReportDataApi, getSingleReportDataApi } from "@/api/report"
-import { Delete, Warning } from "@element-plus/icons-vue"
-import { deleteInstrumentDataApi } from "@/api/instrument"
+import { Warning } from "@element-plus/icons-vue"
 
 const router = useRouter()
 const route = useRoute()
@@ -53,12 +52,14 @@ interface TableDataType {
   testunit_endtime?: string
   testunit_status?: string
   process_type?: string
+  order_no?: string
   link?: any
 }
 
 const headers = checkPermission(["11"])
   ? ref([
       { prop: "testunit_id", label: "工单号", align: "center" },
+      { prop: "order_no", label: "委托单号", align: "center" },
       { prop: "boardmodel_name", label: "电路板类型", align: "center" },
       { prop: "batch_id", label: "批次号", align: "center" },
       { prop: "board_serial", label: "电路板序列号", align: "center" },
@@ -75,6 +76,7 @@ const headers = checkPermission(["11"])
     ])
   : ref([
       { prop: "testunit_id", label: "工单号", align: "center" },
+      { prop: "order_no", label: "委托单号", align: "center" },
       { prop: "boardmodel_name", label: "电路板类型", align: "center" },
       { prop: "batch_id", label: "批次号", align: "center" },
       { prop: "board_serial", label: "电路板序列号", align: "center" },
@@ -101,6 +103,7 @@ const searchFormRef = ref<FormInstance | null>(null)
 
 const searchData = reactive({
   number: "",
+  orderNo: "",
   batchId: "",
   serial: "",
   supplier: "",
@@ -111,6 +114,7 @@ const searchData = reactive({
 })
 const clearSearchData = () => {
   searchData.number = ""
+  searchData.orderNo = ""
   searchData.batchId = ""
   searchData.serial = ""
   searchData.supplier = ""
@@ -631,6 +635,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
         <el-form ref="searchFormRef" :inline="true" :model="searchData">
           <el-form-item label="工单号">
             <el-input v-model="searchData.number" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="申请单号">
+            <el-input v-model="searchData.orderNo" placeholder="请输入委托单号/申请单号" />
           </el-form-item>
           <el-form-item label="批次号">
             <el-input v-model="searchData.batchId" placeholder="请输入" />

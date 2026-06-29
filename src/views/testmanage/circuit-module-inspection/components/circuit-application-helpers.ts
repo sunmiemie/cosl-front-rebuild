@@ -108,16 +108,31 @@ function normalizeProcessKey(value: string) {
     .replace(/\s+/g, " ")
 }
 
+function findCircuitProcessOption(value: string) {
+  const exactOption = CIRCUIT_PROCESS_OPTIONS.find((option) => option === value)
+  if (exactOption) return exactOption
+
+  const normalized = normalizeProcessKey(value)
+  const compact = normalized.replace(/\s+/g, "").replace(/测试$/i, "")
+  return circuitProcessAliasMap.get(normalized) || circuitProcessAliasMap.get(compact) || ""
+}
+
 export function normalizeCircuitProcessName(...values: unknown[]) {
   const rawValue = getString(...values)
   if (!rawValue) return ""
 
-  const exactOption = CIRCUIT_PROCESS_OPTIONS.find((option) => option === rawValue)
-  if (exactOption) return exactOption
+  return findCircuitProcessOption(rawValue) || rawValue
+}
 
-  const normalized = normalizeProcessKey(rawValue)
-  const compact = normalized.replace(/\s+/g, "").replace(/测试$/i, "")
-  return circuitProcessAliasMap.get(normalized) || circuitProcessAliasMap.get(compact) || rawValue
+export function resolveCircuitProcessName(...values: unknown[]) {
+  for (const value of values) {
+    const rawValue = getString(value)
+    if (!rawValue) continue
+
+    const option = findCircuitProcessOption(rawValue)
+    if (option) return option
+  }
+  return ""
 }
 
 export function getGeneratedOrderType(sfxyjcgy: unknown): CircuitModuleGeneratedOrderType {

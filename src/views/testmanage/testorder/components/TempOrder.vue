@@ -16,7 +16,6 @@ import {
   createDevTestUnitApi,
   publishDevTestUnitApi,
   deleteDevTestUnitApi,
-  postUnits,
   postDevUnits,
   invalidTestUnitApi
 } from "@/api/testMangelist"
@@ -49,6 +48,7 @@ interface TableDataType {
   dev_testunit_endtime?: string
   dev_testunit_status?: string
   process_type?: string
+  order_no?: string
   link?: any
 }
 
@@ -89,6 +89,7 @@ const searchFormRef = ref<FormInstance | null>(null)
 
 const searchData = reactive({
   number: "", // 工单号
+  orderNo: "",
   TestName: "",
   TestType: "",
   TestStatus: "",
@@ -101,6 +102,7 @@ const searchData = reactive({
 })
 const clearSearchData = () => {
   searchData.number = ""
+  searchData.orderNo = ""
   searchData.TestName = ""
   searchData.TestType = ""
   searchData.TestStatus = ""
@@ -604,6 +606,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
       <el-form ref="searchFormRef" :inline="true" :model="searchData">
         <el-form-item label="工单号">
           <el-input v-model="searchData.number" placeholder="请输入" />
+        </el-form-item>
+        <el-form-item label="申请单号">
+          <el-input v-model="searchData.orderNo" placeholder="请输入委托单号/申请单号" />
         </el-form-item>
         <el-form-item label="批次号">
           <el-input v-model="searchData.batchId" placeholder="请输入" />

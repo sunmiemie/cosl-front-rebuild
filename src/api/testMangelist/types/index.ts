@@ -1,5 +1,3 @@
-import { UnwrapRef } from "vue"
-
 type pathType = Array<{
   id: string
   label: string
@@ -32,6 +30,7 @@ export type inpTestMangeTableDataType = {
   boardName?: string
   boardModel?: string
   batchId?: string
+  orderNo?: string
   serial?: string
   supplier?: string
   currentPage?: any
@@ -49,6 +48,12 @@ export type getTestMangeTableType = {
     testunit_endtime?: string
     testunit_status?: string
     process_type?: string
+    order_no?: string
+    orderNo?: string
+    board_serial?: string
+    sn?: string
+    dev_testunit_id?: number
+    dev_testunit_name?: string
     link?: any
   }>
 }

@@ -63,11 +63,11 @@
             <el-button
               size="small"
               :type="application.primaryType"
-              :loading="isPublishing(application)"
-              :disabled="application.status === 'draft' && !application.boards.length"
+              :loading="isPublishing(application) || isAnyBoardPublishing(application)"
+              :disabled="isApplicationPublishable(application) && !application.boards.length"
               @click.stop="handlePrimaryAction(application)"
             >
-              {{ application.primaryText }}
+              {{ getApplicationPrimaryText(application) }}
             </el-button>
             <el-button
               v-if="getApplicationPrintableBoards(application).length"
@@ -108,12 +108,7 @@
           <el-col :span="12">
             <el-form-item label="测试工艺" prop="device">
               <el-select v-model="createForm.device" style="width: 100%">
-                <el-option
-                  v-for="option in CIRCUIT_PROCESS_OPTIONS"
-                  :key="option"
-                  :label="option"
-                  :value="option"
-                />
+                <el-option v-for="option in CIRCUIT_PROCESS_OPTIONS" :key="option" :label="option" :value="option" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -168,7 +163,13 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="detailVisible" title="申请单详情" width="920px" :close-on-click-modal="false">
+    <el-dialog
+      v-model="detailVisible"
+      class="circuit-detail-dialog"
+      title="申请单详情"
+      width="min(1280px, 98vw)"
+      :close-on-click-modal="false"
+    >
       <template v-if="selectedApplication">
         <div class="detail-top">
           <div class="detail-title">
@@ -177,7 +178,7 @@
               selectedApplication.statusLabel
             }}</el-tag>
           </div>
-          <el-descriptions :column="4" border>
+          <el-descriptions :column="3" border>
             <el-descriptions-item label="单据编号">{{ selectedApplication.orderNo || "-" }}</el-descriptions-item>
             <el-descriptions-item label="委托单位">{{ selectedApplication.client || "-" }}</el-descriptions-item>
             <el-descriptions-item label="项目编码">{{ selectedApplication.projectCode || "-" }}</el-descriptions-item>
@@ -188,7 +189,9 @@
             <el-descriptions-item label="地址">{{ selectedApplication.address || "-" }}</el-descriptions-item>
             <el-descriptions-item label="手机号">{{ selectedApplication.mobilePhone || "-" }}</el-descriptions-item>
             <el-descriptions-item label="座机">{{ selectedApplication.landline || "-" }}</el-descriptions-item>
-            <el-descriptions-item label="实验类型">{{ selectedApplication.experimentType || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="实验类型">{{
+              selectedApplication.experimentType || "-"
+            }}</el-descriptions-item>
             <el-descriptions-item label="试验电路板状态">{{
               selectedApplication.boardState || "-"
             }}</el-descriptions-item>
@@ -206,19 +209,17 @@
           </el-descriptions>
           <div class="detail-actions">
             <el-button
-              v-if="selectedApplication.status === 'draft'"
+              v-if="isApplicationPublishable(selectedApplication)"
               type="success"
-              :loading="selectedApplication ? isPublishing(selectedApplication) : false"
-              :disabled="!selectedApplication.boards.length"
+              :loading="
+                selectedApplication
+                  ? isPublishing(selectedApplication) || isAnyBoardPublishing(selectedApplication)
+                  : false
+              "
+              :disabled="!getPublishableBoards(selectedApplication).length || isAnyBoardPublishing(selectedApplication)"
               @click="publishApplication(selectedApplication)"
             >
-              发布
-            </el-button>
-            <el-button
-              v-if="selectedApplication.status !== 'draft'"
-              @click="openApplicationDetail(selectedApplication)"
-            >
-              查看
+              {{ getApplicationPublishText(selectedApplication) }}
             </el-button>
             <el-button
               v-if="selectedApplication.boards.length"
@@ -244,28 +245,73 @@
           </div>
           <el-table
             :data="selectedApplication.boards"
+            class="board-list-table"
             border
-            height="300"
+            height="340"
             row-key="seria"
+            table-layout="fixed"
             @selection-change="selectedBoardRows = $event"
           >
             <el-table-column type="selection" width="42" />
-            <el-table-column prop="sampleName" label="样品名称" min-width="160" />
-            <el-table-column prop="materialNo" label="物料号" min-width="130" />
-            <el-table-column prop="model" label="规格型号" min-width="150" />
-            <el-table-column prop="supplier" label="供应商名称" min-width="150" />
-            <el-table-column prop="batchNo" label="批次号" min-width="140" />
-            <el-table-column prop="quantity" label="数量" width="90" />
-            <el-table-column prop="sn" label="SN号" min-width="150" />
-            <el-table-column prop="consignor" label="委托人" min-width="120" />
-            <el-table-column prop="createBy" label="创建人" min-width="120" />
-            <el-table-column prop="createTime" label="创建时间" min-width="170" />
-            <el-table-column prop="updateBy" label="更新人" min-width="120" />
-            <el-table-column prop="updateTime" label="更新时间" min-width="170" />
-            <el-table-column label="操作" width="190" fixed="right">
+            <el-table-column label="样品信息">
               <template #default="{ row }">
-                <el-button link type="primary" :icon="Printer" @click="handlePrintBoardQrcode(row)"> 二维码 </el-button>
-                <el-button v-if="row.status === 'in_progress'" link @click="completeBoard(row)">完成</el-button>
+                <div class="board-cell">
+                  <div class="board-cell__primary">{{ row.sampleName || "-" }}</div>
+                  <div class="board-cell__meta">SN：{{ row.sn || row.serial || "-" }}</div>
+                  <div class="board-cell__meta">物料号：{{ row.materialNo || "-" }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="批次/型号">
+              <template #default="{ row }">
+                <div class="board-cell">
+                  <div class="board-cell__primary">批次：{{ row.batchNo || "-" }}</div>
+                  <div class="board-cell__meta">型号：{{ row.model || "-" }}</div>
+                  <div class="board-cell__meta">数量：{{ row.quantity || "-" }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="委托/供应商">
+              <template #default="{ row }">
+                <div class="board-cell">
+                  <div class="board-cell__primary">委托人：{{ row.consignor || "-" }}</div>
+                  <div class="board-cell__meta">供应商：{{ row.supplier || "-" }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="时间">
+              <template #default="{ row }">
+                <div class="board-cell">
+                  <div class="board-cell__primary">{{ row.createTime || "-" }}</div>
+                  <div class="board-cell__meta">创建人：{{ row.createBy || "-" }}</div>
+                  <div class="board-cell__meta">更新：{{ row.updateTime || "-" }}</div>
+                  <div class="board-cell__meta">更新人：{{ row.updateBy || "-" }}</div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="状态" width="92">
+              <template #default="{ row }">
+                <el-tag :type="getBoardStatus(row.status).tagType" effect="light">
+                  {{ getBoardStatus(row.status).label }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="132" fixed="right">
+              <template #default="{ row }">
+                <div class="board-actions">
+                  <el-button link type="primary" :icon="Printer" @click="handlePrintBoardQrcode(row)">二维码</el-button>
+                  <el-button
+                    v-if="isBoardPublishable(selectedApplication, row)"
+                    link
+                    type="success"
+                    :loading="isBoardPublishing(selectedApplication, row)"
+                    :disabled="isPublishing(selectedApplication)"
+                    @click="publishBoard(selectedApplication, row)"
+                  >
+                    {{ getBoardPublishText(selectedApplication, row) }}
+                  </el-button>
+                  <el-button v-if="row.status === 'in_progress'" link @click="completeBoard(row)">完成</el-button>
+                </div>
               </template>
             </el-table-column>
           </el-table>
@@ -288,8 +334,18 @@ import {
   syncCircuitModuleApplicationList,
   type CircuitModuleApplicationRelation
 } from "@/api/circuit-module-application"
-import { createDevTestUnitApi, createTestUnitApi } from "@/api/testMangelist"
-import { getTestTypeDataApi } from "@/api/testtype"
+import { getProdBoardDataBySn } from "@/api/board"
+import { getTempBoardDataApi } from "@/api/temp-board"
+import {
+  createDevTestUnitApi,
+  createTestUnitApi,
+  getTempTestMangeTable,
+  getTestMangeTable,
+  getboardsinfoForTempOrder,
+  getbordsinfo
+} from "@/api/testMangelist"
+import { getTempTestTypeDataApi, getTempTestTypeForProdBoard, getTestTypeDataApi } from "@/api/testtype"
+import { getAvailableFunctionalTestingProcess } from "@/api/addprocess"
 import { useUserStore } from "@/store/modules/user"
 import { printBoardQrcodes, type QrcodeBoardRow } from "@/utils/printQrcode"
 import {
@@ -303,12 +359,12 @@ import {
   mapDlbBoardToUiBoard,
   normalizeDlbBoardState,
   normalizeCircuitProcessName,
+  resolveCircuitProcessName,
   type CircuitApplicationUiBoard
 } from "./circuit-application-helpers"
 
 type ApplicationTypeKey = "电路板模块"
-type ApplicationStatus = "draft" | "published" | "scheduling" | "in_progress" | "done"
-type PublishApplicationResult = "success" | "missing_boards" | "failed" | "skipped"
+type ApplicationStatus = "draft" | "partial" | "published" | "scheduling" | "in_progress" | "done"
 type StatusFilter = ApplicationStatus | "all"
 type GeneratedOrderFilter = "production" | "temporary" | "all"
 
@@ -319,6 +375,24 @@ interface CircuitApplicationBoard
   name: string
   serial: string
   status: ApplicationStatus
+}
+
+interface ResolvedGeneratedTestType {
+  id: string | number
+  name: string
+  raw?: any
+}
+
+interface ResolvedGeneratedBoardList {
+  boardList: any[]
+  addProdBoard: boolean
+  processList: Array<string | number>
+}
+
+interface ResolvedGeneratedTempBoardRow {
+  row: any
+  addProdBoard: boolean
+  boardModelId: string | number
 }
 
 interface CircuitApplication {
@@ -378,6 +452,7 @@ interface CreateApplicationForm {
 
 const statusOptions: Array<{ key: ApplicationStatus; label: string; sub: string; color: string }> = [
   { key: "draft", label: "未发布", sub: "草稿", color: "#6b7280" },
+  { key: "partial", label: "部分发布", sub: "还有未发布样品", color: "#f97316" },
   { key: "published", label: "已发布", sub: "等待排期", color: "#2563eb" },
   { key: "scheduling", label: "排期中", sub: "分配中", color: "#f97316" },
   { key: "in_progress", label: "测试中", sub: "执行中", color: "#10b981" },
@@ -393,7 +468,8 @@ const statusMeta: Record<
     primaryType: CircuitApplication["primaryType"]
   }
 > = {
-  draft: { label: "未发布", tagType: "info", primaryText: "发布", primaryType: "primary" },
+  draft: { label: "未发布", tagType: "info", primaryText: "发布全部未发布", primaryType: "primary" },
+  partial: { label: "部分发布", tagType: "warning", primaryText: "发布全部未发布", primaryType: "primary" },
   published: { label: "已发布", tagType: "success", primaryText: "查看", primaryType: "" },
   scheduling: { label: "排期中", tagType: "warning", primaryText: "查看", primaryType: "" },
   in_progress: { label: "测试中", tagType: "success", primaryText: "查看", primaryType: "" },
@@ -410,12 +486,17 @@ const createSaving = ref(false)
 const createFormRef = ref<FormInstance>()
 const applications = ref<CircuitApplication[]>([])
 const publishingKeys = ref<string[]>([])
+const publishingBoardKeys = ref<string[]>([])
 const generatedOrderKeys = ref<string[]>([])
+const generatedBoardKeys = ref<string[]>([])
+const missingGeneratedBoardKeys = ref<string[]>([])
 const selectedApplicationKey = ref("")
 const selectedApplicationIds = ref<string[]>([])
 const selectedBoardRows = ref<CircuitApplicationBoard[]>([])
 const userStore = useUserStore()
 let testTypeListCache: any[] | null = null
+let tempTestTypeListCache: any[] | null = null
+let tempProdBoardTestTypeListCache: any[] | null = null
 const searchForm = reactive<{ keyword: string; status: StatusFilter; orderType: GeneratedOrderFilter }>({
   keyword: "",
   status: "all",
@@ -473,7 +554,10 @@ const filteredApplications = computed(() => {
 })
 
 const canBatchPublish = computed(() =>
-  selectedApplicationIds.value.some((key) => applications.value.find((item) => item.key === key)?.status === "draft")
+  selectedApplicationIds.value.some((key) => {
+    const application = applications.value.find((item) => item.key === key)
+    return application ? isApplicationPublishable(application) : false
+  })
 )
 
 function normalizeStatus(status: unknown): ApplicationStatus {
@@ -481,6 +565,7 @@ function normalizeStatus(status: unknown): ApplicationStatus {
     .trim()
     .toLowerCase()
   if (!text || ["0", "draft", "unlinked", "草稿", "未发布"].includes(text)) return "draft"
+  if (["partial", "partially_published", "部分发布"].includes(text)) return "partial"
   if (["1", "linked", "published", "ready", "已发布", "待排期"].includes(text)) return "published"
   if (["scheduled", "scheduling", "arranged", "已排期", "排期中"].includes(text)) return "scheduling"
   if (["2", "testing", "in_progress", "running", "测试中"].includes(text)) return "in_progress"
@@ -497,12 +582,33 @@ function applyApplicationStatus(application: CircuitApplication, status: Applica
   application.primaryType = meta.primaryType
 }
 
-function getGroupStatus(rows: CircuitModuleApplicationRelation[]): ApplicationStatus {
+function resolvePublishStatusFromBoards(boards: CircuitApplicationBoard[]) {
+  const statuses = boards.map((board) => normalizeStatus(board.status))
+  if (!statuses.length) return "draft"
+  if (statuses.some((status) => status === "in_progress")) return "in_progress"
+  if (statuses.some((status) => status === "scheduling")) return "scheduling"
+  if (statuses.length && statuses.every((status) => status === "done")) return "done"
+  if (statuses.some((status) => status === "published")) {
+    return statuses.some((status) => status === "draft" || status === "partial") ? "partial" : "published"
+  }
+  return "draft"
+}
+
+function getGroupStatus(
+  rows: CircuitModuleApplicationRelation[],
+  boards: CircuitApplicationBoard[]
+): ApplicationStatus {
+  const boardStatus = resolvePublishStatusFromBoards(boards)
+  if (boardStatus !== "draft") return boardStatus
+
   const statuses = rows.map((row) => normalizeStatus(row.status))
   if (statuses.some((status) => status === "in_progress")) return "in_progress"
   if (statuses.some((status) => status === "scheduling")) return "scheduling"
   if (statuses.length && statuses.every((status) => status === "done")) return "done"
-  if (statuses.some((status) => status === "published")) return "published"
+  if (statuses.some((status) => status === "partial")) return "partial"
+  if (statuses.some((status) => status === "published")) {
+    return statuses.some((status) => status === "draft") ? "partial" : "published"
+  }
   return "draft"
 }
 
@@ -593,11 +699,24 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
   const boards = rawBoards
     ? rawBoards.map((board, index) => mapApiBoardToBoard(first, board, index))
     : rows.map(mapRelationToBoard)
-  const status = getGroupStatus(rows)
+  const status = getGroupStatus(rows, boards)
   const meta = statusMeta[status]
   const orderNo = getString(first.djbh, first.orderNo, first.commissionNo, first.sn, groupKey)
   const name = getString(first.xmmc, first.moduleName, first.sampleName, first.specModel, `${orderNo} 电路板模块申请单`)
   const sfxyjcgy = resolveCraftFlag(first)
+  const firstRecord = first as unknown as Record<string, unknown>
+  const craft =
+    resolveCircuitProcessName(
+      first.csgy,
+      firstRecord.testType,
+      firstRecord.testTypeName,
+      firstRecord.processName,
+      firstRecord.cslx,
+      first.sylx,
+      first.device,
+      first.sccj,
+      first.ggxh
+    ) || CIRCUIT_PROCESS_OPTIONS[0]
   const applyDate = getString(first.sqrq, first.createTime, first.updatedAt, first.doneAt).slice(0, 10)
   const remark = [
     first.client ? `客户：${first.client}` : "",
@@ -633,7 +752,7 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
     primaryText: meta.primaryText,
     primaryType: meta.primaryType,
     boardCount: boards.length,
-    craft: normalizeCircuitProcessName(first.csgy, first.device, first.sccj, first.ggxh),
+    craft,
     applyDate,
     createDate: applyDate,
     filename: getString(first.filename),
@@ -670,6 +789,7 @@ async function loadApplications() {
     selectedApplicationIds.value = selectedApplicationIds.value.filter((key) =>
       applications.value.some((item) => item.key === key)
     )
+    void refreshGeneratedStatusForApplications(applications.value)
   } catch (error) {
     applications.value = []
     ElMessage.error("电路模块任务单加载失败")
@@ -705,6 +825,138 @@ function isPublishing(application: CircuitApplication) {
   return publishingKeys.value.includes(application.key)
 }
 
+function isApplicationPublishable(application: CircuitApplication) {
+  return (
+    application.status === "draft" ||
+    application.status === "partial" ||
+    application.boards.some((board) => hasMissingGeneratedBoard(application, board))
+  )
+}
+
+function getApplicationPrimaryText(application: CircuitApplication) {
+  if (application.boards.some((board) => hasMissingGeneratedBoard(application, board))) return "补发工单"
+  return application.primaryText
+}
+
+function getApplicationPublishText(application: CircuitApplication) {
+  if (application.boards.some((board) => hasMissingGeneratedBoard(application, board))) return "补发缺失工单"
+  return "发布全部未发布样品"
+}
+
+function getBoardPublishText(application: CircuitApplication, board: CircuitApplicationBoard) {
+  return hasMissingGeneratedBoard(application, board) ? "补发" : "发布"
+}
+
+function getBoardPublishKey(application: CircuitApplication, board: CircuitApplicationBoard) {
+  return `${application.key}:${getString(board.id, board.serial, board.sn, board.seria)}`
+}
+
+function isBoardPublishing(application: CircuitApplication, board: CircuitApplicationBoard) {
+  return publishingBoardKeys.value.includes(getBoardPublishKey(application, board))
+}
+
+function isAnyBoardPublishing(application: CircuitApplication) {
+  const prefix = `${application.key}:`
+  return publishingBoardKeys.value.some((key) => key.startsWith(prefix))
+}
+
+function markGeneratedBoardCreated(application: CircuitApplication, board: CircuitApplicationBoard) {
+  const key = getBoardPublishKey(application, board)
+  if (!generatedBoardKeys.value.includes(key)) {
+    generatedBoardKeys.value = [...generatedBoardKeys.value, key]
+  }
+  missingGeneratedBoardKeys.value = missingGeneratedBoardKeys.value.filter((item) => item !== key)
+}
+
+function hasGeneratedBoardCreated(application: CircuitApplication, board: CircuitApplicationBoard) {
+  return generatedBoardKeys.value.includes(getBoardPublishKey(application, board))
+}
+
+function markGeneratedBoardMissing(application: CircuitApplication, board: CircuitApplicationBoard) {
+  const key = getBoardPublishKey(application, board)
+  if (!missingGeneratedBoardKeys.value.includes(key)) {
+    missingGeneratedBoardKeys.value = [...missingGeneratedBoardKeys.value, key]
+  }
+}
+
+function hasMissingGeneratedBoard(application: CircuitApplication, board: CircuitApplicationBoard) {
+  return missingGeneratedBoardKeys.value.includes(getBoardPublishKey(application, board))
+}
+
+function shouldHaveGeneratedBoard(board: CircuitApplicationBoard) {
+  return ["published", "scheduling", "in_progress", "done"].includes(normalizeStatus(board.status))
+}
+
+function isBoardPublishable(application: CircuitApplication, board: CircuitApplicationBoard) {
+  return board.status === "draft" || hasMissingGeneratedBoard(application, board)
+}
+
+function getPublishableBoards(application: CircuitApplication) {
+  return application.boards.filter((board) => isBoardPublishable(application, board))
+}
+
+function getExpectedGeneratedCount(boardList: any[]) {
+  return boardList.reduce((total, item) => {
+    const selectedTests = Array.isArray(item?.selectedTest) ? item.selectedTest : []
+    return total + Math.max(selectedTests.length, 1)
+  }, 0)
+}
+
+function assertGeneratedCount(response: any, expectedCount: number) {
+  const generatedCount = response?.data?.generatedCount
+  if (typeof generatedCount === "number" && generatedCount < expectedCount) {
+    throw new Error(`测试工单生成数量异常：应生成 ${expectedCount} 条，实际生成 ${generatedCount} 条`)
+  }
+}
+
+function rowMatchesGeneratedBoard(application: CircuitApplication, board: CircuitApplicationBoard, row: any) {
+  const serial = getBoardSerial(board)
+  const orderNo = application.orderNo
+  if (!serial || !orderNo) return false
+  const rowOrderNo = getString(row?.order_no, row?.orderNo)
+  const rowName = getString(row?.testunit_name, row?.dev_testunit_name)
+  const rowSerial = getString(row?.board_serial, row?.sn, row?.serial)
+  const matchesOrder = rowOrderNo ? rowOrderNo === orderNo : rowName.includes(orderNo)
+  const matchesBoard = rowSerial ? rowSerial === serial : rowName.includes(serial)
+  return matchesOrder && matchesBoard
+}
+
+async function getGeneratedRowsForApplication(application: CircuitApplication) {
+  const params = {
+    orderNo: application.orderNo,
+    currentPage: 1,
+    pageSize: 9999
+  }
+  const result =
+    application.generatedOrderType === "production"
+      ? await getTestMangeTable(params)
+      : await getTempTestMangeTable(params)
+  return result?.TableData || []
+}
+
+async function refreshGeneratedStatusForApplication(application: CircuitApplication) {
+  if (!application.orderNo || !application.boards.length) return
+  const rows = await getGeneratedRowsForApplication(application)
+  application.boards.forEach((board) => {
+    if (rows.some((row) => rowMatchesGeneratedBoard(application, board, row))) {
+      markGeneratedBoardCreated(application, board)
+      return
+    }
+    if (shouldHaveGeneratedBoard(board)) {
+      markGeneratedBoardMissing(application, board)
+    }
+  })
+}
+
+async function refreshGeneratedStatusForApplications(items: CircuitApplication[]) {
+  await Promise.all(
+    items
+      .filter((application) => application.boards.some((board) => shouldHaveGeneratedBoard(board)))
+      .map((application) => refreshGeneratedStatusForApplication(application).catch(() => undefined))
+  )
+  applications.value = [...applications.value]
+}
+
 function getApplicationRelationRows(application: CircuitApplication): CircuitModuleApplicationRelation[] {
   return Array.isArray(application.raw) ? application.raw : []
 }
@@ -727,41 +979,338 @@ function getApplicationPrintableBoards(application: CircuitApplication): Circuit
   return rows.map(mapRelationToBoard)
 }
 
-function buildGeneratedOrderBoardList(application: CircuitApplication) {
-  return application.boards.map((board, index) => {
-    const raw = (board.raw || {}) as Record<string, unknown>
-    const serial = getString(board.serial, board.sn, board.seria, raw.sn, raw.serial, raw.seria, raw.id) || `${application.orderNo}-${index + 1}`
-    const batchNo = getString(board.batchNo, raw.pch, raw.batchNo, raw.batch_id, raw.batchId)
-    const supplier = getString(board.supplier, raw.gysmc, raw.supplier)
-    const model = getString(board.model, board.name, raw.ggxh, raw.model, raw.name)
-    const sampleName = getString(board.sampleName, raw.ypmc, raw.sampleName, raw.board_name, model)
-    const materialNo = getString(board.materialNo, raw.wlh, raw.materialNo, raw.material_no)
+function buildGeneratedTestOption(testType: ResolvedGeneratedTestType, craft: string, processId?: string | number) {
+  const name = testType.name || normalizeCircuitProcessName(craft) || CIRCUIT_PROCESS_OPTIONS[0]
+  const resolvedProcessId = processId ?? getStringOrNumber(testType.raw?.processId, testType.raw?.process_id)
+  return {
+    id: testType.id,
+    number: testType.id,
+    name,
+    label: name,
+    processId: resolvedProcessId === "" ? null : resolvedProcessId
+  }
+}
 
-    return {
-      id: getString(board.id, raw.id, serial),
-      serial_num: serial,
-      serial,
-      sn: serial,
-      batch_id: batchNo,
-      batchId: batchNo,
-      supplier,
-      boardmodel_name: model,
-      board_name_or_board_model: getString(sampleName, model),
-      material_no: materialNo,
-      raw: board.raw || board,
-      pch: batchNo,
-      gysmc: supplier,
-      ggxh: model,
-      ypmc: sampleName,
-      wlh: materialNo
+function isNumericBoardId(value: unknown) {
+  return /^\d+$/.test(String(value ?? "").trim())
+}
+
+function getBoardSerial(board: CircuitApplicationBoard) {
+  const raw = (board.raw || {}) as Record<string, unknown>
+  return getString(board.serial, board.sn, board.seria, raw.sn, raw.serial, raw.seria, raw.serial_num)
+}
+
+function getBoardDisplayName(board: CircuitApplicationBoard) {
+  return getString(getBoardSerial(board), board.batchNo, board.sampleName, board.id, "未知样品")
+}
+
+function getBoardMissingPayload(board: CircuitApplicationBoard) {
+  const raw = (board.raw || {}) as Record<string, unknown>
+  return {
+    sn: getString(board.sn, board.serial, raw.sn, raw.serial, raw.serial_num, board.id),
+    pch: getString(board.batchNo, raw.pch, raw.batchNo, raw.batch_id),
+    gysmc: getString(board.supplier, raw.gysmc, raw.supplier),
+    ggxh: getString(board.model, raw.ggxh, raw.model)
+  }
+}
+
+function createMissingBoardsError(boards: CircuitApplicationBoard[], message: string) {
+  return {
+    message,
+    data: {
+      reason: "missing_board_match",
+      missingBoards: boards.map(getBoardMissingPayload)
     }
+  }
+}
+
+function buildGeneratedBoardRow(
+  application: CircuitApplication,
+  board: CircuitApplicationBoard,
+  index: number,
+  boardId: string | number,
+  selectedTest: any[]
+) {
+  const raw = (board.raw || {}) as Record<string, unknown>
+  const serial =
+    getString(board.serial, board.sn, board.seria, raw.sn, raw.serial, raw.seria, raw.id) ||
+    `${application.orderNo}-${index + 1}`
+  const batchNo = getString(board.batchNo, raw.pch, raw.batchNo, raw.batch_id, raw.batchId)
+  const supplier = getString(board.supplier, raw.gysmc, raw.supplier)
+  const model = getString(board.model, board.name, raw.ggxh, raw.model, raw.name)
+  const sampleName = getString(board.sampleName, raw.ypmc, raw.sampleName, raw.board_name, model)
+  const materialNo = getString(board.materialNo, raw.wlh, raw.materialNo, raw.material_no)
+
+  return {
+    id: String(boardId),
+    board_id: boardId,
+    serial_num: serial,
+    board_serial: serial,
+    serial,
+    sn: serial,
+    batch_id: batchNo,
+    batchId: batchNo,
+    batch: batchNo,
+    batch_name: batchNo,
+    supplier,
+    boardmodel_name: model,
+    board_model: model,
+    boardName: sampleName,
+    board_name_or_board_model: getString(sampleName, model),
+    material_no: materialNo,
+    materialNo,
+    available: selectedTest,
+    selectedTest: [...selectedTest],
+    checkAll: true,
+    isInd: false,
+    dlbTestId: getString(raw.dlbTestId),
+    orderNo: application.orderNo,
+    testUnitDesc: application.name,
+    consignor: application.applicant,
+    quantity: getDisplayString(board.quantity, raw.sl) || "1",
+    raw: board.raw || board,
+    pch: batchNo,
+    gysmc: supplier,
+    ggxh: model,
+    ypmc: sampleName,
+    wlh: materialNo
+  }
+}
+
+function findMatchingBoardInfoRow(rows: any[], board: CircuitApplicationBoard) {
+  const serial = getBoardSerial(board)
+  const id = getString(board.id, (board.raw as Record<string, unknown> | undefined)?.id)
+  return rows.find((row) => {
+    const rowId = getString(row.id)
+    const rowSerial = getString(row.serial_num, row.serialNumber, row.sn, row.serial, row.seria)
+    return (serial && rowSerial === serial) || (id && rowId === id)
   })
 }
 
-function getStringOrNumber(...values: unknown[]) {
-  const value = values.find(
-    (item) => (typeof item === "string" && item.trim()) || typeof item === "number"
+function filterSelectedTests(selectedTests: any[], testType: ResolvedGeneratedTestType) {
+  return selectedTests.filter((item) => String(item?.id) === String(testType.id))
+}
+
+function ensureSelectedTestHasProcess(
+  selectedTests: any[],
+  testType: ResolvedGeneratedTestType,
+  application: CircuitApplication
+) {
+  const fallbackProcessId = getStringOrNumber(testType.raw?.processId, testType.raw?.process_id)
+  return selectedTests.map((item) => ({
+    ...buildGeneratedTestOption(testType, application.craft, item?.processId || fallbackProcessId),
+    ...item,
+    processId: item?.processId || fallbackProcessId || null
+  }))
+}
+
+function buildFallbackProductionBoardRow(
+  application: CircuitApplication,
+  board: CircuitApplicationBoard,
+  index: number,
+  testType: ResolvedGeneratedTestType
+) {
+  const fallbackBoardId = getBoardSerial(board) || getString(board.id) || `${application.orderNo}-${index + 1}`
+  return buildGeneratedBoardRow(application, board, index, fallbackBoardId, [
+    buildGeneratedTestOption(testType, application.craft)
+  ])
+}
+
+async function resolveProductionBoardRow(
+  application: CircuitApplication,
+  board: CircuitApplicationBoard,
+  index: number,
+  testType: ResolvedGeneratedTestType
+) {
+  const serial = getBoardSerial(board)
+  if (!serial) throw createMissingBoardsError([board], "样品缺少 SN，无法匹配生产电路板")
+
+  try {
+    const prodBoardInfo = await getProdBoardDataBySn(serial)
+    const batchId = prodBoardInfo?.data?.batch_id
+    const boardModelId = prodBoardInfo?.data?.boardmodel_id
+    if (!batchId || !boardModelId) throw new Error("生产电路板缺少批次或型号")
+
+    const result = await getbordsinfo({ batchId, boardModelId })
+    const matched = findMatchingBoardInfoRow(result?.data || [], board)
+    if (!matched) throw new Error("生产电路板没有可用测试工艺")
+
+    const availableTests =
+      Array.isArray(matched.selectedTest) && matched.selectedTest.length
+        ? matched.selectedTest
+        : matched.available || []
+    const selectedTests = ensureSelectedTestHasProcess(
+      filterSelectedTests(availableTests, testType),
+      testType,
+      application
+    )
+    if (!selectedTests.length || selectedTests.some((item) => !item.processId)) {
+      throw new Error("生产电路板未绑定可用检测工艺")
+    }
+
+    return buildGeneratedBoardRow(application, board, index, matched.id, selectedTests)
+  } catch (error) {
+    return buildFallbackProductionBoardRow(application, board, index, testType)
+  }
+}
+
+async function resolveTempOrderBoardRow(
+  application: CircuitApplication,
+  board: CircuitApplicationBoard,
+  index: number,
+  testType: ResolvedGeneratedTestType
+): Promise<ResolvedGeneratedTempBoardRow> {
+  const serial = getBoardSerial(board)
+  if (!serial) throw createMissingBoardsError([board], "样品缺少 SN，无法匹配电路板")
+
+  try {
+    const prodBoardInfo = await getProdBoardDataBySn(serial)
+    const batchId = prodBoardInfo?.data?.batch_id
+    const boardModelId = prodBoardInfo?.data?.boardmodel_id
+    if (batchId && boardModelId) {
+      const result = await getboardsinfoForTempOrder({ batchId, boardModelId, tempBatch: false })
+      const matched = findMatchingBoardInfoRow(result?.data || [], board)
+      if (matched) {
+        return {
+          row: buildGeneratedBoardRow(application, board, index, matched.id, [
+            buildGeneratedTestOption(testType, application.craft)
+          ]),
+          addProdBoard: true,
+          boardModelId
+        }
+      }
+    }
+  } catch (error) {
+    // 继续尝试按临时电路板匹配。
+  }
+
+  let tempBoardRows: Array<{ id: string; seria: string; serialNumber?: string }> = []
+  let matched: { id: string; seria: string; serialNumber?: string } | undefined
+  try {
+    const result = await getTempBoardDataApi({ currentPage: 1, size: 999999, serialNumber: serial })
+    tempBoardRows = result?.data?.list || []
+    matched = tempBoardRows.find((item) => getString(item.serialNumber, item.seria) === serial)
+  } catch (error) {
+    tempBoardRows = []
+  }
+
+  if (!matched) {
+    const fallbackResult = await getTempBoardDataApi({ currentPage: 1, size: 999999 })
+    tempBoardRows = fallbackResult?.data?.list || []
+    matched = tempBoardRows.find((item) => getString(item.serialNumber, item.seria) === serial)
+  }
+
+  if (!matched || !isNumericBoardId(matched.id)) {
+    throw createMissingBoardsError([board], `未匹配到临时电路板：${getBoardDisplayName(board)}`)
+  }
+
+  return {
+    row: buildGeneratedBoardRow(application, board, index, matched.id, [
+      buildGeneratedTestOption(testType, application.craft)
+    ]),
+    addProdBoard: false,
+    boardModelId: ""
+  }
+}
+
+async function buildGeneratedOrderBoardList(
+  application: CircuitApplication,
+  boards: CircuitApplicationBoard[],
+  testType: ResolvedGeneratedTestType
+): Promise<ResolvedGeneratedBoardList> {
+  if (application.generatedOrderType === "production") {
+    const boardList = await Promise.all(
+      boards.map((board, index) => resolveProductionBoardRow(application, board, index, testType))
+    )
+    return { boardList, addProdBoard: true, processList: [] }
+  }
+
+  const resolved = await Promise.all(
+    boards.map((board, index) => resolveTempOrderBoardRow(application, board, index, testType))
   )
+  if (new Set(resolved.map((item) => item.addProdBoard)).size > 1) {
+    throw createMissingBoardsError(boards, "同一申请单不能混合发布生产电路板和临时电路板")
+  }
+  const addProdBoard = resolved.some((item) => item.addProdBoard)
+  const processList =
+    String(testType.id) === "1"
+      ? Array.from(
+          new Set(
+            (
+              await Promise.all(
+                resolved
+                  .filter((item) => item.addProdBoard && item.boardModelId)
+                  .map((item) => getAvailableFunctionalTestingProcess({ boardModelId: item.boardModelId }))
+              )
+            ).flatMap((response) => (response?.data || []).map((process: any) => process.id))
+          )
+        )
+      : []
+
+  return {
+    boardList: resolved.map((item) => item.row),
+    addProdBoard,
+    processList
+  }
+}
+
+function applyGeneratedTestTypeToBoardRow(
+  row: any,
+  application: CircuitApplication,
+  testType: ResolvedGeneratedTestType
+) {
+  const selectedTest = [buildGeneratedTestOption(testType, application.craft)]
+  return {
+    ...row,
+    available: selectedTest,
+    selectedTest: [...selectedTest]
+  }
+}
+
+async function resolveFunctionalProcessList(resolvedRows: ResolvedGeneratedTempBoardRow[]) {
+  const boardModelIds = Array.from(
+    new Set(resolvedRows.filter((item) => item.addProdBoard && item.boardModelId).map((item) => item.boardModelId))
+  )
+
+  if (!boardModelIds.length) return []
+
+  const responses = await Promise.all(
+    boardModelIds.map((boardModelId) => getAvailableFunctionalTestingProcess({ boardModelId }))
+  )
+  return Array.from(new Set(responses.flatMap((response) => (response?.data || []).map((process: any) => process.id))))
+}
+
+async function buildGeneratedTempOrderBoardList(
+  application: CircuitApplication,
+  boards: CircuitApplicationBoard[]
+): Promise<ResolvedGeneratedBoardList & { testType: ResolvedGeneratedTestType }> {
+  const placeholderTestType = {
+    id: "",
+    name: application.craft || CIRCUIT_PROCESS_OPTIONS[0]
+  }
+  const resolvedRows = await Promise.all(
+    boards.map((board, index) => resolveTempOrderBoardRow(application, board, index, placeholderTestType))
+  )
+
+  if (new Set(resolvedRows.map((item) => item.addProdBoard)).size > 1) {
+    throw createMissingBoardsError(boards, "同一申请单不能混合发布生产电路板和临时电路板")
+  }
+
+  const addProdBoard = resolvedRows.some((item) => item.addProdBoard)
+  const testType = await resolveGeneratedOrderTestType(application, { addProdBoard })
+  const processList =
+    String(testType.id) === "1" && addProdBoard ? await resolveFunctionalProcessList(resolvedRows) : []
+
+  return {
+    boardList: resolvedRows.map((item) => applyGeneratedTestTypeToBoardRow(item.row, application, testType)),
+    addProdBoard,
+    processList,
+    testType
+  }
+}
+
+function getStringOrNumber(...values: unknown[]) {
+  const value = values.find((item) => (typeof item === "string" && item.trim()) || typeof item === "number")
   return value === undefined || value === null ? "" : String(value).trim()
 }
 
@@ -773,20 +1322,51 @@ function normalizeTestTypeKey(value: unknown) {
     .replace(/\s+/g, "")
 }
 
-async function resolveGeneratedOrderTestType(craft: string) {
-  const fallback = craft || CIRCUIT_PROCESS_OPTIONS[0]
+async function resolveGeneratedOrderTestType(
+  application: CircuitApplication,
+  options: { addProdBoard?: boolean } = {}
+): Promise<ResolvedGeneratedTestType> {
+  const fallbackName = application.craft || CIRCUIT_PROCESS_OPTIONS[0]
   try {
-    if (!testTypeListCache) {
+    if (application.generatedOrderType === "temporary") {
+      if (options.addProdBoard) {
+        if (!tempProdBoardTestTypeListCache) {
+          const result = await getTempTestTypeForProdBoard({ currentPage: 1, size: 9999999 })
+          tempProdBoardTestTypeListCache = Array.isArray(result?.data?.list) ? result.data.list : []
+        }
+      } else if (!tempTestTypeListCache) {
+        const result = await getTempTestTypeDataApi({ currentPage: 1, size: 9999999 })
+        tempTestTypeListCache = Array.isArray(result?.data?.list) ? result.data.list : []
+      }
+    } else if (!testTypeListCache) {
       const result = await getTestTypeDataApi({ currentPage: 1, size: 9999999 })
       testTypeListCache = Array.isArray(result?.data?.list) ? result.data.list : []
     }
 
-    const targetKey = normalizeTestTypeKey(fallback)
-    const testTypes = testTypeListCache || []
-    const matched = testTypes.find((item) => normalizeTestTypeKey(item.name) === targetKey)
-    return getStringOrNumber(matched?.number, matched?.id, fallback)
+    const targetKey = normalizeTestTypeKey(fallbackName)
+    const testTypes =
+      application.generatedOrderType === "temporary"
+        ? options.addProdBoard
+          ? tempProdBoardTestTypeListCache || []
+          : tempTestTypeListCache || []
+        : testTypeListCache || []
+    const matched = testTypes.find(
+      (item) =>
+        normalizeTestTypeKey(item.name) === targetKey ||
+        normalizeTestTypeKey(item.number) === targetKey ||
+        normalizeTestTypeKey(item.id) === targetKey
+    )
+    const id = getStringOrNumber(matched?.number, matched?.id)
+    if (!id) {
+      throw new Error(`未匹配到测试类型：${fallbackName}`)
+    }
+    return {
+      id,
+      name: getString(matched?.name) || fallbackName,
+      raw: matched
+    }
   } catch (error) {
-    return fallback
+    throw error instanceof Error ? error : new Error("测试类型加载失败")
   }
 }
 
@@ -796,36 +1376,40 @@ function markGeneratedOrderCreated(application: CircuitApplication) {
   }
 }
 
-function hasGeneratedOrderCreated(application: CircuitApplication) {
-  return generatedOrderKeys.value.includes(application.key)
-}
-
-async function createGeneratedTestOrder(application: CircuitApplication, silent = false) {
-  const boardList = buildGeneratedOrderBoardList(application)
-  const testType = await resolveGeneratedOrderTestType(application.craft)
+async function createGeneratedTestOrder(
+  application: CircuitApplication,
+  silent = false,
+  boards: CircuitApplicationBoard[] = getPublishableBoards(application)
+) {
+  if (!boards.length) return
 
   if (application.generatedOrderType === "production") {
-    await createTestUnitApi({
+    const testType = await resolveGeneratedOrderTestType(application)
+    const { boardList } = await buildGeneratedOrderBoardList(application, boards, testType)
+    const response = await createTestUnitApi({
       boardList,
       userId: userStore.userid,
-      testType,
+      testType: testType.id,
       testUnitType: "PCBA",
       testUnitDesc: application.name,
       consignor: application.applicant,
       orderNo: application.orderNo
     })
+    assertGeneratedCount(response, getExpectedGeneratedCount(boardList))
     return
   }
 
+  const { boardList, addProdBoard, processList, testType } = await buildGeneratedTempOrderBoardList(application, boards)
   const payload = {
-    addProdBoard: false,
-    processList: [],
+    addProdBoard,
+    processList,
     boardList,
     userId: userStore.userid,
-    testType,
+    testType: testType.id,
     testUnitType: "PCBA",
     testUnitDesc: application.name,
     consignor: application.applicant,
+    testCount: 1,
     testunitType: "PCBA",
     testunitDesc: application.name,
     testunitConsignor: application.applicant,
@@ -841,11 +1425,77 @@ async function createGeneratedTestOrder(application: CircuitApplication, silent 
       confirmButtonText: "继续",
       cancelButtonText: "取消"
     })
-    await createDevTestUnitApi({
+    const retryResponse = await createDevTestUnitApi({
       ...payload,
       force: true
     })
+    assertGeneratedCount(retryResponse, getExpectedGeneratedCount(boardList))
+  } else {
+    assertGeneratedCount(response, getExpectedGeneratedCount(boardList))
   }
+}
+
+function getRawBoardIdentityValues(raw: Record<string, unknown>) {
+  return [
+    raw.id,
+    raw.dlbTestId,
+    raw.board_id,
+    raw.prodBoardId,
+    raw.tempBoardId,
+    raw.sn,
+    raw.serial,
+    raw.seria,
+    raw.serial_num,
+    raw.serialNumber,
+    raw.board_serial
+  ]
+    .map((value) => getString(value))
+    .filter(Boolean)
+}
+
+function isMatchingBoardRecord(board: CircuitApplicationBoard, rawBoard: unknown) {
+  if (board.raw === rawBoard) return true
+  if (!rawBoard || typeof rawBoard !== "object") return false
+
+  const rawValues = getRawBoardIdentityValues(rawBoard as Record<string, unknown>)
+  const boardValues = new Set(
+    [
+      board.id,
+      board.serial,
+      board.sn,
+      board.seria,
+      (board.raw as Record<string, unknown> | undefined)?.id,
+      (board.raw as Record<string, unknown> | undefined)?.dlbTestId,
+      (board.raw as Record<string, unknown> | undefined)?.sn,
+      (board.raw as Record<string, unknown> | undefined)?.seria,
+      (board.raw as Record<string, unknown> | undefined)?.serial,
+      (board.raw as Record<string, unknown> | undefined)?.serial_num,
+      (board.raw as Record<string, unknown> | undefined)?.serialNumber
+    ]
+      .map((value) => getString(value))
+      .filter(Boolean)
+  )
+  return rawValues.some((value) => boardValues.has(value))
+}
+
+function updateBoardListStatus(
+  boards: unknown[] | undefined,
+  targetBoard: CircuitApplicationBoard,
+  status: string | number
+) {
+  if (!Array.isArray(boards)) return { boards, matched: false }
+
+  let matched = false
+  const nextBoards = boards.map((rawBoard) => {
+    if (!isMatchingBoardRecord(targetBoard, rawBoard)) return rawBoard
+    matched = true
+    return {
+      ...(rawBoard as Record<string, unknown>),
+      status
+    }
+  })
+
+  return { boards: nextBoards, matched }
 }
 
 async function persistApplicationStatus(application: CircuitApplication, status: string | number) {
@@ -860,36 +1510,102 @@ async function persistApplicationStatus(application: CircuitApplication, status:
   application.raw = nextRows
 }
 
+async function persistBoardStatus(
+  application: CircuitApplication,
+  targetBoard: CircuitApplicationBoard,
+  status: string | number
+) {
+  const rows = getApplicationRelationRows(application)
+  if (!rows.length) return
+
+  let matched = false
+  const allBoardsPublished = application.boards.every((board) =>
+    board === targetBoard ? true : board.status !== "draft"
+  )
+
+  const nextRows = rows.map((row) => {
+    const dlbResult = updateBoardListStatus(row.dlbTestBoardList, targetBoard, status)
+    const boardResult = updateBoardListStatus(row.boards, targetBoard, status)
+    const relationMatched = !dlbResult.matched && !boardResult.matched && isMatchingBoardRecord(targetBoard, row)
+
+    matched = matched || dlbResult.matched || boardResult.matched || relationMatched
+
+    return {
+      ...row,
+      ...(dlbResult.boards ? { dlbTestBoardList: dlbResult.boards as any } : {}),
+      ...(boardResult.boards ? { boards: boardResult.boards as any } : {}),
+      status: allBoardsPublished || relationMatched ? status : row.status
+    }
+  })
+
+  if (!matched) {
+    throw new Error("未找到要同步状态的样品")
+  }
+
+  await syncCircuitModuleApplicationList(nextRows)
+  application.raw = nextRows
+}
+
+function markBoardsPublished(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
+  boards.forEach((board) => {
+    if (board.status === "draft") board.status = "published"
+  })
+
+  if (application.boards.every((board) => board.status !== "draft")) {
+    applyApplicationStatus(application, "published")
+    selectedApplicationIds.value = selectedApplicationIds.value.filter((key) => key !== application.key)
+  }
+}
+
+async function generateOrdersForBoards(
+  application: CircuitApplication,
+  boards: CircuitApplicationBoard[],
+  silent: boolean
+) {
+  const boardsToCreate = boards.filter((board) => !hasGeneratedBoardCreated(application, board))
+
+  if (!boardsToCreate.length) {
+    if (!silent) ElMessage.warning("这些样品的测试工单已生成，本次仅同步发布状态")
+    return
+  }
+
+  await createGeneratedTestOrder(application, silent, boardsToCreate)
+  boardsToCreate.forEach((board) => markGeneratedBoardCreated(application, board))
+  if (application.boards.every((board) => hasGeneratedBoardCreated(application, board) || board.status !== "draft")) {
+    markGeneratedOrderCreated(application)
+  }
+}
+
 async function publishApplication(application: CircuitApplication, silent = false) {
-  if (isPublishing(application)) return "skipped"
+  if (isPublishing(application) || isAnyBoardPublishing(application)) return "skipped"
   if (!application.boards.length) {
     if (!silent) ElMessage.warning("当前申请单没有电路板列表，不能发布生成测试工单")
+    return "skipped"
+  }
+  const boardsToPublish = getPublishableBoards(application)
+  if (!boardsToPublish.length) {
+    if (!silent) ElMessage.warning("当前申请单没有未发布的样品")
     return "skipped"
   }
 
   publishingKeys.value = [...publishingKeys.value, application.key]
   try {
-    if (!hasGeneratedOrderCreated(application)) {
-      try {
-        await createGeneratedTestOrder(application, silent)
-        markGeneratedOrderCreated(application)
-      } catch (createError) {
-        const missingBoards = getCircuitModulePublishMissingBoards(createError)
-        if (missingBoards.length) {
-          if (!silent) {
-            await ElMessageBox.alert(formatMissingBoards(missingBoards), "以下电路板未匹配，未生成工单", {
-              confirmButtonText: "知道了",
-              type: "warning"
-            })
-          }
-          return "missing_boards"
+    try {
+      await generateOrdersForBoards(application, boardsToPublish, silent)
+    } catch (createError) {
+      const missingBoards = getCircuitModulePublishMissingBoards(createError)
+      if (missingBoards.length) {
+        if (!silent) {
+          await ElMessageBox.alert(formatMissingBoards(missingBoards), "以下电路板未匹配，未生成工单", {
+            confirmButtonText: "知道了",
+            type: "warning"
+          })
         }
-
-        if (!silent) ElMessage.error("发布失败，未生成测试工单")
-        return "failed"
+        return "missing_boards"
       }
-    } else if (!silent) {
-      ElMessage.warning("测试工单已生成，本次仅同步申请单发布状态")
+
+      if (!silent) ElMessage.error(createError instanceof Error ? createError.message : "发布失败，未生成测试工单")
+      return "failed"
     }
 
     try {
@@ -899,10 +1615,7 @@ async function publishApplication(application: CircuitApplication, silent = fals
       return "failed"
     }
 
-    applyApplicationStatus(application, "published")
-    application.boards.forEach((board) => {
-      if (board.status === "draft") board.status = "published"
-    })
+    markBoardsPublished(application, boardsToPublish)
     refreshSelectedApplication(application)
     await loadApplications()
     selectedBoardRows.value = []
@@ -917,8 +1630,52 @@ async function publishApplication(application: CircuitApplication, silent = fals
   }
 }
 
+async function publishBoard(application: CircuitApplication, board: CircuitApplicationBoard) {
+  if (!isBoardPublishable(application, board)) {
+    ElMessage.warning("当前样品没有可发布的测试工单")
+    return
+  }
+  if (isPublishing(application) || isBoardPublishing(application, board)) return
+
+  const key = getBoardPublishKey(application, board)
+  publishingBoardKeys.value = [...publishingBoardKeys.value, key]
+  try {
+    try {
+      await generateOrdersForBoards(application, [board], false)
+    } catch (createError) {
+      const missingBoards = getCircuitModulePublishMissingBoards(createError)
+      if (missingBoards.length) {
+        await ElMessageBox.alert(formatMissingBoards(missingBoards), "以下电路板未匹配，未生成工单", {
+          confirmButtonText: "知道了",
+          type: "warning"
+        })
+        return
+      }
+
+      ElMessage.error(createError instanceof Error ? createError.message : "发布失败，未生成测试工单")
+      return
+    }
+
+    try {
+      await persistBoardStatus(application, board, circuitPublishedSyncState.status)
+    } catch (statusError) {
+      ElMessage.warning("测试工单已生成，但样品状态同步失败，未标记已发布")
+      return
+    }
+
+    markBoardsPublished(application, [board])
+    refreshSelectedApplication(application)
+    selectedBoardRows.value = selectedBoardRows.value.filter((item) => item !== board)
+    const generatedMessage =
+      application.generatedOrderType === "production" ? "已生成生产测试工单" : "已生成临时测试工单"
+    ElMessage.success(`${board.sn || board.seria} 已发布，${generatedMessage}`)
+  } finally {
+    publishingBoardKeys.value = publishingBoardKeys.value.filter((item) => item !== key)
+  }
+}
+
 function handlePrimaryAction(application: CircuitApplication) {
-  if (application.status === "draft") {
+  if (isApplicationPublishable(application)) {
     void publishApplication(application)
     return
   }
@@ -927,7 +1684,7 @@ function handlePrimaryAction(application: CircuitApplication) {
 
 async function batchPublishApplications() {
   const targets = applications.value.filter(
-    (application) => selectedApplicationIds.value.includes(application.key) && application.status === "draft"
+    (application) => selectedApplicationIds.value.includes(application.key) && isApplicationPublishable(application)
   )
   const results = await Promise.all(targets.map((application) => publishApplication(application, true)))
   const successCount = results.filter((result) => result === "success").length
@@ -1276,6 +2033,49 @@ onMounted(() => {
   margin-top: 2px;
   color: var(--el-text-color-placeholder);
   font-size: 12px;
+}
+
+.board-list-table {
+  width: 100%;
+
+  :deep(.el-table__cell) {
+    vertical-align: top;
+  }
+
+  :deep(.el-scrollbar__bar.is-horizontal) {
+    display: none;
+  }
+}
+
+.board-cell {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  line-height: 1.35;
+  white-space: normal;
+  word-break: break-all;
+}
+
+.board-cell__primary {
+  color: var(--el-text-color-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.board-cell__meta {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.board-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+
+  :deep(.el-button) {
+    margin-left: 0;
+  }
 }
 
 @media (max-width: 1200px) {
