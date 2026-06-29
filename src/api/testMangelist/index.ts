@@ -43,7 +43,7 @@ export const downloadOrderJson = (fileid: any) => {
     responseType: "blob"
   })
 }
-export const createTestUnitApi = (data: number[]) => {
+export const createTestUnitApi = (data: any) => {
   return request({
     url: "/test/testunit/add/",
     method: "post",

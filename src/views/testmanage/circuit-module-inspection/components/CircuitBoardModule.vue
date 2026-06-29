@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="circuit-task-page">
     <section class="application-panel">
       <div class="filter-bar">
@@ -106,8 +106,15 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="设备" prop="device">
-              <el-input v-model="createForm.device" />
+            <el-form-item label="测试工艺" prop="device">
+              <el-select v-model="createForm.device" style="width: 100%">
+                <el-option
+                  v-for="option in CIRCUIT_PROCESS_OPTIONS"
+                  :key="option"
+                  :label="option"
+                  :value="option"
+                />
+              </el-select>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -171,17 +178,31 @@
             }}</el-tag>
           </div>
           <el-descriptions :column="4" border>
-            <el-descriptions-item label="申请单号">{{ selectedApplication.orderNo }}</el-descriptions-item>
-            <el-descriptions-item label="测试类型">{{ selectedApplication.typeLabel }}</el-descriptions-item>
-            <el-descriptions-item label="是否需要检测工艺">{{ selectedApplication.sfxyjcgy }}</el-descriptions-item>
-            <el-descriptions-item label="将生成工单类型">{{
-              selectedApplication.generatedOrderTypeText
+            <el-descriptions-item label="单据编号">{{ selectedApplication.orderNo || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="委托单位">{{ selectedApplication.client || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="项目编码">{{ selectedApplication.projectCode || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="项目预算编码">{{
+              selectedApplication.projectBudgetCode || "-"
             }}</el-descriptions-item>
-            <el-descriptions-item label="电路板数量">{{ selectedApplication.boardCount }} 块</el-descriptions-item>
-            <el-descriptions-item label="创建日期">{{ selectedApplication.createDate || "-" }}</el-descriptions-item>
-            <el-descriptions-item label="工艺绑定">{{ selectedApplication.craft || "未绑定" }}</el-descriptions-item>
-            <el-descriptions-item label="申请人">{{ selectedApplication.applicant || "-" }}</el-descriptions-item>
-            <el-descriptions-item label="备注">{{ selectedApplication.remark || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="项目名称">{{ selectedApplication.name || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="地址">{{ selectedApplication.address || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="手机号">{{ selectedApplication.mobilePhone || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="座机">{{ selectedApplication.landline || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="实验类型">{{ selectedApplication.experimentType || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="试验电路板状态">{{
+              selectedApplication.boardState || "-"
+            }}</el-descriptions-item>
+            <el-descriptions-item label="测试工艺">{{ selectedApplication.craft || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="是否需要检测工艺">{{
+              selectedApplication.sfxyjcgy || "-"
+            }}</el-descriptions-item>
+            <el-descriptions-item label="申请人名称">{{ selectedApplication.applicant || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="申请日期">{{ selectedApplication.applyDate || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="文件名">{{ selectedApplication.filename || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="创建人">{{ selectedApplication.createBy || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="创建时间">{{ selectedApplication.createTime || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="更新人">{{ selectedApplication.updateBy || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="更新时间">{{ selectedApplication.updateTime || "-" }}</el-descriptions-item>
           </el-descriptions>
           <div class="detail-actions">
             <el-button
@@ -229,23 +250,18 @@
             @selection-change="selectedBoardRows = $event"
           >
             <el-table-column type="selection" width="42" />
-            <el-table-column label="电路板信息" min-width="220">
-              <template #default="{ row }">
-                <div class="board-sn">{{ row.seria }}</div>
-                <div class="board-model">{{ row.name }}</div>
-              </template>
-            </el-table-column>
-            <el-table-column prop="batchNo" label="批次号" min-width="150" />
-            <el-table-column prop="supplier" label="供应商" min-width="140" />
+            <el-table-column prop="sampleName" label="样品名称" min-width="160" />
             <el-table-column prop="materialNo" label="物料号" min-width="130" />
+            <el-table-column prop="model" label="规格型号" min-width="150" />
+            <el-table-column prop="supplier" label="供应商名称" min-width="150" />
+            <el-table-column prop="batchNo" label="批次号" min-width="140" />
             <el-table-column prop="quantity" label="数量" width="90" />
-            <el-table-column label="状态" width="120">
-              <template #default="{ row }">
-                <el-tag :type="getBoardStatus(row.status).tagType" effect="light">
-                  {{ getBoardStatus(row.status).label }}
-                </el-tag>
-              </template>
-            </el-table-column>
+            <el-table-column prop="sn" label="SN号" min-width="150" />
+            <el-table-column prop="consignor" label="委托人" min-width="120" />
+            <el-table-column prop="createBy" label="创建人" min-width="120" />
+            <el-table-column prop="createTime" label="创建时间" min-width="170" />
+            <el-table-column prop="updateBy" label="更新人" min-width="120" />
+            <el-table-column prop="updateTime" label="更新时间" min-width="170" />
             <el-table-column label="操作" width="190" fixed="right">
               <template #default="{ row }">
                 <el-button link type="primary" :icon="Printer" @click="handlePrintBoardQrcode(row)"> 二维码 </el-button>
@@ -269,19 +285,22 @@ import { Plus, Printer, Refresh, RefreshRight } from "@element-plus/icons-vue"
 import {
   getCircuitModuleApplicationList,
   getCircuitModulePublishMissingBoards,
-  getCircuitModulePublishResponseData,
-  publishCircuitModuleApplicationAndGenerateOrders,
   syncCircuitModuleApplicationList,
   type CircuitModuleApplicationRelation
 } from "@/api/circuit-module-application"
+import { createDevTestUnitApi, createTestUnitApi } from "@/api/testMangelist"
+import { getTestTypeDataApi } from "@/api/testtype"
+import { useUserStore } from "@/store/modules/user"
 import { printBoardQrcodes, type QrcodeBoardRow } from "@/utils/printQrcode"
 import {
+  CIRCUIT_PROCESS_OPTIONS,
   getCraftFlagText,
   getGeneratedOrderType,
   getGeneratedOrderTypeText,
   getString,
   formatMissingBoards,
   mapDlbBoardToUiBoard,
+  normalizeCircuitProcessName,
   type CircuitApplicationUiBoard
 } from "./circuit-application-helpers"
 
@@ -308,6 +327,14 @@ interface CircuitApplication {
   name: string
   type: ApplicationTypeKey
   typeLabel: string
+  client: string
+  projectCode: string
+  projectBudgetCode: string
+  address: string
+  mobilePhone: string
+  landline: string
+  experimentType: string
+  boardState: string
   sfxyjcgy: string
   generatedOrderType: "production" | "temporary"
   generatedOrderTypeText: string
@@ -318,7 +345,13 @@ interface CircuitApplication {
   primaryType: "primary" | "success" | "warning" | "info" | "danger" | ""
   boardCount: number
   craft: string
+  applyDate: string
   createDate: string
+  filename: string
+  createBy: string
+  createTime: string
+  updateBy: string
+  updateTime: string
   applicant: string
   remark: string
   boards: CircuitApplicationBoard[]
@@ -375,9 +408,12 @@ const createSaving = ref(false)
 const createFormRef = ref<FormInstance>()
 const applications = ref<CircuitApplication[]>([])
 const publishingKeys = ref<string[]>([])
+const generatedOrderKeys = ref<string[]>([])
 const selectedApplicationKey = ref("")
 const selectedApplicationIds = ref<string[]>([])
 const selectedBoardRows = ref<CircuitApplicationBoard[]>([])
+const userStore = useUserStore()
+let testTypeListCache: any[] | null = null
 const searchForm = reactive<{ keyword: string; status: StatusFilter; orderType: GeneratedOrderFilter }>({
   keyword: "",
   status: "all",
@@ -396,7 +432,7 @@ function createDefaultForm(): CreateApplicationForm {
     moduleName: defaultModuleName,
     specModel: defaultModuleName,
     quantity: 1,
-    device: defaultModuleName,
+    device: CIRCUIT_PROCESS_OPTIONS[0],
     hours: 2,
     applicant: "",
     client: "",
@@ -477,13 +513,20 @@ function mapRelationToBoard(row: CircuitModuleApplicationRelation, index: number
     sn: serial,
     serial,
     name: model,
+    sampleName: getString(row.sampleName, row.moduleName, model),
     model,
-    batchNo: getString(row.commissionNo),
-    supplier: getString(row.client),
+    batchNo: getString(row.commissionNo, row.djbh, row.orderNo),
+    supplier: getString(row.client, row.wtdw),
     materialNo: "",
     quantity: String(row.quantity ?? row.sl ?? ""),
+    consignor: getString(row.sqrmc, row.applicant),
+    createBy: getString(row.createBy),
+    createTime: getString(row.createTime),
+    updateBy: getString(row.updateBy),
+    updateTime: getString(row.updateTime, row.updatedAt),
     startTime: getString(row.updatedAt, row.doneAt),
-    status: normalizeStatus(row.status)
+    status: normalizeStatus(row.status),
+    raw: row
   }
 }
 
@@ -492,7 +535,8 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
   if (board?.pch || board?.gysmc || board?.wlh || board?.ypmc) {
     return {
       ...mapDlbBoardToUiBoard(board, index, applicationNo),
-      status: normalizeStatus(board?.status ?? row.status)
+      status: normalizeStatus(board?.status ?? row.status),
+      raw: board
     }
   }
 
@@ -505,13 +549,20 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
     sn: serial,
     serial,
     name: model,
+    sampleName: getString(board?.sampleName, board?.name, row.sampleName, row.moduleName, model),
     model,
     batchNo: getString(board?.batchNo, board?.pch),
     supplier: getString(board?.supplier, board?.gysmc),
     materialNo: getString(board?.materialNo, board?.wlh),
     quantity: String(board?.quantity ?? board?.sl ?? ""),
+    consignor: getString(board?.consignor, board?.wtr, row.sqrmc, row.applicant),
+    createBy: getString(board?.createBy, row.createBy),
+    createTime: getString(board?.createTime, row.createTime),
+    updateBy: getString(board?.updateBy, row.updateBy),
+    updateTime: getString(board?.updateTime, row.updateTime, row.updatedAt),
     startTime: getString(board?.startTime, row.updatedAt, row.doneAt),
-    status: normalizeStatus(board?.status ?? row.status)
+    status: normalizeStatus(board?.status ?? row.status),
+    raw: board
   }
 }
 
@@ -542,6 +593,7 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
   const orderNo = getString(first.djbh, first.orderNo, first.commissionNo, first.sn, groupKey)
   const name = getString(first.xmmc, first.moduleName, first.sampleName, first.specModel, `${orderNo} 电路板模块申请单`)
   const sfxyjcgy = resolveCraftFlag(first)
+  const applyDate = getString(first.sqrq, first.createTime, first.updatedAt, first.doneAt).slice(0, 10)
   const remark = [
     first.client ? `客户：${first.client}` : "",
     first.phone ? `电话：${first.phone}` : "",
@@ -559,6 +611,14 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
     name,
     type: "电路板模块",
     typeLabel: "电路板模块",
+    client: getString(first.wtdw, first.client),
+    projectCode: getString(first.kybh),
+    projectBudgetCode: getString(first.xmysbh, first.commissionNo),
+    address: getString(first.address),
+    mobilePhone: getString(first.telphone, first.sqrdh, first.phone),
+    landline: getString(first.zj),
+    experimentType: getString(first.sylx, first.nature),
+    boardState: String(first.dlbzt ?? first.zt ?? first.status ?? ""),
     sfxyjcgy,
     generatedOrderType: getGeneratedOrderType(sfxyjcgy),
     generatedOrderTypeText: getGeneratedOrderTypeText(sfxyjcgy),
@@ -568,11 +628,14 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
     primaryText: meta.primaryText,
     primaryType: meta.primaryType,
     boardCount: boards.length,
-    craft: getString(first.device, first.sccj, first.ggxh),
-    createDate: getString(first.sqrq, (first as { createTime?: string }).createTime, first.updatedAt, first.doneAt).slice(
-      0,
-      10
-    ),
+    craft: normalizeCircuitProcessName(first.csgy, first.device, first.sccj, first.ggxh),
+    applyDate,
+    createDate: applyDate,
+    filename: getString(first.filename),
+    createBy: getString(first.createBy),
+    createTime: getString(first.createTime),
+    updateBy: getString(first.updateBy),
+    updateTime: getString(first.updateTime, first.updatedAt),
     applicant: getString(first.sqrmc, first.applicant),
     remark,
     boards,
@@ -659,6 +722,127 @@ function getApplicationPrintableBoards(application: CircuitApplication): Circuit
   return rows.map(mapRelationToBoard)
 }
 
+function buildGeneratedOrderBoardList(application: CircuitApplication) {
+  return application.boards.map((board, index) => {
+    const raw = (board.raw || {}) as Record<string, unknown>
+    const serial = getString(board.serial, board.sn, board.seria, raw.sn, raw.serial, raw.seria, raw.id) || `${application.orderNo}-${index + 1}`
+    const batchNo = getString(board.batchNo, raw.pch, raw.batchNo, raw.batch_id, raw.batchId)
+    const supplier = getString(board.supplier, raw.gysmc, raw.supplier)
+    const model = getString(board.model, board.name, raw.ggxh, raw.model, raw.name)
+    const sampleName = getString(board.sampleName, raw.ypmc, raw.sampleName, raw.board_name, model)
+    const materialNo = getString(board.materialNo, raw.wlh, raw.materialNo, raw.material_no)
+
+    return {
+      id: getString(board.id, raw.id, serial),
+      serial_num: serial,
+      serial,
+      sn: serial,
+      batch_id: batchNo,
+      batchId: batchNo,
+      supplier,
+      boardmodel_name: model,
+      board_name_or_board_model: getString(sampleName, model),
+      material_no: materialNo,
+      raw: board.raw || board,
+      pch: batchNo,
+      gysmc: supplier,
+      ggxh: model,
+      ypmc: sampleName,
+      wlh: materialNo
+    }
+  })
+}
+
+function getStringOrNumber(...values: unknown[]) {
+  const value = values.find(
+    (item) => (typeof item === "string" && item.trim()) || typeof item === "number"
+  )
+  return value === undefined || value === null ? "" : String(value).trim()
+}
+
+function normalizeTestTypeKey(value: unknown) {
+  return normalizeCircuitProcessName(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[＿_－—–]/g, "-")
+    .replace(/\s+/g, "")
+}
+
+async function resolveGeneratedOrderTestType(craft: string) {
+  const fallback = craft || CIRCUIT_PROCESS_OPTIONS[0]
+  try {
+    if (!testTypeListCache) {
+      const result = await getTestTypeDataApi({ currentPage: 1, size: 9999999 })
+      testTypeListCache = Array.isArray(result?.data?.list) ? result.data.list : []
+    }
+
+    const targetKey = normalizeTestTypeKey(fallback)
+    const testTypes = testTypeListCache || []
+    const matched = testTypes.find((item) => normalizeTestTypeKey(item.name) === targetKey)
+    return getStringOrNumber(matched?.number, matched?.id, fallback)
+  } catch (error) {
+    return fallback
+  }
+}
+
+function markGeneratedOrderCreated(application: CircuitApplication) {
+  if (!generatedOrderKeys.value.includes(application.key)) {
+    generatedOrderKeys.value = [...generatedOrderKeys.value, application.key]
+  }
+}
+
+function hasGeneratedOrderCreated(application: CircuitApplication) {
+  return generatedOrderKeys.value.includes(application.key)
+}
+
+async function createGeneratedTestOrder(application: CircuitApplication, silent = false) {
+  const boardList = buildGeneratedOrderBoardList(application)
+  const testType = await resolveGeneratedOrderTestType(application.craft)
+
+  if (application.generatedOrderType === "production") {
+    await createTestUnitApi({
+      boardList,
+      userId: userStore.userid,
+      testType,
+      testUnitType: "PCBA",
+      testUnitDesc: application.name,
+      consignor: application.applicant,
+      orderNo: application.orderNo
+    })
+    return
+  }
+
+  const payload = {
+    addProdBoard: false,
+    processList: [],
+    boardList,
+    userId: userStore.userid,
+    testType,
+    testUnitType: "PCBA",
+    testUnitDesc: application.name,
+    consignor: application.applicant,
+    testunitType: "PCBA",
+    testunitDesc: application.name,
+    testunitConsignor: application.applicant,
+    orderNo: application.orderNo
+  }
+  const response = await createDevTestUnitApi(payload)
+  if (response?.status === "exists") {
+    if (silent) {
+      throw new Error(response.message || "测试工单已存在，未自动覆盖")
+    }
+    await ElMessageBox.confirm(response.message || "测试工单已存在，是否继续生成？", "确认生成", {
+      type: "warning",
+      confirmButtonText: "继续",
+      cancelButtonText: "取消"
+    })
+    await createDevTestUnitApi({
+      ...payload,
+      force: true
+    })
+  }
+}
+
 async function persistApplicationStatus(application: CircuitApplication, status: string | number) {
   const rows = getApplicationRelationRows(application)
   if (!rows.length) return
@@ -680,32 +864,33 @@ async function publishApplication(application: CircuitApplication, silent = fals
 
   publishingKeys.value = [...publishingKeys.value, application.key]
   try {
-    const response = await publishCircuitModuleApplicationAndGenerateOrders({
-      applicationId: application.dbId,
-      orderNo: application.orderNo
-    })
+    if (!hasGeneratedOrderCreated(application)) {
+      try {
+        await createGeneratedTestOrder(application, silent)
+        markGeneratedOrderCreated(application)
+      } catch (createError) {
+        const missingBoards = getCircuitModulePublishMissingBoards(createError)
+        if (missingBoards.length) {
+          if (!silent) {
+            await ElMessageBox.alert(formatMissingBoards(missingBoards), "以下电路板未匹配，未生成工单", {
+              confirmButtonText: "知道了",
+              type: "warning"
+            })
+          }
+          return "missing_boards"
+        }
 
-    const resolvedMissingBoards = getCircuitModulePublishMissingBoards(response)
-    if (resolvedMissingBoards.length) {
-      if (!silent) {
-        await ElMessageBox.alert(formatMissingBoards(resolvedMissingBoards), "以下电路板未匹配，未生成工单", {
-          confirmButtonText: "知道了",
-          type: "warning"
-        })
+        if (!silent) ElMessage.error("发布失败，未生成测试工单")
+        return "failed"
       }
-      return "missing_boards"
-    }
-
-    const result = getCircuitModulePublishResponseData(response)
-    if (!result || result.reason === "missing_board_match") {
-      if (!silent) ElMessage.error("发布返回数据异常，未更新申请单状态")
-      return "failed"
+    } else if (!silent) {
+      ElMessage.warning("测试工单已生成，本次仅同步申请单发布状态")
     }
 
     try {
-      await persistApplicationStatus(application, result.status ?? circuitPublishedSyncState.status)
+      await persistApplicationStatus(application, circuitPublishedSyncState.status)
     } catch (statusError) {
-      if (!silent) ElMessage.warning("测试工单已生成，但申请单状态同步失败，请刷新后确认")
+      if (!silent) ElMessage.warning("测试工单已生成，但申请单状态同步失败，未标记已发布")
       return "failed"
     }
 
@@ -717,27 +902,11 @@ async function publishApplication(application: CircuitApplication, silent = fals
     await loadApplications()
     selectedBoardRows.value = []
     if (!silent) {
-      ElMessage.success(
-        `${application.orderNo} 已发布，已生成 ${result?.generatedCount ?? application.boardCount} 条${
-          application.generatedOrderTypeText
-        }`
-      )
+      const generatedMessage =
+        application.generatedOrderType === "production" ? "已生成生产测试工单" : "已生成临时测试工单"
+      ElMessage.success(`${application.orderNo} 已发布，${generatedMessage}`)
     }
     return "success"
-  } catch (error) {
-    const missingBoards = getCircuitModulePublishMissingBoards(error)
-    if (missingBoards.length) {
-      if (!silent) {
-        await ElMessageBox.alert(formatMissingBoards(missingBoards), "以下电路板未匹配，未生成工单", {
-          confirmButtonText: "知道了",
-          type: "warning"
-        })
-      }
-      return "missing_boards"
-    } else {
-      if (!silent) ElMessage.error("发布失败，未生成测试工单")
-      return "failed"
-    }
   } finally {
     publishingKeys.value = publishingKeys.value.filter((key) => key !== application.key)
   }
@@ -829,15 +998,35 @@ function buildCreateBoards() {
   const quantity = Math.max(1, Number(createForm.quantity) || 1)
   const baseSerial = getString(createForm.sn, createForm.orderNo) || createOrderNo()
   const model = getString(createForm.specModel, createForm.moduleName, defaultModuleName) || defaultModuleName
+  const now = new Date().toISOString()
   return Array.from({ length: quantity }, (_, index) => {
     const serial = quantity === 1 ? baseSerial : `${baseSerial}-${String(index + 1).padStart(2, "0")}`
     return {
+      id: serial,
+      ypmc: createForm.moduleName.trim() || model,
+      wlh: createForm.sn.trim(),
+      ggxh: model,
+      gysmc: createForm.client.trim(),
+      pch: createForm.commissionNo.trim() || createForm.orderNo.trim(),
+      sl: 1,
+      wtr: createForm.applicant.trim(),
+      createBy: createForm.applicant.trim(),
+      createTime: now,
+      updateBy: createForm.applicant.trim(),
+      updateTime: now,
       seria: serial,
       sn: serial,
       serial: serial,
+      sampleName: createForm.moduleName.trim() || model,
+      materialNo: createForm.sn.trim(),
+      batchNo: createForm.commissionNo.trim() || createForm.orderNo.trim(),
+      supplier: createForm.client.trim(),
+      quantity: "1",
+      consignor: createForm.applicant.trim(),
       model,
       name: model,
-      status: 0
+      status: 0,
+      raw: null
     }
   })
 }
@@ -847,8 +1036,23 @@ async function handleSaveApplication() {
   if (!valid) return
 
   const boards = buildCreateBoards()
+  const now = new Date().toISOString()
   const payload: CircuitModuleApplicationRelation = {
     sn: boards[0]?.sn || createForm.sn.trim(),
+    djbh: createForm.orderNo.trim(),
+    wtdw: createForm.client.trim(),
+    kybh: createForm.commissionNo.trim(),
+    xmysbh: createForm.commissionNo.trim(),
+    xmmc: createForm.moduleName.trim(),
+    address: createForm.remark.trim(),
+    telphone: createForm.phone.trim(),
+    sqrmc: createForm.applicant.trim(),
+    sqrq: now.slice(0, 10),
+    zj: createForm.phone.trim(),
+    sylx: createForm.device.trim(),
+    dlbzt: 0,
+    csgy: normalizeCircuitProcessName(createForm.device) || CIRCUIT_PROCESS_OPTIONS[0],
+    filename: `${createForm.orderNo.trim()}.pdf`,
     orderNo: createForm.orderNo.trim(),
     moduleName: createForm.moduleName.trim(),
     specModel: createForm.specModel.trim(),
@@ -862,8 +1066,13 @@ async function handleSaveApplication() {
     sfxyjcgy: createForm.sfxyjcgy,
     remark: createForm.remark.trim(),
     status: 0,
+    createBy: createForm.applicant.trim(),
+    createTime: now,
+    updateBy: createForm.applicant.trim(),
+    updateTime: now,
+    dlbTestBoardList: boards,
     boards,
-    updatedAt: new Date().toISOString()
+    updatedAt: now
   }
 
   createSaving.value = true

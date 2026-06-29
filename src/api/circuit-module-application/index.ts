@@ -36,13 +36,19 @@ export interface DlbCircuitApplicationRaw {
   xmysbh?: string
   xmmc?: string
   address?: string
+  telphone?: string
   sqrq?: string
   sqrmc?: string
   sqrdh?: string
   zj?: string
+  sylx?: string
+  dlbzt?: string | number
+  csgy?: string
+  filename?: string
   ssdw?: string
   ssdwqt?: string
   sfxyjcgy?: string
+  labelList?: unknown[]
   ggxh?: string
   sl?: string | number
   sccj?: string
@@ -80,18 +86,28 @@ export interface CircuitModuleApplicationRelation {
   xmysbh?: string
   xmmc?: string
   address?: string
+  telphone?: string
   sqrq?: string
   sqrmc?: string
   sqrdh?: string
   zj?: string
+  sylx?: string
+  dlbzt?: string | number
+  csgy?: string
+  filename?: string
   ssdw?: string
   ssdwqt?: string
   sfxyjcgy?: string
+  labelList?: unknown[]
   ggxh?: string
   sl?: string | number
   sccj?: string
   bsh?: string
   zt?: string | number
+  createBy?: string
+  createTime?: string
+  updateBy?: string
+  updateTime?: string
   dlbTestBoardList?: DlbCircuitBoardItem[]
   orderNo?: string
   moduleName?: string
