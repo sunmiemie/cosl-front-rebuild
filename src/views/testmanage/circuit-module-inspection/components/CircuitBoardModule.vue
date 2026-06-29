@@ -8,8 +8,8 @@
             <el-option label="全部状态" value="all" />
             <el-option v-for="item in statusOptions" :key="item.key" :label="item.label" :value="item.key" />
           </el-select>
-          <el-select v-model="searchForm.orderType" class="filter-select" placeholder="全部类型">
-            <el-option label="全部类型" value="all" />
+          <el-select v-model="searchForm.orderType" class="filter-select" placeholder="全部性质">
+            <el-option label="全部性质" value="all" />
             <el-option label="生产测试工单" value="production" />
             <el-option label="临时测试工单" value="temporary" />
           </el-select>
@@ -221,6 +221,9 @@
             >
               {{ getApplicationPublishText(selectedApplication) }}
             </el-button>
+            <el-button v-if="selectedApplication.orderNo" @click="openBindingDialog(selectedApplication)">
+              查看关联
+            </el-button>
             <el-button
               v-if="selectedApplication.boards.length"
               :icon="Printer"
@@ -321,6 +324,26 @@
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="bindingDialogVisible"
+      title="申请单关联结果"
+      width="min(980px, 96vw)"
+      :close-on-click-modal="false"
+    >
+      <div class="binding-dialog__header">申请单号：{{ bindingApplicationNo || "-" }}</div>
+      <el-table v-loading="bindingLoading" :data="bindingRows" border max-height="420" table-layout="fixed">
+        <el-table-column prop="applicationNum" label="申请单号" min-width="170" show-overflow-tooltip />
+        <el-table-column prop="applicationId" label="申请 ID" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="orderId" label="委托单 ID" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="sampleId" label="样品 ID" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="boardId" label="电路板 ID" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="fpNumber" label="分批号" min-width="140" show-overflow-tooltip />
+      </el-table>
+      <template #footer>
+        <el-button @click="bindingDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -329,11 +352,19 @@ import { computed, onMounted, reactive, ref } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
 import { Plus, Printer, Refresh, RefreshRight } from "@element-plus/icons-vue"
 import {
+  getEngineerAssistantCommissionBindingsApi,
+  pushEngineerAssistantCommissionOrdersApi
+} from "@/api/engineer-assistant"
+import {
   getCircuitModuleApplicationList,
   getCircuitModulePublishMissingBoards,
   syncCircuitModuleApplicationList,
   type CircuitModuleApplicationRelation
 } from "@/api/circuit-module-application"
+import type {
+  EngineerAssistantCommissionBinding,
+  PushEngineerAssistantCommissionOrdersBody
+} from "@/api/engineer-assistant/types"
 import { getProdBoardDataBySn } from "@/api/board"
 import { getTempBoardDataApi } from "@/api/temp-board"
 import {
@@ -393,6 +424,17 @@ interface ResolvedGeneratedTempBoardRow {
   row: any
   addProdBoard: boolean
   boardModelId: string | number
+}
+
+interface CommissionBindingRow {
+  key: string
+  applicationNum: string
+  applicationId: string
+  orderId: string
+  sampleId: string
+  boardId: string
+  fpNumber: string
+  raw: EngineerAssistantCommissionBinding
 }
 
 interface CircuitApplication {
@@ -493,6 +535,10 @@ const missingGeneratedBoardKeys = ref<string[]>([])
 const selectedApplicationKey = ref("")
 const selectedApplicationIds = ref<string[]>([])
 const selectedBoardRows = ref<CircuitApplicationBoard[]>([])
+const bindingDialogVisible = ref(false)
+const bindingLoading = ref(false)
+const bindingRows = ref<CommissionBindingRow[]>([])
+const bindingApplicationNo = ref("")
 const userStore = useUserStore()
 let testTypeListCache: any[] | null = null
 let tempTestTypeListCache: any[] | null = null
@@ -959,6 +1005,115 @@ async function refreshGeneratedStatusForApplications(items: CircuitApplication[]
 
 function getApplicationRelationRows(application: CircuitApplication): CircuitModuleApplicationRelation[] {
   return Array.isArray(application.raw) ? application.raw : []
+}
+
+function normalizeCommissionBindingRow(item: EngineerAssistantCommissionBinding, index: number): CommissionBindingRow {
+  const applicationNum = getString(item.applicationNum)
+  const orderId = getString(item.orderId)
+  const sampleId = getString(item.sampleId)
+  const boardId = getString(item.boardId)
+  const applicationId = getString(item.applicationId)
+  const fpNumber = getString(item.fpNumber)
+  return {
+    key: `${applicationNum || "binding"}-${orderId || index}-${sampleId || boardId || index}`,
+    applicationNum,
+    applicationId,
+    orderId,
+    sampleId,
+    boardId,
+    fpNumber,
+    raw: item
+  }
+}
+
+function getCommissionBoardKey(application: CircuitApplication, board: CircuitApplicationBoard, index: number) {
+  return getString(board.id, getBoardSerial(board), board.sampleName) || `${application.orderNo}-${index + 1}`
+}
+
+function getBoardsForCommissionPush(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
+  const mergedBoards = [...application.boards.filter((board) => normalizeStatus(board.status) !== "draft"), ...boards]
+  const boardMap = new Map<string, CircuitApplicationBoard>()
+
+  mergedBoards.forEach((board, index) => {
+    boardMap.set(getCommissionBoardKey(application, board, index), board)
+  })
+  return Array.from(boardMap.values())
+}
+
+function buildCommissionOrderPayload(
+  application: CircuitApplication,
+  boards: CircuitApplicationBoard[]
+): PushEngineerAssistantCommissionOrdersBody {
+  const orderId = application.orderNo || application.key
+  const sampleBoards = getBoardsForCommissionPush(application, boards)
+  const userName = getString(userStore.nickName, userStore.username, application.applicant) || "系统用户"
+  const userId = userStore.userid ? String(userStore.userid) : orderId
+
+  return {
+    orderList: [
+      {
+        id: orderId,
+        commissionId: orderId,
+        budgetId: getString(application.projectBudgetCode, application.projectCode, orderId),
+        commissionOrg: getString(application.client) || "未提供",
+        userName,
+        userId,
+        departmentId: "",
+        departmentName: "",
+        phone: getString(application.mobilePhone, application.landline),
+        samples: sampleBoards.map((board, index) => ({
+          id: getCommissionBoardKey(application, board, index),
+          commissionOrderId: orderId,
+          sampleName: getString(board.sampleName, board.name) || `电路板样品${index + 1}`,
+          category: "电路板",
+          specModel: getString(board.model),
+          manufacturer: getString(board.supplier, application.client) || "未提供",
+          number: Math.max(1, Number(board.quantity) || 1)
+        }))
+      }
+    ]
+  }
+}
+
+async function pushCommissionOrderForBoards(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
+  const payload = buildCommissionOrderPayload(application, boards)
+  await pushEngineerAssistantCommissionOrdersApi(payload)
+}
+
+async function loadCommissionBindings(application: CircuitApplication, options: { silent?: boolean } = {}) {
+  if (!application.orderNo) {
+    bindingRows.value = []
+    bindingApplicationNo.value = ""
+    return
+  }
+
+  bindingLoading.value = true
+  bindingApplicationNo.value = application.orderNo
+  try {
+    const result = await getEngineerAssistantCommissionBindingsApi({ applicationNum: application.orderNo })
+    const rows = Array.isArray(result?.data) ? result.data : []
+    bindingRows.value = rows.map((item, index) => normalizeCommissionBindingRow(item, index))
+    if (!bindingRows.value.length && !options.silent) {
+      ElMessage.info("当前申请单暂无关联结果")
+    }
+  } catch (error) {
+    if (!options.silent) {
+      ElMessage.error("获取申请单关联结果失败")
+    }
+  } finally {
+    bindingLoading.value = false
+  }
+}
+
+function openBindingDialog(application: CircuitApplication) {
+  bindingDialogVisible.value = true
+  bindingRows.value = []
+  void loadCommissionBindings(application)
+}
+
+function refreshBindingRowsIfOpen(application: CircuitApplication) {
+  if (!bindingDialogVisible.value || bindingApplicationNo.value !== application.orderNo) return
+  void loadCommissionBindings(application, { silent: true })
 }
 
 function getApplicationPrintableBoards(application: CircuitApplication): CircuitApplicationBoard[] {
@@ -1609,6 +1764,13 @@ async function publishApplication(application: CircuitApplication, silent = fals
     }
 
     try {
+      await pushCommissionOrderForBoards(application, boardsToPublish)
+    } catch (syncError) {
+      if (!silent) ElMessage.warning("测试工单已生成，但委托单未成功推送到工程师助手，请稍后重试发布")
+      return "failed"
+    }
+
+    try {
       await persistApplicationStatus(application, circuitPublishedSyncState.status)
     } catch (statusError) {
       if (!silent) ElMessage.warning("测试工单已生成，但申请单状态同步失败，未标记已发布")
@@ -1618,6 +1780,7 @@ async function publishApplication(application: CircuitApplication, silent = fals
     markBoardsPublished(application, boardsToPublish)
     refreshSelectedApplication(application)
     await loadApplications()
+    refreshBindingRowsIfOpen(application)
     selectedBoardRows.value = []
     if (!silent) {
       const generatedMessage =
@@ -1657,6 +1820,13 @@ async function publishBoard(application: CircuitApplication, board: CircuitAppli
     }
 
     try {
+      await pushCommissionOrderForBoards(application, [board])
+    } catch (syncError) {
+      ElMessage.warning("测试工单已生成，但委托单未成功推送到工程师助手，请稍后重试发布")
+      return
+    }
+
+    try {
       await persistBoardStatus(application, board, circuitPublishedSyncState.status)
     } catch (statusError) {
       ElMessage.warning("测试工单已生成，但样品状态同步失败，未标记已发布")
@@ -1665,6 +1835,7 @@ async function publishBoard(application: CircuitApplication, board: CircuitAppli
 
     markBoardsPublished(application, [board])
     refreshSelectedApplication(application)
+    refreshBindingRowsIfOpen(application)
     selectedBoardRows.value = selectedBoardRows.value.filter((item) => item !== board)
     const generatedMessage =
       application.generatedOrderType === "production" ? "已生成生产测试工单" : "已生成临时测试工单"
@@ -1997,6 +2168,12 @@ onMounted(() => {
   gap: 8px;
   flex-wrap: wrap;
   margin-top: 12px;
+}
+
+.binding-dialog__header {
+  margin-bottom: 10px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
 }
 
 .board-list-section {

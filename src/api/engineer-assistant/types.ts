@@ -117,3 +117,49 @@ export type PushEngineerAssistantReportsBody = {
     }>
   }>
 }
+
+export type EngineerAssistantCommissionOrderSample = {
+  id: string
+  commissionOrderId: string
+  sampleName: string
+  category: string
+  specModel?: string
+  manufacturer?: string
+  number: number
+}
+
+export type EngineerAssistantCommissionOrder = {
+  id: string
+  commissionId: string
+  budgetId?: string
+  commissionOrg: string
+  userName: string
+  userId: string
+  departmentId?: string
+  departmentName?: string
+  phone?: string
+  samples: EngineerAssistantCommissionOrderSample[]
+}
+
+export type PushEngineerAssistantCommissionOrdersBody = {
+  orderList: EngineerAssistantCommissionOrder[]
+}
+
+export type EngineerAssistantCommissionBinding = {
+  applicationNum?: string
+  orderId?: string
+  sampleId?: string
+  boardId?: string
+  applicationId?: string
+  fpNumber?: string
+  raw?: unknown
+}
+
+export type GetEngineerAssistantCommissionBindingsParams = {
+  applicationNum?: string
+}
+
+export type PushEngineerAssistantCommissionOrdersResponse = EngineerAssistantBaseResponse<unknown>
+export type GetEngineerAssistantCommissionBindingsResponse = EngineerAssistantBaseResponse<
+  EngineerAssistantCommissionBinding[]
+>

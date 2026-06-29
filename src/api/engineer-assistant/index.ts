@@ -76,3 +76,19 @@ export function pushEngineerAssistantReportsApi(data: Types.PushEngineerAssistan
     data
   })
 }
+
+export function pushEngineerAssistantCommissionOrdersApi(data: Types.PushEngineerAssistantCommissionOrdersBody) {
+  return request<Types.PushEngineerAssistantCommissionOrdersResponse>({
+    url: "external/assistant/push-commission-orders/",
+    method: "post",
+    data
+  })
+}
+
+export function getEngineerAssistantCommissionBindingsApi(params: Types.GetEngineerAssistantCommissionBindingsParams) {
+  return request<Types.GetEngineerAssistantCommissionBindingsResponse>({
+    url: "external/assistant/commission-bindings/",
+    method: "get",
+    params
+  })
+}
