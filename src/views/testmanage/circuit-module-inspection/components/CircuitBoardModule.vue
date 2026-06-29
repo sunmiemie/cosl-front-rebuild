@@ -295,11 +295,13 @@ import { printBoardQrcodes, type QrcodeBoardRow } from "@/utils/printQrcode"
 import {
   CIRCUIT_PROCESS_OPTIONS,
   getCraftFlagText,
+  getDisplayString,
   getGeneratedOrderType,
   getGeneratedOrderTypeText,
   getString,
   formatMissingBoards,
   mapDlbBoardToUiBoard,
+  normalizeDlbBoardState,
   normalizeCircuitProcessName,
   type CircuitApplicationUiBoard
 } from "./circuit-application-helpers"
@@ -507,6 +509,8 @@ function getGroupStatus(rows: CircuitModuleApplicationRelation[]): ApplicationSt
 function mapRelationToBoard(row: CircuitModuleApplicationRelation, index: number): CircuitApplicationBoard {
   const serial = getString(row.sn) || `PCB-${index + 1}`
   const model = getString(row.specModel, row.sampleName, row.ggxh, "电路板模块")
+  const orderNo = getString(row.djbh, row.orderNo, row.commissionNo, row.sn, "CBM")
+  const fallbackBatchNo = `${orderNo}-${String(index + 1).padStart(2, "0")}`
   return {
     id: serial,
     seria: serial,
@@ -515,10 +519,10 @@ function mapRelationToBoard(row: CircuitModuleApplicationRelation, index: number
     name: model,
     sampleName: getString(row.sampleName, row.moduleName, model),
     model,
-    batchNo: getString(row.commissionNo, row.djbh, row.orderNo),
-    supplier: getString(row.client, row.wtdw),
-    materialNo: "",
-    quantity: String(row.quantity ?? row.sl ?? ""),
+    batchNo: getString(row.commissionNo, row.djbh, row.orderNo) || fallbackBatchNo,
+    supplier: getString(row.client, row.wtdw) || "未提供",
+    materialNo: getString((row as { wlh?: string }).wlh, serial),
+    quantity: getDisplayString(row.quantity, row.sl) || "1",
     consignor: getString(row.sqrmc, row.applicant),
     createBy: getString(row.createBy),
     createTime: getString(row.createTime),
@@ -543,6 +547,7 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
   const serial =
     getString(board?.seria, board?.sn, board?.serial, board?.id) || `${applicationNo || "PCB"}-${index + 1}`
   const model = getString(board?.model, board?.name, row.specModel, row.sampleName, row.ggxh, "电路板模块")
+  const fallbackBatchNo = `${applicationNo || "DLB"}-${String(index + 1).padStart(2, "0")}`
   return {
     id: serial,
     seria: serial,
@@ -551,10 +556,10 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
     name: model,
     sampleName: getString(board?.sampleName, board?.name, row.sampleName, row.moduleName, model),
     model,
-    batchNo: getString(board?.batchNo, board?.pch),
-    supplier: getString(board?.supplier, board?.gysmc),
-    materialNo: getString(board?.materialNo, board?.wlh),
-    quantity: String(board?.quantity ?? board?.sl ?? ""),
+    batchNo: getString(board?.batchNo, board?.pch) || fallbackBatchNo,
+    supplier: getString(board?.supplier, board?.gysmc) || "未提供",
+    materialNo: getString(board?.materialNo, board?.wlh) || serial,
+    quantity: getDisplayString(board?.quantity, board?.sl) || "1",
     consignor: getString(board?.consignor, board?.wtr, row.sqrmc, row.applicant),
     createBy: getString(board?.createBy, row.createBy),
     createTime: getString(board?.createTime, row.createTime),
@@ -618,7 +623,7 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
     mobilePhone: getString(first.telphone, first.sqrdh, first.phone),
     landline: getString(first.zj),
     experimentType: getString(first.sylx, first.nature),
-    boardState: String(first.dlbzt ?? first.zt ?? first.status ?? ""),
+    boardState: normalizeDlbBoardState(first.dlbzt, first.zt, first.status),
     sfxyjcgy,
     generatedOrderType: getGeneratedOrderType(sfxyjcgy),
     generatedOrderTypeText: getGeneratedOrderTypeText(sfxyjcgy),

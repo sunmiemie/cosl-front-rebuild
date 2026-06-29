@@ -68,6 +68,38 @@ export function getString(...values: unknown[]) {
   return typeof value === "string" ? value.trim() : ""
 }
 
+export function getDisplayString(...values: unknown[]) {
+  const value = values.find((item) => {
+    if (typeof item === "string") return item.trim()
+    return typeof item === "number" && Number.isFinite(item)
+  })
+  if (value === undefined || value === null) return ""
+  return String(value).trim()
+}
+
+export function normalizeDlbBoardState(...values: unknown[]) {
+  const value = getDisplayString(...values)
+  const normalized = value.toLowerCase()
+  const stateMap: Record<string, string> = {
+    "0": "未发布",
+    "1": "已发布",
+    "2": "测试中",
+    "3": "已完成",
+    "4": "已挂起",
+    draft: "未发布",
+    unlinked: "未发布",
+    published: "已发布",
+    linked: "已发布",
+    ready: "已发布",
+    testing: "测试中",
+    in_progress: "测试中",
+    done: "已完成",
+    complete: "已完成",
+    completed: "已完成"
+  }
+  return stateMap[normalized] || value
+}
+
 function normalizeProcessKey(value: string) {
   return value
     .trim()
@@ -112,6 +144,7 @@ export function mapDlbBoardToUiBoard(
 ): CircuitApplicationUiBoard {
   const sn = getString(board.sn) || `${applicationNo || "DLB"}-${index + 1}`
   const model = getString(board.ggxh, board.ypmc, "电路板模块")
+  const fallbackBatchNo = `${applicationNo || "DLB"}-${String(index + 1).padStart(2, "0")}`
   return {
     id: String(board.id ?? sn),
     seria: sn,
@@ -120,10 +153,10 @@ export function mapDlbBoardToUiBoard(
     name: getString(board.ypmc, model),
     sampleName: getString(board.ypmc, model),
     model,
-    batchNo: getString(board.pch),
-    supplier: getString(board.gysmc),
-    materialNo: getString(board.wlh),
-    quantity: String(board.sl ?? ""),
+    batchNo: getString(board.pch) || fallbackBatchNo,
+    supplier: getString(board.gysmc) || "未提供",
+    materialNo: getString(board.wlh) || sn,
+    quantity: getDisplayString(board.sl) || "1",
     consignor: getString(board.wtr),
     createBy: getString(board.createBy),
     createTime: getString(board.createTime),
