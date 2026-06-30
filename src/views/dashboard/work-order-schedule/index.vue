@@ -507,7 +507,8 @@ const activeStateMeta = computed(
 const stateCounts = computed<Record<ScheduleListState, number>>(() => ({
   pending: filteredOrdersByScheduleState(activeOrders.value, "pending").length,
   scheduled: filteredOrdersByScheduleState(activeOrders.value, "scheduled").length,
-  unpublished: filteredOrdersByScheduleState(activeOrders.value, "unpublished").length
+  unpublished: filteredOrdersByScheduleState(activeOrders.value, "unpublished").length,
+  other: filteredOrdersByScheduleState(activeOrders.value, "other").length
 }))
 
 const stateOrders = computed(() => filteredOrdersByScheduleState(activeOrders.value, activeScheduleState.value))
@@ -1138,11 +1139,11 @@ function buildHighTempPressureOrder(
     targetName,
     hostDeviceName,
     durationHours: getNumber(order.hold_time, 2),
-    status: instrument?.instrument_status ?? order.status,
+    status: order.status,
     statusText:
       order.status_text ||
       defaultStatusText(
-        instrument?.instrument_status ?? order.status,
+        order.status,
         instrument?.scheduled_start_at,
         instrument?.scheduled_end_at
       ),

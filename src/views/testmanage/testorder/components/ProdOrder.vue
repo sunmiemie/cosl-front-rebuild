@@ -125,8 +125,9 @@ const clearSearchData = () => {
 }
 
 const initSearchFromRoute = () => {
-  const { id, status } = route.query
+  const { id, orderNo, status, taskNumber } = route.query
   searchData.number = typeof id === "string" ? id : ""
+  searchData.orderNo = typeof orderNo === "string" ? orderNo : typeof taskNumber === "string" ? taskNumber : ""
   searchData.TestStatus = typeof status === "string" ? status : ""
 }
 

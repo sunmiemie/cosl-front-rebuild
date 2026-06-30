@@ -67,8 +67,8 @@ describe("工单排程页面", () => {
   it("排程列表只请求并保留待领取状态工单", () => {
     expect(content).toContain("const PENDING_CLAIM_STATUS = 1")
     expect(content).toContain("status: PENDING_CLAIM_STATUS")
-    expect(content).toContain("filterPendingClaimOrders")
-    expect(content).toContain("Number(rawOrder?.status ?? order.status) === PENDING_CLAIM_STATUS")
+    expect(content).toContain("filteredOrdersByScheduleState")
+    expect(content).toContain("normalizeScheduleListState")
   })
 
   it("接入 HALT-HASS 和电路板模块发布后的排程数据源", () => {
@@ -94,7 +94,7 @@ describe("工单排程页面", () => {
 
   it("保存排程后切换到排程所在周，保证日历方块立即显示", () => {
     expect(content).toContain("function syncCalendarToSchedule")
-    expect(content).toContain("syncCalendarToSchedule(start)")
+    expect(content).toContain("syncCalendarToSchedule(parseDateTime(payload.scheduled_start_at) || new Date())")
     expect(content).toMatch(/weekStart\.value\s*=\s*getWeekStart\(date\)/)
     expect(content).toMatch(/pickedDate\.value\s*=\s*formatDate\(date\)/)
   })
@@ -104,6 +104,11 @@ describe("工单排程页面", () => {
     expect(content).toContain("hasRunningScheduleInstrument")
     expect(content).toContain("isRunningTarget: hasRunningScheduleInstrument(item.instruments)")
     expect(content).toContain("isRunningTarget: hasRunningScheduleInstrument([instrument])")
+  })
+
+  it("高温高压井排程过滤使用工单发布状态，避免把仪器待排程 0 当成未发布", () => {
+    expect(content).toContain("status: order.status")
+    expect(content).not.toContain("status: instrument?.instrument_status ?? order.status")
   })
 
   it("排程弹窗支持一个工单维护多个时间段", () => {

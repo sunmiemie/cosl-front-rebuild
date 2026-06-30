@@ -72,7 +72,7 @@
       </div>
     </el-card>
 
-    <el-dialog v-model="editDialogVisible" title="编辑委托单" width="820px" top="5vh">
+    <el-dialog v-model="editDialogVisible" title="编辑委托单" width="min(1280px, 96vw)" top="5vh">
       <el-form ref="editFormRef" :model="editForm" :rules="editRules" label-width="110px">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -233,6 +233,26 @@
               <el-input v-model="row.project_name" placeholder="项目名称" />
             </template>
           </el-table-column>
+          <el-table-column label="批次号" min-width="120">
+            <template #default="{ row }">
+              <el-input v-model="row.batch_no" placeholder="批次号" />
+            </template>
+          </el-table-column>
+          <el-table-column label="SN号" min-width="130">
+            <template #default="{ row }">
+              <el-input v-model="row.sn" placeholder="SN号" />
+            </template>
+          </el-table-column>
+          <el-table-column label="物料号" min-width="120">
+            <template #default="{ row }">
+              <el-input v-model="row.material_no" placeholder="物料号" />
+            </template>
+          </el-table-column>
+          <el-table-column label="测试内容" min-width="140">
+            <template #default="{ row }">
+              <el-input v-model="row.test_content" placeholder="测试内容" />
+            </template>
+          </el-table-column>
           <el-table-column label="操作" width="90" align="center">
             <template #default="{ $index }">
               <el-button link type="danger" @click="removeSample($index)">删除</el-button>
@@ -246,7 +266,7 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailVisible" title="委托单详情" size="860px" class="commission-detail-drawer">
+    <el-drawer v-model="detailVisible" title="委托单详情" size="min(1280px, 96vw)" class="commission-detail-drawer">
       <div v-if="detailData" class="commission-detail">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="委托单编号">{{ detailData.basic?.["委托单编号"] }}</el-descriptions-item>
@@ -279,6 +299,10 @@
           <el-table-column prop="数量" label="数量" width="72" align="center" />
           <el-table-column prop="生产厂家" label="生产厂家" min-width="130" show-overflow-tooltip />
           <el-table-column prop="项目名称" label="项目名称" min-width="130" show-overflow-tooltip />
+          <el-table-column prop="批次号" label="批次号" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="SN号" label="SN号" min-width="130" show-overflow-tooltip />
+          <el-table-column prop="物料号" label="物料号" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="测试内容" label="测试内容" min-width="130" show-overflow-tooltip />
         </el-table>
 
         <el-divider>相关项目</el-divider>
@@ -413,7 +437,11 @@ const getEmptySample = () => ({
   spec_model: "",
   quantity: 0,
   manufacturer: "",
-  project_name: ""
+  project_name: "",
+  batch_no: "",
+  sn: "",
+  material_no: "",
+  test_content: ""
 })
 
 const editForm = reactive({
@@ -500,7 +528,11 @@ const openEditDialog = (row: Row) => {
       spec_model: s["规格型号"] || "",
       quantity: Number(s["数量"] || 0),
       manufacturer: s["生产厂家"] || "",
-      project_name: s["项目名称"] || ""
+      project_name: s["项目名称"] || "",
+      batch_no: s["批次号"] || "",
+      sn: s["SN号"] || "",
+      material_no: s["物料号"] || "",
+      test_content: s["测试内容"] || ""
     }))
     editForm.samples = samples.length ? samples : [getEmptySample()]
   })

@@ -6,9 +6,13 @@ import type {
 
 export interface CircuitApplicationUiBoard {
   id: string
+  boardId?: string
+  prodBoardId?: string
+  tempBoardId?: string
   seria: string
   sn: string
   serial: string
+  serialNum?: string
   name: string
   sampleName: string
   model: string
@@ -17,11 +21,23 @@ export interface CircuitApplicationUiBoard {
   materialNo: string
   quantity: string
   consignor: string
+  product?: string
+  unit?: string
+  testCategory?: string
+  testContent?: string
+  initialInspection?: string
+  contractNo?: string
+  arrivalDate?: string
+  xray?: string
+  bow?: string
+  twoD?: string
+  threeD?: string
   createBy: string
   createTime: string
   updateBy: string
   updateTime: string
   status: string | number
+  publishStatus?: string | number
   startTime?: string
   raw?: unknown
 }
@@ -157,27 +173,49 @@ export function mapDlbBoardToUiBoard(
   index: number,
   applicationNo: string
 ): CircuitApplicationUiBoard {
-  const sn = getString(board.sn) || `${applicationNo || "DLB"}-${index + 1}`
+  const sn =
+    getString(board.sn, board.seria, board.serial, board.serial_num, board.serialNumber, board.board_serial) ||
+    `${applicationNo || "DLB"}-${index + 1}`
   const model = getString(board.ggxh, board.ypmc, "电路板模块")
   const fallbackBatchNo = `${applicationNo || "DLB"}-${String(index + 1).padStart(2, "0")}`
+  const boardId = getDisplayString(board.boardId, board.board_id)
+  const prodBoardId = getDisplayString(board.prodBoardId, board.prod_board_id, board.board_id)
+  const tempBoardId = getDisplayString(board.tempBoardId, board.temp_board_id)
+  const publishStatus = board.publishStatus ?? board.publish_status ?? board.status ?? 0
   return {
-    id: String(board.id ?? sn),
+    id: String((board.id ?? "") || boardId || prodBoardId || tempBoardId || sn),
+    boardId,
+    prodBoardId,
+    tempBoardId,
     seria: sn,
     sn,
     serial: sn,
+    serialNum: getString(board.serial_num, board.serialNumber, board.board_serial, sn),
     name: getString(board.ypmc, model),
     sampleName: getString(board.ypmc, model),
     model,
-    batchNo: getString(board.pch) || fallbackBatchNo,
+    batchNo: getString(board.pch, board.batchNo, board.batch_id, board.batchId) || fallbackBatchNo,
     supplier: getString(board.gysmc) || "未提供",
-    materialNo: getString(board.wlh) || sn,
+    materialNo: getString(board.wlh),
     quantity: getDisplayString(board.sl) || "1",
     consignor: getString(board.wtr),
+    product: getString(board.sscp),
+    unit: getString(board.ssdw),
+    testCategory: getString(board.cslb),
+    testContent: getString(board.csnr),
+    initialInspection: getString(board.cjfj),
+    contractNo: getString(board.hth),
+    arrivalDate: getString(board.dhrq),
+    xray: getString(board.ray),
+    bow: getString(board.gqd),
+    twoD: getString(board.towtest),
+    threeD: getString(board.threetest),
     createBy: getString(board.createBy),
     createTime: getString(board.createTime),
     updateBy: getString(board.updateBy),
     updateTime: getString(board.updateTime),
-    status: 0,
+    status: publishStatus,
+    publishStatus,
     startTime: getString(board.updateTime, board.createTime),
     raw: board
   }

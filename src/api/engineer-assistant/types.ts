@@ -125,6 +125,10 @@ export type EngineerAssistantCommissionOrderSample = {
   category: string
   specModel?: string
   manufacturer?: string
+  batchNo?: string
+  sn?: string
+  materialNo?: string
+  testContent?: string
   number: number
 }
 

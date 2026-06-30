@@ -20,6 +20,10 @@ export type WorkOrderScheduleInstrumentInput = {
 
 const PENDING_STATUS_TEXTS = new Set(["待排程", "待测试", "待领取", "待开始", "未开始", "待处理"])
 
+function isPendingStatusText(value?: string | null) {
+  return Boolean(value && PENDING_STATUS_TEXTS.has(value.trim()))
+}
+
 export function isWorkOrderScheduled(order: WorkOrderScheduleStatusInput) {
   return Boolean(order.scheduleSegments?.length || (order.scheduledStartAt && order.scheduledEndAt))
 }
@@ -46,7 +50,7 @@ export function hasRunningScheduleInstrument(
 function getLifecycleStatusText(order: WorkOrderScheduleStatusInput) {
   if (order.isRunningTarget) return "测试中"
   const statusText = order.statusText?.trim()
-  if (statusText && !PENDING_STATUS_TEXTS.has(statusText)) return statusText
+  if (statusText && !isPendingStatusText(statusText)) return statusText
   return ""
 }
 

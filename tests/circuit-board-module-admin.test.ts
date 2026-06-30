@@ -84,7 +84,7 @@ describe("电路板模块管理端", () => {
     expect(apiContent).toContain("syncCircuitModuleApplicationList")
     expect(apiContent).toContain("data/assistant/circuit-board-module-order/sync")
     expect(apiContent).not.toContain("data/assistant/commission-board-relation/sync")
-    expect(componentContent).toContain("persistApplicationStatus")
+    expect(componentContent).toContain("persistBoardsStatus")
     expect(componentContent).toContain("status: 1")
     expect(componentContent).toContain("await syncCircuitModuleApplicationList")
   })

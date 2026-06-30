@@ -218,11 +218,7 @@
           <div v-for="(s, i) in detailData.samples" :key="i" class="sample-card">
             <div class="sample-card-title">样品 {{ i + 1 }}</div>
             <el-row :gutter="24" class="d-grid">
-              <el-col
-                :span="12"
-                v-for="key in ['样品名称', '分类', '规格型号', '数量', '生产厂家', '项目名称']"
-                :key="key"
-              >
+              <el-col :span="12" v-for="key in sampleDetailFields" :key="key">
                 <div class="d-field">
                   <span class="dk">{{ key }}</span>
                   <span class="dv" :class="{ empty: !s[key] }">{{ s[key] || "—" }}</span>
@@ -249,6 +245,8 @@
 import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage } from "element-plus"
 import { request } from "@/utils/service"
+
+const sampleDetailFields = ["样品名称", "分类", "规格型号", "数量", "生产厂家", "项目名称", "批次号", "SN号", "物料号", "测试内容"]
 
 const loading = ref(false)
 const tableData = ref<any[]>([])

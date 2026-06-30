@@ -13,19 +13,46 @@ export type CircuitModuleGeneratedOrderType = "production" | "temporary"
 export interface DlbCircuitBoardItem {
   id?: string | number
   dlbTestId?: string | number
+  board_id?: string | number
+  boardId?: string | number
+  prodBoardId?: string | number
+  prod_board_id?: string | number
+  tempBoardId?: string | number
+  temp_board_id?: string | number
   sscp?: string
   ypmc?: string
   wlh?: string
   ggxh?: string
   gysmc?: string
   pch?: string
+  batchNo?: string
+  batch_id?: string | number
+  batchId?: string | number
   sl?: string | number
   sn?: string
+  seria?: string
+  serial?: string
+  serial_num?: string
+  serialNumber?: string
+  board_serial?: string
   wtr?: string
+  ssdw?: string
+  cslb?: string
+  csnr?: string
+  cjfj?: string
+  hth?: string
+  dhrq?: string
+  ray?: string
+  gqd?: string
+  towtest?: string
+  threetest?: string
   createBy?: string
   createTime?: string
   updateBy?: string
   updateTime?: string
+  status?: string | number
+  publishStatus?: string | number
+  publish_status?: string | number
 }
 
 export interface DlbCircuitApplicationRaw {
@@ -68,12 +95,59 @@ export interface CircuitModuleScheduleSegment {
 
 export interface CircuitModuleBoardItem {
   id?: string | number
+  board_id?: string | number
+  boardId?: string | number
+  prodBoardId?: string | number
+  prod_board_id?: string | number
+  tempBoardId?: string | number
+  temp_board_id?: string | number
   seria?: string
   sn?: string
   serial?: string
+  serial_num?: string
+  serialNumber?: string
+  board_serial?: string
   name?: string
+  sampleName?: string
   model?: string
+  batchNo?: string
+  batch_id?: string | number
+  batchId?: string | number
+  pch?: string
+  supplier?: string
+  gysmc?: string
+  materialNo?: string
+  material_no?: string
+  wlh?: string
+  quantity?: string | number
+  sl?: string | number
+  consignor?: string
+  wtr?: string
+  product?: string
+  sscp?: string
+  unit?: string
+  ssdw?: string
+  testCategory?: string
+  cslb?: string
+  testContent?: string
+  csnr?: string
+  initialInspection?: string
+  cjfj?: string
+  contractNo?: string
+  hth?: string
+  arrivalDate?: string
+  dhrq?: string
+  xray?: string
+  ray?: string
+  bow?: string
+  gqd?: string
+  twoD?: string
+  towtest?: string
+  threeD?: string
+  threetest?: string
   status?: string | number
+  publishStatus?: string | number
+  publish_status?: string | number
   startTime?: string
 }
 

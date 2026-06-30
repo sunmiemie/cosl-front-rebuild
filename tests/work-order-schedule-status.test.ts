@@ -5,6 +5,10 @@ import {
   hasRunningScheduleInstrument,
   isWorkOrderScheduled
 } from "../src/views/dashboard/work-order-schedule/schedule-status"
+import {
+  filteredOrdersByScheduleState,
+  normalizeScheduleListState
+} from "../src/views/dashboard/work-order-schedule/schedule-helpers"
 
 describe("work order schedule status", () => {
   it("shows running lifecycle status before scheduled status", () => {
@@ -30,6 +34,20 @@ describe("work order schedule status", () => {
 
     expect(getWorkOrderScheduleStatusText(order)).toBe("已排程")
     expect(getWorkOrderScheduleTagType(order)).toBe("primary")
+  })
+
+  it("keeps review status out of pending schedule list before scheduling", () => {
+    const order = {
+      statusText: "待审核",
+      scheduledStartAt: null,
+      scheduledEndAt: null,
+      scheduleSegments: []
+    }
+
+    expect(normalizeScheduleListState(order)).toBe("other")
+    expect(filteredOrdersByScheduleState([order], "pending")).toEqual([])
+    expect(getWorkOrderScheduleStatusText(order)).toBe("待审核")
+    expect(getWorkOrderScheduleTagType(order)).toBe("warning")
   })
 
   it("does not treat a numeric status alone as running", () => {

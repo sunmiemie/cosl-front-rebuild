@@ -1,4 +1,4 @@
-export type ScheduleListState = "pending" | "scheduled" | "unpublished"
+export type ScheduleListState = "pending" | "scheduled" | "unpublished" | "other"
 
 export interface ScheduleStateInput {
   status?: number | string | null
@@ -27,6 +27,7 @@ export interface SecondaryDeviceTab {
 
 const UNPUBLISHED_TEXTS = new Set(["0", "draft", "unpublished", "未发布", "草稿", "待发布"])
 const SCHEDULED_TEXTS = new Set(["scheduled", "scheduling", "arranged", "已排程", "已排期", "排期中"])
+const REVIEW_TEXTS = new Set(["待审核", "测试待审核"])
 
 function normalizeText(value: unknown) {
   return String(value ?? "")
@@ -47,6 +48,7 @@ export function normalizeScheduleListState(order: ScheduleStateInput): ScheduleL
   const statusText = normalizeText(order.statusText)
   if (UNPUBLISHED_TEXTS.has(status) || UNPUBLISHED_TEXTS.has(statusText)) return "unpublished"
   if (SCHEDULED_TEXTS.has(status) || SCHEDULED_TEXTS.has(statusText)) return "scheduled"
+  if (REVIEW_TEXTS.has(statusText)) return "other"
   if (isScheduleAssigned(order)) return "scheduled"
   return "pending"
 }
