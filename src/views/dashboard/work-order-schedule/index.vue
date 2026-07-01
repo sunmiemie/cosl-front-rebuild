@@ -225,7 +225,7 @@
                     <span class="sync-status__dot" />
                     与测试端日历使用同一后端排程数据
                   </div>
-                  <el-button class="toolbar-refresh" type="success" plain @click="handleRefreshClick">
+                  <el-button class="toolbar-refresh" type="success" plain @click="handleLoadCurrentWeekClick">
                     读取本周排程
                   </el-button>
                 </div>
@@ -1544,6 +1544,13 @@ function handleEquipmentChange() {
 }
 
 function handleRefreshClick() {
+  void loadOrders()
+}
+
+function handleLoadCurrentWeekClick() {
+  const today = new Date()
+  weekStart.value = getWeekStart(today)
+  pickedDate.value = formatDate(today)
   void loadOrders()
 }
 
