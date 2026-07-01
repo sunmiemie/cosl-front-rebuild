@@ -8,6 +8,13 @@ export type HighTemperatureInstrument = {
   completedAt?: string | null
 }
 
+export type HighTemperatureScheduleSegment = {
+  scheduled_start_at?: string | null
+  scheduled_end_at?: string | null
+  scheduledStartAt?: string | null
+  scheduledEndAt?: string | null
+}
+
 export type HighTemperatureOrderListItem = {
   id: number
   taskNumber: string
@@ -30,6 +37,7 @@ export type HighTemperatureOrderListItem = {
   testDate?: string
   scheduledStartAt?: string | null
   scheduledEndAt?: string | null
+  scheduleSegments?: HighTemperatureScheduleSegment[]
   instruments?: HighTemperatureInstrument[]
 }
 

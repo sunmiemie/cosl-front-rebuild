@@ -3,7 +3,7 @@
     <el-card shadow="never" class="schedule-card">
       <el-tabs v-model="activeEquipment" @tab-change="handleEquipmentChange">
         <el-tab-pane v-for="item in equipmentTabs" :key="item.key" :label="item.label" :name="item.key">
-          <div class="state-switcher">
+          <div v-if="!isCircuitBoardModule" class="state-switcher">
             <button
               v-for="state in scheduleStateTabs"
               :key="state.key"
@@ -34,10 +34,10 @@
             <aside class="order-panel">
               <div class="order-panel__header">
                 <div>
-                  <div class="panel-title">{{ activeStateMeta.panelTitle }}</div>
-                  <div class="panel-subtitle">{{ activeStateMeta.panelSubtitle }}</div>
+                  <div class="panel-title">{{ orderPanelMeta.panelTitle }}</div>
+                  <div class="panel-subtitle">{{ orderPanelMeta.panelSubtitle }}</div>
                 </div>
-                <el-tag type="info" effect="plain">{{ filteredOrders.length }} 条</el-tag>
+                <el-tag type="info" effect="plain">{{ orderPanelOrders.length }} 条</el-tag>
               </div>
 
               <el-form :model="searchForm" class="order-filter" label-width="0">
@@ -53,15 +53,23 @@
               </el-form>
 
               <el-scrollbar class="order-scrollbar">
-                <div v-if="filteredOrders.length" class="order-list">
+                <div v-if="orderPanelOrders.length" class="order-list">
                   <div
-                    v-for="order in filteredOrders"
+                    v-for="order in orderPanelOrders"
                     :key="order.id"
                     class="order-card"
-                    :class="{ 'is-active': selectedOrderId === order.id, 'is-scheduled': isScheduled(order) }"
+                    :class="{
+                      'is-active': selectedOrderId === order.id,
+                      'is-scheduled': isScheduled(order),
+                      'is-draggable': canDragOrderCard(order),
+                      'is-dragging': isOrderCardDragging(order)
+                    }"
+                    :draggable="canDragOrderCard(order)"
                     role="button"
                     tabindex="0"
                     @click="selectedOrderId = order.id"
+                    @dragstart="handleOrderCardDragStart(order, $event)"
+                    @dragend="handleOrderCardDragEnd"
                     @keydown.enter.prevent="selectedOrderId = order.id"
                     @keydown.space.prevent="selectedOrderId = order.id"
                   >
@@ -81,7 +89,17 @@
                       <el-tag v-if="order.applicant" size="small" effect="plain">{{ order.applicant }}</el-tag>
                     </div>
                     <div class="order-card__actions">
-                      <template v-if="activeScheduleState === 'unpublished'">
+                      <template v-if="isCircuitBoardModule">
+                        <el-button
+                          size="small"
+                          type="primary"
+                          :loading="circuitBoardSequenceSaving"
+                          @click.stop="scheduleCircuitBoardOrderAt(order, priorityOrders.length)"
+                        >
+                          加入排期
+                        </el-button>
+                      </template>
+                      <template v-else-if="activeScheduleState === 'unpublished'">
                         <el-button
                           size="small"
                           type="primary"
@@ -92,17 +110,23 @@
                         </el-button>
                       </template>
                       <template v-else-if="activeScheduleState === 'scheduled'">
-                        <el-button size="small" type="primary" @click.stop="openScheduleDialog(order)">调整</el-button>
+                        <el-button size="small" type="primary" @click.stop="showDragScheduleHint(order)">
+                          拖动调整
+                        </el-button>
+                        <el-button size="small" @click.stop="openScheduleDialog(order)">编辑多段</el-button>
                         <el-button size="small" @click.stop="handleClearSchedule(order)">清除</el-button>
                       </template>
                       <template v-else>
-                        <el-button size="small" type="primary" @click.stop="openScheduleDialog(order)">排程</el-button>
+                        <el-button size="small" type="primary" @click.stop="showDragScheduleHint(order)">
+                          拖入日历
+                        </el-button>
+                        <el-button size="small" @click.stop="openScheduleDialog(order)">手动排程</el-button>
                       </template>
                       <el-button size="small" @click.stop="openDetailDialog(order)">详情</el-button>
                     </div>
                   </div>
                 </div>
-                <el-empty v-else :description="activeStateMeta.emptyText" />
+                <el-empty v-else :description="orderPanelMeta.emptyText" />
               </el-scrollbar>
             </aside>
 
@@ -110,15 +134,38 @@
               <div class="priority-header">
                 <div>
                   <div class="priority-title">{{ priorityTitle }}</div>
-                  <div class="priority-subtitle">使用上移、下移调整优先级；移除只影响当前顺序视图</div>
+                  <div class="priority-subtitle">从左侧拖入排期顺序；拖动六点手柄调整顺序</div>
                 </div>
                 <el-button size="small" plain @click="handleRefreshClick">刷新</el-button>
               </div>
 
               <el-scrollbar class="priority-scrollbar">
-                <div v-if="priorityOrders.length" class="priority-list">
-                  <div v-for="(order, index) in priorityOrders" :key="order.id" class="priority-item">
-                    <span class="drag-handle" title="顺序项">⠿</span>
+                <div
+                  v-if="priorityOrders.length"
+                  class="priority-list"
+                  @dragover.prevent="handleCircuitBoardPriorityDragOver(priorityOrders.length)"
+                  @drop.prevent="handleCircuitBoardPriorityDrop(priorityOrders.length, $event)"
+                >
+                  <div
+                    v-for="(order, index) in priorityOrders"
+                    :key="order.id"
+                    class="priority-item"
+                    :class="{
+                      'is-drop-target': circuitBoardDropIndex === index,
+                      'is-dragging': circuitBoardDragging?.orderId === order.id
+                    }"
+                    @dragover.prevent.stop="handleCircuitBoardPriorityDragOver(index)"
+                    @drop.prevent.stop="handleCircuitBoardPriorityDrop(index, $event)"
+                  >
+                    <span
+                      class="drag-handle"
+                      draggable="true"
+                      title="拖动排序"
+                      @dragstart="handleCircuitBoardPriorityDragStart(order, $event)"
+                      @dragend="handleCircuitBoardDragEnd"
+                    >
+                      ⠿
+                    </span>
                     <span class="priority-num">{{ index + 1 }}.</span>
                     <div class="priority-main">
                       <div class="priority-name" :title="order.title">{{ order.title }}</div>
@@ -132,25 +179,34 @@
                       getOrderStatusText(order)
                     }}</el-tag>
                     <div class="priority-actions">
-                      <el-button size="small" :disabled="index === 0" @click="movePriorityOrder(order, -1)"
-                        >上移</el-button
-                      >
                       <el-button
                         size="small"
-                        :disabled="index === priorityOrders.length - 1"
-                        @click="movePriorityOrder(order, 1)"
+                        type="danger"
+                        plain
+                        :loading="circuitBoardSequenceSaving"
+                        @click="removePriorityOrder(order)"
                       >
-                        下移
+                        移除
                       </el-button>
-                      <el-button size="small" type="danger" plain @click="removePriorityOrder(order)">移除</el-button>
                     </div>
                   </div>
                 </div>
-                <el-empty v-else description="暂无排期顺序数据" />
+                <div
+                  v-else
+                  class="priority-list priority-list--empty"
+                  @dragover.prevent="handleCircuitBoardPriorityDragOver(0)"
+                  @drop.prevent="handleCircuitBoardPriorityDrop(0, $event)"
+                >
+                  <el-empty description="暂无已排程工单，拖入左侧工单开始排序" />
+                </div>
               </el-scrollbar>
             </section>
 
-            <section v-else class="calendar-panel">
+            <section
+              v-else
+              class="calendar-panel"
+              :class="{ 'is-calendar-dragging': Boolean(calendarDraggingOrderId) }"
+            >
               <div class="calendar-toolbar">
                 <div class="week-switcher">
                   <el-button @click="moveWeek(-1)">上一周</el-button>
@@ -206,18 +262,74 @@
                     class="day-column"
                     :class="{ 'is-today': day.isToday }"
                   >
-                    <div v-for="slot in timeCells" :key="`${day.dateStr}-${slot}`" class="time-cell" />
-                    <button
+                    <div
+                      v-for="slot in timeCells"
+                      :key="`${day.dateStr}-${slot}`"
+                      class="time-cell"
+                      :class="{ 'is-drop-target': isCalendarDropTarget(day.dateStr, slot) }"
+                      @dragover.prevent="handleCalendarCellDragOver(day.dateStr, slot)"
+                      @dragleave="handleCalendarCellDragLeave(day.dateStr, slot)"
+                      @drop.prevent="handleCalendarCellDrop(day.dateStr, slot, $event)"
+                    />
+                    <el-tooltip
                       v-for="event in getEventsForDay(day.dateStr)"
                       :key="event.id"
-                      class="calendar-event"
-                      :style="getEventStyle(event)"
-                      type="button"
-                      @click="selectEvent(event)"
+                      effect="light"
+                      placement="top"
+                      popper-class="calendar-event-tooltip"
                     >
-                      <strong>{{ event.title }}</strong>
-                      <span>{{ event.timeRange }}</span>
-                    </button>
+                      <template #content>
+                        <div class="calendar-event-tooltip__content">
+                          <div class="calendar-event-tooltip__title">{{ event.orderTitle }}</div>
+                          <div class="calendar-event-tooltip__row">
+                            <span>工单号</span>
+                            <strong>{{ event.taskNumber }}</strong>
+                          </div>
+                          <div class="calendar-event-tooltip__row">
+                            <span>排程对象</span>
+                            <strong>{{ event.targetName || "-" }}</strong>
+                          </div>
+                          <div class="calendar-event-tooltip__row">
+                            <span>时间段</span>
+                            <strong>{{ event.timeRange }}</strong>
+                          </div>
+                          <div class="calendar-event-tooltip__row">
+                            <span>状态</span>
+                            <strong>{{ getEventStatusText(event) }}</strong>
+                          </div>
+                          <div class="calendar-event-tooltip__row">
+                            <span>申请人</span>
+                            <strong>{{ event.applicant || "-" }}</strong>
+                          </div>
+                          <div class="calendar-event-tooltip__row">
+                            <span>主机设备</span>
+                            <strong>{{ event.hostDeviceName || "-" }}</strong>
+                          </div>
+                        </div>
+                      </template>
+                      <button
+                        class="calendar-event"
+                        :class="{ 'is-resizing': isCalendarEventResizing(event) }"
+                        :style="getEventStyle(event)"
+                        type="button"
+                        @click="selectEvent(event)"
+                      >
+                        <span
+                          class="calendar-event__resize calendar-event__resize--top"
+                          aria-hidden="true"
+                          @click.stop
+                          @mousedown.stop.prevent="startCalendarEventResize(event, 'top', $event)"
+                        />
+                        <strong>{{ event.title }}</strong>
+                        <span class="calendar-event__time">{{ event.timeRange }}</span>
+                        <span
+                          class="calendar-event__resize calendar-event__resize--bottom"
+                          aria-hidden="true"
+                          @click.stop
+                          @mousedown.stop.prevent="startCalendarEventResize(event, 'bottom', $event)"
+                        />
+                      </button>
+                    </el-tooltip>
                   </div>
                 </div>
               </div>
@@ -317,12 +429,19 @@ import {
   isWorkOrderScheduled
 } from "./schedule-status"
 import {
+  applySchedulePayloadToTargetOrder,
+  buildSingleCellSchedulePayload,
+  filterOrdersByActiveDeviceTab,
   buildSecondaryDeviceTabs,
   filteredOrdersByScheduleState,
+  getScheduleLifecycleStatusText,
   hostMatchesModelKeywords,
+  layoutCalendarEvents,
   matchHostDevicesForOrder,
-  movePriorityItem,
+  mergeSchedulePayloadSegments,
   normalizeScheduleListState,
+  replaceSchedulePayloadSegment,
+  type CalendarLaneEvent,
   type HostDeviceCandidate,
   type ScheduleListState
 } from "./schedule-helpers"
@@ -337,8 +456,10 @@ type EquipmentKey =
   | "circuit-board-module"
 
 type ScheduleSegment = {
-  scheduledStartAt: string
-  scheduledEndAt: string
+  scheduledStartAt?: string
+  scheduledEndAt?: string
+  sequenceOnly?: boolean
+  sequenceOrder?: number
 }
 
 type ScheduleFormSegment = {
@@ -351,7 +472,7 @@ type ScheduleFormSegment = {
 type ScheduleOrder = {
   id: string
   dbId: number | string
-  targetId: number | string
+  targetId: number | string | null
   equipment: EquipmentKey
   scheduleEquipment: WorkOrderScheduleEquipment
   taskNumber: string
@@ -363,9 +484,12 @@ type ScheduleOrder = {
   statusText?: string
   isRunningTarget?: boolean
   hostDeviceName?: string
+  useDevice?: string
   scheduledStartAt?: string | null
   scheduledEndAt?: string | null
   scheduleSegments: ScheduleSegment[]
+  isSequenceScheduled?: boolean
+  sequenceOrder?: number | null
   raw: any
   relationRows?: CircuitModuleApplicationRelation[]
 }
@@ -377,14 +501,62 @@ type ScheduleHostDevice = HostDeviceCandidate & {
   serialNumber: string
 }
 
-type CalendarEvent = {
+type BaseCalendarEvent = {
   id: string
   orderId: string
+  segmentIndex: number
   title: string
+  taskNumber: string
+  orderTitle: string
+  targetName: string
+  applicant: string
+  hostDeviceName: string | undefined
+  status: number | string | undefined
+  statusText: string | undefined
   dateStr: string
   startMinutes: number
   endMinutes: number
   timeRange: string
+}
+
+type CalendarEvent = CalendarLaneEvent<BaseCalendarEvent>
+
+type CalendarResizeEdge = "top" | "bottom"
+
+type CalendarResizeState = {
+  orderId: string
+  segmentIndex: number
+  edge: CalendarResizeEdge
+  dateStr: string
+  startY: number
+  currentY: number
+  originalStartMinutes: number
+  originalEndMinutes: number
+  originalSegments: ScheduleSegment[]
+}
+
+type CircuitBoardDragPayload = {
+  source: "pending" | "priority"
+  orderId: string
+}
+
+type CalendarDragPayload = {
+  orderId: string
+}
+
+type CalendarDropTarget = {
+  dateStr: string
+  slotIndex: number
+}
+
+type CircuitBoardOrderSnapshot = {
+  status: ScheduleOrder["status"]
+  statusText: ScheduleOrder["statusText"]
+  scheduledStartAt: ScheduleOrder["scheduledStartAt"]
+  scheduledEndAt: ScheduleOrder["scheduledEndAt"]
+  scheduleSegments: ScheduleSegment[]
+  isSequenceScheduled: ScheduleOrder["isSequenceScheduled"]
+  sequenceOrder: ScheduleOrder["sequenceOrder"]
 }
 
 const equipmentTabs: Array<{ key: EquipmentKey; label: string; scheduleEquipment: WorkOrderScheduleEquipment }> = [
@@ -435,6 +607,13 @@ const selectedOrderId = ref("")
 const loading = ref(false)
 const saving = ref(false)
 const publishingId = ref("")
+const calendarScheduleSavingId = ref("")
+const calendarDraggingOrderId = ref("")
+const calendarDropTarget = ref<CalendarDropTarget | null>(null)
+const calendarResizeState = ref<CalendarResizeState | null>(null)
+const circuitBoardSequenceSaving = ref(false)
+const circuitBoardDragging = ref<CircuitBoardDragPayload | null>(null)
+const circuitBoardDropIndex = ref<number | null>(null)
 const scheduleDialogVisible = ref(false)
 const detailDialogVisible = ref(false)
 const detailOrder = ref<ScheduleOrder | null>(null)
@@ -495,7 +674,16 @@ const EQUIPMENT_DEVICE_KEYWORDS: Record<EquipmentKey, string[]> = {
 const activeConfig = computed(
   () => equipmentTabs.find((item) => item.key === activeEquipment.value) ?? equipmentTabs[0]
 )
+const isCircuitBoardModule = computed(() => activeEquipment.value === "circuit-board-module")
 const activeOrders = computed(() => orderMap[activeEquipment.value])
+const deviceScopedOrders = computed(() =>
+  filterOrdersByActiveDeviceTab(
+    activeOrders.value,
+    activeEquipment.value,
+    activeDeviceTab.value,
+    EQUIPMENT_DEVICE_KEYWORDS[activeEquipment.value][0]
+  )
+)
 const selectedScheduleOrder = computed(() => activeOrders.value.find((item) => item.id === scheduleForm.orderId))
 const detailScheduleSegments = computed(() =>
   detailOrder.value ? getExistingScheduleFormSegments(detailOrder.value) : []
@@ -505,13 +693,29 @@ const activeStateMeta = computed(
 )
 
 const stateCounts = computed<Record<ScheduleListState, number>>(() => ({
-  pending: filteredOrdersByScheduleState(activeOrders.value, "pending").length,
-  scheduled: filteredOrdersByScheduleState(activeOrders.value, "scheduled").length,
-  unpublished: filteredOrdersByScheduleState(activeOrders.value, "unpublished").length,
-  other: filteredOrdersByScheduleState(activeOrders.value, "other").length
+  pending: filteredOrdersByScheduleState(deviceScopedOrders.value, "pending").length,
+  scheduled: filteredOrdersByScheduleState(deviceScopedOrders.value, "scheduled").length,
+  unpublished: filteredOrdersByScheduleState(deviceScopedOrders.value, "unpublished").length,
+  other: filteredOrdersByScheduleState(deviceScopedOrders.value, "other").length
 }))
 
-const stateOrders = computed(() => filteredOrdersByScheduleState(activeOrders.value, activeScheduleState.value))
+const stateOrders = computed(() => filteredOrdersByScheduleState(deviceScopedOrders.value, activeScheduleState.value))
+
+const circuitBoardPendingOrders = computed(() =>
+  filteredOrdersByScheduleState(activeOrders.value, "pending").filter(
+    (order) => order.equipment === "circuit-board-module"
+  )
+)
+
+const circuitBoardScheduledOrders = computed(() =>
+  filteredOrdersByScheduleState(activeOrders.value, "scheduled")
+    .filter((order) => order.equipment === "circuit-board-module")
+    .slice()
+    .sort(
+      (left, right) =>
+        (left.sequenceOrder ?? Number.MAX_SAFE_INTEGER) - (right.sequenceOrder ?? Number.MAX_SAFE_INTEGER)
+    )
+)
 
 const highTempPressureHostDevices = computed(() =>
   hostDevices.value.filter((host) => hostMatchesModelKeywords(host, EQUIPMENT_DEVICE_KEYWORDS["high-temp-pressure"]))
@@ -526,13 +730,34 @@ const filteredOrders = computed(() => {
   const keyword = searchForm.keyword.trim().toLowerCase()
   if (!keyword) return stateOrders.value
   return stateOrders.value.filter((order) =>
+    [order.taskNumber, order.title, order.applicant, order.targetName, order.hostDeviceName, order.useDevice]
+      .filter(Boolean)
+      .some((value) => String(value).toLowerCase().includes(keyword))
+  )
+})
+
+const filteredCircuitBoardPendingOrders = computed(() => {
+  const keyword = searchForm.keyword.trim().toLowerCase()
+  if (!keyword) return circuitBoardPendingOrders.value
+  return circuitBoardPendingOrders.value.filter((order) =>
     [order.taskNumber, order.title, order.applicant, order.targetName, order.hostDeviceName]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(keyword))
   )
 })
 
+const pendingStateMeta = computed(
+  () => scheduleStateTabs.find((item) => item.key === "pending") ?? scheduleStateTabs[0]
+)
+
+const orderPanelOrders = computed(() =>
+  isCircuitBoardModule.value ? filteredCircuitBoardPendingOrders.value : filteredOrders.value
+)
+
+const orderPanelMeta = computed(() => (isCircuitBoardModule.value ? pendingStateMeta.value : activeStateMeta.value))
+
 const priorityOrders = computed(() => {
+  if (isCircuitBoardModule.value) return circuitBoardScheduledOrders.value
   const removedIds = removedPriorityOrderIds[activeEquipment.value]
   return filteredOrders.value.filter((order) => !removedIds.includes(order.id))
 })
@@ -563,13 +788,9 @@ const weekLabel = computed(() => {
   return first && last ? `${first.label.replace("/", "月")}日 ～ ${last.label.replace("/", "月")}日` : ""
 })
 
-const calendarEvents = computed<CalendarEvent[]>(() =>
-  activeOrders.value.flatMap((order) => {
-    const segments = order.scheduleSegments.length
-      ? order.scheduleSegments
-      : order.scheduledStartAt && order.scheduledEndAt
-        ? [{ scheduledStartAt: order.scheduledStartAt, scheduledEndAt: order.scheduledEndAt }]
-        : []
+const calendarEvents = computed<CalendarEvent[]>(() => {
+  const events = deviceScopedOrders.value.flatMap<BaseCalendarEvent>((order) => {
+    const segments = getOrderScheduleSegments(order)
 
     return segments
       .map((segment, index) => {
@@ -583,18 +804,32 @@ const calendarEvents = computed<CalendarEvent[]>(() =>
         return {
           id: `${order.id}-${index}`,
           orderId: order.id,
+          segmentIndex: index,
           title: order.taskNumber,
+          taskNumber: order.taskNumber,
+          orderTitle: order.title,
+          targetName: order.targetName,
+          applicant: order.applicant,
+          hostDeviceName: order.hostDeviceName,
+          status: order.status,
+          statusText: order.statusText,
           dateStr,
           startMinutes,
           endMinutes,
           timeRange: `${formatHourMinute(start)}-${formatHourMinute(end)}`
         }
       })
-      .filter((event): event is CalendarEvent => event !== null)
+      .filter((event): event is BaseCalendarEvent => event !== null)
   })
-)
+
+  return layoutCalendarEvents(events)
+})
 
 watch(activeScheduleState, () => {
+  selectedOrderId.value = ""
+})
+
+watch(activeDeviceTab, () => {
   selectedOrderId.value = ""
 })
 
@@ -668,6 +903,16 @@ function toBackendDateTime(date: Date) {
   return `${formatDate(date)} ${formatHourMinute(date)}:00`
 }
 
+function formatMinutes(minutes: number) {
+  const hour = Math.floor(minutes / 60)
+  const minute = minutes % 60
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+}
+
+function toBackendDateTimeFromMinutes(dateStr: string, minutes: number) {
+  return `${dateStr} ${formatMinutes(minutes)}:00`
+}
+
 function createScheduleSegment(date = pickedDate.value, startTime = "09:00", endTime = "11:00"): ScheduleFormSegment {
   return {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -677,12 +922,16 @@ function createScheduleSegment(date = pickedDate.value, startTime = "09:00", end
   }
 }
 
+function getOrderScheduleSegments(order: ScheduleOrder): ScheduleSegment[] {
+  if (order.scheduleSegments.length) return order.scheduleSegments
+  if (order.scheduledStartAt && order.scheduledEndAt) {
+    return [{ scheduledStartAt: order.scheduledStartAt, scheduledEndAt: order.scheduledEndAt }]
+  }
+  return []
+}
+
 function getExistingScheduleFormSegments(order: ScheduleOrder): ScheduleFormSegment[] {
-  const segments = order.scheduleSegments.length
-    ? order.scheduleSegments
-    : order.scheduledStartAt && order.scheduledEndAt
-      ? [{ scheduledStartAt: order.scheduledStartAt, scheduledEndAt: order.scheduledEndAt }]
-      : []
+  const segments = getOrderScheduleSegments(order)
 
   if (!segments.length) return []
 
@@ -691,11 +940,6 @@ function getExistingScheduleFormSegments(order: ScheduleOrder): ScheduleFormSegm
     const end = parseDateTime(segment.scheduledEndAt) || new Date(start.getTime() + 2 * 60 * 60 * 1000)
     return createScheduleSegment(formatDate(start), formatHourMinute(start), formatHourMinute(end))
   })
-}
-
-function buildScheduleFormSegments(order: ScheduleOrder): ScheduleFormSegment[] {
-  const segments = getExistingScheduleFormSegments(order)
-  return segments.length ? segments : [createScheduleSegment()]
 }
 
 function addScheduleSegment() {
@@ -737,6 +981,12 @@ function buildSchedulePayload(): (WorkOrderSchedulePayload & { schedule_segments
   const normalized = validateScheduleSegments(scheduleForm.segments)
   if (!normalized?.length) return null
 
+  return buildSchedulePayloadFromSegments(normalized)
+}
+
+function buildSchedulePayloadFromSegments(
+  normalized: Array<{ start: Date; end: Date }>
+): WorkOrderSchedulePayload & { schedule_segments: WorkOrderScheduleSegment[] } {
   const scheduleSegments = normalized.map(({ start, end }) => ({
     scheduled_start_at: toBackendDateTime(start),
     scheduled_end_at: toBackendDateTime(end)
@@ -754,6 +1004,20 @@ function buildSchedulePayload(): (WorkOrderSchedulePayload & { schedule_segments
   }
 }
 
+function buildDraggedSchedulePayload(order: ScheduleOrder, dateStr: string, slotIndex: number) {
+  const singleCellPayload = buildSingleCellSchedulePayload(dateStr, slotIndex, {
+    calendarStartMinutes,
+    calendarEndMinutes,
+    slotMinutes: 60
+  })
+  if (!singleCellPayload) {
+    ElMessage.warning("当前时间格无法排程")
+    return null
+  }
+
+  return mergeSchedulePayloadSegments(getOrderScheduleSegments(order), singleCellPayload) ?? singleCellPayload
+}
+
 function getString(...values: unknown[]) {
   return values.find((value) => typeof value === "string" && value.trim()) as string | undefined
 }
@@ -763,10 +1027,46 @@ function getNumber(value: unknown, fallback = 2) {
   return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : fallback
 }
 
+function getPositiveNumber(value: unknown) {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null
+}
+
+function getSplitTargetId(splitTarget: any, order: any) {
+  if (splitTarget) return getPositiveNumber(splitTarget.id)
+  return getPositiveNumber(order.id)
+}
+
+function getSequenceOrder(value: unknown) {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null
+}
+
+function getScheduleSegmentArray(value: unknown) {
+  return Array.isArray(value) ? value : []
+}
+
+function getCircuitBoardSequenceOrder(item: CircuitModuleApplicationRelation) {
+  const directOrder = getSequenceOrder((item as any).sequenceOrder ?? (item as any).sequence_order)
+  if (directOrder !== null) return directOrder
+  const segments = getScheduleSegmentArray(item.scheduleSegments || (item as any).schedule_segments)
+  for (const segment of segments) {
+    const sequenceOrder = getSequenceOrder(segment?.sequence_order ?? segment?.sequenceOrder)
+    if (sequenceOrder !== null) return sequenceOrder
+  }
+  return null
+}
+
+function isCircuitBoardSequenceScheduled(item: CircuitModuleApplicationRelation) {
+  if ((item as any).isSequenceScheduled === true || (item as any).is_sequence_scheduled === true) return true
+  if (getCircuitBoardSequenceOrder(item) !== null) return true
+  return getScheduleSegmentArray(item.scheduleSegments || (item as any).schedule_segments).some(
+    (segment) => segment?.sequence_only === true || segment?.sequenceOnly === true
+  )
+}
+
 function defaultStatusText(status: unknown, scheduledStartAt?: string | null, scheduledEndAt?: string | null) {
-  if (String(status ?? "") === "0") return "待发布"
-  if (scheduledStartAt && scheduledEndAt) return "已排程"
-  return "待领取"
+  return getScheduleLifecycleStatusText(status, scheduledStartAt, scheduledEndAt)
 }
 
 function isCircuitModuleScheduleStatus(status: unknown) {
@@ -791,7 +1091,7 @@ function isCircuitModuleScheduleStatus(status: unknown) {
 function normalizeSnakeSegments(value: any): ScheduleSegment[] {
   return Array.isArray(value)
     ? value
-        .map((item) => {
+        .map((item): ScheduleSegment | null => {
           const scheduledStartAt = item?.scheduled_start_at || ""
           const scheduledEndAt = item?.scheduled_end_at || ""
           if (!scheduledStartAt || !scheduledEndAt) return null
@@ -804,9 +1104,9 @@ function normalizeSnakeSegments(value: any): ScheduleSegment[] {
 function normalizeCamelSegments(value: any): ScheduleSegment[] {
   return Array.isArray(value)
     ? value
-        .map((item) => {
-          const scheduledStartAt = item?.scheduledStartAt || ""
-          const scheduledEndAt = item?.scheduledEndAt || ""
+        .map((item): ScheduleSegment | null => {
+          const scheduledStartAt = item?.scheduledStartAt || item?.scheduled_start_at || ""
+          const scheduledEndAt = item?.scheduledEndAt || item?.scheduled_end_at || ""
           if (!scheduledStartAt || !scheduledEndAt) return null
           return { scheduledStartAt, scheduledEndAt }
         })
@@ -849,6 +1149,10 @@ async function loadOrders(options: LoadOrdersOptions = {}) {
   } finally {
     if (!options.silent) loading.value = false
   }
+}
+
+async function reloadOrdersAfterScheduleChange() {
+  await loadOrders({ silent: true }).catch(() => undefined)
 }
 
 async function fetchOrders(equipment: EquipmentKey) {
@@ -932,95 +1236,128 @@ function normalizeOrders(equipment: EquipmentKey, list: any[]): ScheduleOrder[] 
 }
 
 function normalizeWaterCycleOrders(list: any[]): ScheduleOrder[] {
-  return list.map((item) => ({
-    id: `water-cycle-${item.id}`,
-    dbId: item.id,
-    targetId: item.id,
-    equipment: "water-cycle",
-    scheduleEquipment: "water-cycle",
-    taskNumber: getString(item.task_number, item.table_no) || `水循环-${item.id}`,
-    title: getString(item.project_name, item.test_type, item.flow_process) || "水循环工单",
-    applicant: getString(item.applicant) || "",
-    targetName: getString(item.device_name, item.test_platform) || "水循环设备",
-    durationHours: 2,
-    status: item.status,
-    statusText: item.status_text || defaultStatusText(item.status, item.scheduled_start_at, item.scheduled_end_at),
-    isRunningTarget: hasRunningScheduleInstrument(item.instruments),
-    scheduledStartAt: item.scheduled_start_at || null,
-    scheduledEndAt: item.scheduled_end_at || null,
-    scheduleSegments: normalizeSnakeSegments(item.schedule_segments),
-    raw: item
-  }))
+  return list.map((item) => {
+    const useDevice = getString(item.use_device, item.useDevice, item.device_name, item.deviceName, item.test_platform)
+    return {
+      id: `water-cycle-${item.id}`,
+      dbId: item.id,
+      targetId: item.id,
+      equipment: "water-cycle",
+      scheduleEquipment: "water-cycle",
+      taskNumber: getString(item.task_number, item.table_no) || `水循环-${item.id}`,
+      title: getString(item.project_name, item.test_type, item.flow_process) || "水循环工单",
+      applicant: getString(item.applicant) || "",
+      targetName: useDevice || "水循环设备",
+      hostDeviceName: useDevice,
+      useDevice,
+      durationHours: 2,
+      status: item.status,
+      statusText: item.status_text || defaultStatusText(item.status, item.scheduled_start_at, item.scheduled_end_at),
+      isRunningTarget: hasRunningScheduleInstrument(item.instruments),
+      scheduledStartAt: item.scheduled_start_at || null,
+      scheduledEndAt: item.scheduled_end_at || null,
+      scheduleSegments: normalizeSnakeSegments(item.schedule_segments),
+      raw: item
+    }
+  })
 }
 
 function normalizeVibrationOrders(list: any[]): ScheduleOrder[] {
-  return list.map((item) => ({
-    id: `vibration-${item.id}`,
-    dbId: item.id,
-    targetId: item.id,
-    equipment: "vibration-table",
-    scheduleEquipment: "vibration-table",
-    taskNumber: getString(item.taskNumber, item.tableNo) || `振动台-${item.id}`,
-    title: getString(item.projectName, item.testPurpose, item.testType) || "振动台工单",
-    applicant: getString(item.applicant) || "",
-    targetName: getString(item.tableNo, item.deviceName) || "振动台",
-    durationHours: getNumber(item.duration, 2),
-    status: item.status,
-    statusText: item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
-    isRunningTarget: hasRunningScheduleInstrument(item.instruments),
-    scheduledStartAt: item.scheduledStartAt || null,
-    scheduledEndAt: item.scheduledEndAt || null,
-    scheduleSegments: normalizeCamelSegments(item.scheduleSegments),
-    raw: item
-  }))
+  return list.map((item) => {
+    const useDevice = getString(item.useDevice, item.deviceName, item.use_device, item.device_name)
+    return {
+      id: `vibration-${item.id}`,
+      dbId: item.id,
+      targetId: item.id,
+      equipment: "vibration-table",
+      scheduleEquipment: "vibration-table",
+      taskNumber: getString(item.taskNumber, item.tableNo) || `振动台-${item.id}`,
+      title: getString(item.projectName, item.testPurpose, item.testType) || "振动台工单",
+      applicant: getString(item.applicant) || "",
+      targetName: useDevice || "振动台",
+      hostDeviceName: useDevice,
+      useDevice,
+      durationHours: getNumber(item.duration, 2),
+      status: item.status,
+      statusText: item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
+      isRunningTarget: hasRunningScheduleInstrument(item.instruments),
+      scheduledStartAt: item.scheduledStartAt || null,
+      scheduledEndAt: item.scheduledEndAt || null,
+      scheduleSegments: normalizeCamelSegments(item.scheduleSegments),
+      raw: item
+    }
+  })
 }
 
 function normalizeHighTempBoxOrders(list: any[]): ScheduleOrder[] {
-  return list.map((item) => ({
-    id: `high-temp-box-${item.id}`,
-    dbId: item.id,
-    targetId: item.id,
-    equipment: "high-temp-box",
-    scheduleEquipment: "high-temp-box",
-    taskNumber: getString(item.taskNumber) || `高温箱-${item.id}`,
-    title: getString(item.projectName, item.specification) || "高温箱工单",
-    applicant: getString(item.applicant) || "",
-    targetName: getString(item.deviceName) || "高温箱",
-    durationHours: getNumber(item.holdTime, 2),
-    status: item.status,
-    statusText: item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
-    isRunningTarget: hasRunningScheduleInstrument(item.instruments),
-    scheduledStartAt: item.scheduledStartAt || null,
-    scheduledEndAt: item.scheduledEndAt || null,
-    scheduleSegments: normalizeSnakeSegments(item.schedule_segments || item.scheduleSegments),
-    raw: item
-  }))
+  return list.map((item) => {
+    const useDevice = getString(item.useDevice, item.use_device, item.deviceName, item.device_name)
+    return {
+      id: `high-temp-box-${item.id}`,
+      dbId: item.id,
+      targetId: item.id,
+      equipment: "high-temp-box",
+      scheduleEquipment: "high-temp-box",
+      taskNumber: getString(item.taskNumber) || `高温箱-${item.id}`,
+      title: getString(item.projectName, item.specification) || "高温箱工单",
+      applicant: getString(item.applicant) || "",
+      targetName: useDevice || "高温箱",
+      hostDeviceName: useDevice,
+      useDevice,
+      durationHours: getNumber(item.holdTime, 2),
+      status: item.status,
+      statusText: item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
+      isRunningTarget: hasRunningScheduleInstrument(item.instruments),
+      scheduledStartAt: item.scheduledStartAt || null,
+      scheduledEndAt: item.scheduledEndAt || null,
+      scheduleSegments: normalizeSnakeSegments(item.schedule_segments || item.scheduleSegments),
+      raw: item
+    }
+  })
 }
 
 function normalizeHaltHassOrders(list: any[]): ScheduleOrder[] {
-  return list.map((item) => ({
-    id: `halt-hass-${item.id}`,
-    dbId: item.id,
-    targetId: item.id,
-    equipment: "halt-hass",
-    scheduleEquipment: "halt-hass",
-    taskNumber: getString(item.orderNo, item.order_no) || `HALT-HASS-${item.id}`,
-    title:
-      getString(item.process?.name, item.processName, item.boardGroup?.name, item.boardGroupName) || "HALT-HASS 工单",
-    applicant: getString(item.creatorName, item.operatorName) || "",
-    targetName:
-      getString(item.boardGroup?.name, item.boardGroupName, item.process?.name, item.processName) || "HALT-HASS",
-    durationHours: getNumber(item.duration, 2),
-    status: item.status,
-    statusText: item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
-    isRunningTarget: Number(item.status) === 2,
-    scheduledStartAt: item.scheduledStartAt || item.scheduled_start_at || null,
-    scheduledEndAt: item.scheduledEndAt || item.scheduled_end_at || null,
-    scheduleSegments: normalizeCamelSegments(item.scheduleSegments).length
-      ? normalizeCamelSegments(item.scheduleSegments)
-      : normalizeSnakeSegments(item.schedule_segments),
-    raw: item
-  }))
+  return list.map((item) => {
+    const useDevice = getString(
+      item.useDevice,
+      item.use_device,
+      item.deviceName,
+      item.device_name,
+      item.equipmentName,
+      item.equipment_name,
+      item.testDeviceName,
+      item.test_device_name,
+      item.chamberName,
+      item.chamber_name
+    )
+    return {
+      id: `halt-hass-${item.id}`,
+      dbId: item.id,
+      targetId: item.id,
+      equipment: "halt-hass",
+      scheduleEquipment: "halt-hass",
+      taskNumber: getString(item.orderNo, item.order_no) || `HALT-HASS-${item.id}`,
+      title:
+        getString(item.process?.name, item.processName, item.boardGroup?.name, item.boardGroupName) || "HALT-HASS 工单",
+      applicant: getString(item.creatorName, item.operatorName) || "",
+      targetName:
+        useDevice ||
+        getString(item.boardGroup?.name, item.boardGroupName, item.process?.name, item.processName) ||
+        "HALT-HASS",
+      hostDeviceName: useDevice,
+      useDevice,
+      durationHours: getNumber(item.duration, 2),
+      status: item.status,
+      statusText: item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
+      isRunningTarget: Number(item.status) === 2,
+      scheduledStartAt: item.scheduledStartAt || item.scheduled_start_at || null,
+      scheduledEndAt: item.scheduledEndAt || item.scheduled_end_at || null,
+      scheduleSegments: normalizeCamelSegments(item.scheduleSegments).length
+        ? normalizeCamelSegments(item.scheduleSegments)
+        : normalizeSnakeSegments(item.schedule_segments),
+      raw: item
+    }
+  })
 }
 
 function normalizeCircuitStatusValue(status: unknown) {
@@ -1047,6 +1384,8 @@ function normalizeCircuitBoardModuleOrdersForRows(list: CircuitModuleApplication
       getString(item.scheduledStartAt, (item as any).scheduled_start_at, scheduleSegments[0]?.scheduledStartAt) || null
     const scheduledEndAt =
       getString(item.scheduledEndAt, (item as any).scheduled_end_at, scheduleSegments[0]?.scheduledEndAt) || null
+    const sequenceOrder = getCircuitBoardSequenceOrder(item)
+    const isSequenceScheduled = isCircuitBoardSequenceScheduled(item)
     const orderNo = getString(item.orderNo, item.commissionNo, item.sn) || `CBM-${item.id || index + 1}`
     const boards = Array.isArray(item.boards) ? item.boards : []
     const title =
@@ -1065,10 +1404,14 @@ function normalizeCircuitBoardModuleOrdersForRows(list: CircuitModuleApplication
       targetName: `${deviceName} / ${boards.length || item.quantity || 1}块`,
       durationHours: getNumber(item.hours, 2),
       status,
-      statusText: item.statusText || defaultStatusText(status, scheduledStartAt, scheduledEndAt),
+      statusText:
+        item.statusText ||
+        (isSequenceScheduled ? "已排程" : defaultStatusText(status, scheduledStartAt, scheduledEndAt)),
       scheduledStartAt,
       scheduledEndAt,
       scheduleSegments,
+      isSequenceScheduled,
+      sequenceOrder,
       raw: item,
       relationRows: [item]
     }
@@ -1121,14 +1464,15 @@ function buildHighTempPressureOrder(
   index: number,
   host?: HostDeviceCandidate
 ): ScheduleOrder {
-  const targetId = Number(instrument?.id ?? order.id)
+  const targetId = getSplitTargetId(instrument, order)
+  const targetKey = targetId ?? `missing-${index}`
   const hostDeviceName = getString(host?.deviceName)
   const targetName =
     hostDeviceName ||
     getString(instrument?.instrument_name, instrument?.instrument_sn, order.device_name) ||
     "高温高压井仪器"
   return {
-    id: `high-temp-pressure-${order.id}-${targetId}-${host?.id ?? index}`,
+    id: `high-temp-pressure-${order.id}-${targetKey}-${host?.id ?? index}`,
     dbId: order.id,
     targetId,
     equipment: "high-temp-pressure" as const,
@@ -1138,15 +1482,10 @@ function buildHighTempPressureOrder(
     applicant: getString(order.applicant) || "",
     targetName,
     hostDeviceName,
+    useDevice: getString(order.use_device) || "",
     durationHours: getNumber(order.hold_time, 2),
     status: order.status,
-    statusText:
-      order.status_text ||
-      defaultStatusText(
-        order.status,
-        instrument?.scheduled_start_at,
-        instrument?.scheduled_end_at
-      ),
+    statusText: defaultStatusText(order.status, instrument?.scheduled_start_at, instrument?.scheduled_end_at),
     isRunningTarget: hasRunningScheduleInstrument([instrument]),
     scheduledStartAt: instrument?.scheduled_start_at || null,
     scheduledEndAt: instrument?.scheduled_end_at || null,
@@ -1159,9 +1498,19 @@ function normalizeSimulatedWellOrders(list: any[]): ScheduleOrder[] {
   return list.flatMap((order) => {
     const devices = Array.isArray(order.devices) && order.devices.length ? order.devices : [null]
     return devices.map((device: any, index: number) => {
-      const targetId = Number(device?.id ?? order.id)
+      const targetId = getSplitTargetId(device, order)
+      const targetKey = targetId ?? `missing-${index}`
+      const useDevice = getString(
+        device?.use_device,
+        device?.useDevice,
+        device?.device_name,
+        device?.deviceName,
+        order.use_device,
+        order.useDevice,
+        order.tested_instrument
+      )
       return {
-        id: `simulated-well-${order.id}-${targetId}-${index}`,
+        id: `simulated-well-${order.id}-${targetKey}-${index}`,
         dbId: order.id,
         targetId,
         equipment: "simulated-well" as const,
@@ -1169,11 +1518,12 @@ function normalizeSimulatedWellOrders(list: any[]): ScheduleOrder[] {
         taskNumber: getString(order.task_number, order.table_number) || `模拟井-${order.id}`,
         title: getString(order.project_name, order.test_purpose, order.task_desc) || "模拟井工单",
         applicant: getString(order.applicant) || "",
-        targetName: getString(device?.device_name, device?.device_number, order.tested_instrument) || "模拟井设备",
+        targetName: useDevice || "模拟井设备",
+        hostDeviceName: useDevice,
+        useDevice,
         durationHours: 2,
         status: order.status,
-        statusText:
-          order.status_text || defaultStatusText(order.status, device?.scheduled_start_at, device?.scheduled_end_at),
+        statusText: defaultStatusText(order.status, device?.scheduled_start_at, device?.scheduled_end_at),
         isRunningTarget: false,
         scheduledStartAt: device?.scheduled_start_at || null,
         scheduledEndAt: device?.scheduled_end_at || null,
@@ -1186,6 +1536,9 @@ function normalizeSimulatedWellOrders(list: any[]): ScheduleOrder[] {
 
 function handleEquipmentChange() {
   selectedOrderId.value = ""
+  activeScheduleState.value = "pending"
+  clearCalendarDragState()
+  handleCircuitBoardDragEnd()
   activeDeviceTab.value = EQUIPMENT_DEVICE_KEYWORDS[activeEquipment.value][0]
   void loadOrders()
 }
@@ -1197,7 +1550,15 @@ function handleRefreshClick() {
 function startScheduleAutoRefresh() {
   stopScheduleAutoRefresh()
   scheduleRefreshTimer.value = window.setInterval(() => {
-    if (scheduleDialogVisible.value || saving.value || publishingId.value) return
+    if (
+      scheduleDialogVisible.value ||
+      saving.value ||
+      publishingId.value ||
+      circuitBoardSequenceSaving.value ||
+      calendarScheduleSavingId.value ||
+      calendarResizeState.value
+    )
+      return
     void loadOrders({ silent: true }).catch(() => undefined)
   }, SCHEDULE_AUTO_REFRESH_MS)
 }
@@ -1234,9 +1595,23 @@ function getEventStyle(event: CalendarEvent) {
   const end = Math.min(calendarEndMinutes, event.endMinutes)
   const top = ((start - calendarStartMinutes) / 60) * slotHeight
   const height = Math.max(32, ((end - start) / 60) * slotHeight)
+  const laneCount = Math.max(1, event.laneCount)
+  const lane = Math.min(Math.max(0, event.lane), laneCount - 1)
+  const laneGap = 4
+  const horizontalPadding = 6
+  const reservedWidth = horizontalPadding * 2 + (laneCount - 1) * laneGap
+  const widthPercent = 100 / laneCount
+  const leftPercent = lane * widthPercent
+  const leftOffset = horizontalPadding + lane * laneGap - (lane * reservedWidth) / laneCount
   return {
     top: `${top}px`,
-    height: `${height}px`
+    height: `${height}px`,
+    right: "auto",
+    left: laneCount === 1 ? `${horizontalPadding}px` : `calc(${leftPercent}% + ${leftOffset}px)`,
+    width:
+      laneCount === 1
+        ? `calc(100% - ${horizontalPadding * 2}px)`
+        : `calc(${widthPercent}% - ${reservedWidth / laneCount}px)`
   }
 }
 
@@ -1244,9 +1619,139 @@ function selectEvent(event: CalendarEvent) {
   selectedOrderId.value = event.orderId
 }
 
+function getEventStatusText(event: CalendarEvent) {
+  return getWorkOrderScheduleStatusText({
+    status: event.status,
+    statusText: event.statusText,
+    scheduledStartAt: `${event.dateStr} ${formatMinutes(event.startMinutes)}:00`,
+    scheduledEndAt: `${event.dateStr} ${formatMinutes(event.endMinutes)}:00`,
+    scheduleSegments: [
+      {
+        scheduledStartAt: `${event.dateStr} ${formatMinutes(event.startMinutes)}:00`,
+        scheduledEndAt: `${event.dateStr} ${formatMinutes(event.endMinutes)}:00`
+      }
+    ]
+  })
+}
+
+function getCalendarResizeDeltaSlots(state: CalendarResizeState) {
+  const delta = state.currentY - state.startY
+  if (delta === 0) return 0
+  return delta > 0 ? Math.floor(delta / slotHeight) : Math.ceil(delta / slotHeight)
+}
+
+function buildResizedCalendarEventPayload(
+  state: CalendarResizeState
+): (WorkOrderSchedulePayload & { schedule_segments: WorkOrderScheduleSegment[] }) | null {
+  const deltaSlots = getCalendarResizeDeltaSlots(state)
+  const deltaMinutes = deltaSlots * 60
+  let startMinutes = state.originalStartMinutes
+  let endMinutes = state.originalEndMinutes
+
+  if (state.edge === "top") {
+    startMinutes = Math.min(
+      state.originalEndMinutes - 60,
+      Math.max(calendarStartMinutes, state.originalStartMinutes + deltaMinutes)
+    )
+  } else {
+    endMinutes = Math.max(
+      state.originalStartMinutes + 60,
+      Math.min(calendarEndMinutes, state.originalEndMinutes + deltaMinutes)
+    )
+  }
+
+  return replaceSchedulePayloadSegment(state.originalSegments, state.segmentIndex, {
+    scheduled_start_at: toBackendDateTimeFromMinutes(state.dateStr, startMinutes),
+    scheduled_end_at: toBackendDateTimeFromMinutes(state.dateStr, endMinutes)
+  })
+}
+
+function isCalendarEventResizing(event: CalendarEvent) {
+  return (
+    calendarResizeState.value?.orderId === event.orderId &&
+    calendarResizeState.value.segmentIndex === event.segmentIndex
+  )
+}
+
+function removeCalendarEventResizeListeners() {
+  window.removeEventListener("mousemove", handleCalendarEventResizeMove)
+  window.removeEventListener("mouseup", finishCalendarEventResize)
+}
+
+function startCalendarEventResize(event: CalendarEvent, edge: CalendarResizeEdge, mouseEvent: MouseEvent) {
+  if (calendarScheduleSavingId.value) return
+  const order = activeOrders.value.find((item) => item.id === event.orderId)
+  if (!order || !hasSplitTargetId(order)) return
+  selectedOrderId.value = order.id
+  calendarResizeState.value = {
+    orderId: event.orderId,
+    segmentIndex: event.segmentIndex,
+    edge,
+    dateStr: event.dateStr,
+    startY: mouseEvent.clientY,
+    currentY: mouseEvent.clientY,
+    originalStartMinutes: event.startMinutes,
+    originalEndMinutes: event.endMinutes,
+    originalSegments: getOrderScheduleSegments(order).map((segment) => ({ ...segment }))
+  }
+  removeCalendarEventResizeListeners()
+  window.addEventListener("mousemove", handleCalendarEventResizeMove)
+  window.addEventListener("mouseup", finishCalendarEventResize)
+}
+
+function handleCalendarEventResizeMove(mouseEvent: MouseEvent) {
+  const state = calendarResizeState.value
+  if (!state) return
+  state.currentY = mouseEvent.clientY
+  const order = activeOrders.value.find((item) => item.id === state.orderId)
+  if (!order) return
+  const payload = buildResizedCalendarEventPayload(state)
+  if (payload) applySchedulePayloadToOrder(order, payload)
+}
+
+async function finishCalendarEventResize() {
+  const state = calendarResizeState.value
+  removeCalendarEventResizeListeners()
+  calendarResizeState.value = null
+  if (!state) return
+  const order = activeOrders.value.find((item) => item.id === state.orderId)
+  if (!order) return
+  const targetId = requireScheduleTargetId(order)
+  if (targetId === null) {
+    await reloadOrdersAfterScheduleChange()
+    return
+  }
+  const payload = buildResizedCalendarEventPayload(state)
+  if (!payload) {
+    await reloadOrdersAfterScheduleChange()
+    return
+  }
+
+  calendarScheduleSavingId.value = order.id
+  try {
+    await saveWorkOrderSchedule(order.scheduleEquipment, targetId, payload)
+    applySchedulePayloadToOrder(order, payload)
+    syncCalendarToSchedule(parseDateTime(payload.scheduled_start_at) || new Date())
+    selectedOrderId.value = order.id
+    activeScheduleState.value = "scheduled"
+    await reloadOrdersAfterScheduleChange()
+    ElMessage.success("排程已保存")
+  } catch (error) {
+    ElMessage.error("排程保存失败")
+    await reloadOrdersAfterScheduleChange()
+  } finally {
+    calendarScheduleSavingId.value = ""
+  }
+}
+
 function getScheduleTargetId(order: ScheduleOrder) {
+  if (order.targetId === null || order.targetId === undefined || order.targetId === "") return null
   const targetId = Number(order.targetId)
-  return Number.isFinite(targetId) ? targetId : null
+  return Number.isFinite(targetId) && targetId > 0 ? targetId : null
+}
+
+function hasSplitTargetId(order: ScheduleOrder) {
+  return getScheduleTargetId(order) !== null
 }
 
 function requireScheduleTargetId(order: ScheduleOrder) {
@@ -1257,16 +1762,18 @@ function requireScheduleTargetId(order: ScheduleOrder) {
   return targetId
 }
 
-function openScheduleDialog(order: ScheduleOrder) {
-  if (requireScheduleTargetId(order) === null) return
-  scheduleForm.orderId = order.id
-  scheduleForm.segments = buildScheduleFormSegments(order)
-  scheduleDialogVisible.value = true
-}
-
 function openDetailDialog(order: ScheduleOrder) {
   detailOrder.value = order
   detailDialogVisible.value = true
+}
+
+function openScheduleDialog(order: ScheduleOrder) {
+  if (order.equipment === "circuit-board-module") return
+  selectedOrderId.value = order.id
+  scheduleForm.orderId = order.id
+  const segments = getExistingScheduleFormSegments(order)
+  scheduleForm.segments = segments.length ? segments : [createScheduleSegment()]
+  scheduleDialogVisible.value = true
 }
 
 async function syncCircuitBoardModuleSchedule(order: ScheduleOrder, payload: WorkOrderSchedulePayload) {
@@ -1274,6 +1781,16 @@ async function syncCircuitBoardModuleSchedule(order: ScheduleOrder, payload: Wor
   if (targetId === null) return false
   await saveWorkOrderSchedule(order.scheduleEquipment, targetId, payload)
   return true
+}
+
+function applySchedulePayloadToOrder(
+  order: ScheduleOrder,
+  payload: WorkOrderSchedulePayload & { schedule_segments: WorkOrderScheduleSegment[] }
+) {
+  applySchedulePayloadToTargetOrder(order, payload, {
+    status: PENDING_CLAIM_STATUS,
+    statusText: "已排程"
+  })
 }
 
 async function handleSaveSchedule() {
@@ -1293,17 +1810,11 @@ async function handleSaveSchedule() {
       await saveWorkOrderSchedule(order.scheduleEquipment, targetId, payload)
     }
 
-    order.scheduledStartAt = payload.scheduled_start_at
-    order.scheduledEndAt = payload.scheduled_end_at
-    order.scheduleSegments = payload.schedule_segments.map((segment) => ({
-      scheduledStartAt: segment.scheduled_start_at,
-      scheduledEndAt: segment.scheduled_end_at
-    }))
-    order.status = PENDING_CLAIM_STATUS
-    order.statusText = "已排程"
+    applySchedulePayloadToOrder(order, payload)
     syncCalendarToSchedule(parseDateTime(payload.scheduled_start_at) || new Date())
     scheduleDialogVisible.value = false
     activeScheduleState.value = "scheduled"
+    await reloadOrdersAfterScheduleChange()
     ElMessage.success("排程已保存")
   } catch (error) {
     ElMessage.error("排程保存失败")
@@ -1325,6 +1836,7 @@ async function handleClearSchedule(order: ScheduleOrder) {
   order.status = PENDING_CLAIM_STATUS
   order.statusText = "待领取"
   activeScheduleState.value = "pending"
+  await reloadOrdersAfterScheduleChange()
   ElMessage.success("排程已清除")
 }
 
@@ -1356,27 +1868,319 @@ async function publishScheduleOrder(order: ScheduleOrder) {
   }
 }
 
-function movePriorityOrder(order: ScheduleOrder, direction: -1 | 1) {
-  const visibleIds = priorityOrders.value.map((item) => item.id)
-  const visibleIndex = visibleIds.indexOf(order.id)
-  const movedVisibleIds = movePriorityItem(visibleIds, visibleIndex, direction)
-  const allOrders = orderMap[activeEquipment.value]
-  const byId = new Map(allOrders.map((item) => [item.id, item]))
-  const movedVisibleOrders = movedVisibleIds.map((id) => byId.get(id)).filter(Boolean) as ScheduleOrder[]
-  const visibleSet = new Set(visibleIds)
-  const nextOrders: ScheduleOrder[] = []
-  let movedIndex = 0
-  allOrders.forEach((item) => {
-    if (visibleSet.has(item.id)) {
-      nextOrders.push(movedVisibleOrders[movedIndex++])
-    } else {
-      nextOrders.push(item)
-    }
-  })
-  orderMap[activeEquipment.value] = nextOrders
+function canDragOrderCard(order: ScheduleOrder) {
+  if (isCircuitBoardModule.value) {
+    return order.equipment === "circuit-board-module" && !circuitBoardSequenceSaving.value
+  }
+  return canDragCalendarOrder(order)
 }
 
-function removePriorityOrder(order: ScheduleOrder) {
+function canDragCalendarOrder(order: ScheduleOrder) {
+  return (
+    !isCircuitBoardModule.value &&
+    order.equipment !== "circuit-board-module" &&
+    (activeScheduleState.value === "pending" || activeScheduleState.value === "scheduled") &&
+    !calendarScheduleSavingId.value &&
+    hasSplitTargetId(order)
+  )
+}
+
+function isOrderCardDragging(order: ScheduleOrder) {
+  return circuitBoardDragging.value?.orderId === order.id || calendarDraggingOrderId.value === order.id
+}
+
+function setCalendarDragData(event: DragEvent, payload: CalendarDragPayload) {
+  calendarDraggingOrderId.value = payload.orderId
+  event.dataTransfer?.setData("application/x-calendar-order", JSON.stringify(payload))
+  event.dataTransfer?.setData("text/plain", payload.orderId)
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = "move"
+}
+
+function readCalendarDragData(event?: DragEvent) {
+  if (calendarDraggingOrderId.value) return { orderId: calendarDraggingOrderId.value }
+  const raw = event?.dataTransfer?.getData("application/x-calendar-order")
+  if (!raw) return null
+  try {
+    const payload = JSON.parse(raw) as CalendarDragPayload
+    return payload?.orderId ? payload : null
+  } catch {
+    return null
+  }
+}
+
+function handleCalendarOrderDragStart(order: ScheduleOrder, event: DragEvent) {
+  if (!canDragCalendarOrder(order)) return
+  setCalendarDragData(event, { orderId: order.id })
+}
+
+function handleOrderCardDragStart(order: ScheduleOrder, event: DragEvent) {
+  if (isCircuitBoardModule.value) {
+    handleCircuitBoardPendingDragStart(order, event)
+    return
+  }
+  handleCalendarOrderDragStart(order, event)
+}
+
+function handleOrderCardDragEnd() {
+  handleCircuitBoardDragEnd()
+  clearCalendarDragState()
+}
+
+function clearCalendarDragState() {
+  calendarDraggingOrderId.value = ""
+  calendarDropTarget.value = null
+}
+
+function isCalendarDropTarget(dateStr: string, slotIndex: number) {
+  return calendarDropTarget.value?.dateStr === dateStr && calendarDropTarget.value.slotIndex === slotIndex
+}
+
+function handleCalendarCellDragOver(dateStr: string, slotIndex: number) {
+  if (!calendarDraggingOrderId.value || calendarScheduleSavingId.value) return
+  calendarDropTarget.value = { dateStr, slotIndex }
+}
+
+function handleCalendarCellDragLeave(dateStr: string, slotIndex: number) {
+  if (!isCalendarDropTarget(dateStr, slotIndex)) return
+  calendarDropTarget.value = null
+}
+
+async function handleCalendarCellDrop(dateStr: string, slotIndex: number, event?: DragEvent) {
+  const payload = readCalendarDragData(event)
+  if (!payload || calendarScheduleSavingId.value) return
+  const order = activeOrders.value.find((item) => item.id === payload.orderId)
+  if (!order) {
+    handleOrderCardDragEnd()
+    return
+  }
+  await scheduleDraggedCalendarOrder(order, dateStr, slotIndex)
+}
+
+function showDragScheduleHint(order: ScheduleOrder) {
+  if (canDragCalendarOrder(order)) {
+    selectedOrderId.value = order.id
+    ElMessage.info(
+      activeScheduleState.value === "scheduled"
+        ? "请拖动工单到新的日历时间格调整排程"
+        : "请将工单拖入右侧日历时间格完成排程"
+    )
+    return
+  }
+  if (calendarScheduleSavingId.value === order.id) {
+    ElMessage.info("正在保存排程，请稍候")
+    return
+  }
+  ElMessage.info("当前工单不能拖拽排程")
+}
+
+async function scheduleDraggedCalendarOrder(order: ScheduleOrder, dateStr: string, slotIndex: number) {
+  if (!canDragCalendarOrder(order)) {
+    handleOrderCardDragEnd()
+    return
+  }
+  const targetId = requireScheduleTargetId(order)
+  if (targetId === null) {
+    handleOrderCardDragEnd()
+    return
+  }
+  const payload = buildDraggedSchedulePayload(order, dateStr, slotIndex)
+  if (!payload) {
+    handleOrderCardDragEnd()
+    return
+  }
+
+  calendarScheduleSavingId.value = order.id
+  try {
+    await saveWorkOrderSchedule(order.scheduleEquipment, targetId, payload)
+    applySchedulePayloadToOrder(order, payload)
+    syncCalendarToSchedule(parseDateTime(payload.scheduled_start_at) || new Date())
+    selectedOrderId.value = order.id
+    activeScheduleState.value = "scheduled"
+    await reloadOrdersAfterScheduleChange()
+    ElMessage.success("排程已保存")
+  } catch (error) {
+    ElMessage.error("排程保存失败")
+    await reloadOrdersAfterScheduleChange()
+  } finally {
+    calendarScheduleSavingId.value = ""
+    handleOrderCardDragEnd()
+  }
+}
+
+function setCircuitBoardDragData(event: DragEvent, payload: CircuitBoardDragPayload) {
+  circuitBoardDragging.value = payload
+  event.dataTransfer?.setData("application/x-circuit-board-order", JSON.stringify(payload))
+  event.dataTransfer?.setData("text/plain", payload.orderId)
+  if (event.dataTransfer) event.dataTransfer.effectAllowed = "move"
+}
+
+function readCircuitBoardDragData(event?: DragEvent) {
+  if (circuitBoardDragging.value) return circuitBoardDragging.value
+  const raw = event?.dataTransfer?.getData("application/x-circuit-board-order")
+  if (!raw) return null
+  try {
+    const payload = JSON.parse(raw) as CircuitBoardDragPayload
+    return payload?.orderId ? payload : null
+  } catch {
+    return null
+  }
+}
+
+function handleCircuitBoardPendingDragStart(order: ScheduleOrder, event: DragEvent) {
+  if (!canDragOrderCard(order)) return
+  setCircuitBoardDragData(event, { source: "pending", orderId: order.id })
+}
+
+function handleCircuitBoardPriorityDragStart(order: ScheduleOrder, event: DragEvent) {
+  if (order.equipment !== "circuit-board-module" || circuitBoardSequenceSaving.value) return
+  setCircuitBoardDragData(event, { source: "priority", orderId: order.id })
+}
+
+function handleCircuitBoardPriorityDragOver(index: number) {
+  if (!isCircuitBoardModule.value || !circuitBoardDragging.value || circuitBoardSequenceSaving.value) return
+  circuitBoardDropIndex.value = index
+}
+
+function handleCircuitBoardDragEnd() {
+  circuitBoardDragging.value = null
+  circuitBoardDropIndex.value = null
+}
+
+function updateCircuitBoardOrderSequence(nextOrders: ScheduleOrder[]) {
+  nextOrders.forEach((order, index) => {
+    order.isSequenceScheduled = true
+    order.sequenceOrder = index + 1
+    if (Number(order.status) !== 2) order.status = PENDING_CLAIM_STATUS
+    order.statusText = "已排程"
+    order.scheduledStartAt = null
+    order.scheduledEndAt = null
+    order.scheduleSegments = [
+      {
+        sequenceOnly: true,
+        sequenceOrder: index + 1
+      }
+    ]
+  })
+}
+
+function snapshotCircuitBoardOrders() {
+  return new Map<string, CircuitBoardOrderSnapshot>(
+    activeOrders.value.map((order) => [
+      order.id,
+      {
+        status: order.status,
+        statusText: order.statusText,
+        scheduledStartAt: order.scheduledStartAt,
+        scheduledEndAt: order.scheduledEndAt,
+        scheduleSegments: order.scheduleSegments.map((segment) => ({ ...segment })),
+        isSequenceScheduled: order.isSequenceScheduled,
+        sequenceOrder: order.sequenceOrder
+      }
+    ])
+  )
+}
+
+function restoreCircuitBoardOrders(snapshot: Map<string, CircuitBoardOrderSnapshot>) {
+  activeOrders.value.forEach((order) => {
+    const previous = snapshot.get(order.id)
+    if (!previous) return
+    order.status = previous.status
+    order.statusText = previous.statusText
+    order.scheduledStartAt = previous.scheduledStartAt
+    order.scheduledEndAt = previous.scheduledEndAt
+    order.scheduleSegments = previous.scheduleSegments.map((segment) => ({ ...segment }))
+    order.isSequenceScheduled = previous.isSequenceScheduled
+    order.sequenceOrder = previous.sequenceOrder
+  })
+}
+
+async function persistCircuitBoardPriorityOrders(nextOrders: ScheduleOrder[]) {
+  const snapshot = snapshotCircuitBoardOrders()
+  circuitBoardSequenceSaving.value = true
+  updateCircuitBoardOrderSequence(nextOrders)
+  try {
+    for (const [index, order] of nextOrders.entries()) {
+      const targetId = requireScheduleTargetId(order)
+      if (targetId === null) throw new Error("missing target id")
+      await saveWorkOrderSchedule("circuit-board-module", targetId, {
+        sequence_only: true,
+        sequence_order: index + 1,
+        schedule_segments: [
+          {
+            sequence_only: true,
+            sequence_order: index + 1
+          }
+        ]
+      })
+    }
+  } catch (error) {
+    restoreCircuitBoardOrders(snapshot)
+    throw error
+  } finally {
+    circuitBoardSequenceSaving.value = false
+  }
+}
+
+function normalizeCircuitBoardInsertIndex(order: ScheduleOrder, targetIndex: number) {
+  const currentIndex = priorityOrders.value.findIndex((item) => item.id === order.id)
+  const adjustedIndex = currentIndex >= 0 && currentIndex < targetIndex ? targetIndex - 1 : targetIndex
+  return Math.max(0, Math.min(adjustedIndex, priorityOrders.value.length))
+}
+
+async function scheduleCircuitBoardOrderAt(order: ScheduleOrder, targetIndex: number) {
+  if (order.equipment !== "circuit-board-module") return
+  const nextOrders = priorityOrders.value.filter((item) => item.id !== order.id)
+  const insertIndex = Math.max(0, Math.min(normalizeCircuitBoardInsertIndex(order, targetIndex), nextOrders.length))
+  nextOrders.splice(insertIndex, 0, order)
+  try {
+    await persistCircuitBoardPriorityOrders(nextOrders)
+    activeScheduleState.value = "scheduled"
+    ElMessage.success("已加入电路板排期顺序")
+  } catch (error) {
+    ElMessage.error("电路板排期顺序保存失败")
+    await loadOrders({ silent: true }).catch(() => undefined)
+  } finally {
+    handleCircuitBoardDragEnd()
+  }
+}
+
+async function handleCircuitBoardPriorityDrop(index: number, event?: DragEvent) {
+  const payload = readCircuitBoardDragData(event)
+  if (!payload || circuitBoardSequenceSaving.value) return
+  const order = activeOrders.value.find((item) => item.id === payload.orderId)
+  if (!order) {
+    handleCircuitBoardDragEnd()
+    return
+  }
+  await scheduleCircuitBoardOrderAt(order, index)
+}
+
+async function removePriorityOrder(order: ScheduleOrder) {
+  if (order.equipment === "circuit-board-module") {
+    const targetId = requireScheduleTargetId(order)
+    if (targetId === null) return
+    const remainingOrders = priorityOrders.value.filter((item) => item.id !== order.id)
+    circuitBoardSequenceSaving.value = true
+    try {
+      await clearWorkOrderSchedule(order.scheduleEquipment, targetId)
+      order.isSequenceScheduled = false
+      order.sequenceOrder = null
+      order.scheduledStartAt = null
+      order.scheduledEndAt = null
+      order.scheduleSegments = []
+      order.status = PENDING_CLAIM_STATUS
+      order.statusText = "待领取"
+      if (remainingOrders.length) await persistCircuitBoardPriorityOrders(remainingOrders)
+      ElMessage.success("已移出电路板排期顺序")
+    } catch (error) {
+      ElMessage.error("移除排期顺序失败")
+      await loadOrders({ silent: true }).catch(() => undefined)
+    } finally {
+      circuitBoardSequenceSaving.value = false
+      handleCircuitBoardDragEnd()
+    }
+    return
+  }
   const ids = removedPriorityOrderIds[activeEquipment.value]
   if (!ids.includes(order.id)) removedPriorityOrderIds[activeEquipment.value] = [...ids, order.id]
   ElMessage.success("已从当前排期顺序移除")
@@ -1393,6 +2197,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopScheduleAutoRefresh()
+  removeCalendarEventResizeListeners()
 })
 </script>
 
@@ -1589,6 +2394,14 @@ onUnmounted(() => {
   &.is-scheduled {
     border-left: 3px solid var(--el-color-primary);
   }
+
+  &.is-draggable {
+    cursor: grab;
+  }
+
+  &.is-dragging {
+    opacity: 0.55;
+  }
 }
 
 .order-card__top,
@@ -1778,6 +2591,18 @@ onUnmounted(() => {
 .time-cell {
   height: 38px;
   border-bottom: 1px solid var(--el-border-color-lighter);
+
+  &.is-drop-target {
+    background: rgb(64 158 255 / 12%);
+    outline: 1px dashed var(--el-color-primary);
+    outline-offset: -2px;
+  }
+}
+
+.calendar-panel.is-calendar-dragging {
+  .calendar-event {
+    pointer-events: none;
+  }
 }
 
 .calendar-event {
@@ -1800,20 +2625,85 @@ onUnmounted(() => {
   box-shadow: 0 4px 12px rgb(64 158 255 / 20%);
 
   strong,
-  span {
+  .calendar-event__time {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
-  span {
+  .calendar-event__time {
     font-size: 11px;
     opacity: 0.92;
   }
+
+  &.is-resizing {
+    box-shadow:
+      0 0 0 2px rgb(255 255 255 / 70%),
+      0 4px 12px rgb(64 158 255 / 24%);
+  }
+}
+
+.calendar-event__resize {
+  position: absolute;
+  right: 0;
+  left: 0;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.calendar-event__resize--top {
+  top: 0;
+}
+
+.calendar-event__resize--bottom {
+  bottom: 0;
+}
+
+:global(.calendar-event-tooltip) {
+  max-width: 320px;
+}
+
+:global(.calendar-event-tooltip__content) {
+  display: grid;
+  gap: 7px;
+  min-width: 240px;
+  color: var(--el-text-color-primary);
+}
+
+:global(.calendar-event-tooltip__title) {
+  padding-bottom: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+}
+
+:global(.calendar-event-tooltip__row) {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  font-size: 12px;
+}
+
+:global(.calendar-event-tooltip__row span) {
+  color: var(--el-text-color-secondary);
+}
+
+:global(.calendar-event-tooltip__row strong) {
+  min-width: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .priority-header {
   background: var(--el-fill-color-lighter);
+}
+
+.priority-list--empty {
+  min-height: 220px;
+  justify-content: center;
+  border: 1px dashed var(--el-border-color);
+  border-radius: 6px;
 }
 
 .priority-item {
@@ -1833,12 +2723,26 @@ onUnmounted(() => {
     border-color: var(--el-color-primary-light-5);
     box-shadow: 0 1px 4px rgb(59 130 246 / 10%);
   }
+
+  &.is-drop-target {
+    border-color: var(--el-color-primary);
+    box-shadow: inset 3px 0 0 var(--el-color-primary);
+  }
+
+  &.is-dragging {
+    opacity: 0.55;
+  }
 }
 
 .drag-handle {
   flex-shrink: 0;
   color: var(--el-text-color-placeholder);
+  cursor: grab;
   font-size: 16px;
+
+  &:active {
+    cursor: grabbing;
+  }
 }
 
 .priority-num {

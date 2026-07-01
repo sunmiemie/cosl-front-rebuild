@@ -49,6 +49,12 @@ type SnakePreExperiment = {
   updated_at?: string
 }
 
+type SnakeDeviceRow = {
+  deviceName?: string
+  device_name?: string
+  psi_name?: string
+}
+
 type SnakeOrder = {
   id: number
   table_no?: string
@@ -94,8 +100,40 @@ type SnakeOrder = {
   // 兼容旧接口字段
   order_type?: string
   device_name?: string
+  deviceName?: string
+  use_device?: string
+  highWellTestDeviceList?: SnakeDeviceRow[]
+  shakeTestDeviceList?: SnakeDeviceRow[]
+  deviceList?: SnakeDeviceRow[]
+  device_list?: SnakeDeviceRow[]
   test_date?: string | null
   remark?: string
+}
+
+const firstText = (...values: unknown[]) => {
+  for (const value of values) {
+    const text = String(value ?? "").trim()
+    if (text) return text
+  }
+  return ""
+}
+
+function resolveVibrationDeviceName(order: SnakeOrder) {
+  const deviceRows = [
+    ...(order.highWellTestDeviceList || []),
+    ...(order.shakeTestDeviceList || []),
+    ...(order.deviceList || []),
+    ...(order.device_list || [])
+  ]
+  const firstDevice = deviceRows[0]
+  return firstText(
+    order.use_device,
+    order.device_name,
+    order.deviceName,
+    firstDevice?.deviceName,
+    firstDevice?.device_name,
+    firstDevice?.psi_name
+  )
 }
 
 const formatDateTime = (value: unknown) => {
@@ -156,6 +194,7 @@ const toPreExperiment = (item: SnakePreExperiment): VibrationPreExperiment => ({
 
 function toListItem(order: SnakeOrder): VibrationTableOrderListItem {
   const instruments = (order.instruments || []).map(toInstrument)
+  const deviceName = resolveVibrationDeviceName(order)
   const scheduleSegments = Array.isArray(order.schedule_segments)
     ? order.schedule_segments
         .map((segment) => {
@@ -191,6 +230,8 @@ function toListItem(order: SnakeOrder): VibrationTableOrderListItem {
     vibrationTimes: order.vibration_times,
     projectMembers: order.project_members || "",
     equipmentList: order.equipment_list || "",
+    deviceName: deviceName,
+    useDevice: deviceName,
     instrumentCombination: order.instrument_combination || "",
     testSteps: order.test_steps || "",
     safetyRisks: order.safety_risks || "",
@@ -239,6 +280,7 @@ function toPayload(data: Partial<VibrationTableOrderDetail>) {
     vibration_times: data.vibrationTimes,
     project_members: data.projectMembers,
     equipment_list: data.equipmentList,
+    device_name: data.useDevice || data.deviceName,
     instrument_combination: data.instrumentCombination,
     test_steps: data.testSteps,
     safety_risks: data.safetyRisks,

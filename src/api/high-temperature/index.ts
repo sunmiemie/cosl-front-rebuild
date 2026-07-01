@@ -28,6 +28,10 @@ type SnakeOrder = {
   status_text?: string
   scheduled_start_at?: string | null
   scheduled_end_at?: string | null
+  schedule_segments?: Array<{
+    scheduled_start_at?: string | null
+    scheduled_end_at?: string | null
+  }>
   instruments?: SnakeInstrument[]
   created_at?: string
   updated_at?: string
@@ -99,6 +103,7 @@ function toListItem(order: SnakeOrder): HighTemperatureOrderListItem {
     testDate: order.test_date,
     scheduledStartAt: order.scheduled_start_at || null,
     scheduledEndAt: order.scheduled_end_at || null,
+    scheduleSegments: order.schedule_segments || [],
     instruments
   }
 }
@@ -177,7 +182,8 @@ function toUpdatePayload(data: any) {
   if (data.maxTemperature !== undefined) payload.max_temperature = Number(data.maxTemperature || 0)
   if (data.slope !== undefined) payload.slope = data.slope === "" || data.slope == null ? null : Number(data.slope)
   if (data.holdTime !== undefined) payload.hold_time = Number(data.holdTime || 0)
-  if (data.humidity !== undefined) payload.humidity = data.humidity === "" || data.humidity == null ? null : Number(data.humidity)
+  if (data.humidity !== undefined)
+    payload.humidity = data.humidity === "" || data.humidity == null ? null : Number(data.humidity)
   if (data.instruments !== undefined) payload.instruments = (data.instruments || []).map(toSnakeInstrument)
   return payload
 }

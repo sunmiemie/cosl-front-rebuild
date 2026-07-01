@@ -326,12 +326,7 @@
       </template>
     </el-dialog>
 
-    <el-dialog
-      v-model="boardDetailVisible"
-      title="电路板详情"
-      width="min(920px, 96vw)"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="boardDetailVisible" title="电路板详情" width="min(920px, 96vw)" :close-on-click-modal="false">
       <el-descriptions v-if="selectedBoardDetail" :column="3" border class="board-detail-descriptions">
         <el-descriptions-item label="所属产品">{{ getBoardDetailValue("product", "sscp") }}</el-descriptions-item>
         <el-descriptions-item label="测试品名称">{{
@@ -339,19 +334,13 @@
         }}</el-descriptions-item>
         <el-descriptions-item label="物料号">{{ getBoardDetailValue("materialNo", "wlh") }}</el-descriptions-item>
         <el-descriptions-item label="规格型号">{{ getBoardDetailValue("model", "ggxh") }}</el-descriptions-item>
-        <el-descriptions-item label="供应商名称">{{
-          getBoardDetailValue("supplier", "gysmc")
-        }}</el-descriptions-item>
+        <el-descriptions-item label="供应商名称">{{ getBoardDetailValue("supplier", "gysmc") }}</el-descriptions-item>
         <el-descriptions-item label="批次号">{{ getBoardDetailValue("batchNo", "pch") }}</el-descriptions-item>
         <el-descriptions-item label="数量">{{ getBoardDetailValue("quantity", "sl") }}</el-descriptions-item>
-        <el-descriptions-item label="SN号">{{ getBoardDetailValue("sn", "serial", "seria") }}</el-descriptions-item>
+        <el-descriptions-item label="SN号">{{ getBoardSnDetailValue() }}</el-descriptions-item>
         <el-descriptions-item label="所属单位">{{ getBoardDetailValue("unit", "ssdw") }}</el-descriptions-item>
-        <el-descriptions-item label="测试类别">{{
-          getBoardDetailValue("testCategory", "cslb")
-        }}</el-descriptions-item>
-        <el-descriptions-item label="测试内容">{{
-          getBoardDetailValue("testContent", "csnr")
-        }}</el-descriptions-item>
+        <el-descriptions-item label="测试类别">{{ getBoardDetailValue("testCategory", "cslb") }}</el-descriptions-item>
+        <el-descriptions-item label="测试内容">{{ getBoardDetailValue("testContent", "csnr") }}</el-descriptions-item>
         <el-descriptions-item label="初检/复检">{{
           getBoardDetailValue("initialInspection", "cjfj")
         }}</el-descriptions-item>
@@ -396,6 +385,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "elem
 import { Plus, Printer, Refresh, RefreshRight } from "@element-plus/icons-vue"
 import {
   getEngineerAssistantCommissionBindingsApi,
+  getEngineerAssistantUsersApi,
   pushEngineerAssistantCommissionOrdersApi
 } from "@/api/engineer-assistant"
 import {
@@ -406,6 +396,7 @@ import {
 } from "@/api/circuit-module-application"
 import type {
   EngineerAssistantCommissionBinding,
+  EngineerAssistantUser,
   PushEngineerAssistantCommissionOrdersBody
 } from "@/api/engineer-assistant/types"
 import { getProdBoardDataBySn } from "@/api/board"
@@ -480,6 +471,13 @@ interface CommissionBindingRow {
   boardId: string
   fpNumber: string
   raw: EngineerAssistantCommissionBinding
+}
+
+interface AssistantCommissionUser {
+  userName: string
+  userId: string
+  departmentId: string
+  departmentName: string
 }
 
 interface CircuitApplication {
@@ -565,6 +563,13 @@ const statusMeta: Record<
 
 const circuitPublishedSyncState = { status: 1 } as const
 const defaultModuleName = "电路板模块"
+const ASSISTANT_FALLBACK_USER: Pick<EngineerAssistantUser, "userId" | "userName" | "departmentId" | "departmentName"> =
+  {
+    userId: "1",
+    userName: "超级管理员",
+    departmentId: "101",
+    departmentName: "中海油服"
+  }
 
 const loading = ref(false)
 const detailVisible = ref(false)
@@ -673,7 +678,11 @@ function hasStatusValue(status: unknown) {
 function resolveBoardStatusValue(board: any, fallback: unknown = 0) {
   const publishStatus = hasStatusValue(board?.publishStatus) ? board.publishStatus : board?.publish_status
   if (hasStatusValue(board?.status)) {
-    if (normalizeStatus(board.status) === "draft" && hasStatusValue(publishStatus) && normalizeStatus(publishStatus) !== "draft") {
+    if (
+      normalizeStatus(board.status) === "draft" &&
+      hasStatusValue(publishStatus) &&
+      normalizeStatus(publishStatus) !== "draft"
+    ) {
       return publishStatus
     }
     return board.status
@@ -756,11 +765,30 @@ function mapRelationToBoard(row: CircuitModuleApplicationRelation, index: number
   }
 }
 
+function isPlaceholderText(value: string) {
+  return /^\?+$/.test(value.trim())
+}
+
+function getReadableString(...values: unknown[]) {
+  const value = getString(...values)
+  return value && !isPlaceholderText(value) ? value : ""
+}
+
+function getReadableActor(...values: unknown[]) {
+  const value = getReadableString(...values)
+  return /^\d+$/.test(value) ? "" : value
+}
+
 function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, index: number): CircuitApplicationBoard {
   const applicationNo = getString(row.djbh, row.orderNo, row.commissionNo, row.sn)
   if (board?.pch || board?.gysmc || board?.wlh || board?.ypmc) {
+    const mappedBoard = mapDlbBoardToUiBoard(board, index, applicationNo)
     return {
-      ...mapDlbBoardToUiBoard(board, index, applicationNo),
+      ...mappedBoard,
+      createBy: getReadableActor(mappedBoard.createBy, row.createBy, row.sqrmc, row.applicant),
+      createTime: getReadableString(mappedBoard.createTime, row.createTime, row.updatedAt),
+      updateBy: getReadableActor(mappedBoard.updateBy, row.updateBy, row.sqrmc, row.applicant),
+      updateTime: getReadableString(mappedBoard.updateTime, row.updateTime, row.updatedAt),
       status: normalizeStatus(resolveBoardStatusValue(board, 0)),
       publishStatus: resolveBoardPublishValue(board, 0),
       raw: board
@@ -768,8 +796,15 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
   }
 
   const serial =
-    getString(board?.seria, board?.sn, board?.serial, board?.serial_num, board?.serialNumber, board?.board_serial, board?.id) ||
-    `${applicationNo || "PCB"}-${index + 1}`
+    getString(
+      board?.seria,
+      board?.sn,
+      board?.serial,
+      board?.serial_num,
+      board?.serialNumber,
+      board?.board_serial,
+      board?.id
+    ) || `${applicationNo || "PCB"}-${index + 1}`
   const model = getString(board?.model, board?.name, row.specModel, row.sampleName, row.ggxh, "电路板模块")
   const fallbackBatchNo = `${applicationNo || "DLB"}-${String(index + 1).padStart(2, "0")}`
   return {
@@ -784,6 +819,9 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
     name: model,
     sampleName: getString(board?.sampleName, board?.name, row.sampleName, row.moduleName, model),
     model,
+    assistantSn: getString(board?.assistantSn, board?.assistant_sn, board?.sourceSn, board?.source_sn, board?.originalSn, board?.original_sn, board?.sn),
+    sourceSn: getString(board?.sourceSn, board?.source_sn, board?.assistantSn, board?.assistant_sn, board?.originalSn, board?.original_sn, board?.sn),
+    originalSn: getString(board?.originalSn, board?.original_sn, board?.assistantSn, board?.assistant_sn, board?.sourceSn, board?.source_sn, board?.sn),
     batchNo: getString(board?.batchNo, board?.pch) || fallbackBatchNo,
     supplier: getString(board?.supplier, board?.gysmc) || "未提供",
     materialNo: getString(board?.materialNo, board?.wlh),
@@ -800,10 +838,10 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
     bow: getString(board?.bow, board?.gqd),
     twoD: getString(board?.twoD, board?.towtest),
     threeD: getString(board?.threeD, board?.threetest),
-    createBy: getString(board?.createBy, row.createBy),
-    createTime: getString(board?.createTime, row.createTime),
-    updateBy: getString(board?.updateBy, row.updateBy),
-    updateTime: getString(board?.updateTime, row.updateTime, row.updatedAt),
+    createBy: getReadableActor(board?.createBy, row.createBy, row.sqrmc, row.applicant),
+    createTime: getReadableString(board?.createTime, row.createTime, row.updatedAt),
+    updateBy: getReadableActor(board?.updateBy, row.updateBy, row.sqrmc, row.applicant),
+    updateTime: getReadableString(board?.updateTime, row.updateTime, row.updatedAt),
     startTime: getString(board?.startTime, row.updatedAt, row.doneAt),
     status: normalizeStatus(resolveBoardStatusValue(board, 0)),
     publishStatus: resolveBoardPublishValue(board, 0),
@@ -871,11 +909,11 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
     typeLabel: "电路板模块",
     client: getString(first.wtdw, first.client),
     projectCode: getString(first.kybh),
-    projectBudgetCode: getString(first.xmysbh, first.commissionNo),
+    projectBudgetCode: getString(first.xmysbh, firstRecord.projectBudgetCode, firstRecord.project_budget_code),
     address: getString(first.address),
     mobilePhone: getString(first.telphone, first.sqrdh, first.phone),
     landline: getString(first.zj),
-    experimentType: getString(first.sylx, first.nature),
+    experimentType: getReadableString(first.sylx, first.nature) || "电路板测试",
     boardState: normalizeDlbBoardState(first.dlbzt, first.zt, first.status),
     sfxyjcgy,
     generatedOrderType: getGeneratedOrderType(sfxyjcgy),
@@ -890,10 +928,10 @@ function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicat
     applyDate,
     createDate: applyDate,
     filename: getString(first.filename),
-    createBy: getString(first.createBy),
-    createTime: getString(first.createTime),
-    updateBy: getString(first.updateBy),
-    updateTime: getString(first.updateTime, first.updatedAt),
+    createBy: getReadableActor(first.createBy, first.sqrmc, first.applicant),
+    createTime: getReadableString(first.createTime, first.updatedAt),
+    updateBy: getReadableActor(first.updateBy, first.sqrmc, first.applicant),
+    updateTime: getReadableString(first.updateTime, first.updatedAt),
     applicant: getString(first.sqrmc, first.applicant),
     remark,
     boards,
@@ -963,6 +1001,22 @@ function getBoardDetailValue(...keys: string[]) {
   const raw = (board.raw || {}) as Record<string, unknown>
   const values = keys.flatMap((key) => [(board as unknown as Record<string, unknown>)[key], raw[key]])
   return getDisplayString(...values) || "-"
+}
+
+function getBoardSnDetailValue() {
+  const board = selectedBoardDetail.value
+  if (!board) return "-"
+  const raw = (board.raw || {}) as Record<string, unknown>
+  const sourceKeys = ["assistantSn", "assistant_sn", "sourceSn", "source_sn", "originalSn", "original_sn"]
+  const explicitSource = getDisplayString(
+    ...sourceKeys.flatMap((key) => [(board as unknown as Record<string, unknown>)[key], raw[key]])
+  )
+  if (explicitSource) return explicitSource
+
+  const hasSourceMarker = sourceKeys.some((key) => key in raw || key in (board as unknown as Record<string, unknown>))
+  if (hasSourceMarker) return "-"
+
+  return getBoardDetailValue("sn", "serial", "seria")
 }
 
 function refreshSelectedApplication(application: CircuitApplication) {
@@ -1079,14 +1133,7 @@ function rowMatchesGeneratedBoard(application: CircuitApplication, board: Circui
   const rowName = getString(row?.testunit_name, row?.dev_testunit_name)
   const raw = (board.raw || {}) as Record<string, unknown>
   const boardIdentityValues = new Set(
-    [
-      board.boardId,
-      board.prodBoardId,
-      board.tempBoardId,
-      board.id,
-      serial,
-      ...getRawBoardIdentityValues(raw)
-    ]
+    [board.boardId, board.prodBoardId, board.tempBoardId, board.id, serial, ...getRawBoardIdentityValues(raw)]
       .map((value) => getDisplayString(value))
       .filter(Boolean)
   )
@@ -1106,7 +1153,14 @@ function rowMatchesGeneratedBoard(application: CircuitApplication, board: Circui
   ]
     .map((value) => getDisplayString(value))
     .filter(Boolean)
-  const rowSerial = getString(row?.board_serial, row?.boardSerial, row?.serial_num, row?.serialNumber, row?.sn, row?.serial)
+  const rowSerial = getString(
+    row?.board_serial,
+    row?.boardSerial,
+    row?.serial_num,
+    row?.serialNumber,
+    row?.sn,
+    row?.serial
+  )
   const matchesOrder = rowOrderNo ? rowOrderNo === orderNo : rowName.includes(orderNo)
   const matchesBoard =
     rowIdentityValues.some((value) => boardIdentityValues.has(value)) ||
@@ -1174,7 +1228,16 @@ function normalizeCommissionBindingRow(item: EngineerAssistantCommissionBinding,
 }
 
 function getCommissionBoardKey(application: CircuitApplication, board: CircuitApplicationBoard, index: number) {
-  return getDisplayString(board.id, board.boardId, board.prodBoardId, board.tempBoardId, getBoardSerial(board), board.sampleName) || `${application.orderNo}-${index + 1}`
+  return (
+    getDisplayString(
+      board.id,
+      board.boardId,
+      board.prodBoardId,
+      board.tempBoardId,
+      getBoardSerial(board),
+      board.sampleName
+    ) || `${application.orderNo}-${index + 1}`
+  )
 }
 
 function getBoardsForCommissionPush(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
@@ -1187,43 +1250,104 @@ function getBoardsForCommissionPush(application: CircuitApplication, boards: Cir
   return Array.from(boardMap.values())
 }
 
+function buildAssistantId(prefix: string, ...values: unknown[]) {
+  const rawValue = values.map((value) => getDisplayString(value)).find(Boolean) || `${Date.now()}`
+  const safeValue = rawValue
+    .replace(/[^a-zA-Z0-9_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+  return `${prefix}-${safeValue || Date.now()}`
+}
+
+function getBoardRawValue(board: CircuitApplicationBoard, ...keys: string[]) {
+  const raw = (board.raw || {}) as Record<string, unknown>
+  return getString(...keys.map((key) => raw[key]))
+}
+
+function normalizeAssistantCommissionUser(user: Partial<EngineerAssistantUser>): AssistantCommissionUser {
+  return {
+    userName: getString(user.userName, user.name, ASSISTANT_FALLBACK_USER.userName),
+    userId: getDisplayString(user.userId, user.id, ASSISTANT_FALLBACK_USER.userId),
+    departmentId: getDisplayString(user.departmentId, ASSISTANT_FALLBACK_USER.departmentId),
+    departmentName: getString(user.departmentName, ASSISTANT_FALLBACK_USER.departmentName)
+  }
+}
+
+async function resolveAssistantCommissionUser(application: CircuitApplication): Promise<AssistantCommissionUser> {
+  try {
+    const result = await getEngineerAssistantUsersApi()
+    const rows = Array.isArray(result?.data?.list) ? result.data.list : []
+    const currentUserId = userStore.userid ? String(userStore.userid) : ""
+    const candidateNames = [userStore.nickName, userStore.username, application.applicant]
+      .map((value) => getDisplayString(value))
+      .filter(Boolean)
+
+    const matched =
+      rows.find((row) => currentUserId && getDisplayString(row.userId, row.id) === currentUserId) ||
+      rows.find((row) => candidateNames.includes(getDisplayString(row.userName, row.name))) ||
+      rows.find((row) => getDisplayString(row.userId, row.id) === ASSISTANT_FALLBACK_USER.userId) ||
+      rows.find((row) => getDisplayString(row.departmentId) && getString(row.departmentName))
+
+    return normalizeAssistantCommissionUser(matched || ASSISTANT_FALLBACK_USER)
+  } catch (error) {
+    return normalizeAssistantCommissionUser(ASSISTANT_FALLBACK_USER)
+  }
+}
+
 function buildCommissionOrderPayload(
   application: CircuitApplication,
-  boards: CircuitApplicationBoard[]
+  boards: CircuitApplicationBoard[],
+  assistantUser: AssistantCommissionUser
 ): PushEngineerAssistantCommissionOrdersBody {
-  const orderId = application.orderNo || application.key
+  const commissionId = application.orderNo || application.key
+  const commissionOrderId = buildAssistantId("CO", commissionId)
   const sampleBoards = getBoardsForCommissionPush(application, boards)
-  const userName = getString(userStore.nickName, userStore.username, application.applicant) || "系统用户"
-  const userId = userStore.userid ? String(userStore.userid) : orderId
 
   return {
     orderList: [
       {
-        id: orderId,
-        commissionId: orderId,
-        budgetId: getString(application.projectBudgetCode, application.projectCode, orderId),
+        id: commissionOrderId,
+        commissionId,
+        budgetId: getString(application.projectBudgetCode, application.projectCode, commissionId),
         commissionOrg: getString(application.client) || "未提供",
-        userName,
-        userId,
-        departmentId: "",
-        departmentName: "",
+        userName: assistantUser.userName,
+        userId: assistantUser.userId,
+        departmentId: assistantUser.departmentId,
+        departmentName: assistantUser.departmentName,
         phone: getString(application.mobilePhone, application.landline),
-        samples: sampleBoards.map((board, index) => ({
-          id: getCommissionBoardKey(application, board, index),
-          commissionOrderId: orderId,
-          sampleName: getString(board.sampleName, board.name) || `电路板样品${index + 1}`,
-          category: "电路板",
-          specModel: getString(board.model),
-          manufacturer: getString(board.supplier, application.client) || "未提供",
-          number: Math.max(1, Number(board.quantity) || 1)
-        }))
+        samples: sampleBoards.map((board, index) => {
+          const boardKey = getCommissionBoardKey(application, board, index)
+          return {
+            id: buildAssistantId("S", commissionOrderId, boardKey || index + 1),
+            commissionOrderId,
+            sampleName: getString(board.sampleName, board.name) || `电路板样品${index + 1}`,
+            category:
+              getString(board.testCategory, getBoardRawValue(board, "cslb", "testCategory", "category")) || "电路板",
+            specModel: getString(board.model, getBoardRawValue(board, "ggxh", "model", "specModel")),
+            manufacturer:
+              getString(
+                board.supplier,
+                getBoardRawValue(board, "gysmc", "supplier", "manufacturer"),
+                application.client
+              ) || "未提供",
+            batchNo: getString(board.batchNo, getBoardRawValue(board, "pch", "batchNo", "batch_id", "batchId")),
+            sn: getString(board.sn, board.serial, board.seria, getBoardRawValue(board, "sn", "serial", "seria")),
+            materialNo: getString(board.materialNo, getBoardRawValue(board, "wlh", "materialNo", "material_no")),
+            testContent: getString(board.testContent, getBoardRawValue(board, "csnr", "testContent", "test_content")),
+            number: Math.max(
+              1,
+              Number(board.quantity) || Number(getBoardRawValue(board, "sl", "number", "quantity")) || 1
+            )
+          }
+        })
       }
     ]
   }
 }
 
 async function pushCommissionOrderForBoards(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
-  const payload = buildCommissionOrderPayload(application, boards)
+  const assistantUser = await resolveAssistantCommissionUser(application)
+  const payload = buildCommissionOrderPayload(application, boards, assistantUser)
   await pushEngineerAssistantCommissionOrdersApi(payload)
 }
 
@@ -1321,7 +1445,16 @@ function getBoardDisplayName(board: CircuitApplicationBoard) {
 function getBoardMissingPayload(board: CircuitApplicationBoard) {
   const raw = (board.raw || {}) as Record<string, unknown>
   return {
-    sn: getString(board.sn, board.serial, board.serialNum, raw.sn, raw.serial, raw.serial_num, raw.board_serial, board.id),
+    sn: getString(
+      board.sn,
+      board.serial,
+      board.serialNum,
+      raw.sn,
+      raw.serial,
+      raw.serial_num,
+      raw.board_serial,
+      board.id
+    ),
     pch: getDisplayString(board.batchNo, raw.pch, raw.batchNo, raw.batch_id, raw.batchId),
     gysmc: getString(board.supplier, raw.gysmc, raw.supplier),
     ggxh: getString(board.model, raw.ggxh, raw.model)
@@ -1359,8 +1492,7 @@ function buildGeneratedBoardRow(
       raw.serialNumber,
       raw.board_serial,
       raw.id
-    ) ||
-    `${application.orderNo}-${index + 1}`
+    ) || `${application.orderNo}-${index + 1}`
   const prodBoardId = getDisplayString(board.prodBoardId, raw.prodBoardId, raw.prod_board_id, raw.board_id)
   const tempBoardId = getDisplayString(board.tempBoardId, raw.tempBoardId, raw.temp_board_id)
   const rawBoardId = getDisplayString(board.boardId, raw.boardId, raw.board_id, prodBoardId, tempBoardId)
@@ -1907,7 +2039,9 @@ async function persistBoardsStatus(
     const dlbResult = updateBoardListStatus(row.dlbTestBoardList, targetBoards, status)
     const boardResult = updateBoardListStatus(row.boards, targetBoards, status)
     const relationMatched =
-      !dlbResult.matched && !boardResult.matched && targetBoards.some((targetBoard) => isMatchingBoardRecord(targetBoard, row))
+      !dlbResult.matched &&
+      !boardResult.matched &&
+      targetBoards.some((targetBoard) => isMatchingBoardRecord(targetBoard, row))
 
     matched = matched || dlbResult.matched || boardResult.matched || relationMatched
 

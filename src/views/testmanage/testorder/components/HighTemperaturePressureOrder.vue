@@ -16,11 +16,18 @@ import {
   getHighTempPressureOrderListApi,
   publishHighTempPressureOrderApi
 } from "@/api/high-temp-pressure"
+import { getDeviceInstanceListApi } from "@/api/device-instance"
 import { getMySignatureApi, getSignatureImageApi } from "@/api/signature"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import type { HighTempPressureOrderInstrumentItem, HighTempPressureOrderListItem } from "@/api/high-temp-pressure/types"
+import type { DeviceInstanceData } from "@/api/device-instance/types"
+import { getHostModelDisplayName } from "@/views/devicemanage/device/psi/model-options"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
+type HighTempPressureDeviceOption = {
+  label: string
+  value: string
+}
 
 const statusOptions = [
   { value: "0", label: "已创建" },
@@ -53,6 +60,8 @@ const tableData = ref<HighTempPressureOrderListItem[]>([])
 const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
+const highTempPressureDeviceOptions = ref<HighTempPressureDeviceOption[]>([])
+const highTempPressureDeviceLoading = ref(false)
 const testTypeOptions = ["250容器", "480", "高压测试", "高温高压测试", "在线测试"]
 
 const todayText = () => new Date().toISOString().split("T")[0]
@@ -60,6 +69,38 @@ const pad = (value: number) => String(value).padStart(3, "0")
 const randomSeq = () => pad(Math.floor(Math.random() * 1000))
 const generateTableNo = () => `HTP-${todayText().replaceAll("-", "")}-${randomSeq()}`
 const generateTaskNumber = () => `HTP-TASK-${todayText().replaceAll("-", "")}-${randomSeq()}`
+const highTempPressureModelKeywords = ["高温高压井", "高温高压", "高压井"]
+
+const firstText = (...values: unknown[]) => {
+  for (const value of values) {
+    if (typeof value !== "string" && typeof value !== "number") continue
+    const text = String(value).trim()
+    if (text) return text
+  }
+  return ""
+}
+
+const normalizeDeviceInstanceList = (response: any): DeviceInstanceData[] => {
+  const payload = response?.data ?? response ?? {}
+  const list = Array.isArray(payload)
+    ? payload
+    : payload.list ?? payload.records ?? payload.results ?? payload.items ?? []
+
+  return Array.isArray(list) ? list : []
+}
+
+const getDeviceInstanceName = (row: DeviceInstanceData) => firstText(row.deviceName, row.device_name, row.psi_name)
+
+const isHighTempPressureDevice = (row: DeviceInstanceData) => {
+  const texts = [
+    getHostModelDisplayName(row),
+    firstText(row.model, row.model_name, row.modelName),
+    firstText(row.psimodel_name),
+    getDeviceInstanceName(row)
+  ].filter(Boolean)
+
+  return highTempPressureModelKeywords.some((keyword) => texts.some((text) => text.includes(keyword)))
+}
 
 const createForm = reactive({
   table_no: "",
@@ -119,6 +160,7 @@ const createRules = {
   client: [{ required: true, message: "请输入委托人", trigger: "blur" }],
   planned_time: [{ required: true, message: "请选择时间", trigger: "change" }],
   test_type: [{ required: true, message: "请选择测试类型", trigger: "change" }],
+  use_device: [{ required: true, message: "请选择使用设备", trigger: "change" }],
   equipment_list: [{ required: true, message: "请输入设备清单", trigger: "blur" }]
 }
 
@@ -134,7 +176,8 @@ const canCreate = computed(() => {
       createForm.project_name &&
       createForm.client &&
       createForm.planned_time &&
-      createForm.test_type
+      createForm.test_type &&
+      createForm.use_device
     )
   ) {
     return false
@@ -315,6 +358,39 @@ const handleCurrentChange = (page: number) => {
   getList()
 }
 
+const loadHighTempPressureDeviceOptions = async () => {
+  if (highTempPressureDeviceOptions.value.length) {
+    if (!createForm.use_device && highTempPressureDeviceOptions.value.length === 1) {
+      createForm.use_device = highTempPressureDeviceOptions.value[0].value
+    }
+    return
+  }
+
+  highTempPressureDeviceLoading.value = true
+  try {
+    const res = await getDeviceInstanceListApi({ currentPage: 1, size: 2000 })
+    const optionMap = new Map<string, HighTempPressureDeviceOption>()
+
+    normalizeDeviceInstanceList(res)
+      .filter(isHighTempPressureDevice)
+      .forEach((row) => {
+        const deviceName = getDeviceInstanceName(row)
+        if (!deviceName || optionMap.has(deviceName)) return
+        optionMap.set(deviceName, { label: deviceName, value: deviceName })
+      })
+
+    highTempPressureDeviceOptions.value = Array.from(optionMap.values())
+    if (!createForm.use_device && highTempPressureDeviceOptions.value.length === 1) {
+      createForm.use_device = highTempPressureDeviceOptions.value[0].value
+    }
+  } catch (error) {
+    console.error(error)
+    ElMessage.error("加载高温高压井使用设备失败")
+  } finally {
+    highTempPressureDeviceLoading.value = false
+  }
+}
+
 const showCreateDialog = () => {
   Object.assign(createForm, {
     table_no: generateTableNo(),
@@ -357,6 +433,7 @@ const showCreateDialog = () => {
     }
   ]
   createDialogVisible.value = true
+  void loadHighTempPressureDeviceOptions()
 }
 
 const addInstrumentRow = () => {
@@ -386,7 +463,6 @@ const handleCreate = async () => {
       const firstInstrument = instrumentFormList.value[0]
       createForm.device_name = firstInstrument.instrument_name
       createForm.device_number = firstInstrument.instrument_sn
-      createForm.use_device = createForm.equipment_list
       createForm.test_date = createForm.application_date
       const res = await createHighTempPressureOrderApi({
         ...createForm,
@@ -856,6 +932,24 @@ onMounted(() => {
             </el-form-item>
           </el-col>
           <el-col :span="12">
+            <el-form-item label="使用设备" prop="use_device">
+              <el-select
+                v-model="createForm.use_device"
+                placeholder="请选择高温高压井设备"
+                filterable
+                :loading="highTempPressureDeviceLoading"
+                style="width: 100%"
+              >
+                <el-option
+                  v-for="item in highTempPressureDeviceOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="测试类型" prop="test_type">
               <el-select v-model="createForm.test_type" placeholder="请选择测试类型" style="width: 100%">
                 <el-option v-for="item in testTypeOptions" :key="item" :label="item" :value="item" />
@@ -1064,7 +1158,12 @@ onMounted(() => {
       </div>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
+    <el-drawer
+      v-model="detailDialogVisible"
+      title="工单详情"
+      size="var(--test-order-detail-drawer-size)"
+      class="test-order-detail-drawer"
+    >
       <div v-if="currentOrder" class="detail-content">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="表格编号">{{ currentOrder.table_no || "-" }}</el-descriptions-item>

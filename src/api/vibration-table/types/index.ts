@@ -63,6 +63,8 @@ export type VibrationTableOrderListItem = {
   vibrationTimes?: number
   projectMembers?: string
   equipmentList?: string
+  deviceName?: string
+  useDevice?: string
   instrumentCombination?: string
   testSteps?: string
   safetyRisks?: string

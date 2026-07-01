@@ -26,7 +26,7 @@
         <el-form-item>
           <el-input
             v-model="filters.search"
-            placeholder="搜索样品名称、SN号、申请人..."
+            placeholder="搜索申请单号、样品名称、SN号、批次号..."
             clearable
             style="width: 260px"
           />
@@ -36,25 +36,6 @@
             <el-option label="已关联委托单" value="linked" />
             <el-option label="未关联委托单" value="unlinked" />
           </el-select>
-        </el-form-item>
-        <el-form-item>
-          <el-select v-model="filters.device" placeholder="全部检测设备" clearable style="width: 160px">
-            <el-option label="三维电子显微镜" value="三维显微镜" />
-            <el-option label="X-RAY检测台" value="X-RAY检测台" />
-            <el-option label="CCD显微镜" value="CCD显微镜" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="检测完成时间">
-          <el-date-picker
-            v-model="filters.doneDateRange"
-            type="daterange"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            value-format="YYYY-MM-DD"
-            clearable
-            style="width: 260px"
-          />
         </el-form-item>
         <el-form-item>
           <el-button @click="resetFilters">重置</el-button>
@@ -69,32 +50,34 @@
       </div>
 
       <el-table :data="tableData" v-loading="loading" class="summary-table" max-height="600" stripe border>
+        <el-table-column prop="applicationNo" label="申请单号" min-width="136" show-overflow-tooltip />
         <el-table-column label="SN号" min-width="106">
           <template #default="{ row }">
             <span class="sn-code">{{ row.sn }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="样品名称" min-width="92" show-overflow-tooltip />
-        <el-table-column prop="spec" label="规格型号" min-width="92" show-overflow-tooltip />
+        <el-table-column prop="name" label="样品名称" min-width="124" show-overflow-tooltip />
+        <el-table-column prop="batchNo" label="批次号" min-width="104" show-overflow-tooltip />
+        <el-table-column prop="spec" label="规格型号" min-width="138" show-overflow-tooltip />
+        <el-table-column prop="category" label="分类" min-width="104" show-overflow-tooltip />
+        <el-table-column prop="materialNo" label="物料号" min-width="88" show-overflow-tooltip />
+        <el-table-column prop="testContent" label="测试内容" min-width="92" show-overflow-tooltip />
         <el-table-column prop="qty" label="数量" width="52" align="center" />
-        <el-table-column prop="device" label="检测设备" min-width="92" show-overflow-tooltip />
-        <el-table-column prop="hours" label="工时(h)" width="68" align="center" />
-        <el-table-column prop="inspector" label="检测人" width="68" show-overflow-tooltip />
-        <el-table-column prop="doneAt" label="检测完成时间" min-width="104" show-overflow-tooltip />
-        <el-table-column prop="applicant" label="申请人" width="68" show-overflow-tooltip />
-        <el-table-column prop="phone" label="申请人电话" min-width="96" show-overflow-tooltip />
-        <el-table-column label="委托人" width="68">
+        <el-table-column prop="supplier" label="供应商" min-width="128" show-overflow-tooltip />
+        <el-table-column prop="applicant" label="申请/委托人" width="92" show-overflow-tooltip />
+        <el-table-column prop="phone" label="申请人电话" min-width="90" show-overflow-tooltip />
+        <el-table-column label="关联联系人" width="84">
           <template #default="{ row }">
             <span :style="{ color: row.client ? 'inherit' : 'var(--el-text-color-secondary)' }">
               {{ row.client || "—" }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="委托单编号" min-width="120">
+        <el-table-column label="委托单编号" min-width="190">
           <template #default="{ row }">
             <template v-if="row.status === 'linked'">
-              <el-button link type="primary" @click="showDetail(row.commNo)">
-                <span style="text-decoration: underline; text-underline-offset: 2px">{{ row.commNo }}</span>
+              <el-button class="commission-link" link type="primary" @click="showDetail(row.commNo)">
+                <span class="commission-no">{{ row.commNo }}</span>
               </el-button>
               <div v-if="row.commissionSampleName" class="linked-sample">
                 {{ row.commissionSampleName }}{{ row.commissionSampleSpec ? ` / ${row.commissionSampleSpec}` : "" }}
@@ -246,7 +229,18 @@ import { ref, reactive, computed, onMounted } from "vue"
 import { ElMessage } from "element-plus"
 import { request } from "@/utils/service"
 
-const sampleDetailFields = ["样品名称", "分类", "规格型号", "数量", "生产厂家", "项目名称", "批次号", "SN号", "物料号", "测试内容"]
+const sampleDetailFields = [
+  "样品名称",
+  "分类",
+  "规格型号",
+  "数量",
+  "生产厂家",
+  "项目名称",
+  "批次号",
+  "SN号",
+  "物料号",
+  "测试内容"
+]
 
 const loading = ref(false)
 const tableData = ref<any[]>([])
@@ -254,9 +248,7 @@ const stats = reactive({ total: 0, linked: 0, unlinked: 0 })
 
 const filters = reactive({
   search: "",
-  status: "",
-  device: "",
-  doneDateRange: [] as string[]
+  status: ""
 })
 
 const normalizeRelationStatus = (row: any): "linked" | "unlinked" => {
@@ -264,7 +256,13 @@ const normalizeRelationStatus = (row: any): "linked" | "unlinked" => {
   if (rawStatus === "linked" || rawStatus === 1 || rawStatus === "1" || rawStatus === true || rawStatus === "已关联") {
     return "linked"
   }
-  if (rawStatus === "unlinked" || rawStatus === 0 || rawStatus === "0" || rawStatus === false || rawStatus === "未关联") {
+  if (
+    rawStatus === "unlinked" ||
+    rawStatus === 0 ||
+    rawStatus === "0" ||
+    rawStatus === false ||
+    rawStatus === "未关联"
+  ) {
     return "unlinked"
   }
   return row?.commNo || row?.commission_no ? "linked" : "unlinked"
@@ -279,28 +277,8 @@ const filterRowsByStatus = (rows: any[]) => {
   return normalizedRows.filter((row) => row.status === filters.status)
 }
 
-const getDoneDateTime = (value: unknown) => {
-  if (!value) return Number.NaN
-  const normalized = String(value).trim().replace(/\./g, "-").replace(/\//g, "-")
-  return new Date(normalized).getTime()
-}
-
-const filterRowsByDoneDate = (rows: any[]) => {
-  const [startDate, endDate] = filters.doneDateRange || []
-  if (!startDate && !endDate) return rows
-
-  const startTime = startDate ? new Date(`${startDate} 00:00:00`).getTime() : Number.NEGATIVE_INFINITY
-  const endTime = endDate ? new Date(`${endDate} 23:59:59`).getTime() : Number.POSITIVE_INFINITY
-
-  return rows.filter((row) => {
-    const doneTime = getDoneDateTime(row.doneAt)
-    return Number.isFinite(doneTime) && doneTime >= startTime && doneTime <= endTime
-  })
-}
-
 const getList = () => {
   loading.value = true
-  const [doneStartDate, doneEndDate] = filters.doneDateRange || []
   request({
     url: "data/commission-board-relation/list",
     method: "get",
@@ -308,13 +286,11 @@ const getList = () => {
       currentPage: 1,
       pageSize: 1000,
       search: filters.search,
-      device: filters.device,
-      doneStartDate,
-      doneEndDate
+      status: filters.status
     }
   })
     .then((res: any) => {
-      tableData.value = filterRowsByDoneDate(filterRowsByStatus(res.data.list || []))
+      tableData.value = filterRowsByStatus(res.data.list || [])
       const s = res.data.stats || {}
       stats.total = s.total || 0
       stats.linked = s.linked || 0
@@ -335,8 +311,6 @@ const applyFilters = () => {
 const resetFilters = () => {
   filters.search = ""
   filters.status = ""
-  filters.device = ""
-  filters.doneDateRange = []
   getList()
 }
 
@@ -608,15 +582,6 @@ onMounted(() => {
   :deep(.el-button + .el-button) {
     margin-left: 0;
   }
-
-  :deep(.el-table__header-wrapper),
-  :deep(.el-table__body-wrapper) {
-    overflow-x: hidden;
-  }
-
-  :deep(.el-scrollbar__bar.is-horizontal) {
-    display: none;
-  }
 }
 
 .sn-code {
@@ -644,6 +609,22 @@ onMounted(() => {
   margin-top: 2px;
   font-size: 12px;
   color: var(--el-text-color-secondary);
+}
+
+.commission-link {
+  height: auto;
+  padding: 0;
+  white-space: nowrap;
+}
+
+.commission-no {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 12px;
+  line-height: 1.35;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+  word-break: keep-all;
 }
 
 .modal-sub {

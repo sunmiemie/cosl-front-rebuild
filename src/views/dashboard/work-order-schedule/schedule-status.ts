@@ -7,6 +7,7 @@ export type WorkOrderScheduleStatusInput = {
   scheduledStartAt?: string | null
   scheduledEndAt?: string | null
   scheduleSegments?: Array<unknown>
+  isSequenceScheduled?: boolean | null
 }
 
 export type WorkOrderScheduleInstrumentInput = {
@@ -25,7 +26,9 @@ function isPendingStatusText(value?: string | null) {
 }
 
 export function isWorkOrderScheduled(order: WorkOrderScheduleStatusInput) {
-  return Boolean(order.scheduleSegments?.length || (order.scheduledStartAt && order.scheduledEndAt))
+  return Boolean(
+    order.isSequenceScheduled || order.scheduleSegments?.length || (order.scheduledStartAt && order.scheduledEndAt)
+  )
 }
 
 function toNumber(value: unknown) {

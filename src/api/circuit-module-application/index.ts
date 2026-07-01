@@ -30,6 +30,12 @@ export interface DlbCircuitBoardItem {
   batchId?: string | number
   sl?: string | number
   sn?: string
+  assistantSn?: string
+  assistant_sn?: string
+  sourceSn?: string
+  source_sn?: string
+  originalSn?: string
+  original_sn?: string
   seria?: string
   serial?: string
   serial_num?: string
@@ -89,8 +95,10 @@ export interface DlbCircuitApplicationRaw {
 }
 
 export interface CircuitModuleScheduleSegment {
-  scheduled_start_at: string
-  scheduled_end_at: string
+  scheduled_start_at?: string
+  scheduled_end_at?: string
+  sequence_only?: boolean
+  sequence_order?: number
 }
 
 export interface CircuitModuleBoardItem {
@@ -103,6 +111,12 @@ export interface CircuitModuleBoardItem {
   temp_board_id?: string | number
   seria?: string
   sn?: string
+  assistantSn?: string
+  assistant_sn?: string
+  sourceSn?: string
+  source_sn?: string
+  originalSn?: string
+  original_sn?: string
   serial?: string
   serial_num?: string
   serialNumber?: string
@@ -204,6 +218,8 @@ export interface CircuitModuleApplicationRelation {
   scheduledStartAt?: string | null
   scheduledEndAt?: string | null
   scheduleSegments?: CircuitModuleScheduleSegment[]
+  isSequenceScheduled?: boolean
+  sequenceOrder?: number | string | null
   updatedAt?: string
 }
 
@@ -308,9 +324,7 @@ function isPublishGeneratedOrder(value: unknown): value is PublishCircuitModuleG
   )
 }
 
-export function isCircuitModulePublishSuccessData(
-  data: unknown
-): data is PublishCircuitModuleApplicationSuccessData {
+export function isCircuitModulePublishSuccessData(data: unknown): data is PublishCircuitModuleApplicationSuccessData {
   return (
     isObjectRecord(data) &&
     isStringOrNumberValue(data.status) &&

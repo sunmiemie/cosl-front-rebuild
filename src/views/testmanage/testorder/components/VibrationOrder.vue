@@ -282,7 +282,12 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
+    <el-drawer
+      v-model="detailDialogVisible"
+      title="工单详情"
+      size="var(--test-order-detail-drawer-size)"
+      class="test-order-detail-drawer"
+    >
       <div v-if="currentOrder" class="detail-content">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="表格编号">{{ currentOrder.tableNo }}</el-descriptions-item>
@@ -304,6 +309,9 @@
           <el-descriptions-item label="项目名称" :span="2">{{ currentOrder.projectName || "-" }}</el-descriptions-item>
           <el-descriptions-item label="测试类型">{{ currentOrder.testType || "-" }}</el-descriptions-item>
           <el-descriptions-item label="时间">{{ currentOrder.plannedTime || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="使用设备">{{
+            currentOrder.useDevice || currentOrder.deviceName || "-"
+          }}</el-descriptions-item>
           <el-descriptions-item label="振动方向">{{ currentOrder.vibrationDirection || "-" }}</el-descriptions-item>
           <el-descriptions-item label="量级">{{ currentOrder.level || "-" }}</el-descriptions-item>
           <el-descriptions-item label="加速度">{{ currentOrder.acceleration || "-" }}</el-descriptions-item>
@@ -372,13 +380,21 @@
             </template>
             <el-descriptions :column="3" border size="small">
               <el-descriptions-item label="操作员">{{ item.tester || "-" }}</el-descriptions-item>
-              <el-descriptions-item label="视频文件">{{ displaySummaryValue(item.summary, "source_video_name") }}</el-descriptions-item>
-              <el-descriptions-item label="采样记录">{{ displaySummaryValue(item.summary, "record_count") }}</el-descriptions-item>
+              <el-descriptions-item label="视频文件">{{
+                displaySummaryValue(item.summary, "source_video_name")
+              }}</el-descriptions-item>
+              <el-descriptions-item label="采样记录">{{
+                displaySummaryValue(item.summary, "record_count")
+              }}</el-descriptions-item>
               <el-descriptions-item label="有效图像">{{
                 displaySummaryValue(item.summary, "screen_detected_count")
               }}</el-descriptions-item>
-              <el-descriptions-item label="平均响应">{{ displaySummaryValue(item.summary, "avg_response") }}</el-descriptions-item>
-              <el-descriptions-item label="最大驱动">{{ displaySummaryValue(item.summary, "max_drive") }}</el-descriptions-item>
+              <el-descriptions-item label="平均响应">{{
+                displaySummaryValue(item.summary, "avg_response")
+              }}</el-descriptions-item>
+              <el-descriptions-item label="最大驱动">{{
+                displaySummaryValue(item.summary, "max_drive")
+              }}</el-descriptions-item>
               <el-descriptions-item label="本地目录" :span="3">{{ item.exportDir || "-" }}</el-descriptions-item>
             </el-descriptions>
             <el-table :data="item.attachments || []" border size="small" class="pre-experiment-attachment-table">

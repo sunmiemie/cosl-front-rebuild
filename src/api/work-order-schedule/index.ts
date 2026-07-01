@@ -13,14 +13,18 @@ export type ScheduleTargetKind = "order" | "instrument" | "device"
 export type EndpointScheduleEquipment = WorkOrderScheduleEquipment
 
 export type WorkOrderScheduleSegment = {
-  scheduled_start_at: string
-  scheduled_end_at: string
+  scheduled_start_at?: string
+  scheduled_end_at?: string
+  sequence_only?: boolean
+  sequence_order?: number
 }
 
 export type WorkOrderSchedulePayload = {
-  scheduled_start_at: string
-  scheduled_end_at: string
+  scheduled_start_at?: string
+  scheduled_end_at?: string
   schedule_segments?: WorkOrderScheduleSegment[]
+  sequence_only?: boolean
+  sequence_order?: number
 }
 
 type ScheduleEndpointConfig = {

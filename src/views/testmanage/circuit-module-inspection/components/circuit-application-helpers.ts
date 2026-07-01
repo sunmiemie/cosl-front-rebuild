@@ -11,6 +11,9 @@ export interface CircuitApplicationUiBoard {
   tempBoardId?: string
   seria: string
   sn: string
+  assistantSn?: string
+  sourceSn?: string
+  originalSn?: string
   serial: string
   serialNum?: string
   name: string
@@ -176,6 +179,7 @@ export function mapDlbBoardToUiBoard(
   const sn =
     getString(board.sn, board.seria, board.serial, board.serial_num, board.serialNumber, board.board_serial) ||
     `${applicationNo || "DLB"}-${index + 1}`
+  const sourceSn = getString(board.assistantSn, board.assistant_sn, board.sourceSn, board.source_sn, board.originalSn, board.original_sn, board.sn)
   const model = getString(board.ggxh, board.ypmc, "电路板模块")
   const fallbackBatchNo = `${applicationNo || "DLB"}-${String(index + 1).padStart(2, "0")}`
   const boardId = getDisplayString(board.boardId, board.board_id)
@@ -189,6 +193,9 @@ export function mapDlbBoardToUiBoard(
     tempBoardId,
     seria: sn,
     sn,
+    assistantSn: sourceSn,
+    sourceSn,
+    originalSn: sourceSn,
     serial: sn,
     serialNum: getString(board.serial_num, board.serialNumber, board.board_serial, sn),
     name: getString(board.ypmc, model),
