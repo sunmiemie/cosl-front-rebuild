@@ -376,6 +376,34 @@
         <el-button @click="bindingDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="snFillDialogVisible"
+      title="补录电路板 SN"
+      width="min(920px, 96vw)"
+      :close-on-click-modal="false"
+      :show-close="false"
+    >
+      <div class="sn-fill-tip">
+        {{ snFillApplicationTitle }} 存在未提供 SN 的电路板，请为每一块电路板填写唯一 SN 后再发布。
+      </div>
+      <el-table :data="snFillRows" border max-height="420" table-layout="fixed">
+        <el-table-column type="index" label="#" width="52" />
+        <el-table-column prop="sampleName" label="样品名称" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="batchNo" label="批次号" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="model" label="规格型号" min-width="150" show-overflow-tooltip />
+        <el-table-column label="SN号" min-width="220">
+          <template #default="{ row }">
+            <el-input v-model.trim="row.sn" placeholder="请输入唯一 SN" />
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <el-button @click="cancelSnFill">取消发布</el-button>
+        <el-button @click="autoFillMissingSn">自动生成 SN</el-button>
+        <el-button type="primary" @click="confirmSnFill">确认并继续发布</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -478,6 +506,15 @@ interface AssistantCommissionUser {
   userId: string
   departmentId: string
   departmentName: string
+}
+
+interface SnFillRow {
+  key: string
+  board: CircuitApplicationBoard
+  sampleName: string
+  batchNo: string
+  model: string
+  sn: string
 }
 
 interface CircuitApplication {
@@ -591,10 +628,15 @@ const bindingDialogVisible = ref(false)
 const bindingLoading = ref(false)
 const bindingRows = ref<CommissionBindingRow[]>([])
 const bindingApplicationNo = ref("")
+const snFillDialogVisible = ref(false)
+const snFillApplicationTitle = ref("")
+const snFillRows = ref<SnFillRow[]>([])
+const snFillApplication = ref<CircuitApplication | null>(null)
 const userStore = useUserStore()
 let testTypeListCache: any[] | null = null
 let tempTestTypeListCache: any[] | null = null
 let tempProdBoardTestTypeListCache: any[] | null = null
+let snFillResolver: ((confirmed: boolean) => void) | null = null
 const searchForm = reactive<{ keyword: string; status: StatusFilter; orderType: GeneratedOrderFilter }>({
   keyword: "",
   status: "all",
@@ -1438,6 +1480,206 @@ function getBoardSerial(board: CircuitApplicationBoard) {
   )
 }
 
+function getProvidedBoardSn(board: CircuitApplicationBoard) {
+  const raw = (board.raw || {}) as Record<string, unknown>
+  return getString(
+    board.sourceSn,
+    board.assistantSn,
+    board.originalSn,
+    raw.sn,
+    raw.serial,
+    raw.seria,
+    raw.serial_num,
+    raw.serialNumber,
+    raw.board_serial,
+    raw.boardSerial
+  )
+}
+
+function buildSnFillKey(application: CircuitApplication, board: CircuitApplicationBoard) {
+  return `${application.key}:${getDisplayString(
+    board.id,
+    board.boardId,
+    board.prodBoardId,
+    board.tempBoardId,
+    board.batchNo,
+    board.sampleName,
+    board.model
+  )}`
+}
+
+function getBoardsMissingProvidedSn(boards: CircuitApplicationBoard[]) {
+  return boards.filter((board) => !getProvidedBoardSn(board))
+}
+
+function patchRawBoardSn(rawBoard: unknown, sn: string) {
+  if (!rawBoard || typeof rawBoard !== "object") return rawBoard
+  return {
+    ...(rawBoard as Record<string, unknown>),
+    sn,
+    seria: sn,
+    serial: sn,
+    serial_num: sn,
+    serialNumber: sn,
+    board_serial: sn,
+    boardSerial: sn,
+    sourceSn: sn,
+    source_sn: sn,
+    assistantSn: sn,
+    assistant_sn: sn,
+    originalSn: sn,
+    original_sn: sn
+  }
+}
+
+function applyBoardSn(board: CircuitApplicationBoard, sn: string) {
+  board.id = sn
+  board.seria = sn
+  board.sn = sn
+  board.serial = sn
+  board.serialNum = sn
+  board.sourceSn = sn
+  board.assistantSn = sn
+  board.originalSn = sn
+  board.raw = patchRawBoardSn(board.raw, sn)
+}
+
+function updateApplicationRawBoardSn(application: CircuitApplication, board: CircuitApplicationBoard, sn: string) {
+  const rows = getApplicationRelationRows(application)
+  application.raw = rows.map((row) => {
+    const dlbBoards = Array.isArray(row.dlbTestBoardList)
+      ? row.dlbTestBoardList.map((rawBoard) => (isMatchingBoardRecord(board, rawBoard) ? patchRawBoardSn(rawBoard, sn) : rawBoard))
+      : row.dlbTestBoardList
+    const boards = Array.isArray(row.boards)
+      ? row.boards.map((rawBoard) => (isMatchingBoardRecord(board, rawBoard) ? patchRawBoardSn(rawBoard, sn) : rawBoard))
+      : row.boards
+    const rowMatched = isMatchingBoardRecord(board, row)
+    const nextRow = (rowMatched ? patchRawBoardSn(row, sn) : row) as Record<string, unknown>
+    return {
+      ...nextRow,
+      ...(dlbBoards ? { dlbTestBoardList: dlbBoards as any } : {}),
+      ...(boards ? { boards: boards as any } : {})
+    }
+  })
+}
+
+function normalizeSnInput(value: unknown) {
+  return String(value ?? "").trim()
+}
+
+function buildAutoSnBase(application: CircuitApplication, board: CircuitApplicationBoard) {
+  return (
+    getString(board.batchNo, application.orderNo, board.sampleName, board.model) || `CBM-${todayKey()}`
+  ).replace(/[^\w.-]+/g, "-")
+}
+
+function collectExistingSnSet(application: CircuitApplication, excludedRows: SnFillRow[] = []) {
+  const excludedBoards = new Set(excludedRows.map((row) => row.board))
+  const values = application.boards
+    .filter((board) => !excludedBoards.has(board))
+    .map((board) => getProvidedBoardSn(board) || getBoardSerial(board))
+    .filter(Boolean)
+    .map((value) => String(value).trim())
+  return new Set(values)
+}
+
+function createUniqueAutoSn(application: CircuitApplication, board: CircuitApplicationBoard, used: Set<string>) {
+  const base = buildAutoSnBase(application, board)
+  let index = 1
+  let sn = `${base}-${String(index).padStart(3, "0")}`
+  while (used.has(sn)) {
+    index += 1
+    sn = `${base}-${String(index).padStart(3, "0")}`
+  }
+  used.add(sn)
+  return sn
+}
+
+function autoFillMissingSn() {
+  const application = snFillApplication.value
+  if (!application) return
+  const used = collectExistingSnSet(application, snFillRows.value)
+  snFillRows.value.forEach((row) => {
+    if (!normalizeSnInput(row.sn)) {
+      row.sn = createUniqueAutoSn(application, row.board, used)
+    } else {
+      used.add(normalizeSnInput(row.sn))
+    }
+  })
+}
+
+function cancelSnFill() {
+  snFillDialogVisible.value = false
+  snFillRows.value = []
+  snFillApplication.value = null
+  snFillResolver?.(false)
+  snFillResolver = null
+}
+
+function confirmSnFill() {
+  const application = snFillApplication.value
+  if (!application) {
+    cancelSnFill()
+    return
+  }
+  const emptyRows = snFillRows.value.filter((row) => !normalizeSnInput(row.sn))
+  if (emptyRows.length) {
+    ElMessage.warning("请先补齐所有电路板 SN")
+    return
+  }
+  const allSn = [
+    ...application.boards
+      .filter((board) => !snFillRows.value.some((row) => row.board === board))
+      .map((board) => getProvidedBoardSn(board) || getBoardSerial(board))
+      .filter(Boolean)
+      .map((value) => String(value).trim()),
+    ...snFillRows.value.map((row) => normalizeSnInput(row.sn))
+  ]
+  if (new Set(allSn).size !== allSn.length) {
+    ElMessage.warning("SN 不能重复，请检查后再继续")
+    return
+  }
+
+  snFillRows.value.forEach((row) => {
+    const sn = normalizeSnInput(row.sn)
+    applyBoardSn(row.board, sn)
+    updateApplicationRawBoardSn(application, row.board, sn)
+  })
+  refreshSelectedApplication(application)
+  snFillDialogVisible.value = false
+  snFillRows.value = []
+  snFillApplication.value = null
+  snFillResolver?.(true)
+  snFillResolver = null
+}
+
+function openSnFillDialog(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
+  if (snFillResolver) {
+    ElMessage.warning("请先完成当前 SN 补录")
+    return Promise.resolve(false)
+  }
+  snFillApplicationTitle.value = application.orderNo || application.name || "当前申请单"
+  snFillRows.value = getBoardsMissingProvidedSn(boards).map((board) => ({
+    key: buildSnFillKey(application, board),
+    board,
+    sampleName: board.sampleName || board.name || "-",
+    batchNo: board.batchNo || "-",
+    model: board.model || "-",
+    sn: ""
+  }))
+  snFillApplication.value = application
+  snFillDialogVisible.value = true
+  return new Promise<boolean>((resolve) => {
+    snFillResolver = resolve
+  })
+}
+
+async function ensurePublishBoardsHaveSn(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
+  const missingBoards = getBoardsMissingProvidedSn(boards)
+  if (!missingBoards.length) return true
+  return openSnFillDialog(application, missingBoards)
+}
+
 function getBoardDisplayName(board: CircuitApplicationBoard) {
   return getString(getBoardSerial(board), board.batchNo, board.sampleName, board.id, "未知样品")
 }
@@ -2105,6 +2347,8 @@ async function publishApplication(application: CircuitApplication, silent = fals
     if (!silent) ElMessage.warning("当前申请单没有未发布的样品")
     return "skipped"
   }
+  const snReady = await ensurePublishBoardsHaveSn(application, boardsToPublish)
+  if (!snReady) return "skipped"
 
   publishingKeys.value = [...publishingKeys.value, application.key]
   try {
@@ -2162,6 +2406,8 @@ async function publishBoard(application: CircuitApplication, board: CircuitAppli
     return
   }
   if (isPublishing(application) || isBoardPublishing(application, board)) return
+  const snReady = await ensurePublishBoardsHaveSn(application, [board])
+  if (!snReady) return
 
   const key = getBoardPublishKey(application, board)
   publishingBoardKeys.value = [...publishingBoardKeys.value, key]
@@ -2220,7 +2466,10 @@ async function batchPublishApplications() {
   const targets = applications.value.filter(
     (application) => selectedApplicationIds.value.includes(application.key) && isApplicationPublishable(application)
   )
-  const results = await Promise.all(targets.map((application) => publishApplication(application, true)))
+  const results: Array<"success" | "failed" | "missing_boards" | "skipped" | undefined> = []
+  for (const application of targets) {
+    results.push(await publishApplication(application, true))
+  }
   const successCount = results.filter((result) => result === "success").length
   const missingCount = results.filter((result) => result === "missing_boards").length
   const failedCount = results.filter((result) => result === "failed").length
@@ -2537,6 +2786,13 @@ onMounted(() => {
   margin-bottom: 10px;
   color: var(--el-text-color-secondary);
   font-size: 13px;
+}
+
+.sn-fill-tip {
+  margin-bottom: 12px;
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .board-list-section {

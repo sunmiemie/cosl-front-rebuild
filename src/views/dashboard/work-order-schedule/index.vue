@@ -384,8 +384,9 @@
         <el-descriptions-item label="申请人">{{ detailOrder.applicant || "-" }}</el-descriptions-item>
         <el-descriptions-item label="排程段">
           <div v-if="detailScheduleSegments.length" class="detail-segments">
-            <div v-for="segment in detailScheduleSegments" :key="segment.id">
-              {{ segment.date }} {{ segment.startTime }} - {{ segment.endTime }}
+            <div v-for="segment in detailScheduleSegments" :key="segment.id" class="detail-segment">
+              <span>{{ segment.date }} {{ segment.startTime }} - {{ segment.endTime }}</span>
+              <el-tag size="small" effect="plain">{{ segment.useDevice || "-" }}</el-tag>
             </div>
           </div>
           <span v-else>-</span>
@@ -430,9 +431,8 @@ import {
 } from "./schedule-status"
 import {
   applySchedulePayloadToTargetOrder,
-  buildSingleCellSchedulePayload,
-  filterOrdersByActiveDeviceTab,
   buildSecondaryDeviceTabs,
+  buildSingleCellSchedulePayload,
   filteredOrdersByScheduleState,
   getScheduleLifecycleStatusText,
   hostMatchesModelKeywords,
@@ -458,6 +458,7 @@ type EquipmentKey =
 type ScheduleSegment = {
   scheduledStartAt?: string
   scheduledEndAt?: string
+  useDevice?: string
   sequenceOnly?: boolean
   sequenceOrder?: number
 }
@@ -467,6 +468,10 @@ type ScheduleFormSegment = {
   date: string
   startTime: string
   endTime: string
+}
+
+type DetailScheduleSegment = ScheduleFormSegment & {
+  useDevice: string
 }
 
 type ScheduleOrder = {
@@ -676,30 +681,22 @@ const activeConfig = computed(
 )
 const isCircuitBoardModule = computed(() => activeEquipment.value === "circuit-board-module")
 const activeOrders = computed(() => orderMap[activeEquipment.value])
-const deviceScopedOrders = computed(() =>
-  filterOrdersByActiveDeviceTab(
-    activeOrders.value,
-    activeEquipment.value,
-    activeDeviceTab.value,
-    EQUIPMENT_DEVICE_KEYWORDS[activeEquipment.value][0]
-  )
-)
 const selectedScheduleOrder = computed(() => activeOrders.value.find((item) => item.id === scheduleForm.orderId))
 const detailScheduleSegments = computed(() =>
-  detailOrder.value ? getExistingScheduleFormSegments(detailOrder.value) : []
+  detailOrder.value ? getDetailScheduleSegments(detailOrder.value) : []
 )
 const activeStateMeta = computed(
   () => scheduleStateTabs.find((item) => item.key === activeScheduleState.value) ?? scheduleStateTabs[0]
 )
 
 const stateCounts = computed<Record<ScheduleListState, number>>(() => ({
-  pending: filteredOrdersByScheduleState(deviceScopedOrders.value, "pending").length,
-  scheduled: filteredOrdersByScheduleState(deviceScopedOrders.value, "scheduled").length,
-  unpublished: filteredOrdersByScheduleState(deviceScopedOrders.value, "unpublished").length,
-  other: filteredOrdersByScheduleState(deviceScopedOrders.value, "other").length
+  pending: filteredOrdersByScheduleState(activeOrders.value, "pending").length,
+  scheduled: filteredOrdersByScheduleState(activeOrders.value, "scheduled").length,
+  unpublished: filteredOrdersByScheduleState(activeOrders.value, "unpublished").length,
+  other: filteredOrdersByScheduleState(activeOrders.value, "other").length
 }))
 
-const stateOrders = computed(() => filteredOrdersByScheduleState(deviceScopedOrders.value, activeScheduleState.value))
+const stateOrders = computed(() => filteredOrdersByScheduleState(activeOrders.value, activeScheduleState.value))
 
 const circuitBoardPendingOrders = computed(() =>
   filteredOrdersByScheduleState(activeOrders.value, "pending").filter(
@@ -789,11 +786,12 @@ const weekLabel = computed(() => {
 })
 
 const calendarEvents = computed<CalendarEvent[]>(() => {
-  const events = deviceScopedOrders.value.flatMap<BaseCalendarEvent>((order) => {
+  const events = activeOrders.value.flatMap<BaseCalendarEvent>((order) => {
     const segments = getOrderScheduleSegments(order)
 
     return segments
       .map((segment, index) => {
+        if (!isScheduleSegmentVisibleForCurrentDevice(order, segment)) return null
         const start = parseDateTime(segment.scheduledStartAt)
         const end = parseDateTime(segment.scheduledEndAt)
         if (!start || !end) return null
@@ -810,7 +808,7 @@ const calendarEvents = computed<CalendarEvent[]>(() => {
           orderTitle: order.title,
           targetName: order.targetName,
           applicant: order.applicant,
-          hostDeviceName: order.hostDeviceName,
+          hostDeviceName: getSegmentScheduleDevice(order, segment) || order.hostDeviceName,
           status: order.status,
           statusText: order.statusText,
           dateStr,
@@ -942,6 +940,20 @@ function getExistingScheduleFormSegments(order: ScheduleOrder): ScheduleFormSegm
   })
 }
 
+function getDetailScheduleSegments(order: ScheduleOrder): DetailScheduleSegment[] {
+  return getOrderScheduleSegments(order)
+    .map((segment) => {
+      const start = parseDateTime(segment.scheduledStartAt)
+      const end = parseDateTime(segment.scheduledEndAt)
+      if (!start || !end) return null
+      return {
+        ...createScheduleSegment(formatDate(start), formatHourMinute(start), formatHourMinute(end)),
+        useDevice: getSegmentScheduleDevice(order, segment) || "-"
+      }
+    })
+    .filter((segment): segment is DetailScheduleSegment => segment !== null)
+}
+
 function addScheduleSegment() {
   const last = scheduleForm.segments[scheduleForm.segments.length - 1]
   scheduleForm.segments.push(createScheduleSegment(last?.date || pickedDate.value, "09:00", "11:00"))
@@ -987,9 +999,11 @@ function buildSchedulePayload(): (WorkOrderSchedulePayload & { schedule_segments
 function buildSchedulePayloadFromSegments(
   normalized: Array<{ start: Date; end: Date }>
 ): WorkOrderSchedulePayload & { schedule_segments: WorkOrderScheduleSegment[] } {
+  const useDevice = getCurrentScheduleTargetDevice()
   const scheduleSegments = normalized.map(({ start, end }) => ({
     scheduled_start_at: toBackendDateTime(start),
-    scheduled_end_at: toBackendDateTime(end)
+    scheduled_end_at: toBackendDateTime(end),
+    ...(useDevice ? { use_device: useDevice, useDevice } : {})
   }))
   const earliestStart = normalized[0].start
   const latestEnd = normalized.reduce(
@@ -1000,7 +1014,8 @@ function buildSchedulePayloadFromSegments(
   return {
     scheduled_start_at: toBackendDateTime(earliestStart),
     scheduled_end_at: toBackendDateTime(latestEnd),
-    schedule_segments: scheduleSegments
+    schedule_segments: scheduleSegments,
+    ...(useDevice ? { use_device: useDevice, useDevice } : {})
   }
 }
 
@@ -1015,11 +1030,67 @@ function buildDraggedSchedulePayload(order: ScheduleOrder, dateStr: string, slot
     return null
   }
 
-  return mergeSchedulePayloadSegments(getOrderScheduleSegments(order), singleCellPayload) ?? singleCellPayload
+  const payload = withScheduleTargetDevice(singleCellPayload)
+  return mergeSchedulePayloadSegments(getOrderScheduleSegments(order), payload) ?? payload
 }
 
 function getString(...values: unknown[]) {
   return values.find((value) => typeof value === "string" && value.trim()) as string | undefined
+}
+
+function normalizeDeviceName(value: unknown) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase()
+}
+
+function getCurrentScheduleTargetDevice() {
+  if (isCircuitBoardModule.value || !secondaryDeviceTabs.value.length) return ""
+  return activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""
+}
+
+function getSegmentScheduleDevice(order: ScheduleOrder, segment?: ScheduleSegment) {
+  return (
+    getString(
+      segment?.useDevice,
+      order.useDevice,
+      order.hostDeviceName,
+      order.raw?.order?.use_device,
+      order.raw?.order?.device_name,
+      order.raw?.order?.deviceName,
+      order.raw?.device?.use_device,
+      order.raw?.device?.device_name,
+      order.raw?.device?.deviceName,
+      order.raw?.use_device,
+      order.raw?.device_name,
+      order.raw?.deviceName
+    ) || ""
+  )
+}
+
+function isScheduleSegmentVisibleForCurrentDevice(order: ScheduleOrder, segment: ScheduleSegment) {
+  const targetDevice = getCurrentScheduleTargetDevice()
+  if (!targetDevice) return true
+  const segmentDevice = getSegmentScheduleDevice(order, segment)
+  if (!segmentDevice) return true
+  return normalizeDeviceName(segmentDevice) === normalizeDeviceName(targetDevice)
+}
+
+function withScheduleTargetDevice<T extends WorkOrderSchedulePayload & { schedule_segments: WorkOrderScheduleSegment[] }>(
+  payload: T
+): T {
+  const useDevice = getCurrentScheduleTargetDevice()
+  if (!useDevice) return payload
+  return {
+    ...payload,
+    use_device: useDevice,
+    useDevice,
+    schedule_segments: payload.schedule_segments.map((segment) => ({
+      ...segment,
+      use_device: segment.use_device || useDevice,
+      useDevice: segment.useDevice || useDevice
+    }))
+  }
 }
 
 function getNumber(value: unknown, fallback = 2) {
@@ -1095,7 +1166,7 @@ function normalizeSnakeSegments(value: any): ScheduleSegment[] {
           const scheduledStartAt = item?.scheduled_start_at || ""
           const scheduledEndAt = item?.scheduled_end_at || ""
           if (!scheduledStartAt || !scheduledEndAt) return null
-          return { scheduledStartAt, scheduledEndAt }
+          return { scheduledStartAt, scheduledEndAt, useDevice: getString(item?.use_device, item?.useDevice) || "" }
         })
         .filter((item): item is ScheduleSegment => item !== null)
     : []
@@ -1108,7 +1179,7 @@ function normalizeCamelSegments(value: any): ScheduleSegment[] {
           const scheduledStartAt = item?.scheduledStartAt || item?.scheduled_start_at || ""
           const scheduledEndAt = item?.scheduledEndAt || item?.scheduled_end_at || ""
           if (!scheduledStartAt || !scheduledEndAt) return null
-          return { scheduledStartAt, scheduledEndAt }
+          return { scheduledStartAt, scheduledEndAt, useDevice: getString(item?.useDevice, item?.use_device) || "" }
         })
         .filter((item): item is ScheduleSegment => item !== null)
     : []
@@ -1667,9 +1738,11 @@ function buildResizedCalendarEventPayload(
     )
   }
 
+  const useDevice = getCurrentScheduleTargetDevice()
   return replaceSchedulePayloadSegment(state.originalSegments, state.segmentIndex, {
     scheduled_start_at: toBackendDateTimeFromMinutes(state.dateStr, startMinutes),
-    scheduled_end_at: toBackendDateTimeFromMinutes(state.dateStr, endMinutes)
+    scheduled_end_at: toBackendDateTimeFromMinutes(state.dateStr, endMinutes),
+    ...(useDevice ? { use_device: useDevice, useDevice } : {})
   })
 }
 
@@ -2782,7 +2855,20 @@ onUnmounted(() => {
 .detail-segments {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
+}
+
+.detail-segment {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+
+  span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
 }
 
 .schedule-segment-list {

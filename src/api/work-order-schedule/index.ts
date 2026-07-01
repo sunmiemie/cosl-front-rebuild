@@ -15,6 +15,8 @@ export type EndpointScheduleEquipment = WorkOrderScheduleEquipment
 export type WorkOrderScheduleSegment = {
   scheduled_start_at?: string
   scheduled_end_at?: string
+  use_device?: string
+  useDevice?: string
   sequence_only?: boolean
   sequence_order?: number
 }
@@ -23,6 +25,8 @@ export type WorkOrderSchedulePayload = {
   scheduled_start_at?: string
   scheduled_end_at?: string
   schedule_segments?: WorkOrderScheduleSegment[]
+  use_device?: string
+  useDevice?: string
   sequence_only?: boolean
   sequence_order?: number
 }

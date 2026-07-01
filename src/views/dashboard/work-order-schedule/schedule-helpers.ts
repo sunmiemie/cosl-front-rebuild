@@ -59,6 +59,8 @@ export interface SingleCellScheduleOptions {
 export interface SchedulePayloadSegment {
   scheduled_start_at: string
   scheduled_end_at: string
+  use_device?: string
+  useDevice?: string
 }
 
 export interface SingleCellSchedulePayload {
@@ -81,6 +83,8 @@ export interface ScheduleSegmentLike {
   scheduledEndAt?: string | null
   scheduled_start_at?: string | null
   scheduled_end_at?: string | null
+  useDevice?: string | null
+  use_device?: string | null
 }
 
 export interface CalendarLaneInput {
@@ -168,9 +172,11 @@ function normalizeSchedulePayloadSegment(segment: ScheduleSegmentLike): Schedule
   const start = parseBackendDateTime(segment.scheduled_start_at ?? segment.scheduledStartAt)
   const end = parseBackendDateTime(segment.scheduled_end_at ?? segment.scheduledEndAt)
   if (!start || !end || end <= start) return null
+  const useDevice = hasText(segment.use_device) ? segment.use_device.trim() : hasText(segment.useDevice) ? segment.useDevice.trim() : ""
   return {
     scheduled_start_at: formatBackendDateTimeFromDate(start),
-    scheduled_end_at: formatBackendDateTimeFromDate(end)
+    scheduled_end_at: formatBackendDateTimeFromDate(end),
+    ...(useDevice ? { use_device: useDevice, useDevice } : {})
   }
 }
 
