@@ -844,26 +844,26 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
       board?.serial,
       board?.serial_num,
       board?.serialNumber,
-      board?.board_serial,
-      board?.id
-    ) || `${applicationNo || "PCB"}-${index + 1}`
+      board?.board_serial
+    )
+  const boardIdentity = getDisplayString(board?.id, board?.boardId, board?.board_id, board?.prodBoardId, board?.tempBoardId)
   const model = getString(board?.model, board?.name, row.specModel, row.sampleName, row.ggxh, "电路板模块")
   const fallbackBatchNo = `${applicationNo || "DLB"}-${String(index + 1).padStart(2, "0")}`
   return {
-    id: serial,
+    id: boardIdentity || serial || `${applicationNo || "PCB"}-${index + 1}`,
     boardId: getDisplayString(board?.boardId, board?.board_id),
     prodBoardId: getDisplayString(board?.prodBoardId, board?.prod_board_id, board?.board_id),
     tempBoardId: getDisplayString(board?.tempBoardId, board?.temp_board_id),
     seria: serial,
     sn: serial,
     serial,
-    serialNum: getString(board?.serial_num, board?.serialNumber, board?.board_serial, serial),
+    serialNum: getString(board?.serial_num, board?.serialNumber, board?.board_serial),
     name: model,
     sampleName: getString(board?.sampleName, board?.name, row.sampleName, row.moduleName, model),
     model,
-    assistantSn: getString(board?.assistantSn, board?.assistant_sn, board?.sourceSn, board?.source_sn, board?.originalSn, board?.original_sn, board?.sn),
-    sourceSn: getString(board?.sourceSn, board?.source_sn, board?.assistantSn, board?.assistant_sn, board?.originalSn, board?.original_sn, board?.sn),
-    originalSn: getString(board?.originalSn, board?.original_sn, board?.assistantSn, board?.assistant_sn, board?.sourceSn, board?.source_sn, board?.sn),
+    assistantSn: getString(board?.assistantSn, board?.assistant_sn, board?.sourceSn, board?.source_sn, board?.originalSn, board?.original_sn),
+    sourceSn: getString(board?.sourceSn, board?.source_sn, board?.assistantSn, board?.assistant_sn, board?.originalSn, board?.original_sn),
+    originalSn: getString(board?.originalSn, board?.original_sn, board?.assistantSn, board?.assistant_sn, board?.sourceSn, board?.source_sn),
     batchNo: getString(board?.batchNo, board?.pch) || fallbackBatchNo,
     supplier: getString(board?.supplier, board?.gysmc) || "未提供",
     materialNo: getString(board?.materialNo, board?.wlh),
@@ -1484,7 +1484,7 @@ function getProvidedBoardSn(board: CircuitApplicationBoard) {
   const raw = (board.raw || {}) as Record<string, unknown>
   const confirmedSn = getString((board as unknown as Record<string, unknown>).snConfirmed, raw.snConfirmed)
   if (confirmedSn) return getString(board.sn, board.serial, board.seria, raw.sn, raw.serial, raw.seria)
-  return getString(
+  const sn = getString(
     board.sourceSn,
     board.assistantSn,
     board.originalSn,
@@ -1495,6 +1495,69 @@ function getProvidedBoardSn(board: CircuitApplicationBoard) {
     raw.originalSn,
     raw.original_sn
   )
+  return sn && sn !== "-" ? sn : ""
+}
+
+function getBoardQuantity(board: CircuitApplicationBoard) {
+  const raw = (board.raw || {}) as Record<string, unknown>
+  const value = Number(getString(board.quantity, raw.quantity, raw.sl, raw.qty, raw.number))
+  return Number.isFinite(value) && value > 0 ? Math.max(1, Math.floor(value)) : 1
+}
+
+function getBoardSplitStartIndex(application: CircuitApplication, targetBoard: CircuitApplicationBoard) {
+  let index = 1
+  for (const board of application.boards) {
+    if (board === targetBoard) return index
+    index += getBoardQuantity(board)
+  }
+  return index
+}
+
+function createPublishedSn(application: CircuitApplication, index: number) {
+  return `${application.orderNo || "CBM"}-${String(index).padStart(3, "0")}`
+}
+
+function cloneBoardForGeneratedOrder(board: CircuitApplicationBoard, sn: string): CircuitApplicationBoard {
+  const raw = patchRawBoardSn(board.raw, sn) as Record<string, unknown> | undefined
+  const nextRaw = raw
+    ? {
+        ...raw,
+        sl: "1",
+        quantity: "1",
+        qty: "1",
+        number: "1"
+      }
+    : raw
+  return {
+    ...board,
+    id: sn,
+    seria: sn,
+    sn,
+    serial: sn,
+    serialNum: sn,
+    sourceSn: sn,
+    assistantSn: sn,
+    originalSn: sn,
+    quantity: "1",
+    raw: nextRaw
+  }
+}
+
+function expandBoardsForGeneratedOrders(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
+  return boards.flatMap((board) => {
+    const quantity = getBoardQuantity(board)
+    if (quantity <= 1) return [board]
+    const providedSn = getProvidedBoardSn(board)
+    if (providedSn) {
+      return Array.from({ length: quantity }, (_, index) =>
+        cloneBoardForGeneratedOrder(board, `${providedSn}-${String(index + 1).padStart(3, "0")}`)
+      )
+    }
+    const startIndex = getBoardSplitStartIndex(application, board)
+    return Array.from({ length: quantity }, (_, index) =>
+      cloneBoardForGeneratedOrder(board, createPublishedSn(application, startIndex + index))
+    )
+  })
 }
 
 function buildSnFillKey(application: CircuitApplication, board: CircuitApplicationBoard) {
@@ -2126,10 +2189,11 @@ async function createGeneratedTestOrder(
   boards: CircuitApplicationBoard[] = getPublishableBoards(application)
 ) {
   if (!boards.length) return
+  const boardsForOrder = expandBoardsForGeneratedOrders(application, boards)
 
   if (application.generatedOrderType === "production") {
     const testType = await resolveGeneratedOrderTestType(application)
-    const { boardList } = await buildGeneratedOrderBoardList(application, boards, testType)
+    const { boardList } = await buildGeneratedOrderBoardList(application, boardsForOrder, testType)
     const response = await createTestUnitApi({
       boardList,
       userId: userStore.userid,
@@ -2144,7 +2208,7 @@ async function createGeneratedTestOrder(
     return
   }
 
-  const { boardList, addProdBoard, processList, testType } = await buildGeneratedTempOrderBoardList(application, boards)
+  const { boardList, addProdBoard, processList, testType } = await buildGeneratedTempOrderBoardList(application, boardsForOrder)
   const payload = {
     addProdBoard,
     processList,

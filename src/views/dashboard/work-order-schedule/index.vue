@@ -433,6 +433,7 @@ import {
   applySchedulePayloadToTargetOrder,
   buildSecondaryDeviceTabs,
   buildSingleCellSchedulePayload,
+  filterOrdersByActiveDeviceTab,
   filteredOrdersByScheduleState,
   getScheduleLifecycleStatusText,
   hostMatchesModelKeywords,
@@ -606,7 +607,7 @@ const scheduleStateTabs: Array<{
 
 const activeEquipment = ref<EquipmentKey>("high-temp-pressure")
 const activeScheduleState = ref<ScheduleListState>("pending")
-const activeDeviceTab = ref("高温高压井")
+const activeDeviceTab = ref("")
 const route = useRoute()
 const selectedOrderId = ref("")
 const loading = ref(false)
@@ -720,13 +721,26 @@ const highTempPressureHostDevices = computed(() =>
 
 const secondaryDeviceTabs = computed(() => {
   const keywords = EQUIPMENT_DEVICE_KEYWORDS[activeEquipment.value]
-  return buildSecondaryDeviceTabs(keywords[0], hostDevices.value, keywords)
+  const tabs = buildSecondaryDeviceTabs(keywords[0], hostDevices.value, keywords)
+  if (activeEquipment.value === "high-temp-pressure") {
+    const baseKey = keywords[0]?.trim()
+    return [{ key: "", label: "全部" }, ...tabs.filter((tab) => tab.key !== baseKey)]
+  }
+  return tabs
 })
+
+const deviceScopedOrders = computed(() =>
+  filterOrdersByActiveDeviceTab(stateOrders.value, activeEquipment.value, activeDeviceTab.value, "")
+)
+
+const deviceScopedActiveOrders = computed(() =>
+  filterOrdersByActiveDeviceTab(activeOrders.value, activeEquipment.value, activeDeviceTab.value, "")
+)
 
 const filteredOrders = computed(() => {
   const keyword = searchForm.keyword.trim().toLowerCase()
-  if (!keyword) return stateOrders.value
-  return stateOrders.value.filter((order) =>
+  if (!keyword) return deviceScopedOrders.value
+  return deviceScopedOrders.value.filter((order) =>
     [order.taskNumber, order.title, order.applicant, order.targetName, order.hostDeviceName, order.useDevice]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(keyword))
@@ -786,7 +800,7 @@ const weekLabel = computed(() => {
 })
 
 const calendarEvents = computed<CalendarEvent[]>(() => {
-  const events = activeOrders.value.flatMap<BaseCalendarEvent>((order) => {
+  const events = deviceScopedActiveOrders.value.flatMap<BaseCalendarEvent>((order) => {
     const segments = getOrderScheduleSegments(order)
 
     return segments
@@ -1614,7 +1628,7 @@ function handleEquipmentChange() {
   activeScheduleState.value = "pending"
   clearCalendarDragState()
   handleCircuitBoardDragEnd()
-  activeDeviceTab.value = EQUIPMENT_DEVICE_KEYWORDS[activeEquipment.value][0]
+  activeDeviceTab.value = activeEquipment.value === "high-temp-pressure" ? "" : EQUIPMENT_DEVICE_KEYWORDS[activeEquipment.value][0]
   void loadOrders()
 }
 
