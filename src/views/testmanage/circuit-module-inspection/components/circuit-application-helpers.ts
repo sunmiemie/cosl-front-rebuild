@@ -82,14 +82,18 @@ const circuitProcessAliasMap = new Map<string, (typeof CIRCUIT_PROCESS_OPTIONS)[
   ["halt&hass测试", "HALT-HASS测试"]
 ])
 
+function isUnreadablePlaceholder(value: string) {
+  return /^\?+$/.test(value.trim())
+}
+
 export function getString(...values: unknown[]) {
-  const value = values.find((item) => typeof item === "string" && item.trim())
+  const value = values.find((item) => typeof item === "string" && item.trim() && !isUnreadablePlaceholder(item))
   return typeof value === "string" ? value.trim() : ""
 }
 
 export function getDisplayString(...values: unknown[]) {
   const value = values.find((item) => {
-    if (typeof item === "string") return item.trim()
+    if (typeof item === "string") return item.trim() && !isUnreadablePlaceholder(item)
     return typeof item === "number" && Number.isFinite(item)
   })
   if (value === undefined || value === null) return ""

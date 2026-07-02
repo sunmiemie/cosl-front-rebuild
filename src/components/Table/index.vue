@@ -70,10 +70,12 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
+        :min-width="item.minWidth"
         :align="item.align"
         :fixed="'right'"
         :sortable="item.sort"
         :formatter="item.formatter"
+        :show-overflow-tooltip="item.showOverflowTooltip !== false"
       >
         <template #default="scope">
           <slot :name="item.prop" v-bind="scope" />
@@ -84,11 +86,13 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
+        :min-width="item.minWidth"
         :align="item.align"
         :fixed="item.fixed"
         :sortable="item.sort"
         :filters="item.filters"
         :formatter="item.formatter"
+        :show-overflow-tooltip="item.showOverflowTooltip !== false"
       >
         <template #default="scope">
           <slot :name="item.prop" v-bind="scope" />
@@ -99,11 +103,13 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
+        :min-width="item.minWidth"
         :align="item.align"
         :fixed="item.fixed"
         :sortable="item.sort"
         :filters="item.filters"
         :formatter="item.formatter"
+        :show-overflow-tooltip="item.showOverflowTooltip !== false"
       >
         <template #default="scope">
           <slot :name="item.prop" v-bind="scope" />
@@ -114,11 +120,13 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
+        :min-width="item.minWidth"
         :align="item.align"
         :fixed="item.fixed"
         :sortable="item.sort"
         :filters="item.filters"
         :formatter="item.formatter"
+        :show-overflow-tooltip="item.showOverflowTooltip !== false"
       >
         <template #default="scope">
           <slot :name="item.prop" v-bind="scope" />
@@ -129,11 +137,13 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
+        :min-width="item.minWidth"
         :align="item.align"
         :fixed="item.fixed"
         :sortable="item.sort"
         :filters="item.filters"
         :formatter="item.formatter"
+        :show-overflow-tooltip="item.showOverflowTooltip !== false"
       >
         <template #default="scope">
           <slot :name="item.prop" v-bind="scope" />
@@ -144,10 +154,12 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
+        :min-width="item.minWidth"
         :align="item.align"
         :fixed="item.fixed"
         :sortable="item.sort"
         :formatter="item.formatter"
+        :show-overflow-tooltip="item.showOverflowTooltip !== false"
       />
     </template>
   </el-table>

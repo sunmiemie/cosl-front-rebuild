@@ -1482,17 +1482,18 @@ function getBoardSerial(board: CircuitApplicationBoard) {
 
 function getProvidedBoardSn(board: CircuitApplicationBoard) {
   const raw = (board.raw || {}) as Record<string, unknown>
+  const confirmedSn = getString((board as unknown as Record<string, unknown>).snConfirmed, raw.snConfirmed)
+  if (confirmedSn) return getString(board.sn, board.serial, board.seria, raw.sn, raw.serial, raw.seria)
   return getString(
     board.sourceSn,
     board.assistantSn,
     board.originalSn,
-    raw.sn,
-    raw.serial,
-    raw.seria,
-    raw.serial_num,
-    raw.serialNumber,
-    raw.board_serial,
-    raw.boardSerial
+    raw.sourceSn,
+    raw.source_sn,
+    raw.assistantSn,
+    raw.assistant_sn,
+    raw.originalSn,
+    raw.original_sn
   )
 }
 
@@ -1528,7 +1529,8 @@ function patchRawBoardSn(rawBoard: unknown, sn: string) {
     assistantSn: sn,
     assistant_sn: sn,
     originalSn: sn,
-    original_sn: sn
+    original_sn: sn,
+    snConfirmed: true
   }
 }
 
@@ -1541,6 +1543,7 @@ function applyBoardSn(board: CircuitApplicationBoard, sn: string) {
   board.sourceSn = sn
   board.assistantSn = sn
   board.originalSn = sn
+  ;(board as unknown as Record<string, unknown>).snConfirmed = true
   board.raw = patchRawBoardSn(board.raw, sn)
 }
 
@@ -1743,6 +1746,9 @@ function buildGeneratedBoardRow(
   const model = getString(board.model, board.name, raw.ggxh, raw.model, raw.name)
   const sampleName = getString(board.sampleName, raw.ypmc, raw.sampleName, raw.board_name, model)
   const materialNo = getString(board.materialNo, raw.wlh, raw.materialNo, raw.material_no)
+  const product = getString(raw.sscp, raw.product, raw.productName, raw.product_name, raw.belongProduct)
+  const instrument = getString(raw.instrument, raw.instrumentName, raw.instrument_name, raw.device, raw.deviceName, sampleName)
+  const testContent = getString(raw.csnr, raw.testContent, raw.test_content)
 
   return {
     id: String(boardId),
@@ -1765,8 +1771,15 @@ function buildGeneratedBoardRow(
     board_model: model,
     boardName: sampleName,
     board_name_or_board_model: getString(sampleName, model),
+    sampleName,
     material_no: materialNo,
     materialNo,
+    product,
+    productName: product,
+    instrument,
+    instrumentName: instrument,
+    test_content: testContent,
+    testContent,
     available: selectedTest,
     selectedTest: [...selectedTest],
     checkAll: true,
@@ -1781,7 +1794,9 @@ function buildGeneratedBoardRow(
     gysmc: supplier,
     ggxh: model,
     ypmc: sampleName,
-    wlh: materialNo
+    wlh: materialNo,
+    csnr: testContent,
+    sscp: product
   }
 }
 

@@ -51,6 +51,7 @@ interface TableDataType {
   testunit_starttime?: string
   testunit_endtime?: string
   testunit_status?: string
+  is_scheduled?: boolean
   process_type?: string
   order_no?: string
   link?: any
@@ -72,7 +73,7 @@ const headers = checkPermission(["11"])
       { prop: "testunit_endtime", label: "结束时间", align: "center" },
       { prop: "process_type", label: "测试类型", align: "center" },
       { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
-      { prop: "link", label: "操作", type: "link" }
+      { prop: "link", label: "操作", type: "link", width: "150", minWidth: 150, align: "center" }
     ])
   : ref([
       { prop: "testunit_id", label: "工单号", align: "center" },
@@ -716,9 +717,11 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
           selection
           @selection-change="handleUnitSelectionChange"
           stripe
+          max-height="620"
         >
           <template #testunit_status="{ row }">
             <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
+            <el-tag v-else-if="row['testunit_status'] === '1' && row['is_scheduled']" type="primary"> 已排程</el-tag>
             <el-tag v-else-if="row['testunit_status'] === '1'" type="warning"> 待领取</el-tag>
             <el-tag v-else-if="row['testunit_status'] === '2'"> 测试中</el-tag>
             <el-tag v-else-if="row['testunit_status'] === '3'" type="warning"> 测试待审核</el-tag>
@@ -729,9 +732,11 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
             <el-tag v-else-if="row['testunit_status'] === '8'" type="warning"> 疑问待处理</el-tag>
           </template>
           <template #link="{ row }" v-if="checkPermission(['11'])">
-            <el-link v-for="i in row['link']" class="el-link" type="primary" :key="i" @click="handleLink(row, i)">
-              {{ i }}
-            </el-link>
+            <div class="operation-links">
+              <el-link v-for="i in row['link']" class="el-link" type="primary" :key="i" @click="handleLink(row, i)">
+                {{ i }}
+              </el-link>
+            </div>
           </template>
         </TableComponent>
       </div>
@@ -765,9 +770,15 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
         </template>
       </el-page-header>
     </header>
-    <el-header style="margin: 20px 0 20px 0">
+    <el-header class="detail-section detail-header" style="margin: 20px 0 20px 0">
       <el-text size="large">测试基本信息</el-text>
-      <el-form :inline="true" :model="detailform" class="demo-form-inline" label-position="top" style="margin: 10px 0">
+      <el-form
+        :inline="true"
+        :model="detailform"
+        class="demo-form-inline detail-basic-form"
+        label-position="top"
+        style="margin: 10px 0"
+      >
         <el-form-item label="工单号" style="width: 13%">
           <el-input v-model="detailform.unitId" readonly />
         </el-form-item>
@@ -782,12 +793,12 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
         </el-form-item>
       </el-form>
     </el-header>
-    <el-main class="drawer-main">
+    <el-main class="drawer-main detail-section">
       <el-text size="large" style="margin-top: 20px">被测电路板信息</el-text>
       <el-row>
         <el-col :span="24">
           <el-card class="info-box" shadow="never" style="margin: 20px 0">
-            <el-form :model="detailform" label-position="left" label-width="auto">
+            <el-form :model="detailform" class="detail-info-form" label-position="left" label-width="auto">
               <el-form-item label="电路板 ID">
                 <el-input v-model="detailform.boardId" readonly />
               </el-form-item>
@@ -808,7 +819,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
         </el-col>
       </el-row>
     </el-main>
-    <el-footer class="drawer-footer">
+    <el-footer class="drawer-footer detail-section">
       <el-text size="large">所选测试工艺信息</el-text>
       <br />
       <!--      <el-button type="primary" style="margin-top: 10px">{{ detailform.testType }}</el-button>-->
@@ -1055,12 +1066,26 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
 }
 
 .drawer-main {
-  margin-top: 40px;
+  margin-top: 16px;
   height: auto;
 }
 
+.detail-section {
+  box-sizing: border-box;
+  width: 100%;
+  height: auto !important;
+  min-height: 0;
+  padding: 0 20px;
+}
+
+.detail-header {
+  display: block;
+  overflow: visible;
+}
+
 .drawer-footer {
-  height: 200px;
+  height: auto;
+  min-height: 200px;
 
   .drawer-jiaju {
     border-radius: 10px;
@@ -1094,6 +1119,35 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
   }
 }
 
+:deep(.detail-basic-form) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 16px;
+}
+
+:deep(.detail-basic-form .el-form-item) {
+  width: auto !important;
+  min-width: 0;
+  margin-right: 0;
+  margin-bottom: 0;
+}
+
+:deep(.detail-info-form) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px 20px;
+}
+
+:deep(.detail-info-form .el-form-item) {
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+:deep(.detail-info-form .el-form-item__content),
+:deep(.detail-basic-form .el-form-item__content) {
+  min-width: 0;
+}
+
 .toolbar-wrapper {
   display: flex;
   justify-content: space-between;
@@ -1106,7 +1160,15 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
 }
 
 .el-link {
-  margin-right: 8px;
+  margin-right: 0;
+}
+
+.operation-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 8px;
+  line-height: 1.4;
 }
 
 .head-test {

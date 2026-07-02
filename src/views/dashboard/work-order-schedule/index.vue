@@ -1035,7 +1035,11 @@ function buildDraggedSchedulePayload(order: ScheduleOrder, dateStr: string, slot
 }
 
 function getString(...values: unknown[]) {
-  return values.find((value) => typeof value === "string" && value.trim()) as string | undefined
+  return values.find((value) => {
+    if (typeof value !== "string") return false
+    const text = value.trim()
+    return text && !/^\?+$/.test(text)
+  }) as string | undefined
 }
 
 function normalizeDeviceName(value: unknown) {
