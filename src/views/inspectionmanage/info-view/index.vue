@@ -82,7 +82,9 @@ const selectedRecordRows = computed(() =>
 const currentMonthAssistantResults = computed(() => {
   return filteredAssistantResults.value.filter((item) => (item.inspectionDate || "").slice(0, 7) === currentMonth.value)
 })
-const currentMonthRecordCount = computed(() => filteredMonthRecords.value.length + currentMonthAssistantResults.value.length)
+const currentMonthRecordCount = computed(
+  () => filteredMonthRecords.value.length + currentMonthAssistantResults.value.length
+)
 const selectedDayRecordCount = computed(() => selectedRecordRows.value.length)
 
 function getRecordDate(record: InspectionBaseInfoListItem) {
@@ -93,7 +95,7 @@ function getDateCount(day: string) {
   return (recordsByDate.value[day]?.length || 0) + getAssistantCalendarCount(assistantResultsByDate.value, day)
 }
 
-function getDateStatus(day: string): "success" | "warning" | "danger" | undefined {
+function _getDateStatus(day: string): "success" | "warning" | "danger" | undefined {
   const records = recordsByDate.value[day] || []
   if (records.some((item) => item.status === "维修中")) return "danger"
   if (records.some((item) => item.status === "维保中")) return "warning"
@@ -219,7 +221,13 @@ onBeforeUnmount(() => {
       <el-tabs v-model="activeGroup" class="inspection-tabs">
         <el-tab-pane v-for="item in inspectionGroups" :key="item.value" :label="item.label" :name="item.value" />
       </el-tabs>
-      <el-button type="primary" plain :icon="Refresh" :loading="loading || assistantResultLoading" @click="refreshInspectionRecords">
+      <el-button
+        type="primary"
+        plain
+        :icon="Refresh"
+        :loading="loading || assistantResultLoading"
+        @click="refreshInspectionRecords"
+      >
         刷新巡检记录
       </el-button>
     </div>
@@ -284,7 +292,14 @@ onBeforeUnmount(() => {
         </template>
 
         <el-empty v-if="!selectedRecordRows.length" description="当天暂无巡检记录" />
-        <el-table v-else :data="selectedRecordRows" border stripe class="record-table" @row-click="openInspectionRecord">
+        <el-table
+          v-else
+          :data="selectedRecordRows"
+          border
+          stripe
+          class="record-table"
+          @row-click="openInspectionRecord"
+        >
           <el-table-column prop="deviceName" label="巡检设备名称" min-width="150" show-overflow-tooltip />
           <el-table-column prop="deviceSn" label="设备SN号" min-width="150" show-overflow-tooltip />
           <el-table-column prop="inspector" label="巡检人员" min-width="120" show-overflow-tooltip />
@@ -344,7 +359,9 @@ onBeforeUnmount(() => {
           <el-descriptions-item label="测试类型">{{ currentAssistantRecord.equipmentTypeName }}</el-descriptions-item>
           <el-descriptions-item label="设备ID">{{ currentAssistantRecord.equipmentId }}</el-descriptions-item>
           <el-descriptions-item label="设备SN号">{{ currentAssistantRecord.sn }}</el-descriptions-item>
-          <el-descriptions-item label="巡检人员">{{ getParticipantText(currentAssistantRecord) || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="巡检人员">{{
+            getParticipantText(currentAssistantRecord) || "-"
+          }}</el-descriptions-item>
         </el-descriptions>
 
         <div class="drawer-title">巡检内容</div>
@@ -405,7 +422,7 @@ onBeforeUnmount(() => {
 
 .calendar-layout {
   display: grid;
-  grid-template-columns: minmax(500px, 620px) minmax(0, 1fr);
+  grid-template-columns: minmax(560px, 700px) minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -475,7 +492,7 @@ onBeforeUnmount(() => {
   }
 
   :deep(.el-calendar-table .el-calendar-day) {
-    height: 50px;
+    height: 64px;
     padding: 0;
   }
 }
