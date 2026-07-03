@@ -81,6 +81,7 @@ export type PushEngineerAssistantEquipmentBody = {
     testTypeId: string
     equipmentId: string
     equipmentName: string
+    sn?: string
   }>
 }
 
