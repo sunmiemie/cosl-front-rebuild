@@ -457,6 +457,7 @@ import {
   resolveCircuitProcessName,
   type CircuitApplicationUiBoard
 } from "./circuit-application-helpers"
+import { isGeneratedSerialMatch } from "./generated-order-match"
 
 type ApplicationTypeKey = "电路板模块"
 type ApplicationStatus = "draft" | "partial" | "published" | "scheduling" | "in_progress" | "done"
@@ -1169,6 +1170,7 @@ async function publishGeneratedTestOrders(response: any, orderType: "production"
 
 function rowMatchesGeneratedBoard(application: CircuitApplication, board: CircuitApplicationBoard, row: any) {
   const serial = getBoardSerial(board)
+  const quantity = getBoardQuantity(board)
   const orderNo = application.orderNo
   if (!serial || !orderNo) return false
   const rowOrderNo = getString(row?.order_no, row?.orderNo)
@@ -1205,8 +1207,8 @@ function rowMatchesGeneratedBoard(application: CircuitApplication, board: Circui
   )
   const matchesOrder = rowOrderNo ? rowOrderNo === orderNo : rowName.includes(orderNo)
   const matchesBoard =
-    rowIdentityValues.some((value) => boardIdentityValues.has(value)) ||
-    (rowSerial ? rowSerial === serial : rowName.includes(serial))
+    rowIdentityValues.some((value) => boardIdentityValues.has(value) || isGeneratedSerialMatch(serial, value, quantity)) ||
+    (rowSerial ? isGeneratedSerialMatch(serial, rowSerial, quantity) : rowName.includes(serial))
   return matchesOrder && matchesBoard
 }
 
@@ -2401,6 +2403,7 @@ async function generateOrdersForBoards(
   boards: CircuitApplicationBoard[],
   silent: boolean
 ) {
+  await refreshGeneratedStatusForApplication(application).catch(() => undefined)
   const boardsToCreate = boards.filter((board) => !hasGeneratedBoardCreated(application, board))
 
   if (!boardsToCreate.length) {

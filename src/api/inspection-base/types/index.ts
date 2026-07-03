@@ -70,6 +70,7 @@ export interface InspectionBaseInfoSaveRequest {
   device_sn: string
   inspector: string
   status: "正常" | "维保中" | "维修中"
+  assistant_equipment_type?: string
   items: Array<{
     sort_no?: number
     content: string
@@ -85,5 +86,82 @@ export interface InspectionBaseInfoSaveResponse {
   data: {
     id: number
     inspection_no: string
+    assistantSync?: {
+      success: boolean
+      synced: number
+      message?: string
+      payload?: {
+        equipmentType: string
+        inspectionItems: Array<{
+          itemId: string
+          itemContent: string
+          orderNum: string
+          isPhoto: boolean
+        }>
+      }
+      assistant?: unknown
+    }
   }
+}
+
+export interface InspectionBaseAssistantSyncRequest {
+  equipmentType: string
+  dryRun?: boolean
+}
+
+export interface InspectionBaseAssistantSyncResponse {
+  code: number
+  msg: string
+  message?: string
+  data: {
+    synced: number
+    payload?: {
+      equipmentType: string
+      inspectionItems: Array<{
+        itemId: string
+        itemContent: string
+        orderNum: string
+        isPhoto: boolean
+      }>
+    }
+    assistant?: unknown
+  }
+}
+
+export interface AssistantInspectionPhoto {
+  itemPhotoName: string
+  itemPhotoBase64: string
+}
+
+export interface AssistantInspectionResultItem {
+  itemId: string
+  planDate?: string
+  actualDate?: string
+  explains?: string
+  bz?: string
+  photos?: AssistantInspectionPhoto[]
+}
+
+export interface AssistantInspectionParticipant {
+  inspectionPersonId: string
+  inspectionPersonName: string
+  inspectionPersonDept: string
+}
+
+export interface AssistantInspectionResult {
+  id: string
+  equipmentType: string
+  equipmentTypeName: string
+  equipmentId: string
+  inspectionDate: string
+  sn: string
+  participants?: AssistantInspectionParticipant[]
+  items?: AssistantInspectionResultItem[]
+}
+
+export interface AssistantInspectionResultsResponse {
+  code: number
+  msg: string
+  message?: string
+  data: AssistantInspectionResult[]
 }

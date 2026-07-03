@@ -82,9 +82,12 @@ import { getDeviceInstanceListApi } from "@/api/device-instance"
 import type { DeviceInstanceData } from "@/api/device-instance/types"
 import { getInspectionBaseInfoDetailApi, saveInspectionBaseInfoApi } from "@/api/inspection-base"
 import type { InspectionBaseInfoDetail } from "@/api/inspection-base/types"
+import { useUserStore } from "@/store/modules/user"
+import { getInspectionInspector } from "./inspection-save"
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const createItemId = () => `item-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 
@@ -116,6 +119,17 @@ function getDeviceInstanceName(row: DeviceInstanceData) {
 
 function getDeviceInstanceSn(row: DeviceInstanceData) {
   return row.serialNumber ?? row.serial_number ?? row.psi_serialnumber ?? ""
+}
+
+function getAssistantEquipmentType(deviceName: string) {
+  if (/halt|hass/i.test(deviceName)) return "1"
+  if (deviceName.includes("高温箱")) return "2"
+  if (deviceName.includes("高温高压")) return "3"
+  if (deviceName.includes("水循环")) return "4"
+  if (deviceName.includes("振动")) return "5"
+  if (deviceName.includes("电路板")) return "6"
+  if (deviceName.includes("模拟")) return "7"
+  return "3"
 }
 
 async function loadSnOptions(deviceName: string, keepSn = "") {
@@ -256,8 +270,13 @@ async function handleSave() {
     id: formData.id ? Number(formData.id) : undefined,
     device_name: formData.device_name,
     device_sn: formData.device_sn,
-    inspector: formData.inspector.trim(),
+    inspector: getInspectionInspector({
+      inspector: formData.inspector,
+      nickName: userStore.nickName,
+      username: userStore.username
+    }),
     status: formData.status,
+    assistant_equipment_type: getAssistantEquipmentType(formData.device_name),
     items: formData.items.map((it, idx) => ({
       sort_no: idx + 1,
       content: it.content,
@@ -265,7 +284,11 @@ async function handleSave() {
     }))
   }
   const res = await saveInspectionBaseInfoApi(payload)
-  ElMessage.success(res.msg || "保存成功")
+  if (res.data?.assistantSync?.success === false) {
+    ElMessage.warning(res.data.assistantSync.message || "巡检项已保存，但自动推送小助手失败")
+  } else {
+    ElMessage.success(res.msg || "保存成功，已自动推送小助手")
+  }
   router.push("/inspectionmanage/view")
 }
 

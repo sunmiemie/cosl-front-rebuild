@@ -391,8 +391,12 @@ const submitForm = () => {
           }))
         }
       })
-        .then(() => {
-          ElMessage.success("委托单已保存")
+        .then((res: any) => {
+          if (res.data?.assistantSync?.success === false) {
+            ElMessage.warning(res.data.assistantSync.message || "委托单已保存，但自动推送小助手失败")
+          } else {
+            ElMessage.success("委托单已保存，已自动推送小助手")
+          }
           resetForm()
         })
         .catch(() => {

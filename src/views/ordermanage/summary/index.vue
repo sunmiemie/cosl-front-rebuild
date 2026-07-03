@@ -277,31 +277,47 @@ const filterRowsByStatus = (rows: any[]) => {
   return normalizedRows.filter((row) => row.status === filters.status)
 }
 
-const getList = () => {
+const getAssistantSyncPayload = () => {
+  const searchText = filters.search.trim()
+  return /^CS[\w-]+$/i.test(searchText) ? { applicationNum: searchText } : {}
+}
+
+const syncAssistantCommissionBindings = async () => {
+  try {
+    await request({
+      url: "data/commission-board-relation/sync-assistant",
+      method: "post",
+      data: getAssistantSyncPayload()
+    })
+  } catch (error) {
+    ElMessage.warning("同步小助手关联失败，已显示本地数据")
+  }
+}
+
+const getList = async () => {
   loading.value = true
-  request({
-    url: "data/commission-board-relation/list",
-    method: "get",
-    params: {
-      currentPage: 1,
-      pageSize: 1000,
-      search: filters.search,
-      status: filters.status
-    }
-  })
-    .then((res: any) => {
-      tableData.value = filterRowsByStatus(res.data.list || [])
-      const s = res.data.stats || {}
-      stats.total = s.total || 0
-      stats.linked = s.linked || 0
-      stats.unlinked = s.unlinked || 0
+  await syncAssistantCommissionBindings()
+  try {
+    const res: any = await request({
+      url: "data/commission-board-relation/list",
+      method: "get",
+      params: {
+        currentPage: 1,
+        pageSize: 1000,
+        search: filters.search,
+        status: filters.status
+      }
     })
-    .catch(() => {
-      tableData.value = []
-    })
-    .finally(() => {
-      loading.value = false
-    })
+    tableData.value = filterRowsByStatus(res.data.list || [])
+    const s = res.data.stats || {}
+    stats.total = s.total || 0
+    stats.linked = s.linked || 0
+    stats.unlinked = s.unlinked || 0
+  } catch (error) {
+    tableData.value = []
+  } finally {
+    loading.value = false
+  }
 }
 
 const applyFilters = () => {

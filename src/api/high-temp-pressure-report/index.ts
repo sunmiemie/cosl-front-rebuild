@@ -114,3 +114,11 @@ export function deleteHighTempPressureReportApi(pk: number) {
     method: "delete"
   })
 }
+
+export function getHighTempPressureReportPdfApi(pk: number) {
+  return request<Blob>({
+    url: `test/high-temp-pressure/report/download/${pk}/`,
+    method: "get",
+    responseType: "blob"
+  })
+}

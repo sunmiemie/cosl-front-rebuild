@@ -287,13 +287,13 @@ import {
   getHighTempPressureReportListApi,
   createHighTempPressureReportApi,
   getHighTempPressureReportDetailApi,
+  getHighTempPressureReportPdfApi,
   updateHighTempPressureReportApi,
   deleteHighTempPressureReportApi,
   type HighTempPressureReportListItem
 } from "@/api/high-temp-pressure-report"
 import {
   booleanReportTagType,
-  buildHighTempPressureReportDoc,
   curveReportTagType,
   displayReportValue,
   formatReportCurveStatus,
@@ -465,26 +465,25 @@ const handleDetail = async (row: HighTempPressureReportListItem) => {
 }
 
 const handleDownload = async (row: HighTempPressureReportListItem) => {
-  let report = row
   try {
-    const res = await getHighTempPressureReportDetailApi(row.id)
-    if (res.code === 0) report = res.data
-  } catch {
-    report = row
+    const blob = await getHighTempPressureReportPdfApi(row.id)
+    const pdfBlob = blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" })
+    const url = URL.createObjectURL(pdfBlob)
+    const filename = `${(row.report_no || "高温高压测试报告").replace(/[\\/:*?"<>|]/g, "-")}.pdf`
+
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+
+    URL.revokeObjectURL(url)
+    ElMessage.success("PDF下载开始")
+  } catch (e) {
+    console.error(e)
+    ElMessage.error("PDF下载失败")
   }
-  const doc = buildHighTempPressureReportDoc(report)
-  const blob = new Blob(["\ufeff", doc.html], { type: doc.mimeType })
-  const url = URL.createObjectURL(blob)
-
-  const a = document.createElement("a")
-  a.href = url
-  a.download = doc.filename
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-
-  URL.revokeObjectURL(url)
-  ElMessage.success("下载开始")
 }
 
 const handleDelete = async (row: HighTempPressureReportListItem) => {

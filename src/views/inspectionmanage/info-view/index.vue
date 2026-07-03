@@ -1,10 +1,28 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import dayjs from "dayjs"
-import type { CalendarDateType, CalendarInstance } from "element-plus"
-import { ArrowLeft, ArrowRight } from "@element-plus/icons-vue"
-import { getInspectionBaseInfoDetailApi, getInspectionBaseInfoListApi } from "@/api/inspection-base"
-import type { InspectionBaseInfoDetail, InspectionBaseInfoListItem } from "@/api/inspection-base/types"
+import { ElMessage, type CalendarDateType, type CalendarInstance } from "element-plus"
+import { ArrowLeft, ArrowRight, Refresh } from "@element-plus/icons-vue"
+import {
+  getAssistantInspectionResultsApi,
+  getInspectionBaseInfoDetailApi,
+  getInspectionBaseInfoListApi
+} from "@/api/inspection-base"
+import type {
+  AssistantInspectionResult,
+  InspectionBaseInfoDetail,
+  InspectionBaseInfoListItem
+} from "@/api/inspection-base/types"
+import {
+  ASSISTANT_RESULT_REFRESH_INTERVAL_MS,
+  buildInspectionRecordRows,
+  filterAssistantResultsByDeviceGroup,
+  filterLocalRecordsByDeviceGroup,
+  getAssistantCalendarCount,
+  getAssistantPhotoUrl,
+  getAssistantResultsByDate,
+  getParticipantText
+} from "./assistant-results"
 import { useRouter } from "vue-router"
 
 interface InspectionGroup {
@@ -31,13 +49,22 @@ const selectedDay = ref(dayjs().format("YYYY-MM-DD"))
 const monthRecords = ref<InspectionBaseInfoListItem[]>([])
 const drawerVisible = ref(false)
 const currentRecord = ref<InspectionBaseInfoDetail | null>(null)
+const currentAssistantRecord = ref<AssistantInspectionResult | null>(null)
+const assistantResultLoading = ref(false)
+const assistantResults = ref<AssistantInspectionResult[]>([])
+let assistantRefreshTimer: ReturnType<typeof setInterval> | undefined
 
 const activeGroupInfo = computed(
   () => inspectionGroups.find((item) => item.value === activeGroup.value) || inspectionGroups[0]
 )
 
+const filteredMonthRecords = computed(() => filterLocalRecordsByDeviceGroup(monthRecords.value, activeGroup.value))
+const filteredAssistantResults = computed(() =>
+  filterAssistantResultsByDeviceGroup(assistantResults.value, activeGroup.value)
+)
+
 const recordsByDate = computed(() => {
-  return monthRecords.value.reduce<Record<string, InspectionBaseInfoListItem[]>>((map, item) => {
+  return filteredMonthRecords.value.reduce<Record<string, InspectionBaseInfoListItem[]>>((map, item) => {
     const date = getRecordDate(item)
     if (!date) return map
     if (!map[date]) map[date] = []
@@ -46,27 +73,31 @@ const recordsByDate = computed(() => {
   }, {})
 })
 
+const assistantResultsByDate = computed(() => getAssistantResultsByDate(filteredAssistantResults.value))
 const selectedRecords = computed(() => recordsByDate.value[selectedDay.value] || [])
+const selectedAssistantResults = computed(() => assistantResultsByDate.value[selectedDay.value] || [])
+const selectedRecordRows = computed(() =>
+  buildInspectionRecordRows(selectedRecords.value, selectedAssistantResults.value)
+)
+const currentMonthAssistantResults = computed(() => {
+  return filteredAssistantResults.value.filter((item) => (item.inspectionDate || "").slice(0, 7) === currentMonth.value)
+})
+const currentMonthRecordCount = computed(() => filteredMonthRecords.value.length + currentMonthAssistantResults.value.length)
+const selectedDayRecordCount = computed(() => selectedRecordRows.value.length)
 
 function getRecordDate(record: InspectionBaseInfoListItem) {
   return record.inspection_date || record.created_at?.slice(0, 10) || record.updated_at?.slice(0, 10) || ""
 }
 
 function getDateCount(day: string) {
-  return recordsByDate.value[day]?.length || 0
+  return (recordsByDate.value[day]?.length || 0) + getAssistantCalendarCount(assistantResultsByDate.value, day)
 }
 
 function getDateStatus(day: string): "success" | "warning" | "danger" | undefined {
   const records = recordsByDate.value[day] || []
   if (records.some((item) => item.status === "维修中")) return "danger"
   if (records.some((item) => item.status === "维保中")) return "warning"
-  return records.length ? "success" : undefined
-}
-
-function getStatusType(status: InspectionBaseInfoListItem["status"]) {
-  if (status === "正常") return "success"
-  if (status === "维保中") return "warning"
-  return "danger"
+  return getDateCount(day) ? "success" : undefined
 }
 
 function getPhotoUrl(photo?: string | null) {
@@ -75,6 +106,22 @@ function getPhotoUrl(photo?: string | null) {
   if (/^(https?:)?\/\//i.test(value) || value.startsWith("data:") || value.startsWith("blob:")) return value
   const baseUrl = import.meta.env.VITE_BASE_API || window.location.origin
   return new URL(value, baseUrl).toString()
+}
+
+async function loadAssistantResults(showEmptyMessage = false) {
+  assistantResultLoading.value = true
+  try {
+    const res = await getAssistantInspectionResultsApi()
+    assistantResults.value = Array.isArray(res.data) ? res.data : []
+    if (showEmptyMessage && !assistantResults.value.length) {
+      ElMessage.info("小助手暂无巡检结果")
+    }
+  } catch (error: any) {
+    assistantResults.value = []
+    ElMessage.error(error?.message || "获取小助手巡检结果失败")
+  } finally {
+    assistantResultLoading.value = false
+  }
 }
 
 function selectDate(val: CalendarDateType) {
@@ -97,10 +144,44 @@ function handleEdit(row: InspectionBaseInfoListItem) {
   router.push({ path: "/inspectionmanage/base-info", query: { id: row.id } })
 }
 
-async function openDetail(row: InspectionBaseInfoListItem) {
+async function openLocalDetail(row: InspectionBaseInfoListItem) {
   const res = await getInspectionBaseInfoDetailApi(row.id)
   currentRecord.value = res.data
+  currentAssistantRecord.value = null
   drawerVisible.value = true
+}
+
+async function openInspectionRecord(row: ReturnType<typeof buildInspectionRecordRows>[number]) {
+  if (row.source === "assistant") {
+    currentRecord.value = null
+    currentAssistantRecord.value = row.assistantResult || null
+    drawerVisible.value = true
+    return
+  }
+  if (row.localRecord) {
+    await openLocalDetail(row.localRecord)
+  }
+}
+
+async function refreshInspectionRecords() {
+  await Promise.all([getCalendarData(), loadAssistantResults(true)])
+}
+
+function handleEditRecord(row: ReturnType<typeof buildInspectionRecordRows>[number]) {
+  if (row.localRecord) {
+    handleEdit(row.localRecord)
+  }
+}
+
+function getDrawerTitle() {
+  return currentAssistantRecord.value ? "小助手巡检记录查看" : "巡检基础信息查看"
+}
+
+function getAssistantPreviewPhotos(row: AssistantInspectionResult) {
+  return (row.items || [])
+    .flatMap((item) => item.photos || [])
+    .map(getAssistantPhotoUrl)
+    .filter(Boolean)
 }
 
 async function getCalendarData() {
@@ -121,6 +202,15 @@ async function getCalendarData() {
 }
 
 watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
+onMounted(() => {
+  void loadAssistantResults()
+  assistantRefreshTimer = setInterval(loadAssistantResults, ASSISTANT_RESULT_REFRESH_INTERVAL_MS)
+})
+onBeforeUnmount(() => {
+  if (assistantRefreshTimer) {
+    clearInterval(assistantRefreshTimer)
+  }
+})
 </script>
 
 <template>
@@ -129,6 +219,9 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
       <el-tabs v-model="activeGroup" class="inspection-tabs">
         <el-tab-pane v-for="item in inspectionGroups" :key="item.value" :label="item.label" :name="item.value" />
       </el-tabs>
+      <el-button type="primary" plain :icon="Refresh" :loading="loading || assistantResultLoading" @click="refreshInspectionRecords">
+        刷新巡检记录
+      </el-button>
     </div>
 
     <div class="calendar-layout">
@@ -139,7 +232,7 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
               <div class="panel-title">{{ activeGroupInfo.label }}</div>
               <div class="panel-subtitle">{{ activeGroupInfo.subtitle }}</div>
             </div>
-            <div class="month-total">本月 {{ monthRecords.length }} 条</div>
+            <div class="month-total">本月 {{ currentMonthRecordCount }} 条</div>
           </div>
         </template>
 
@@ -186,34 +279,31 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
               <div class="panel-title">{{ selectedDay }} 巡检记录</div>
               <div class="panel-subtitle">点击表格行可查看巡检内容</div>
             </div>
-            <el-tag effect="plain">{{ selectedRecords.length }} 条</el-tag>
+            <el-tag effect="plain">{{ selectedDayRecordCount }} 条</el-tag>
           </div>
         </template>
 
-        <el-empty v-if="!selectedRecords.length" description="当天暂无巡检记录" />
-        <el-table v-else :data="selectedRecords" border stripe class="record-table" @row-click="openDetail">
-          <el-table-column prop="device_name" label="巡检设备名称" min-width="150" />
-          <el-table-column prop="device_sn" label="设备SN号" min-width="150" />
-          <el-table-column prop="inspector" label="巡检人员" min-width="120" />
-          <el-table-column label="状态" min-width="96" align="center">
-            <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)">{{ row.status }}</el-tag>
-            </template>
-          </el-table-column>
+        <el-empty v-if="!selectedRecordRows.length" description="当天暂无巡检记录" />
+        <el-table v-else :data="selectedRecordRows" border stripe class="record-table" @row-click="openInspectionRecord">
+          <el-table-column prop="deviceName" label="巡检设备名称" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="deviceSn" label="设备SN号" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="inspector" label="巡检人员" min-width="120" show-overflow-tooltip />
           <el-table-column label="巡检内容数" min-width="106" align="center">
-            <template #default="{ row }">{{ row.item_count || 0 }}</template>
+            <template #default="{ row }">{{ row.itemCount || 0 }}</template>
           </el-table-column>
           <el-table-column label="操作" min-width="116" align="center">
             <template #default="{ row }">
-              <el-button link type="primary" @click.stop="openDetail(row)">查看</el-button>
-              <el-button link type="warning" @click.stop="handleEdit(row)">编辑</el-button>
+              <el-button link type="primary" @click.stop="openInspectionRecord(row)">查看</el-button>
+              <el-button v-if="row.source === 'local'" link type="warning" @click.stop="handleEditRecord(row)">
+                编辑
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
       </el-card>
     </div>
 
-    <el-drawer v-model="drawerVisible" title="巡检基础信息查看" size="560px">
+    <el-drawer v-model="drawerVisible" :title="getDrawerTitle()" size="min(900px, 96vw)">
       <template v-if="currentRecord">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="巡检配置编号">{{ currentRecord.inspection_no }}</el-descriptions-item>
@@ -228,11 +318,11 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
         <div class="drawer-title">巡检内容</div>
         <el-table :data="currentRecord.items" border stripe class="detail-table">
           <el-table-column type="index" label="序号" width="56" align="center" />
-          <el-table-column prop="content" label="巡检内容" min-width="170" />
-          <el-table-column label="是否需要拍照" width="100" align="center">
+          <el-table-column prop="content" label="巡检内容" min-width="260" />
+          <el-table-column label="是否需要拍照" width="108" align="center">
             <template #default="{ row }">{{ row.require_photo ? "是" : "否" }}</template>
           </el-table-column>
-          <el-table-column label="巡检图片" width="108" align="center">
+          <el-table-column label="巡检图片" width="124" align="center">
             <template #default="{ row }">
               <el-image
                 v-if="getPhotoUrl(row.photo)"
@@ -243,6 +333,41 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
                 fit="cover"
               />
               <span v-else class="empty-photo">暂无图片</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </template>
+      <template v-else-if="currentAssistantRecord">
+        <el-descriptions :column="1" border>
+          <el-descriptions-item label="巡检单号">{{ currentAssistantRecord.id }}</el-descriptions-item>
+          <el-descriptions-item label="巡检日期">{{ currentAssistantRecord.inspectionDate }}</el-descriptions-item>
+          <el-descriptions-item label="测试类型">{{ currentAssistantRecord.equipmentTypeName }}</el-descriptions-item>
+          <el-descriptions-item label="设备ID">{{ currentAssistantRecord.equipmentId }}</el-descriptions-item>
+          <el-descriptions-item label="设备SN号">{{ currentAssistantRecord.sn }}</el-descriptions-item>
+          <el-descriptions-item label="巡检人员">{{ getParticipantText(currentAssistantRecord) || "-" }}</el-descriptions-item>
+        </el-descriptions>
+
+        <div class="drawer-title">巡检内容</div>
+        <el-table :data="currentAssistantRecord.items || []" border stripe class="detail-table">
+          <el-table-column prop="itemId" label="项目ID" width="82" />
+          <el-table-column prop="planDate" label="计划日期" width="104" />
+          <el-table-column prop="actualDate" label="实际日期" width="104" />
+          <el-table-column prop="explains" label="说明" min-width="104" show-overflow-tooltip />
+          <el-table-column prop="bz" label="备注" min-width="126" show-overflow-tooltip />
+          <el-table-column label="照片" width="124" align="center">
+            <template #default="{ row }">
+              <div class="assistant-photo-list is-compact">
+                <el-image
+                  v-for="photo in row.photos || []"
+                  :key="photo.itemPhotoName"
+                  class="assistant-photo"
+                  :src="getAssistantPhotoUrl(photo)"
+                  :preview-src-list="getAssistantPreviewPhotos(currentAssistantRecord)"
+                  preview-teleported
+                  fit="cover"
+                />
+                <span v-if="!(row.photos || []).length" class="empty-photo">暂无图片</span>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -459,6 +584,21 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
     word-break: break-word;
     line-height: 1.4;
   }
+}
+
+.record-table {
+  :deep(.el-table__header-wrapper),
+  :deep(.el-table__body-wrapper) {
+    overflow-x: hidden;
+  }
+
+  :deep(.el-scrollbar__bar.is-horizontal) {
+    display: none;
+  }
+}
+
+.detail-table {
+  width: 100%;
 
   :deep(.el-table__header-wrapper),
   :deep(.el-table__body-wrapper) {
@@ -478,8 +618,8 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 }
 
 .inspection-photo {
-  width: 72px;
-  height: 54px;
+  width: 96px;
+  height: 64px;
   border: 1px solid var(--el-border-color-light);
   border-radius: 6px;
   background: var(--el-fill-color-light);
@@ -488,6 +628,24 @@ watch([activeGroup, currentMonth], getCalendarData, { immediate: true })
 .empty-photo {
   color: var(--el-text-color-placeholder);
   font-size: 13px;
+}
+
+.assistant-photo-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  &.is-compact {
+    justify-content: center;
+  }
+}
+
+.assistant-photo {
+  width: 96px;
+  height: 64px;
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
+  background: var(--el-fill-color-light);
 }
 
 @media (max-width: 1200px) {

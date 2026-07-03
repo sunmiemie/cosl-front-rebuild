@@ -30,3 +30,22 @@ export function deleteInspectionBaseInfoApi(baseId: number) {
     method: "delete"
   })
 }
+
+export function syncInspectionBaseToAssistantApi(
+  baseId: number,
+  data: InspectionBase.InspectionBaseAssistantSyncRequest
+) {
+  return request<InspectionBase.InspectionBaseAssistantSyncResponse>({
+    url: `data/inspection-base/sync-assistant/${baseId}/`,
+    method: "post",
+    data
+  })
+}
+
+export function getAssistantInspectionResultsApi(params?: Record<string, string>) {
+  return request<InspectionBase.AssistantInspectionResultsResponse>({
+    url: "external/assistant/inspection/results/",
+    method: "get",
+    params
+  })
+}
