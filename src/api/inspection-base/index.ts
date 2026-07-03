@@ -46,7 +46,6 @@ export function getAssistantInspectionResultsApi(params?: Record<string, string>
   return request<InspectionBase.AssistantInspectionResultsResponse>({
     url: "external/assistant/inspection/results/",
     method: "get",
-    params,
-    timeout: 15000
+    params
   })
 }

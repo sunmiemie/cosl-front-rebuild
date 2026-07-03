@@ -17,6 +17,7 @@ import {
   ASSISTANT_RESULT_REFRESH_INTERVAL_MS,
   buildInspectionRecordRows,
   filterAssistantResultsByDeviceGroup,
+  filterLocalRecordsByDeviceGroup,
   getAssistantCalendarCount,
   getAssistantPhotoUrl,
   getAssistantResultsByDate,
@@ -52,13 +53,12 @@ const currentAssistantRecord = ref<AssistantInspectionResult | null>(null)
 const assistantResultLoading = ref(false)
 const assistantResults = ref<AssistantInspectionResult[]>([])
 let assistantRefreshTimer: ReturnType<typeof setInterval> | undefined
-let assistantResultsPromise: Promise<void> | undefined
 
 const activeGroupInfo = computed(
   () => inspectionGroups.find((item) => item.value === activeGroup.value) || inspectionGroups[0]
 )
 
-const filteredMonthRecords = computed(() => monthRecords.value)
+const filteredMonthRecords = computed(() => filterLocalRecordsByDeviceGroup(monthRecords.value, activeGroup.value))
 const filteredAssistantResults = computed(() =>
   filterAssistantResultsByDeviceGroup(assistantResults.value, activeGroup.value)
 )
@@ -109,23 +109,19 @@ function getPhotoUrl(photo?: string | null) {
 }
 
 async function loadAssistantResults(showEmptyMessage = false) {
-  if (assistantResultsPromise) return assistantResultsPromise
   assistantResultLoading.value = true
-  assistantResultsPromise = (async () => {
-    try {
-      const res = await getAssistantInspectionResultsApi()
-      assistantResults.value = Array.isArray(res.data) ? res.data : []
-      if (showEmptyMessage && !assistantResults.value.length) {
-        ElMessage.info("小助手暂无巡检结果")
-      }
-    } catch (error: any) {
-      ElMessage.error(error?.message || "获取小助手巡检结果失败")
-    } finally {
-      assistantResultLoading.value = false
-      assistantResultsPromise = undefined
+  try {
+    const res = await getAssistantInspectionResultsApi()
+    assistantResults.value = Array.isArray(res.data) ? res.data : []
+    if (showEmptyMessage && !assistantResults.value.length) {
+      ElMessage.info("小助手暂无巡检结果")
     }
-  })()
-  return assistantResultsPromise
+  } catch (error: any) {
+    assistantResults.value = []
+    ElMessage.error(error?.message || "获取小助手巡检结果失败")
+  } finally {
+    assistantResultLoading.value = false
+  }
 }
 
 function selectDate(val: CalendarDateType) {
@@ -168,8 +164,7 @@ async function openInspectionRecord(row: ReturnType<typeof buildInspectionRecord
 }
 
 async function refreshInspectionRecords() {
-  await getCalendarData()
-  void loadAssistantResults(true)
+  await Promise.all([getCalendarData(), loadAssistantResults(true)])
 }
 
 function handleEditRecord(row: ReturnType<typeof buildInspectionRecordRows>[number]) {
@@ -224,7 +219,7 @@ onBeforeUnmount(() => {
       <el-tabs v-model="activeGroup" class="inspection-tabs">
         <el-tab-pane v-for="item in inspectionGroups" :key="item.value" :label="item.label" :name="item.value" />
       </el-tabs>
-      <el-button type="primary" plain :icon="Refresh" :loading="loading" @click="refreshInspectionRecords">
+      <el-button type="primary" plain :icon="Refresh" :loading="loading || assistantResultLoading" @click="refreshInspectionRecords">
         刷新巡检记录
       </el-button>
     </div>
