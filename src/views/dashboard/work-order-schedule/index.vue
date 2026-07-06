@@ -433,7 +433,6 @@ import {
   applySchedulePayloadToTargetOrder,
   buildSecondaryDeviceTabs,
   buildSingleCellSchedulePayload,
-  filterOrdersByActiveDeviceTab,
   filteredOrdersByScheduleState,
   getScheduleLifecycleStatusText,
   hostMatchesModelKeywords,
@@ -683,9 +682,7 @@ const activeConfig = computed(
 const isCircuitBoardModule = computed(() => activeEquipment.value === "circuit-board-module")
 const activeOrders = computed(() => orderMap[activeEquipment.value])
 const selectedScheduleOrder = computed(() => activeOrders.value.find((item) => item.id === scheduleForm.orderId))
-const detailScheduleSegments = computed(() =>
-  detailOrder.value ? getDetailScheduleSegments(detailOrder.value) : []
-)
+const detailScheduleSegments = computed(() => (detailOrder.value ? getDetailScheduleSegments(detailOrder.value) : []))
 const activeStateMeta = computed(
   () => scheduleStateTabs.find((item) => item.key === activeScheduleState.value) ?? scheduleStateTabs[0]
 )
@@ -729,13 +726,9 @@ const secondaryDeviceTabs = computed(() => {
   return tabs
 })
 
-const deviceScopedOrders = computed(() =>
-  filterOrdersByActiveDeviceTab(stateOrders.value, activeEquipment.value, activeDeviceTab.value, "")
-)
+const deviceScopedOrders = computed(() => stateOrders.value)
 
-const deviceScopedActiveOrders = computed(() =>
-  filterOrdersByActiveDeviceTab(activeOrders.value, activeEquipment.value, activeDeviceTab.value, "")
-)
+const deviceScopedActiveOrders = computed(() => activeOrders.value)
 
 const filteredOrders = computed(() => {
   const keyword = searchForm.keyword.trim().toLowerCase()
@@ -805,7 +798,6 @@ const calendarEvents = computed<CalendarEvent[]>(() => {
 
     return segments
       .map((segment, index) => {
-        if (!isScheduleSegmentVisibleForCurrentDevice(order, segment)) return null
         const start = parseDateTime(segment.scheduledStartAt)
         const end = parseDateTime(segment.scheduledEndAt)
         if (!start || !end) return null
@@ -1056,12 +1048,6 @@ function getString(...values: unknown[]) {
   }) as string | undefined
 }
 
-function normalizeDeviceName(value: unknown) {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase()
-}
-
 function getCurrentScheduleTargetDevice() {
   if (isCircuitBoardModule.value || !secondaryDeviceTabs.value.length) return ""
   return activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""
@@ -1086,17 +1072,9 @@ function getSegmentScheduleDevice(order: ScheduleOrder, segment?: ScheduleSegmen
   )
 }
 
-function isScheduleSegmentVisibleForCurrentDevice(order: ScheduleOrder, segment: ScheduleSegment) {
-  const targetDevice = getCurrentScheduleTargetDevice()
-  if (!targetDevice) return true
-  const segmentDevice = getSegmentScheduleDevice(order, segment)
-  if (!segmentDevice) return true
-  return normalizeDeviceName(segmentDevice) === normalizeDeviceName(targetDevice)
-}
-
-function withScheduleTargetDevice<T extends WorkOrderSchedulePayload & { schedule_segments: WorkOrderScheduleSegment[] }>(
-  payload: T
-): T {
+function withScheduleTargetDevice<
+  T extends WorkOrderSchedulePayload & { schedule_segments: WorkOrderScheduleSegment[] }
+>(payload: T): T {
   const useDevice = getCurrentScheduleTargetDevice()
   if (!useDevice) return payload
   return {
@@ -1628,7 +1606,8 @@ function handleEquipmentChange() {
   activeScheduleState.value = "pending"
   clearCalendarDragState()
   handleCircuitBoardDragEnd()
-  activeDeviceTab.value = activeEquipment.value === "high-temp-pressure" ? "" : EQUIPMENT_DEVICE_KEYWORDS[activeEquipment.value][0]
+  activeDeviceTab.value =
+    activeEquipment.value === "high-temp-pressure" ? "" : EQUIPMENT_DEVICE_KEYWORDS[activeEquipment.value][0]
   void loadOrders()
 }
 
