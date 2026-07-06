@@ -3,6 +3,19 @@
     <el-card shadow="never" class="schedule-card">
       <el-tabs v-model="activeEquipment" @tab-change="handleEquipmentChange">
         <el-tab-pane v-for="item in equipmentTabs" :key="item.key" :label="item.label" :name="item.key">
+          <div v-if="secondaryDeviceTabs.length" class="sub-device-tabs">
+            <button
+              v-for="deviceTab in secondaryDeviceTabs"
+              :key="deviceTab.key"
+              class="sub-device-tab"
+              :class="{ active: activeDeviceTab === deviceTab.key }"
+              type="button"
+              @click="activeDeviceTab = deviceTab.key"
+            >
+              {{ deviceTab.label }}
+            </button>
+          </div>
+
           <div v-if="!isCircuitBoardModule" class="state-switcher">
             <button
               v-for="state in scheduleStateTabs"
@@ -14,19 +27,6 @@
             >
               <span>{{ state.label }}</span>
               <strong>{{ stateCounts[state.key] }}</strong>
-            </button>
-          </div>
-
-          <div v-if="secondaryDeviceTabs.length" class="sub-device-tabs">
-            <button
-              v-for="deviceTab in secondaryDeviceTabs"
-              :key="deviceTab.key"
-              class="sub-device-tab"
-              :class="{ active: activeDeviceTab === deviceTab.key }"
-              type="button"
-              @click="activeDeviceTab = deviceTab.key"
-            >
-              {{ deviceTab.label }}
             </button>
           </div>
 
@@ -433,6 +433,7 @@ import {
   applySchedulePayloadToTargetOrder,
   buildSecondaryDeviceTabs,
   buildSingleCellSchedulePayload,
+  filterOrdersByActiveDeviceTab,
   filteredOrdersByScheduleState,
   getScheduleLifecycleStatusText,
   hostMatchesModelKeywords,
@@ -718,17 +719,14 @@ const highTempPressureHostDevices = computed(() =>
 
 const secondaryDeviceTabs = computed(() => {
   const keywords = EQUIPMENT_DEVICE_KEYWORDS[activeEquipment.value]
-  const tabs = buildSecondaryDeviceTabs(keywords[0], hostDevices.value, keywords)
-  if (activeEquipment.value === "high-temp-pressure") {
-    const baseKey = keywords[0]?.trim()
-    return [{ key: "", label: "全部" }, ...tabs.filter((tab) => tab.key !== baseKey)]
-  }
-  return tabs
+  return buildSecondaryDeviceTabs(keywords[0], hostDevices.value, keywords)
 })
 
 const deviceScopedOrders = computed(() => stateOrders.value)
 
-const deviceScopedActiveOrders = computed(() => activeOrders.value)
+const deviceScopedActiveOrders = computed(() =>
+  filterOrdersByActiveDeviceTab(activeOrders.value, activeEquipment.value, activeDeviceTab.value, "")
+)
 
 const filteredOrders = computed(() => {
   const keyword = searchForm.keyword.trim().toLowerCase()
@@ -1606,8 +1604,7 @@ function handleEquipmentChange() {
   activeScheduleState.value = "pending"
   clearCalendarDragState()
   handleCircuitBoardDragEnd()
-  activeDeviceTab.value =
-    activeEquipment.value === "high-temp-pressure" ? "" : EQUIPMENT_DEVICE_KEYWORDS[activeEquipment.value][0]
+  activeDeviceTab.value = ""
   void loadOrders()
 }
 
@@ -2123,10 +2120,15 @@ function handleCircuitBoardDragEnd() {
   circuitBoardDropIndex.value = null
 }
 
-function updateCircuitBoardOrderSequence(nextOrders: ScheduleOrder[]) {
+function updateCircuitBoardOrderSequence(nextOrders: ScheduleOrder[], useDevice = "") {
   nextOrders.forEach((order, index) => {
     order.isSequenceScheduled = true
     order.sequenceOrder = index + 1
+    if (useDevice) {
+      order.useDevice = useDevice
+      order.hostDeviceName = useDevice
+      order.targetName = useDevice
+    }
     if (Number(order.status) !== 2) order.status = PENDING_CLAIM_STATUS
     order.statusText = "已排程"
     order.scheduledStartAt = null
@@ -2134,7 +2136,8 @@ function updateCircuitBoardOrderSequence(nextOrders: ScheduleOrder[]) {
     order.scheduleSegments = [
       {
         sequenceOnly: true,
-        sequenceOrder: index + 1
+        sequenceOrder: index + 1,
+        ...(useDevice ? { use_device: useDevice, useDevice } : {})
       }
     ]
   })
@@ -2171,21 +2174,27 @@ function restoreCircuitBoardOrders(snapshot: Map<string, CircuitBoardOrderSnapsh
   })
 }
 
-async function persistCircuitBoardPriorityOrders(nextOrders: ScheduleOrder[]) {
+async function persistCircuitBoardPriorityOrders(nextOrders: ScheduleOrder[], pushOrderId: string | null = null) {
   const snapshot = snapshotCircuitBoardOrders()
   circuitBoardSequenceSaving.value = true
-  updateCircuitBoardOrderSequence(nextOrders)
+  const useDevice = activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""
+  updateCircuitBoardOrderSequence(nextOrders, useDevice)
   try {
     for (const [index, order] of nextOrders.entries()) {
       const targetId = requireScheduleTargetId(order)
       if (targetId === null) throw new Error("missing target id")
+      const shouldPushAssistant = pushOrderId !== null && order.id === pushOrderId
       await saveWorkOrderSchedule("circuit-board-module", targetId, {
         sequence_only: true,
         sequence_order: index + 1,
+        skip_assistant_push: !shouldPushAssistant,
+        skipAssistantPush: !shouldPushAssistant,
+        ...(useDevice ? { use_device: useDevice, useDevice, equipmentName: useDevice } : {}),
         schedule_segments: [
           {
             sequence_only: true,
-            sequence_order: index + 1
+            sequence_order: index + 1,
+            ...(useDevice ? { use_device: useDevice, useDevice } : {})
           }
         ]
       })
@@ -2210,7 +2219,7 @@ async function scheduleCircuitBoardOrderAt(order: ScheduleOrder, targetIndex: nu
   const insertIndex = Math.max(0, Math.min(normalizeCircuitBoardInsertIndex(order, targetIndex), nextOrders.length))
   nextOrders.splice(insertIndex, 0, order)
   try {
-    await persistCircuitBoardPriorityOrders(nextOrders)
+    await persistCircuitBoardPriorityOrders(nextOrders, order.id)
     activeScheduleState.value = "scheduled"
     ElMessage.success("已加入电路板排期顺序")
   } catch (error) {
@@ -2365,13 +2374,15 @@ onUnmounted(() => {
 }
 
 .sub-device-tabs {
-  padding-top: 8px;
+  gap: 10px;
+  padding-top: 10px;
 }
 
 .sub-device-tab {
-  min-height: 28px;
-  padding: 4px 12px;
-  font-size: 12px;
+  min-height: 38px;
+  padding: 8px 18px;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .schedule-layout {

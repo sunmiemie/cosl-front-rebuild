@@ -172,7 +172,11 @@ function normalizeSchedulePayloadSegment(segment: ScheduleSegmentLike): Schedule
   const start = parseBackendDateTime(segment.scheduled_start_at ?? segment.scheduledStartAt)
   const end = parseBackendDateTime(segment.scheduled_end_at ?? segment.scheduledEndAt)
   if (!start || !end || end <= start) return null
-  const useDevice = hasText(segment.use_device) ? segment.use_device.trim() : hasText(segment.useDevice) ? segment.useDevice.trim() : ""
+  const useDevice = hasText(segment.use_device)
+    ? segment.use_device.trim()
+    : hasText(segment.useDevice)
+      ? segment.useDevice.trim()
+      : ""
   return {
     scheduled_start_at: formatBackendDateTimeFromDate(start),
     scheduled_end_at: formatBackendDateTimeFromDate(end),
@@ -306,7 +310,8 @@ export function layoutCalendarEvents<T extends CalendarLaneInput>(events: T[]): 
   let cluster: Array<T & { originalIndex: number }> = []
   let clusterEnd = 0
   for (const event of sorted) {
-    if (!cluster.length || eventsOverlap(cluster[0], event) || event.startMinutes < clusterEnd) {
+    const sameDate = cluster.length > 0 && cluster[0].dateStr === event.dateStr
+    if (!cluster.length || (sameDate && (eventsOverlap(cluster[0], event) || event.startMinutes < clusterEnd))) {
       cluster.push(event)
       clusterEnd = Math.max(clusterEnd, event.endMinutes)
       continue
@@ -494,9 +499,7 @@ export function buildSecondaryDeviceTabs(
   hosts: HostDeviceCandidate[],
   keywords: string[] = [baseLabel]
 ): SecondaryDeviceTab[] {
-  const normalizedBaseLabel = baseLabel.trim()
   const tabMap = new Map<string, SecondaryDeviceTab>()
-  if (normalizedBaseLabel) tabMap.set(normalizedBaseLabel, { key: normalizedBaseLabel, label: normalizedBaseLabel })
 
   hosts
     .filter((host) => hostMatchesModelKeywords(host, keywords))

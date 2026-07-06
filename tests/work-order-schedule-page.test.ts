@@ -38,7 +38,9 @@ describe("工单排程页面", () => {
   })
 
   it("日历固定展示 06:00 到 22:00 的工作时段", () => {
-    expect(content).toContain('const timeSlots = Array.from({ length: 17 }, (_, index) => `${String(index + 6).padStart(2, "0")}:00`)')
+    expect(content).toContain(
+      'const timeSlots = Array.from({ length: 17 }, (_, index) => `${String(index + 6).padStart(2, "0")}:00`)'
+    )
     expect(content).toContain("const timeCells = Array.from({ length: 16 }, (_, index) => index)")
     expect(content).toContain("const calendarStartMinutes = 6 * 60")
     expect(content).toContain("const calendarEndMinutes = 22 * 60")
@@ -139,9 +141,15 @@ describe("工单排程页面", () => {
 
   it("schedule segment controls stay inside the dialog", () => {
     expect(content).toMatch(/\.schedule-segment-row\s*{[^}]*min-width:\s*0/s)
-    expect(content).toMatch(/\.schedule-segment-row\s*{[\s\S]*:deep\(\.el-date-editor\.el-input\)\s*{[^}]*width:\s*100%/s)
-    expect(content).toMatch(/\.schedule-segment-row\s*{[\s\S]*:deep\(\.el-date-editor\.el-input\)\s*{[^}]*min-width:\s*0/s)
-    expect(content).toMatch(/@media \(max-width:\s*900px\)[\s\S]*\.schedule-segment-row\s*{[^}]*grid-template-columns:\s*1fr 1fr/s)
+    expect(content).toMatch(
+      /\.schedule-segment-row\s*{[\s\S]*:deep\(\.el-date-editor\.el-input\)\s*{[^}]*width:\s*100%/s
+    )
+    expect(content).toMatch(
+      /\.schedule-segment-row\s*{[\s\S]*:deep\(\.el-date-editor\.el-input\)\s*{[^}]*min-width:\s*0/s
+    )
+    expect(content).toMatch(
+      /@media \(max-width:\s*900px\)[\s\S]*\.schedule-segment-row\s*{[^}]*grid-template-columns:\s*1fr 1fr/s
+    )
   })
 
   it("支持从待处理任务中心按 tab 和 keyword 跳转到对应未排期工单", () => {
@@ -151,12 +159,23 @@ describe("工单排程页面", () => {
     expect(content).toContain("query.tab")
     expect(content).toContain("searchForm.keyword = keyword")
   })
-  it("high-temp-pressure host tabs scope both order list and calendar events", () => {
+
+  it("circuit board module scheduling only pushes the operated order to assistant", () => {
+    expect(content).toContain("persistCircuitBoardPriorityOrders(nextOrders, order.id)")
+    expect(content).toContain("const shouldPushAssistant = pushOrderId !== null && order.id === pushOrderId")
+    expect(content).toContain("skip_assistant_push: !shouldPushAssistant")
+    expect(content).toContain("skipAssistantPush: !shouldPushAssistant")
+  })
+
+  it("device tabs assign schedule device without narrowing the order panel", () => {
     expect(content).toContain("filterOrdersByActiveDeviceTab")
-    expect(content).toMatch(/const deviceScopedOrders = computed\(\(\) =>\s*filterOrdersByActiveDeviceTab\(/s)
+    expect(content).toMatch(/const deviceScopedOrders = computed\(\(\) => stateOrders\.value\)/)
     expect(content).toMatch(/const deviceScopedActiveOrders = computed\(\(\) =>\s*filterOrdersByActiveDeviceTab\(/s)
-    expect(content).toMatch(/if \(activeEquipment\.value === "high-temp-pressure"\)[\s\S]*key: "", label: "全部"/)
-    expect(content).toMatch(/const filteredOrders = computed\(\(\) => \{[\s\S]*if \(!keyword\) return deviceScopedOrders\.value/)
+    expect(content).toMatch(
+      /const filteredOrders = computed\(\(\) => \{[\s\S]*if \(!keyword\) return deviceScopedOrders\.value/
+    )
+    expect(content).toContain("activeDeviceTab.value = \"\"")
+    expect(content).toContain("const useDevice = activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || \"\"")
     expect(content).toMatch(/const events = deviceScopedActiveOrders\.value\.flatMap<BaseCalendarEvent>/)
   })
 })

@@ -19,6 +19,8 @@ export type WorkOrderScheduleSegment = {
   useDevice?: string
   sequence_only?: boolean
   sequence_order?: number
+  skip_assistant_push?: boolean
+  skipAssistantPush?: boolean
 }
 
 export type WorkOrderSchedulePayload = {
@@ -29,6 +31,8 @@ export type WorkOrderSchedulePayload = {
   useDevice?: string
   sequence_only?: boolean
   sequence_order?: number
+  skip_assistant_push?: boolean
+  skipAssistantPush?: boolean
 }
 
 type ScheduleEndpointConfig = {
