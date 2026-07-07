@@ -81,10 +81,6 @@
                     </div>
                     <div class="order-card__title">{{ order.title }}</div>
                     <div class="order-card__meta">
-                      <el-tag size="small" effect="plain">{{ order.targetName }}</el-tag>
-                      <el-tag v-if="order.hostDeviceName" size="small" type="primary" effect="plain">
-                        {{ order.hostDeviceName }}
-                      </el-tag>
                       <el-tag size="small" effect="plain">{{ order.durationHours }}h</el-tag>
                       <el-tag v-if="order.applicant" size="small" effect="plain">{{ order.applicant }}</el-tag>
                     </div>
@@ -171,8 +167,6 @@
                       <div class="priority-name" :title="order.title">{{ order.title }}</div>
                       <div class="priority-meta">
                         <span>{{ order.taskNumber }}</span>
-                        <span>{{ order.targetName }}</span>
-                        <span v-if="order.hostDeviceName">{{ order.hostDeviceName }}</span>
                       </div>
                     </div>
                     <el-tag :type="getOrderTagType(order)" size="small" effect="light">{{
@@ -300,10 +294,6 @@
                           <div class="calendar-event-tooltip__row">
                             <span>申请人</span>
                             <strong>{{ event.applicant || "-" }}</strong>
-                          </div>
-                          <div class="calendar-event-tooltip__row">
-                            <span>主机设备</span>
-                            <strong>{{ event.hostDeviceName || "-" }}</strong>
                           </div>
                         </div>
                       </template>

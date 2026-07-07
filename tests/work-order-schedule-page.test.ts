@@ -167,6 +167,17 @@ describe("工单排程页面", () => {
     expect(content).toContain("skipAssistantPush: !shouldPushAssistant")
   })
 
+  it("主机名称只在详情中展示，不在外层卡片和悬浮提示中展示", () => {
+    expect(content).not.toContain('<el-tag size="small" effect="plain">{{ order.targetName }}</el-tag>')
+    expect(content).not.toContain("<span>{{ order.targetName }}</span>")
+    expect(content).not.toContain('<el-tag v-if="order.hostDeviceName"')
+    expect(content).not.toContain('<span v-if="order.hostDeviceName">{{ order.hostDeviceName }}</span>')
+    expect(content).not.toContain('<strong>{{ event.hostDeviceName || "-" }}</strong>')
+    expect(content).toContain(
+      '<el-descriptions-item label="主机设备">{{ detailOrder.hostDeviceName || "-" }}</el-descriptions-item>'
+    )
+  })
+
   it("device tabs assign schedule device without narrowing the order panel", () => {
     expect(content).toContain("filterOrdersByActiveDeviceTab")
     expect(content).toMatch(/const deviceScopedOrders = computed\(\(\) => stateOrders\.value\)/)
@@ -174,8 +185,8 @@ describe("工单排程页面", () => {
     expect(content).toMatch(
       /const filteredOrders = computed\(\(\) => \{[\s\S]*if \(!keyword\) return deviceScopedOrders\.value/
     )
-    expect(content).toContain("activeDeviceTab.value = \"\"")
-    expect(content).toContain("const useDevice = activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || \"\"")
+    expect(content).toContain('activeDeviceTab.value = ""')
+    expect(content).toContain('const useDevice = activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""')
     expect(content).toMatch(/const events = deviceScopedActiveOrders\.value\.flatMap<BaseCalendarEvent>/)
   })
 })
