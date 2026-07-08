@@ -43,13 +43,27 @@
         </el-form-item>
       </el-form>
 
-      <div style="margin-bottom: 12px">
+      <div class="table-toolbar">
+        <div class="toolbar-left">
+          <el-button type="primary" :loading="exportLoading" @click="handleExport">批量导出</el-button>
+          <span v-if="selectedRows.length" class="selection-tip">已选择 {{ selectedRows.length }} 条</span>
+        </div>
         <el-tooltip content="刷新数据">
           <el-button circle icon="RefreshRight" type="primary" @click="getList" />
         </el-tooltip>
       </div>
 
-      <el-table :data="tableData" v-loading="loading" class="summary-table" max-height="600" stripe border>
+      <el-table
+        :data="tableData"
+        v-loading="loading"
+        class="summary-table"
+        max-height="600"
+        stripe
+        border
+        :row-key="getRelationRowKey"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="46" fixed="left" />
         <el-table-column prop="applicationNo" label="申请单号" min-width="136" show-overflow-tooltip />
         <el-table-column label="SN号" min-width="106">
           <template #default="{ row }">
@@ -62,7 +76,12 @@
         <el-table-column prop="category" label="分类" min-width="104" show-overflow-tooltip />
         <el-table-column prop="materialNo" label="物料号" min-width="88" show-overflow-tooltip />
         <el-table-column prop="testContent" label="测试内容" min-width="92" show-overflow-tooltip />
-        <el-table-column prop="qty" label="数量" width="52" align="center" />
+        <el-table-column prop="hours" label="工时(h)" width="86" align="center">
+          <template #default="{ row }">{{ formatHours(row.hours) }}</template>
+        </el-table-column>
+        <el-table-column prop="doneAt" label="检测完成时间" min-width="116" align="center" show-overflow-tooltip>
+          <template #default="{ row }">{{ row.doneAt || row.done_at || "-" }}</template>
+        </el-table-column>
         <el-table-column prop="supplier" label="供应商" min-width="128" show-overflow-tooltip />
         <el-table-column prop="applicant" label="申请/委托人" width="92" show-overflow-tooltip />
         <el-table-column prop="phone" label="申请人电话" min-width="90" show-overflow-tooltip />
@@ -86,7 +105,7 @@
             <span v-else class="badge unlinked">未关联</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="142" align="center">
+        <el-table-column label="操作" width="142" align="center" fixed="right">
           <template #default="{ row, $index }">
             <el-button v-if="row.status === 'unlinked'" link type="primary" @click="openLinkModal($index)">
               关联委托单
@@ -243,7 +262,9 @@ const sampleDetailFields = [
 ]
 
 const loading = ref(false)
+const exportLoading = ref(false)
 const tableData = ref<any[]>([])
+const selectedRows = ref<any[]>([])
 const stats = reactive({ total: 0, linked: 0, unlinked: 0 })
 
 const filters = reactive({
@@ -275,6 +296,54 @@ const filterRowsByStatus = (rows: any[]) => {
   }))
   if (!filters.status) return normalizedRows
   return normalizedRows.filter((row) => row.status === filters.status)
+}
+
+const getRelationRowKey = (row: any) => `${row?.applicationNo || ""}@@${row?.sn || ""}`
+
+const formatHours = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return "-"
+  const numeric = Number(value)
+  if (!Number.isFinite(numeric)) return String(value)
+  return Number.isInteger(numeric) ? String(numeric) : String(numeric)
+}
+
+const handleSelectionChange = (rows: any[]) => {
+  selectedRows.value = rows
+}
+
+const saveBlob = (blob: Blob, filename: string) => {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
+const handleExport = async () => {
+  exportLoading.value = true
+  try {
+    const selectedKeys = selectedRows.value.map(getRelationRowKey).filter(Boolean).join(",")
+    const params = selectedKeys
+      ? { keys: selectedKeys }
+      : {
+          search: filters.search,
+          status: filters.status
+        }
+    const blob = await request<Blob>({
+      url: "data/commission-board-relation/export",
+      method: "get",
+      params,
+      responseType: "blob"
+    })
+    saveBlob(blob, `电路板委托关联汇总_${new Date().toISOString().slice(0, 10)}.pdf`)
+  } catch (error) {
+    ElMessage.error("导出失败")
+  } finally {
+    exportLoading.value = false
+  }
 }
 
 const getAssistantSyncPayload = () => {
@@ -309,6 +378,7 @@ const getList = async () => {
       }
     })
     tableData.value = filterRowsByStatus(res.data.list || [])
+    selectedRows.value = []
     const s = res.data.stats || {}
     stats.total = s.total || 0
     stats.linked = s.linked || 0
@@ -584,6 +654,25 @@ onMounted(() => {
 
 .search-form {
   margin-bottom: 12px;
+}
+
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selection-tip {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
 }
 
 .summary-table {

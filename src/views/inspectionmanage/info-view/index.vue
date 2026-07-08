@@ -110,16 +110,22 @@ function getPhotoUrl(photo?: string | null) {
   return new URL(value, baseUrl).toString()
 }
 
-async function loadAssistantResults(showEmptyMessage = false) {
+async function loadAssistantResults(showEmptyMessage = false, forceRefresh = false) {
   assistantResultLoading.value = true
   try {
-    const res = await getAssistantInspectionResultsApi()
-    assistantResults.value = Array.isArray(res.data) ? res.data : []
-    if (showEmptyMessage && !assistantResults.value.length) {
+    const res = await getAssistantInspectionResultsApi(forceRefresh ? { refresh: "1" } : undefined)
+    const nextResults = Array.isArray(res.data) ? res.data : []
+    const shouldReplaceResults = nextResults.length > 0 || assistantResults.value.length === 0
+    if (shouldReplaceResults) {
+      assistantResults.value = nextResults
+    }
+    if (showEmptyMessage && !nextResults.length && !assistantResults.value.length) {
       ElMessage.info("小助手暂无巡检结果")
     }
   } catch (error: any) {
-    assistantResults.value = []
+    if (!assistantResults.value.length) {
+      assistantResults.value = []
+    }
     ElMessage.error(error?.message || "获取小助手巡检结果失败")
   } finally {
     assistantResultLoading.value = false
@@ -166,7 +172,7 @@ async function openInspectionRecord(row: ReturnType<typeof buildInspectionRecord
 }
 
 async function refreshInspectionRecords() {
-  await Promise.all([getCalendarData(), loadAssistantResults(true)])
+  await Promise.all([getCalendarData(), loadAssistantResults(true, true)])
 }
 
 function handleEditRecord(row: ReturnType<typeof buildInspectionRecordRows>[number]) {

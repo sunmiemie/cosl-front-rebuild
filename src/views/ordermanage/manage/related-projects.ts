@@ -22,8 +22,11 @@ const numberValue = (...values: unknown[]) => {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
-const getCommissionNo = (row: any) => {
-  return text(row?.commNo, row?.commissionNo, row?.commission_no, row?.["委托单编号"])
+const getRelationNos = (row: any) => {
+  return [
+    text(row?.commNo, row?.commissionNo, row?.commission_no, row?.["委托单编号"]),
+    text(row?.applicationNo, row?.application_no, row?.applicationNum, row?.application_num, row?.["申请单编号"])
+  ].filter(Boolean)
 }
 
 const normalizeRelatedProject = (row: any): RelatedProjectRow => ({
@@ -42,5 +45,5 @@ const normalizeRelatedProject = (row: any): RelatedProjectRow => ({
 export const getRelatedProjectsByCommissionNo = (rows: any[], commissionNo: string) => {
   const targetNo = commissionNo.trim()
   if (!targetNo) return []
-  return (rows || []).filter((row) => getCommissionNo(row) === targetNo).map(normalizeRelatedProject)
+  return (rows || []).filter((row) => getRelationNos(row).includes(targetNo)).map(normalizeRelatedProject)
 }

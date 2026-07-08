@@ -24,6 +24,17 @@
             <el-option label="特急" value="urgent2" />
           </el-select>
         </el-form-item>
+        <el-form-item label="更新时间">
+          <el-date-picker
+            v-model="searchForm.updatedRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            unlink-panels
+          />
+        </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="handleSearch">查询</el-button>
           <el-button @click="handleReset">重置</el-button>
@@ -362,7 +373,8 @@ const searchForm = reactive({
   commissionNo: "",
   commissionOrg: "",
   contactName: "",
-  serviceLevel: ""
+  serviceLevel: "",
+  updatedRange: [] as string[]
 })
 
 const sortRowsByCompletion = (rows: Row[]) => {
@@ -385,7 +397,9 @@ const getList = () => {
       commissionNo: searchForm.commissionNo,
       commissionOrg: searchForm.commissionOrg,
       contactName: searchForm.contactName,
-      serviceLevel: searchForm.serviceLevel
+      serviceLevel: searchForm.serviceLevel,
+      updatedStart: searchForm.updatedRange?.[0] || "",
+      updatedEnd: searchForm.updatedRange?.[1] || ""
     }
   })
     .then((res: any) => {
@@ -411,6 +425,7 @@ const handleReset = () => {
   searchForm.commissionOrg = ""
   searchForm.contactName = ""
   searchForm.serviceLevel = ""
+  searchForm.updatedRange = []
   pagination.page = 1
   getList()
 }

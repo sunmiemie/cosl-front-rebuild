@@ -75,6 +75,8 @@ export interface SchedulePayloadLike {
   schedule_segments: Array<{
     scheduled_start_at?: string
     scheduled_end_at?: string
+    use_device?: string
+    useDevice?: string
   }>
 }
 
@@ -104,7 +106,7 @@ export type CalendarLaneEvent<T extends CalendarLaneInput> = T & {
 export interface ScheduleTargetOrder {
   scheduledStartAt?: string | null
   scheduledEndAt?: string | null
-  scheduleSegments?: Array<{ scheduledStartAt?: string; scheduledEndAt?: string }>
+  scheduleSegments?: Array<{ scheduledStartAt?: string; scheduledEndAt?: string; useDevice?: string }>
   status?: number | string
   statusText?: string
 }
@@ -127,6 +129,7 @@ const PENDING_TEXTS = new Set([
   "待处理"
 ])
 const REVIEW_TEXTS = new Set(["待审核", "测试待审核"])
+const COMPLETED_TEXTS = new Set(["已完成", "完成"])
 const LIFECYCLE_STATUS_TEXTS: Record<string, string> = {
   "0": "待发布",
   "1": "待领取",
@@ -334,7 +337,8 @@ export function applySchedulePayloadToTargetOrder<T extends ScheduleTargetOrder>
   order.scheduledEndAt = payload.scheduled_end_at
   order.scheduleSegments = payload.schedule_segments.map((segment) => ({
     scheduledStartAt: segment.scheduled_start_at,
-    scheduledEndAt: segment.scheduled_end_at
+    scheduledEndAt: segment.scheduled_end_at,
+    useDevice: hasText(segment.use_device) ? segment.use_device.trim() : hasText(segment.useDevice) ? segment.useDevice.trim() : ""
   }))
   if (options.status !== undefined) order.status = options.status
   if (options.statusText !== undefined) order.statusText = options.statusText
@@ -361,6 +365,7 @@ export function normalizeScheduleListState(order: ScheduleStateInput): ScheduleL
   const statusText = normalizeText(order.statusText)
   if (isScheduleAssigned(order)) return "scheduled"
   if (UNPUBLISHED_TEXTS.has(status) || UNPUBLISHED_TEXTS.has(statusText)) return "unpublished"
+  if (COMPLETED_TEXTS.has(statusText)) return "other"
   if (REVIEW_TEXTS.has(statusText)) return "other"
   if (PENDING_TEXTS.has(status) || PENDING_TEXTS.has(statusText)) return "pending"
   return "other"

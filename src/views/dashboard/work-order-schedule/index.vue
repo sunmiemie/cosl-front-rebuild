@@ -368,8 +368,8 @@
         <el-descriptions-item label="工单号">{{ detailOrder.taskNumber }}</el-descriptions-item>
         <el-descriptions-item label="状态">{{ getOrderStatusText(detailOrder) }}</el-descriptions-item>
         <el-descriptions-item label="标题">{{ detailOrder.title }}</el-descriptions-item>
-        <el-descriptions-item label="设备/对象">{{ detailOrder.targetName }}</el-descriptions-item>
-        <el-descriptions-item label="主机设备">{{ detailOrder.hostDeviceName || "-" }}</el-descriptions-item>
+        <el-descriptions-item label="设备/对象">{{ detailTargetName }}</el-descriptions-item>
+        <el-descriptions-item label="主机设备">{{ detailHostDeviceName }}</el-descriptions-item>
         <el-descriptions-item label="预计时长">{{ detailOrder.durationHours }}h</el-descriptions-item>
         <el-descriptions-item label="申请人">{{ detailOrder.applicant || "-" }}</el-descriptions-item>
         <el-descriptions-item label="排程段">
@@ -414,6 +414,8 @@ import {
   type WorkOrderScheduleSegment
 } from "@/api/work-order-schedule"
 import {
+  getCompletedScheduleInstrumentGroupStatusText,
+  getCompletedScheduleInstrumentStatusText,
   getWorkOrderScheduleStatusText,
   getWorkOrderScheduleTagType,
   hasRunningScheduleInstrument,
@@ -450,6 +452,7 @@ type ScheduleSegment = {
   scheduledStartAt?: string
   scheduledEndAt?: string
   useDevice?: string
+  use_device?: string
   sequenceOnly?: boolean
   sequenceOrder?: number
 }
@@ -674,6 +677,17 @@ const isCircuitBoardModule = computed(() => activeEquipment.value === "circuit-b
 const activeOrders = computed(() => orderMap[activeEquipment.value])
 const selectedScheduleOrder = computed(() => activeOrders.value.find((item) => item.id === scheduleForm.orderId))
 const detailScheduleSegments = computed(() => (detailOrder.value ? getDetailScheduleSegments(detailOrder.value) : []))
+const detailScheduleDeviceNames = computed(() =>
+  detailOrder.value ? getOrderScheduleDeviceNames(detailOrder.value) : []
+)
+const detailTargetName = computed(() => {
+  if (!detailOrder.value) return "-"
+  return detailScheduleDeviceNames.value.length ? detailScheduleDeviceNames.value.join("、") : "-"
+})
+const detailHostDeviceName = computed(() => {
+  if (!detailOrder.value) return "-"
+  return detailScheduleDeviceNames.value.length ? detailScheduleDeviceNames.value.join("、") : "-"
+})
 const activeStateMeta = computed(
   () => scheduleStateTabs.find((item) => item.key === activeScheduleState.value) ?? scheduleStateTabs[0]
 )
@@ -781,11 +795,13 @@ const weekLabel = computed(() => {
 })
 
 const calendarEvents = computed<CalendarEvent[]>(() => {
-  const events = deviceScopedActiveOrders.value.flatMap<BaseCalendarEvent>((order) => {
+  const events = activeOrders.value.flatMap<BaseCalendarEvent>((order) => {
     const segments = getOrderScheduleSegments(order)
 
     return segments
       .map((segment, index) => {
+        if (!isScheduleSegmentVisibleInActiveDevice(order, segment)) return null
+        const segmentDevice = getSegmentScheduleDevice(order, segment)
         const start = parseDateTime(segment.scheduledStartAt)
         const end = parseDateTime(segment.scheduledEndAt)
         if (!start || !end) return null
@@ -800,9 +816,9 @@ const calendarEvents = computed<CalendarEvent[]>(() => {
           title: order.taskNumber,
           taskNumber: order.taskNumber,
           orderTitle: order.title,
-          targetName: order.targetName,
+          targetName: segmentDevice || order.targetName,
           applicant: order.applicant,
-          hostDeviceName: getSegmentScheduleDevice(order, segment) || order.hostDeviceName,
+          hostDeviceName: segmentDevice || order.hostDeviceName,
           status: order.status,
           statusText: order.statusText,
           dateStr,
@@ -948,6 +964,15 @@ function getDetailScheduleSegments(order: ScheduleOrder): DetailScheduleSegment[
     .filter((segment): segment is DetailScheduleSegment => segment !== null)
 }
 
+function getOrderScheduleDeviceNames(order: ScheduleOrder) {
+  const names: string[] = []
+  getOrderScheduleSegments(order).forEach((segment) => {
+    const name = getSegmentScheduleDevice(order, segment)
+    if (name && !names.includes(name)) names.push(name)
+  })
+  return names
+}
+
 function addScheduleSegment() {
   const last = scheduleForm.segments[scheduleForm.segments.length - 1]
   scheduleForm.segments.push(createScheduleSegment(last?.date || pickedDate.value, "09:00", "11:00"))
@@ -1058,6 +1083,13 @@ function getSegmentScheduleDevice(order: ScheduleOrder, segment?: ScheduleSegmen
       order.raw?.deviceName
     ) || ""
   )
+}
+
+function isScheduleSegmentVisibleInActiveDevice(order: ScheduleOrder, segment?: ScheduleSegment) {
+  const activeTab = activeDeviceTab.value.trim()
+  if (isCircuitBoardModule.value || !secondaryDeviceTabs.value.length || !activeTab) return true
+  const segmentDevice = getSegmentScheduleDevice(order, segment)
+  return segmentDevice.trim().toLowerCase() === activeTab.toLowerCase()
 }
 
 function withScheduleTargetDevice<
@@ -1290,9 +1322,22 @@ function normalizeOrders(equipment: EquipmentKey, list: any[]): ScheduleOrder[] 
   return normalizeHighTempBoxOrders(list)
 }
 
+function getCompletedScheduleOrderStatusText(item: any) {
+  return (
+    getCompletedScheduleInstrumentStatusText({
+      completed: item?.completed,
+      isCompleted: item?.isCompleted,
+      is_completed: item?.is_completed,
+      instrumentStatus: item?.instrumentStatus,
+      instrument_status: item?.instrument_status
+    }) || getCompletedScheduleInstrumentGroupStatusText(item?.instruments)
+  )
+}
+
 function normalizeWaterCycleOrders(list: any[]): ScheduleOrder[] {
   return list.map((item) => {
     const useDevice = getString(item.use_device, item.useDevice, item.device_name, item.deviceName, item.test_platform)
+    const completedStatusText = getCompletedScheduleOrderStatusText(item)
     return {
       id: `water-cycle-${item.id}`,
       dbId: item.id,
@@ -1307,7 +1352,8 @@ function normalizeWaterCycleOrders(list: any[]): ScheduleOrder[] {
       useDevice,
       durationHours: 2,
       status: item.status,
-      statusText: item.status_text || defaultStatusText(item.status, item.scheduled_start_at, item.scheduled_end_at),
+      statusText:
+        completedStatusText || item.status_text || defaultStatusText(item.status, item.scheduled_start_at, item.scheduled_end_at),
       isRunningTarget: hasRunningScheduleInstrument(item.instruments),
       scheduledStartAt: item.scheduled_start_at || null,
       scheduledEndAt: item.scheduled_end_at || null,
@@ -1320,6 +1366,7 @@ function normalizeWaterCycleOrders(list: any[]): ScheduleOrder[] {
 function normalizeVibrationOrders(list: any[]): ScheduleOrder[] {
   return list.map((item) => {
     const useDevice = getString(item.useDevice, item.deviceName, item.use_device, item.device_name)
+    const completedStatusText = getCompletedScheduleOrderStatusText(item)
     return {
       id: `vibration-${item.id}`,
       dbId: item.id,
@@ -1334,7 +1381,8 @@ function normalizeVibrationOrders(list: any[]): ScheduleOrder[] {
       useDevice,
       durationHours: getNumber(item.duration, 2),
       status: item.status,
-      statusText: item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
+      statusText:
+        completedStatusText || item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
       isRunningTarget: hasRunningScheduleInstrument(item.instruments),
       scheduledStartAt: item.scheduledStartAt || null,
       scheduledEndAt: item.scheduledEndAt || null,
@@ -1347,6 +1395,7 @@ function normalizeVibrationOrders(list: any[]): ScheduleOrder[] {
 function normalizeHighTempBoxOrders(list: any[]): ScheduleOrder[] {
   return list.map((item) => {
     const useDevice = getString(item.useDevice, item.use_device, item.deviceName, item.device_name)
+    const completedStatusText = getCompletedScheduleOrderStatusText(item)
     return {
       id: `high-temp-box-${item.id}`,
       dbId: item.id,
@@ -1361,7 +1410,8 @@ function normalizeHighTempBoxOrders(list: any[]): ScheduleOrder[] {
       useDevice,
       durationHours: getNumber(item.holdTime, 2),
       status: item.status,
-      statusText: item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
+      statusText:
+        completedStatusText || item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
       isRunningTarget: hasRunningScheduleInstrument(item.instruments),
       scheduledStartAt: item.scheduledStartAt || null,
       scheduledEndAt: item.scheduledEndAt || null,
@@ -1385,6 +1435,7 @@ function normalizeHaltHassOrders(list: any[]): ScheduleOrder[] {
       item.chamberName,
       item.chamber_name
     )
+    const completedStatusText = getCompletedScheduleOrderStatusText(item)
     return {
       id: `halt-hass-${item.id}`,
       dbId: item.id,
@@ -1403,7 +1454,8 @@ function normalizeHaltHassOrders(list: any[]): ScheduleOrder[] {
       useDevice,
       durationHours: getNumber(item.duration, 2),
       status: item.status,
-      statusText: item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
+      statusText:
+        completedStatusText || item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
       isRunningTarget: Number(item.status) === 2,
       scheduledStartAt: item.scheduledStartAt || item.scheduled_start_at || null,
       scheduledEndAt: item.scheduledEndAt || item.scheduled_end_at || null,
@@ -1513,6 +1565,12 @@ function findHighTempPressureOrderHost(order: any) {
   return matchedHosts.length === 1 ? matchedHosts[0] : undefined
 }
 
+function formatHighTempPressureOrderTitle(order: any, instrument: any) {
+  const testName = getString(order.project_name, order.test_type) || "高温高压井工单"
+  const instrumentName = getString(instrument?.instrument_name, instrument?.instrument_sn)
+  return instrumentName ? `${testName}-${instrumentName}` : testName
+}
+
 function buildHighTempPressureOrder(
   order: any,
   instrument: any,
@@ -1526,6 +1584,7 @@ function buildHighTempPressureOrder(
     hostDeviceName ||
     getString(instrument?.instrument_name, instrument?.instrument_sn, order.device_name) ||
     "高温高压井仪器"
+  const completedInstrumentStatusText = getCompletedScheduleInstrumentStatusText(instrument)
   return {
     id: `high-temp-pressure-${order.id}-${targetKey}-${host?.id ?? index}`,
     dbId: order.id,
@@ -1533,14 +1592,14 @@ function buildHighTempPressureOrder(
     equipment: "high-temp-pressure" as const,
     scheduleEquipment: "high-temp-pressure" as const,
     taskNumber: getString(order.task_number, order.table_no) || `高温高压井-${order.id}`,
-    title: getString(order.project_name, order.test_type) || "高温高压井工单",
+    title: formatHighTempPressureOrderTitle(order, instrument),
     applicant: getString(order.applicant) || "",
     targetName,
     hostDeviceName,
     useDevice: getString(order.use_device) || "",
     durationHours: getNumber(order.hold_time, 2),
     status: order.status,
-    statusText: defaultStatusText(order.status, instrument?.scheduled_start_at, instrument?.scheduled_end_at),
+    statusText: completedInstrumentStatusText || defaultStatusText(order.status, instrument?.scheduled_start_at, instrument?.scheduled_end_at),
     isRunningTarget: hasRunningScheduleInstrument([instrument]),
     scheduledStartAt: instrument?.scheduled_start_at || null,
     scheduledEndAt: instrument?.scheduled_end_at || null,
@@ -1564,6 +1623,7 @@ function normalizeSimulatedWellOrders(list: any[]): ScheduleOrder[] {
         order.useDevice,
         order.tested_instrument
       )
+      const completedDeviceStatusText = getCompletedScheduleInstrumentStatusText(device)
       return {
         id: `simulated-well-${order.id}-${targetKey}-${index}`,
         dbId: order.id,
@@ -1578,7 +1638,7 @@ function normalizeSimulatedWellOrders(list: any[]): ScheduleOrder[] {
         useDevice,
         durationHours: 2,
         status: order.status,
-        statusText: defaultStatusText(order.status, device?.scheduled_start_at, device?.scheduled_end_at),
+        statusText: completedDeviceStatusText || defaultStatusText(order.status, device?.scheduled_start_at, device?.scheduled_end_at),
         isRunningTarget: false,
         scheduledStartAt: device?.scheduled_start_at || null,
         scheduledEndAt: device?.scheduled_end_at || null,

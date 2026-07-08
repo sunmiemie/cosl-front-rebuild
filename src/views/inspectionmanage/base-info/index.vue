@@ -3,14 +3,14 @@
     <el-card shadow="never" class="search-wrapper">
       <el-form label-width="132px" class="inspection-form">
         <el-row :gutter="24">
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="巡检设备名称" required>
               <el-select v-model="formData.device_name" placeholder="请选择" @change="handleDeviceNameChange">
                 <el-option v-for="item in deviceOptions" :key="item" :label="item" :value="item" />
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="巡检设备SN号" required>
               <el-select
                 v-model="formData.device_sn"
@@ -18,9 +18,23 @@
                 :loading="snLoading"
                 clearable
                 filterable
+                @change="handleDeviceSnChange"
               >
-                <el-option v-for="sn in snOptions" :key="sn" :label="sn" :value="sn" />
+                <el-option
+                  v-for="host in hostDeviceOptions"
+                  :key="host.sn"
+                  :label="host.sn"
+                  :value="host.sn"
+                >
+                  <span>{{ host.sn }}</span>
+                  <span class="host-option-name">{{ host.hostName }}</span>
+                </el-option>
               </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="主机名称">
+              <el-text class="selected-host-name" truncated>{{ selectedHostDeviceName || "-" }}</el-text>
             </el-form-item>
           </el-col>
         </el-row>
@@ -32,13 +46,13 @@
         <div class="toolbar-title">巡检内容</div>
         <div class="toolbar-actions">
           <el-button type="primary" @click="openCreateDialog">新增</el-button>
-          <el-button type="primary" @click="handleSave">保存</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
           <el-button @click="handleClose">关闭</el-button>
         </div>
       </div>
 
       <div class="table-wrapper">
-        <el-table :data="formData.items" border stripe class="inspection-table">
+        <el-table :data="formData.items" border stripe class="inspection-table" v-loading="contentLoading">
           <el-table-column type="index" label="序号" width="70" align="center" />
           <el-table-column prop="content" label="巡检内容" min-width="280" />
           <el-table-column label="是否需要拍照" width="140" align="center">
@@ -74,13 +88,18 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref, watch } from "vue"
+import { computed, reactive, ref, watch } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { useRoute, useRouter } from "vue-router"
 import { inspectionDeviceOptions, type InspectionItem } from "../shared"
 import { getDeviceInstanceListApi } from "@/api/device-instance"
 import type { DeviceInstanceData } from "@/api/device-instance/types"
-import { getInspectionBaseInfoDetailApi, saveInspectionBaseInfoApi } from "@/api/inspection-base"
+import { getHostModelDisplayName } from "@/views/devicemanage/device/psi/model-options"
+import {
+  getInspectionBaseInfoDetailApi,
+  getInspectionBaseInfoListApi,
+  saveInspectionBaseInfoApi
+} from "@/api/inspection-base"
 import type { InspectionBaseInfoDetail } from "@/api/inspection-base/types"
 import { useUserStore } from "@/store/modules/user"
 import { getInspectionInspector } from "./inspection-save"
@@ -91,10 +110,19 @@ const userStore = useUserStore()
 
 const createItemId = () => `item-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 
+type InspectionHostDeviceOption = {
+  sn: string
+  hostName: string
+  modelName: string
+}
+
 const deviceOptions = inspectionDeviceOptions
-const snOptions = ref<string[]>([])
+const hostDeviceOptions = ref<InspectionHostDeviceOption[]>([])
 const snLoading = ref(false)
+const saving = ref(false)
+const contentLoading = ref(false)
 let snRequestId = 0
+let hostDeviceCache: InspectionHostDeviceOption[] | null = null
 
 const formData = reactive({
   id: "",
@@ -108,6 +136,10 @@ const formData = reactive({
   updated_at: ""
 })
 
+const selectedHostDeviceName = computed(() => {
+  return hostDeviceOptions.value.find((item) => item.sn === formData.device_sn)?.hostName || ""
+})
+
 function normalizeDeviceInstanceList(data: any): DeviceInstanceData[] {
   const payload = data?.data ?? data ?? {}
   return Array.isArray(payload) ? payload : payload.list ?? payload.records ?? payload.results ?? payload.items ?? []
@@ -119,6 +151,58 @@ function getDeviceInstanceName(row: DeviceInstanceData) {
 
 function getDeviceInstanceSn(row: DeviceInstanceData) {
   return row.serialNumber ?? row.serial_number ?? row.psi_serialnumber ?? ""
+}
+
+function getDeviceInstanceModelName(row: DeviceInstanceData) {
+  return (
+    getHostModelDisplayName(row as unknown as Record<string, unknown>) ||
+    row.modelName ||
+    row.model_name ||
+    row.psimodel_name ||
+    row.model ||
+    ""
+  )
+}
+
+function normalizeSearchText(value: string) {
+  return value.replace(/\s+/g, "").replace(/&/g, "").toLowerCase()
+}
+
+function matchesInspectionDeviceGroup(row: InspectionHostDeviceOption, deviceName: string) {
+  const group = normalizeSearchText(deviceName)
+  const text = normalizeSearchText([row.hostName, row.modelName, row.sn].join(" "))
+  if (!group || !text) return false
+  if (/halt|hass/i.test(deviceName)) return /halt|hass/i.test(text)
+  if (deviceName.includes("高温箱")) return text.includes("高温箱")
+  if (deviceName.includes("高温高压")) return text.includes("高温高压") || text.includes("高压井")
+  if (deviceName.includes("水循环")) return text.includes("水循环")
+  if (deviceName.includes("振动")) return text.includes("振动")
+  if (deviceName.includes("模拟")) return text.includes("模拟")
+  return text.includes(group)
+}
+
+async function loadHostDeviceList() {
+  if (hostDeviceCache) return hostDeviceCache
+  const res = await getDeviceInstanceListApi({ currentPage: 1, size: 2000 })
+  const seen = new Set<string>()
+  hostDeviceCache = normalizeDeviceInstanceList(res)
+    .map((row) => {
+      const sn = getDeviceInstanceSn(row).trim()
+      const hostName = getDeviceInstanceName(row).trim()
+      const modelName = getDeviceInstanceModelName(row).trim()
+      return { sn, hostName, modelName }
+    })
+    .filter((item) => {
+      if (!item.sn || seen.has(item.sn)) return false
+      seen.add(item.sn)
+      return true
+    })
+  return hostDeviceCache
+}
+
+async function getInspectionDeviceGroupHosts(deviceName: string) {
+  const hosts = await loadHostDeviceList()
+  return hosts.filter((item) => matchesInspectionDeviceGroup(item, deviceName))
 }
 
 function getAssistantEquipmentType(deviceName: string) {
@@ -135,21 +219,18 @@ function getAssistantEquipmentType(deviceName: string) {
 async function loadSnOptions(deviceName: string, keepSn = "") {
   const requestId = ++snRequestId
   if (!deviceName) {
-    snOptions.value = keepSn ? [keepSn] : []
+    hostDeviceOptions.value = keepSn ? [{ sn: keepSn, hostName: "", modelName: "" }] : []
     return
   }
   snLoading.value = true
   try {
-    const res = await getDeviceInstanceListApi({ currentPage: 1, size: 1000, deviceName })
+    const options = await getInspectionDeviceGroupHosts(deviceName)
     if (requestId !== snRequestId) return
-    const options = normalizeDeviceInstanceList(res)
-      .filter((item) => getDeviceInstanceName(item) === deviceName)
-      .map(getDeviceInstanceSn)
-      .filter((sn): sn is string => Boolean(sn))
-    snOptions.value = Array.from(new Set(keepSn ? [keepSn, ...options] : options))
+    const existsKeepSn = keepSn && options.some((item) => item.sn === keepSn)
+    hostDeviceOptions.value = existsKeepSn || !keepSn ? options : [{ sn: keepSn, hostName: "", modelName: "" }, ...options]
   } catch {
     if (requestId !== snRequestId) return
-    snOptions.value = keepSn ? [keepSn] : []
+    hostDeviceOptions.value = keepSn ? [{ sn: keepSn, hostName: "", modelName: "" }] : []
     ElMessage.error("加载设备SN号失败")
   } finally {
     if (requestId === snRequestId) {
@@ -159,8 +240,16 @@ async function loadSnOptions(deviceName: string, keepSn = "") {
 }
 
 function handleDeviceNameChange() {
+  formData.id = ""
+  formData.inspection_no = ""
   formData.device_sn = ""
+  formData.items = []
+  void replaceRouteInspectionId()
   void loadSnOptions(formData.device_name)
+}
+
+function handleDeviceSnChange() {
+  void loadExistingContentForSelection()
 }
 
 function applyDetail(detail: InspectionBaseInfoDetail) {
@@ -179,6 +268,57 @@ function applyDetail(detail: InspectionBaseInfoDetail) {
   formData.updated_at = detail.updated_at || ""
 }
 
+async function loadInspectionDetailById(id: number, syncRoute = false) {
+  const res = await getInspectionBaseInfoDetailApi(id)
+  applyDetail(res.data)
+  await loadSnOptions(formData.device_name, formData.device_sn)
+  if (syncRoute && String(route.query.id || "") !== String(id)) {
+    await replaceRouteInspectionId(id)
+  }
+}
+
+async function replaceRouteInspectionId(id?: number) {
+  const query = { ...route.query }
+  if (id) {
+    query.id = String(id)
+  } else {
+    delete query.id
+    delete query.base_id
+    delete query.baseId
+    delete query.baseID
+  }
+  await router.replace({
+    path: route.path,
+    query
+  })
+}
+
+async function loadExistingContentForSelection() {
+  if (!formData.device_name || !formData.device_sn) return
+  contentLoading.value = true
+  try {
+    const res = await getInspectionBaseInfoListApi({
+      currentPage: 1,
+      pageSize: 1,
+      device_name: formData.device_name,
+      device_sn: formData.device_sn
+    })
+    const matched = res.data.list?.[0]
+    if (!matched) {
+      formData.id = ""
+      formData.inspection_no = ""
+      formData.items = []
+      await replaceRouteInspectionId()
+      return
+    }
+    await loadInspectionDetailById(matched.id, true)
+  } catch {
+    ElMessage.error("加载已有巡检内容失败")
+  } finally {
+    contentLoading.value = false
+  }
+}
+
 async function fetchDetail() {
   const raw =
     (route.query.id as any) ??
@@ -190,11 +330,12 @@ async function fetchDetail() {
   const id = Number(val)
   if (!Number.isFinite(id)) return
   try {
-    const res = await getInspectionBaseInfoDetailApi(id)
-    applyDetail(res.data)
-    await loadSnOptions(formData.device_name, formData.device_sn)
+    contentLoading.value = true
+    await loadInspectionDetailById(id)
   } catch (e) {
     ElMessage.error("加载巡检明细失败")
+  } finally {
+    contentLoading.value = false
   }
 }
 
@@ -258,6 +399,7 @@ function handleDeleteItem(id: string) {
 }
 
 async function handleSave() {
+  if (saving.value) return
   if (!formData.device_name || !formData.device_sn) {
     ElMessage.warning("请完善巡检基础信息")
     return
@@ -283,13 +425,32 @@ async function handleSave() {
       require_photo: Boolean(it.requirePhoto)
     }))
   }
-  const res = await saveInspectionBaseInfoApi(payload)
-  if (res.data?.assistantSync?.success === false) {
-    ElMessage.warning(res.data.assistantSync.message || "巡检项已保存，但自动推送小助手失败")
-  } else {
-    ElMessage.success(res.msg || "保存成功，已自动推送小助手")
+  saving.value = true
+  try {
+    const res = await saveInspectionBaseInfoApi(payload)
+    const savedId = Number(res.data?.id)
+    if (Number.isFinite(savedId)) {
+      formData.id = String(savedId)
+      if (String(route.query.id || "") !== String(savedId)) {
+        await router.replace({
+          path: route.path,
+          query: {
+            ...route.query,
+            id: String(savedId)
+          }
+        })
+      }
+    }
+    if (res.data?.assistantSync?.success === false) {
+      ElMessage.warning(res.data.assistantSync.message || "巡检项已保存，但自动推送小助手失败")
+    } else {
+      ElMessage.success(res.msg || "保存成功，已自动推送小助手")
+    }
+  } catch {
+    ElMessage.error("保存巡检信息失败")
+  } finally {
+    saving.value = false
   }
-  router.push("/inspectionmanage/view")
 }
 
 function handleClose() {
@@ -312,6 +473,20 @@ function handleClose() {
   :deep(.el-form-item__label) {
     white-space: nowrap;
   }
+}
+
+.host-option-name {
+  float: right;
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.selected-host-name {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 32px;
+  align-items: center;
+  color: var(--el-text-color-regular);
 }
 
 .toolbar-wrapper {

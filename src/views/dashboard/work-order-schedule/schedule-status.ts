@@ -50,6 +50,25 @@ export function hasRunningScheduleInstrument(
   )
 }
 
+export function getCompletedScheduleInstrumentStatusText(
+  instrument?: WorkOrderScheduleInstrumentInput | null
+) {
+  if (!instrument) return ""
+  if (instrument.completed === true || instrument.isCompleted === true || instrument.is_completed === true) {
+    return "已完成"
+  }
+  const status = toNumber(instrument.instrumentStatus ?? instrument.instrument_status ?? instrument.status)
+  return status === 2 ? "已完成" : ""
+}
+
+export function getCompletedScheduleInstrumentGroupStatusText(
+  instruments?: Array<WorkOrderScheduleInstrumentInput | null | undefined> | null
+) {
+  const rows = instruments?.filter((instrument): instrument is WorkOrderScheduleInstrumentInput => Boolean(instrument)) ?? []
+  if (!rows.length) return ""
+  return rows.every((instrument) => getCompletedScheduleInstrumentStatusText(instrument)) ? "已完成" : ""
+}
+
 function getLifecycleStatusText(order: WorkOrderScheduleStatusInput) {
   if (order.isRunningTarget) return "测试中"
   const statusText = order.statusText?.trim()

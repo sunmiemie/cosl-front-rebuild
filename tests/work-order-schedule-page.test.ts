@@ -113,6 +113,14 @@ describe("工单排程页面", () => {
     expect(content).not.toContain("status: instrument?.instrument_status ?? order.status")
   })
 
+  it("高温高压井工单标题追加设备明细以区分同一工单下的多个排程对象", () => {
+    expect(content).toContain("function formatHighTempPressureOrderTitle")
+    expect(content).toContain("const testName = getString(order.project_name, order.test_type) || \"高温高压井工单\"")
+    expect(content).toContain("const instrumentName = getString(instrument?.instrument_name, instrument?.instrument_sn)")
+    expect(content).toContain("return instrumentName ? `${testName}-${instrumentName}` : testName")
+    expect(content).toContain("title: formatHighTempPressureOrderTitle(order, instrument)")
+  })
+
   it("排程弹窗支持一个工单维护多个时间段", () => {
     expect(content).toContain("排程时间段")
     expect(content).toContain("scheduleForm.segments")
@@ -173,9 +181,16 @@ describe("工单排程页面", () => {
     expect(content).not.toContain('<el-tag v-if="order.hostDeviceName"')
     expect(content).not.toContain('<span v-if="order.hostDeviceName">{{ order.hostDeviceName }}</span>')
     expect(content).not.toContain('<strong>{{ event.hostDeviceName || "-" }}</strong>')
-    expect(content).toContain(
-      '<el-descriptions-item label="主机设备">{{ detailOrder.hostDeviceName || "-" }}</el-descriptions-item>'
-    )
+    expect(content).toContain('<el-descriptions-item label="主机设备">{{ detailHostDeviceName }}</el-descriptions-item>')
+    expect(content).toContain('<el-descriptions-item label="设备/对象">{{ detailTargetName }}</el-descriptions-item>')
+    expect(content).toContain("function getOrderScheduleDeviceNames")
+  })
+
+  it("未排程工单详情不把默认设备名称显示为设备对象", () => {
+    expect(content).toContain('return detailScheduleDeviceNames.value.length ? detailScheduleDeviceNames.value.join("、") : "-"')
+    expect(content).not.toContain('detailOrder.value.targetName || "-"')
+    expect(content).not.toContain('detailOrder.value.hostDeviceName || "-"')
+    expect(content).toContain("const name = getSegmentScheduleDevice(order, segment)")
   })
 
   it("device tabs assign schedule device without narrowing the order panel", () => {
@@ -187,6 +202,7 @@ describe("工单排程页面", () => {
     )
     expect(content).toContain('activeDeviceTab.value = ""')
     expect(content).toContain('const useDevice = activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""')
-    expect(content).toMatch(/const events = deviceScopedActiveOrders\.value\.flatMap<BaseCalendarEvent>/)
+    expect(content).toMatch(/const events = activeOrders\.value\.flatMap<BaseCalendarEvent>/)
+    expect(content).toContain("isScheduleSegmentVisibleInActiveDevice(order, segment)")
   })
 })
