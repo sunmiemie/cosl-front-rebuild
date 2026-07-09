@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref, shallowRef } from "vue"
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue"
 import { type RouteRecordName, type RouteRecordRaw, useRouter } from "vue-router"
 import { usePermissionStore } from "@/store/modules/permission"
 import SearchResult from "./SearchResult.vue"
@@ -32,10 +32,9 @@ const menusData = computed(() => cloneDeep(usePermissionStore().routes))
 
 /** 搜索（防抖） */
 const handleSearch = debounce(() => {
+  const query = keyword.value.trim().toLocaleLowerCase()
   const flatMenusData = flatTree(menusData.value)
-  resultList.value = flatMenusData.filter((menu) =>
-    keyword.value ? menu.meta?.title?.toLocaleLowerCase().includes(keyword.value.toLocaleLowerCase().trim()) : false
-  )
+  resultList.value = query ? flatMenusData.filter((menu) => menu.meta?.title?.toLocaleLowerCase().includes(query)) : []
   // 默认选中搜索结果的第一项
   const length = resultList.value?.length
   activeRouteName.value = length > 0 ? resultList.value[0].name : undefined
@@ -50,15 +49,30 @@ const flatTree = (arr: RouteRecordRaw[], result: RouteRecordRaw[] = []) => {
   return result
 }
 
-/** 关闭搜索对话框 */
+let resetTimer: ReturnType<typeof setTimeout> | undefined
+const cancelReset = () => {
+  clearTimeout(resetTimer)
+  resetTimer = undefined
+}
+/** 关闭后取消未完成搜索，防止旧输入重新填充已关闭的对话框。 */
 const handleClose = () => {
+  handleSearch.cancel()
+  cancelReset()
   modelValue.value = false
-  // 延时处理防止用户看到重置数据的操作
-  setTimeout(() => {
+  isPressUpOrDown.value = false
+  resetTimer = setTimeout(() => {
     keyword.value = ""
     resultList.value = []
+    activeRouteName.value = undefined
   }, 200)
 }
+watch(modelValue, (open) => {
+  if (open) cancelReset()
+})
+onBeforeUnmount(() => {
+  handleSearch.cancel()
+  cancelReset()
+})
 
 /** 根据下标位置进行滚动 */
 const scrollTo = (index: number) => {
@@ -76,7 +90,7 @@ const handleUp = () => {
   // 获取该 name 在菜单中第一次出现的位置
   const index = resultList.value.findIndex((item) => item.name === activeRouteName.value)
   // 如果已处在顶部
-  if (index === 0) {
+  if (index <= 0) {
     const bottomName = resultList.value[length - 1].name
     // 如果顶部和底部的 bottomName 相同，且长度大于 1，就再跳一个位置（可解决遇到首尾两个相同 name 导致的上键不能生效的问题）
     if (activeRouteName.value === bottomName && length > 1) {
@@ -119,13 +133,14 @@ const handleDown = () => {
 }
 
 /** 键盘回车键 */
-const handleEnter = () => {
+const handleEnter = async () => {
   const { length } = resultList.value
   if (length === 0) return
   const name = activeRouteName.value
   const path = resultList.value.find((item) => item.name === name)?.path
   if (path && isExternal(path)) {
     window.open(path, "_blank", "noopener, noreferrer")
+    handleClose()
     return
   }
   if (!name) {
@@ -133,7 +148,8 @@ const handleEnter = () => {
     return
   }
   try {
-    router.push({ name })
+    const failure = await router.push({ name })
+    if (failure) return
   } catch {
     ElMessage.error("该菜单有必填的动态参数，无法通过搜索进入")
     return
@@ -152,8 +168,8 @@ const handleReleaseUpOrDown = () => {
     v-model="modelValue"
     @opened="inputRef?.focus()"
     @closed="inputRef?.blur()"
-    @keydown.up="handleUp"
-    @keydown.down="handleDown"
+    @keydown.up.prevent="handleUp"
+    @keydown.down.prevent="handleDown"
     @keydown.enter="handleEnter"
     @keyup.up.down="handleReleaseUpOrDown"
     :before-close="handleClose"
