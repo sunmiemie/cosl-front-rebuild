@@ -20,6 +20,9 @@ export interface HostUsageRecordItem {
   usage_date?: string | null
   date?: string | null
   duration_hours: number
+  cumulative_hours?: number | null
+  completed_task?: string
+  operator?: string
   status: string
   remark?: string
   created_at?: string | null
@@ -63,6 +66,9 @@ export interface CreateHostUsageRecordRequest {
   work_order_no?: string
   usage_date: string
   duration_hours: number
+  cumulative_hours?: number | null
+  completed_task?: string
+  operator?: string
   status: string
   remark?: string
 }

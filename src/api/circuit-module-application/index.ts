@@ -167,6 +167,9 @@ export interface CircuitModuleBoardItem {
 
 export interface CircuitModuleApplicationRelation {
   id?: number
+  assistantTestId?: string | null
+  assistant_test_id?: string | null
+  testId?: string | null
   sn: string
   djbh?: string
   wtdw?: string

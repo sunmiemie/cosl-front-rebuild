@@ -231,7 +231,7 @@
           </el-table-column>
           <el-table-column label="数量" width="120">
             <template #default="{ row }">
-              <el-input-number v-model="row.quantity" :min="0" style="width: 100%" />
+              <el-input-number v-model="row.quantity" :min="1" style="width: 100%" />
             </template>
           </el-table-column>
           <el-table-column label="生产厂家" min-width="140">
@@ -450,7 +450,7 @@ const getEmptySample = () => ({
   sample_name: "",
   category: "",
   spec_model: "",
-  quantity: 0,
+  quantity: 1,
   manufacturer: "",
   project_name: "",
   batch_no: "",
@@ -553,10 +553,33 @@ const openEditDialog = (row: Row) => {
   })
 }
 
+const validateSampleRows = () => {
+  if (!editForm.samples.length) {
+    ElMessage.warning("委托单至少需要一条样品明细")
+    return false
+  }
+  for (const [index, sample] of editForm.samples.entries()) {
+    if (!String(sample.sample_name || "").trim()) {
+      ElMessage.warning(`第 ${index + 1} 条样品明细缺少样品名称`)
+      return false
+    }
+    if (!String(sample.category || "").trim()) {
+      ElMessage.warning(`第 ${index + 1} 条样品明细缺少分类`)
+      return false
+    }
+    if (!Number.isFinite(Number(sample.quantity)) || Number(sample.quantity) <= 0) {
+      ElMessage.warning(`第 ${index + 1} 条样品明细数量必须大于 0`)
+      return false
+    }
+  }
+  return true
+}
+
 const handleSave = async () => {
   if (!editFormRef.value) return
   await editFormRef.value.validate(async (valid) => {
     if (!valid) return
+    if (!validateSampleRows()) return
     saveLoading.value = true
     try {
       await request({

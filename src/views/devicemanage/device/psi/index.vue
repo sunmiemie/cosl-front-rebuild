@@ -127,6 +127,9 @@ const usageForm = reactive({
   work_order_no: "",
   usage_date: "",
   duration_hours: 0,
+  cumulative_hours: undefined as number | undefined,
+  completed_task: "",
+  operator: "",
   status: "正常",
   remark: ""
 })
@@ -349,6 +352,9 @@ const resetUsageForm = () => {
   usageForm.work_order_no = ""
   usageForm.usage_date = todayString()
   usageForm.duration_hours = 0
+  usageForm.cumulative_hours = undefined
+  usageForm.completed_task = ""
+  usageForm.operator = ""
   usageForm.status = "正常"
   usageForm.remark = ""
 }
@@ -453,6 +459,9 @@ const openUsageEdit = (row: HostUsageRecordItem) => {
   usageForm.work_order_no = row.work_order_no || ""
   usageForm.usage_date = row.usage_date || row.date || todayString()
   usageForm.duration_hours = Number(row.duration_hours || 0)
+  usageForm.cumulative_hours = row.cumulative_hours == null ? undefined : Number(row.cumulative_hours)
+  usageForm.completed_task = row.completed_task || ""
+  usageForm.operator = row.operator || ""
   usageForm.status = row.status || "正常"
   usageForm.remark = row.remark || ""
   usageDialogVisible.value = true
@@ -474,6 +483,9 @@ const submitUsageRecord = async () => {
     work_order_no: usageForm.work_order_no,
     usage_date: usageForm.usage_date,
     duration_hours: Number(usageForm.duration_hours),
+    cumulative_hours: usageForm.cumulative_hours ?? null,
+    completed_task: usageForm.completed_task,
+    operator: usageForm.operator,
     status: usageForm.status,
     remark: usageForm.remark
   }
@@ -816,7 +828,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
               <div class="tab-toolbar">
                 <div>
                   <div class="tab-title">主机使用记录</div>
-                  <div class="tab-subtitle">记录主机关联工单、使用日期和使用时长</div>
+                  <div class="tab-subtitle">记录主机关联工单、运转小时、完成任务和操作者</div>
                 </div>
                 <el-button type="primary" :icon="CirclePlus" @click="openUsageCreate">新增使用记录</el-button>
               </div>
@@ -825,6 +837,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                 <el-table-column prop="work_order_no" label="工单号" min-width="150" show-overflow-tooltip />
                 <el-table-column prop="usage_date" label="使用日期" width="120" />
                 <el-table-column prop="duration_hours" label="使用时长(h)" width="120" />
+                <el-table-column prop="cumulative_hours" label="累计运转小时(h)" width="140" />
+                <el-table-column prop="completed_task" label="主要完成任务" min-width="180" show-overflow-tooltip />
+                <el-table-column prop="operator" label="操作者" width="110" show-overflow-tooltip />
                 <el-table-column prop="status" label="状态" width="110" />
                 <el-table-column prop="remark" label="备注" min-width="180" show-overflow-tooltip />
                 <el-table-column label="操作" width="136" fixed="right" align="center">
@@ -944,6 +959,22 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         </el-form-item>
         <el-form-item label="使用时长(h)" required>
           <el-input-number v-model="usageForm.duration_hours" :min="0" :precision="1" :step="0.5" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="累计小时(h)">
+          <el-input-number
+            v-model="usageForm.cumulative_hours"
+            :min="0"
+            :precision="1"
+            :step="0.5"
+            style="width: 100%"
+            placeholder="请输入累计运转小时"
+          />
+        </el-form-item>
+        <el-form-item label="完成任务">
+          <el-input v-model.trim="usageForm.completed_task" type="textarea" :rows="3" placeholder="请输入主要完成任务" />
+        </el-form-item>
+        <el-form-item label="操作者">
+          <el-input v-model.trim="usageForm.operator" placeholder="请输入操作者" />
         </el-form-item>
         <el-form-item label="状态">
           <el-select v-model="usageForm.status" style="width: 100%">
