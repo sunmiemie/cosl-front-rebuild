@@ -25,6 +25,8 @@ export interface HaltHassCreateFormModel {
   experimentType: HaltHassExperimentType | ""
   circuitBoardStatus: HaltHassCircuitBoardStatus | ""
   otherProcessName: string
+  cycleCount: number
+  singleCycleDurationHours: number | null
   remark: string
 }
 
@@ -52,6 +54,11 @@ const CIRCUIT_BOARD_STATUS_LABELS: Record<HaltHassCircuitBoardStatus, string> = 
 }
 
 const trimValue = (value: unknown) => String(value ?? "").trim()
+
+const isPositiveTwoDecimalNumber = (value: unknown) => {
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) && numericValue > 0 && Math.abs(numericValue * 100 - Math.round(numericValue * 100)) < 1e-8
+}
 
 export const normalizeHaltHassExperimentType = (process: HaltHassVersionItem): HaltHassExperimentType | "" => {
   const directType = trimValue(process.experimentType ?? process.experiment_type).toLowerCase()
@@ -96,6 +103,9 @@ export const isHaltHassCreateFormReady = (form: HaltHassCreateFormModel, allBoar
   const baseReady = allBoardsSelected && requiredValues.every((value) => trimValue(value))
   if (!baseReady) return false
 
+  if (!Number.isInteger(Number(form.cycleCount)) || Number(form.cycleCount) <= 0) return false
+  if (!isPositiveTwoDecimalNumber(form.singleCycleDurationHours)) return false
+
   if (form.processSelection === OTHER_PROCESS_VALUE) {
     return Boolean(trimValue(form.otherProcessName))
   }
@@ -128,6 +138,8 @@ export const buildHaltHassCreatePayload = ({
     board_group_id: form.boardGroupId!,
     board_count: boardCount,
     creator_id: creatorId,
+    cycleCount: Number(form.cycleCount),
+    cycle_count: Number(form.cycleCount),
     remark: form.remark,
     boardSerials,
     board_serials: boardSerialsSnake,
@@ -148,7 +160,9 @@ export const buildHaltHassCreatePayload = ({
     circuitBoardStatus: form.circuitBoardStatus as HaltHassCircuitBoardStatus,
     circuit_board_status: form.circuitBoardStatus as HaltHassCircuitBoardStatus,
     processSelection,
-    process_selection: processSelection
+    process_selection: processSelection,
+    singleCycleDurationHours: Number(form.singleCycleDurationHours),
+    single_cycle_duration_hours: Number(form.singleCycleDurationHours)
   }
 
   if (isOtherProcess) {

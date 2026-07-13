@@ -124,6 +124,8 @@ export interface HaltHassVersionItem {
   createdAt: string
   experimentType?: HaltHassExperimentType | string
   experiment_type?: HaltHassExperimentType | string
+  durationHours?: number | null
+  duration_hours?: number | null
 }
 
 export interface HaltHassVersionListResponse {
@@ -165,6 +167,26 @@ export interface HaltHassOrderBusinessFields {
   process_selection?: HaltHassProcessSelectionType
   otherProcessName?: string
   other_process_name?: string
+  cycleCount?: number
+  cycle_count?: number
+  singleCycleDurationHours?: number
+  single_cycle_duration_hours?: number
+  totalCycleDurationHours?: number
+  total_cycle_duration_hours?: number
+  requiredRuntimeSeconds?: number
+  required_runtime_seconds?: number
+  elapsedRuntimeSeconds?: number
+  elapsed_runtime_seconds?: number
+  remainingRuntimeSeconds?: number
+  remaining_runtime_seconds?: number
+  runtimeProgress?: number
+  runtime_progress?: number
+  runtimeConfigured?: boolean
+  runtime_configured?: boolean
+  runtimeCompleted?: boolean
+  runtime_completed?: boolean
+  currentRunStartedAt?: string | null
+  current_run_started_at?: string | null
 }
 
 export interface HaltHassOrderListItem extends HaltHassOrderBusinessFields {
@@ -248,10 +270,14 @@ export interface HaltHassOrderCreateParams {
   processId?: number | null
   boardCount: number
   creatorId: number
+  cycleCount: number
   board_group_id?: number
   process_id?: number | null
   board_count?: number
   creator_id?: number
+  cycle_count: number
+  singleCycleDurationHours?: number
+  single_cycle_duration_hours?: number
   remark?: string
   boardSerials?: Array<{
     serial: string

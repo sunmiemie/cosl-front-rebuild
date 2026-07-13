@@ -28,6 +28,8 @@ const completeForm = (overrides: Partial<HaltHassCreateFormModel> = {}): HaltHas
   experimentType: "halt",
   circuitBoardStatus: "development",
   otherProcessName: "",
+  cycleCount: 3,
+  singleCycleDurationHours: 1.25,
   remark: "保留原备注",
   ...overrides
 })
@@ -59,6 +61,9 @@ describe("HALT-HASS 新增工单字段", () => {
       "实验类型",
       "试验电路板状态",
       "选择测试工艺",
+      "循环次数",
+      "单循环时长",
+      "循环总时长",
       "HALT（高温-低温-振动三项）",
       "HASS",
       "研发",
@@ -93,6 +98,10 @@ describe("HALT-HASS 新增工单字段", () => {
       process_id: 36,
       board_count: 2,
       creator_id: 99,
+      cycleCount: 3,
+      cycle_count: 3,
+      singleCycleDurationHours: 1.25,
+      single_cycle_duration_hours: 1.25,
       testApplicationUnit: "中海油委托单位",
       test_application_unit: "中海油委托单位",
       researchNumber: "KY-001",
@@ -141,7 +150,11 @@ describe("HALT-HASS 新增工单字段", () => {
       processSelection: "other",
       process_selection: "other",
       otherProcessName: "其他环境筛选流程",
-      other_process_name: "其他环境筛选流程"
+      other_process_name: "其他环境筛选流程",
+      cycleCount: 3,
+      cycle_count: 3,
+      singleCycleDurationHours: 1.25,
+      single_cycle_duration_hours: 1.25
     })
   })
 
@@ -192,6 +205,10 @@ describe("HALT-HASS 新增工单字段", () => {
     expect(isHaltHassCreateFormReady(completeForm(), true)).toBe(true)
     expect(isHaltHassCreateFormReady(completeForm({ phone: "" }), true)).toBe(false)
     expect(isHaltHassCreateFormReady(completeForm({ mobile: "" }), true)).toBe(false)
+    expect(isHaltHassCreateFormReady(completeForm({ cycleCount: 0 }), true)).toBe(false)
+    expect(isHaltHassCreateFormReady(completeForm({ cycleCount: 1.5 }), true)).toBe(false)
+    expect(isHaltHassCreateFormReady(completeForm({ singleCycleDurationHours: null }), true)).toBe(false)
+    expect(isHaltHassCreateFormReady(completeForm({ singleCycleDurationHours: 1.234 }), true)).toBe(false)
     expect(isHaltHassCreateFormReady(completeForm(), false)).toBe(false)
     expect(
       isHaltHassCreateFormReady(

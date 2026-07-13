@@ -64,6 +64,12 @@
               </el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="循环次数" width="82" align="center">
+            <template #default="{ row }">{{ getOrderCycleCount(row) }} 次</template>
+          </el-table-column>
+          <el-table-column label="循环总时长" width="104" align="center">
+            <template #default="{ row }">{{ formatHours(getOrderTotalDuration(row)) }}</template>
+          </el-table-column>
           <el-table-column prop="boardCount" label="电路板数" width="78" align="center" />
           <el-table-column prop="status" label="状态" width="82" align="center">
             <template #default="{ row }">
@@ -220,6 +226,47 @@
               <el-input v-model="createForm.otherProcessName" placeholder="请输入其他工艺名称" clearable />
             </el-form-item>
           </el-col>
+          <el-col :span="8">
+            <el-form-item label="循环次数" prop="cycleCount">
+              <el-input-number
+                v-model="createForm.cycleCount"
+                :min="1"
+                :step="1"
+                :precision="0"
+                controls-position="right"
+                style="width: 100%"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="单循环时长" prop="singleCycleDurationHours">
+              <div class="duration-input">
+                <el-input-number
+                  v-model="createForm.singleCycleDurationHours"
+                  :disabled="isSingleDurationReadonly"
+                  :min="0.01"
+                  :step="0.01"
+                  :precision="2"
+                  controls-position="right"
+                />
+                <span>小时</span>
+              </div>
+              <el-text
+                v-if="createForm.processSelection && !isOtherProcessSelected && !createForm.singleCycleDurationHours"
+                type="danger"
+                size="small"
+              >
+                所选工艺未配置时长，请填写
+              </el-text>
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
+            <el-form-item label="循环总时长">
+              <el-input :model-value="totalCycleDurationText" readonly>
+                <template #append>小时</template>
+              </el-input>
+            </el-form-item>
+          </el-col>
         </el-row>
 
         <!-- 电路板选择区域 -->
@@ -367,6 +414,16 @@
           {{ getOrderProcessName(currentOrder) }}
           <span v-if="currentOrder.process?.version">(v{{ currentOrder.process.version }})</span>
         </el-descriptions-item>
+        <el-descriptions-item label="循环次数">{{ getOrderCycleCount(currentOrder) }} 次</el-descriptions-item>
+        <el-descriptions-item label="单循环时长">
+          {{ formatHours(getOrderSingleDuration(currentOrder)) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="循环总时长">
+          {{ formatHours(getOrderTotalDuration(currentOrder)) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="累计运行时长">
+          {{ formatRuntimeSeconds(getOrderElapsedSeconds(currentOrder)) }}
+        </el-descriptions-item>
         <el-descriptions-item label="电路板数量">{{ currentOrder.boardCount }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ currentOrder.createdAt }}</el-descriptions-item>
         <el-descriptions-item label="开始时间">{{ currentOrder.startedAt || "-" }}</el-descriptions-item>
@@ -497,6 +554,8 @@ const createForm = reactive({
   experimentType: "" as HaltHassExperimentType | "",
   circuitBoardStatus: "" as HaltHassCircuitBoardStatus | "",
   otherProcessName: "",
+  cycleCount: 1,
+  singleCycleDurationHours: null as number | null,
   remark: ""
 })
 
@@ -513,6 +572,35 @@ const createRules = {
   circuitBoardStatus: [{ required: true, message: "请选择试验电路板状态", trigger: "change" }],
   boardGroupId: [{ required: true, message: "请选择电路板组", trigger: "change" }],
   processSelection: [{ required: true, message: "请选择测试工艺", trigger: "change" }],
+  cycleCount: [
+    {
+      validator: (_rule: unknown, value: number, callback: (error?: Error) => void) => {
+        if (!Number.isInteger(Number(value)) || Number(value) <= 0) {
+          callback(new Error("循环次数必须为正整数"))
+          return
+        }
+        callback()
+      },
+      trigger: "change"
+    }
+  ],
+  singleCycleDurationHours: [
+    {
+      validator: (_rule: unknown, value: number | null, callback: (error?: Error) => void) => {
+        const duration = Number(value)
+        if (!Number.isFinite(duration) || duration <= 0) {
+          callback(new Error(isOtherProcessSelected.value ? "请输入单循环时长" : "所选工艺未配置单循环时长"))
+          return
+        }
+        if (Math.abs(duration * 100 - Math.round(duration * 100)) >= 1e-8) {
+          callback(new Error("单循环时长最多保留两位小数"))
+          return
+        }
+        callback()
+      },
+      trigger: "change"
+    }
+  ],
   otherProcessName: [
     {
       validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
@@ -560,6 +648,24 @@ const allBoardsSelected = computed(() => {
 })
 const filteredProcessList = computed(() => filterHaltHassProcesses(processList.value, createForm.experimentType))
 const isOtherProcessSelected = computed(() => createForm.processSelection === OTHER_PROCESS_VALUE)
+const selectedProcess = computed(() => {
+  if (isOtherProcessSelected.value || !createForm.processSelection) return null
+  return processList.value.find((item) => item.id === Number(createForm.processSelection)) || null
+})
+const selectedProcessDuration = computed(() => {
+  const duration = Number(selectedProcess.value?.durationHours ?? selectedProcess.value?.duration_hours)
+  return Number.isFinite(duration) && duration > 0 ? duration : null
+})
+const isSingleDurationReadonly = computed(() => !isOtherProcessSelected.value && selectedProcessDuration.value !== null)
+const totalCycleDuration = computed(() => {
+  const singleDuration = Number(createForm.singleCycleDurationHours)
+  const cycleCount = Number(createForm.cycleCount)
+  if (!Number.isFinite(singleDuration) || singleDuration <= 0 || !Number.isInteger(cycleCount) || cycleCount <= 0) {
+    return 0
+  }
+  return Number((singleDuration * cycleCount).toFixed(2))
+})
+const totalCycleDurationText = computed(() => (totalCycleDuration.value > 0 ? totalCycleDuration.value.toFixed(2) : "-"))
 const canCreate = computed(() => {
   return isHaltHassCreateFormReady(createForm, allBoardsSelected.value)
 })
@@ -614,6 +720,39 @@ const getOrderOtherProcessName = (order: HaltHassOrderListItem | HaltHassOrderDe
 
 const getOrderProcessName = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
   return order.process?.name || getOrderOtherProcessName(order) || "-"
+}
+
+const getNumericOrderField = (
+  order: HaltHassOrderListItem | HaltHassOrderDetail,
+  camelKey: string,
+  snakeKey: string,
+  fallback = 0
+) => {
+  const value = Number(getOrderRawField(order, camelKey, snakeKey))
+  return Number.isFinite(value) ? value : fallback
+}
+
+const getOrderCycleCount = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
+  return getNumericOrderField(order, "cycleCount", "cycle_count", 1) || 1
+}
+const getOrderSingleDuration = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
+  return getNumericOrderField(order, "singleCycleDurationHours", "single_cycle_duration_hours")
+}
+const getOrderTotalDuration = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
+  return getNumericOrderField(order, "totalCycleDurationHours", "total_cycle_duration_hours")
+}
+const getOrderElapsedSeconds = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
+  return getNumericOrderField(order, "elapsedRuntimeSeconds", "elapsed_runtime_seconds")
+}
+const formatHours = (hours: number) => (hours > 0 ? `${hours.toFixed(2)} 小时` : "-")
+const formatRuntimeSeconds = (seconds: number) => {
+  if (seconds <= 0) return "0 秒"
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const remainingSeconds = Math.floor(seconds % 60)
+  return [hours ? `${hours} 小时` : "", minutes ? `${minutes} 分钟` : "", `${remainingSeconds} 秒`]
+    .filter(Boolean)
+    .join(" ")
 }
 
 // 获取工单列表
@@ -749,6 +888,8 @@ const resetCreateForm = () => {
     experimentType: "",
     circuitBoardStatus: "",
     otherProcessName: "",
+    cycleCount: 1,
+    singleCycleDurationHours: null,
     remark: ""
   })
 }
@@ -756,11 +897,15 @@ const resetCreateForm = () => {
 const handleProcessSelectionChange = (value: HaltHassProcessSelection) => {
   if (value === OTHER_PROCESS_VALUE || value === "") {
     createForm.processId = null
+    createForm.singleCycleDurationHours = null
   } else {
     createForm.processId = Number(value)
     createForm.otherProcessName = ""
+    const selectedProcessItem = processList.value.find((item) => item.id === Number(value))
+    const duration = Number(selectedProcessItem?.durationHours ?? selectedProcessItem?.duration_hours)
+    createForm.singleCycleDurationHours = Number.isFinite(duration) && duration > 0 ? duration : null
   }
-  createFormRef.value?.clearValidate(["processSelection", "otherProcessName"])
+  createFormRef.value?.clearValidate(["processSelection", "otherProcessName", "singleCycleDurationHours"])
 }
 
 const selectDefaultProcess = () => {
@@ -818,6 +963,7 @@ const handleBoardGroupChange = async (boardGroupId: number) => {
   createForm.processId = null
   createForm.processSelection = ""
   createForm.otherProcessName = ""
+  createForm.singleCycleDurationHours = null
   processList.value = []
   selectedBoardGroup.value = null
   treeData.value = originalTreeData.value // 重置树数据
@@ -1131,6 +1277,14 @@ onMounted(() => {
 
 .board-selection-area {
   margin-top: 16px;
+}
+
+.duration-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
 }
 
 .tree-card {
