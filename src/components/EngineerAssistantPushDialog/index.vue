@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, ref, watch } from "vue"
+import { computed, onBeforeUnmount, ref, watch } from "vue"
 import { ElMessage } from "element-plus"
 import { getEngineerAssistantTestTypesApi } from "@/api/engineer-assistant"
 import type { EngineerAssistantTestType } from "@/api/engineer-assistant/types"
@@ -31,10 +31,14 @@ const visible = computed({
   set: (value: boolean) => emit("update:modelValue", value)
 })
 
+let requestSequence = 0
 const loadTestTypes = async () => {
+  const sequence = ++requestSequence
   testTypeLoading.value = true
+  testTypes.value = []
   try {
     const response = await getEngineerAssistantTestTypesApi()
+    if (sequence !== requestSequence) return
     testTypes.value = response.data.list || []
     if (selectedTestTypeId.value && !testTypes.value.some((item) => String(item.typeId) === selectedTestTypeId.value)) {
       selectedTestTypeId.value = ""
@@ -43,13 +47,14 @@ const loadTestTypes = async () => {
       selectedTestTypeId.value = String(testTypes.value[0].typeId)
     }
   } catch {
-    testTypes.value = []
+    if (sequence === requestSequence) testTypes.value = []
   } finally {
-    testTypeLoading.value = false
+    if (sequence === requestSequence) testTypeLoading.value = false
   }
 }
 
 const confirmPush = () => {
+  if (!props.modelValue || props.loading || testTypeLoading.value || props.itemCount <= 0) return
   const selectedType = testTypes.value.find((item) => String(item.typeId) === selectedTestTypeId.value)
   if (!selectedType) {
     ElMessage.warning("请选择小助手测试类型")
@@ -61,9 +66,17 @@ const confirmPush = () => {
 watch(
   () => props.modelValue,
   (isOpen) => {
-    if (isOpen) loadTestTypes()
-  }
+    if (isOpen) void loadTestTypes()
+    else {
+      requestSequence += 1
+      testTypeLoading.value = false
+    }
+  },
+  { immediate: true }
 )
+onBeforeUnmount(() => {
+  requestSequence += 1
+})
 </script>
 
 <template>
@@ -93,7 +106,7 @@ watch(
       <el-button :disabled="loading" @click="visible = false">取消</el-button>
       <el-button
         type="primary"
-        :disabled="testTypeLoading || testTypes.length === 0"
+        :disabled="testTypeLoading || testTypes.length === 0 || itemCount <= 0"
         :loading="loading"
         @click="confirmPush"
       >
