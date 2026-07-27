@@ -115,8 +115,10 @@ describe("工单排程页面", () => {
 
   it("高温高压井工单标题追加设备明细以区分同一工单下的多个排程对象", () => {
     expect(content).toContain("function formatHighTempPressureOrderTitle")
-    expect(content).toContain("const testName = getString(order.project_name, order.test_type) || \"高温高压井工单\"")
-    expect(content).toContain("const instrumentName = getString(instrument?.instrument_name, instrument?.instrument_sn)")
+    expect(content).toContain('const testName = getString(order.project_name, order.test_type) || "高温高压井工单"')
+    expect(content).toContain(
+      "const instrumentName = getString(instrument?.instrument_name, instrument?.instrument_sn)"
+    )
     expect(content).toContain("return instrumentName ? `${testName}-${instrumentName}` : testName")
     expect(content).toContain("title: formatHighTempPressureOrderTitle(order, instrument)")
   })
@@ -168,11 +170,19 @@ describe("工单排程页面", () => {
     expect(content).toContain("searchForm.keyword = keyword")
   })
 
-  it("circuit board module scheduling only pushes the operated order to assistant", () => {
-    expect(content).toContain("persistCircuitBoardPriorityOrders(nextOrders, order.id)")
-    expect(content).toContain("const shouldPushAssistant = pushOrderId !== null && order.id === pushOrderId")
-    expect(content).toContain("skip_assistant_push: !shouldPushAssistant")
-    expect(content).toContain("skipAssistantPush: !shouldPushAssistant")
+  it("电路板模块左侧只读展示自动排程结果，右侧排序不重复推送", () => {
+    expect(content).toContain('panelTitle: "已排程工单"')
+    expect(content).toContain('panelSubtitle: "整单发布后自动进入排期顺序"')
+    expect(content).toContain("filteredCircuitBoardScheduledOrders")
+    expect(content).toContain("order.sequenceOrder > 0")
+    expect(content).not.toContain("加入排期")
+    expect(content).not.toContain("移除排期顺序")
+    expect(content).toContain("if (isCircuitBoardModule.value) return false")
+    expect(content).toContain("await persistCircuitBoardPriorityOrders(nextOrders)")
+    expect(content).toContain("saveCircuitBoardSequenceBatch")
+    expect(content).toContain("order_ids: orderIds")
+    expect(content).not.toContain("for (const [index, order] of nextOrders.entries())")
+    expect(content).not.toContain("skip_assistant_push: !shouldPushAssistant")
   })
 
   it("主机名称只在详情中展示，不在外层卡片和悬浮提示中展示", () => {
@@ -181,22 +191,24 @@ describe("工单排程页面", () => {
     expect(content).not.toContain('<el-tag v-if="order.hostDeviceName"')
     expect(content).not.toContain('<span v-if="order.hostDeviceName">{{ order.hostDeviceName }}</span>')
     expect(content).not.toContain('<strong>{{ event.hostDeviceName || "-" }}</strong>')
-    expect(content).toContain('<el-descriptions-item label="主机设备">{{ detailHostDeviceName }}</el-descriptions-item>')
+    expect(content).toContain(
+      '<el-descriptions-item label="主机设备">{{ detailHostDeviceName }}</el-descriptions-item>'
+    )
     expect(content).toContain('<el-descriptions-item label="设备/对象">{{ detailTargetName }}</el-descriptions-item>')
     expect(content).toContain("function getOrderScheduleDeviceNames")
   })
 
   it("未排程工单详情不把默认设备名称显示为设备对象", () => {
-    expect(content).toContain('return detailScheduleDeviceNames.value.length ? detailScheduleDeviceNames.value.join("、") : "-"')
+    expect(content).toContain(
+      'return detailScheduleDeviceNames.value.length ? detailScheduleDeviceNames.value.join("、") : "-"'
+    )
     expect(content).not.toContain('detailOrder.value.targetName || "-"')
     expect(content).not.toContain('detailOrder.value.hostDeviceName || "-"')
     expect(content).toContain("const name = getSegmentScheduleDevice(order, segment)")
   })
 
   it("device tabs assign schedule device without narrowing the order panel", () => {
-    expect(content).toContain("filterOrdersByActiveDeviceTab")
     expect(content).toMatch(/const deviceScopedOrders = computed\(\(\) => stateOrders\.value\)/)
-    expect(content).toMatch(/const deviceScopedActiveOrders = computed\(\(\) =>\s*filterOrdersByActiveDeviceTab\(/s)
     expect(content).toMatch(
       /const filteredOrders = computed\(\(\) => \{[\s\S]*if \(!keyword\) return deviceScopedOrders\.value/
     )

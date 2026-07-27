@@ -193,6 +193,11 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
+            <el-form-item label="测试地点" prop="test_location">
+              <el-input v-model="createForm.test_location" placeholder="请输入测试地点" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
             <el-form-item label="测试类型" prop="test_type">
               <el-select v-model="createForm.test_type" placeholder="请选择测试类型" style="width: 100%">
                 <el-option v-for="item in TEST_TYPES" :key="item" :label="item" :value="item" />
@@ -274,14 +279,21 @@
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
+    <el-drawer
+      v-model="detailDialogVisible"
+      title="工单详情"
+      size="var(--test-order-detail-drawer-size)"
+      class="test-order-detail-drawer"
+    >
       <div v-if="currentOrder" class="detail-content">
         <div class="detail-section-title">基础编号</div>
         <el-descriptions :column="2" border>
           <el-descriptions-item label="表格编号">{{ currentOrder.table_no || "-" }}</el-descriptions-item>
           <el-descriptions-item label="任务单编号">{{ currentOrder.task_number }}</el-descriptions-item>
           <el-descriptions-item label="状态">
-            <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.status_text || currentOrder.status }}</el-tag>
+            <el-tag :type="getStatusType(currentOrder.status)">{{
+              currentOrder.status_text || currentOrder.status
+            }}</el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="创建时间">{{ currentOrder.created_at || "-" }}</el-descriptions-item>
         </el-descriptions>
@@ -290,13 +302,17 @@
         <el-descriptions :column="2" border>
           <el-descriptions-item label="申请人">{{ currentOrder.applicant || "-" }}</el-descriptions-item>
           <el-descriptions-item label="申请人电话">{{ currentOrder.applicant_phone || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="测试申请单位">{{ currentOrder.test_application_unit || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试申请单位">{{
+            currentOrder.test_application_unit || "-"
+          }}</el-descriptions-item>
           <el-descriptions-item label="单位负责人">
             {{ currentOrder.test_application_unit_manager || "-" }}
           </el-descriptions-item>
           <el-descriptions-item label="科研编号">{{ currentOrder.research_number || "-" }}</el-descriptions-item>
           <el-descriptions-item label="申请日期">{{ currentOrder.application_date || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="项目预算编号">{{ currentOrder.project_budget_number || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="项目预算编号">{{
+            currentOrder.project_budget_number || "-"
+          }}</el-descriptions-item>
           <el-descriptions-item label="项目名称">{{ currentOrder.project_name || "-" }}</el-descriptions-item>
         </el-descriptions>
 
@@ -311,12 +327,15 @@
         <el-descriptions :column="2" border>
           <el-descriptions-item label="委托人">{{ currentOrder.client || "-" }}</el-descriptions-item>
           <el-descriptions-item label="时间">{{ currentOrder.planned_time || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试地点">{{ currentOrder.test_location || "-" }}</el-descriptions-item>
           <el-descriptions-item label="测试类型">{{ currentOrder.test_type || "-" }}</el-descriptions-item>
           <el-descriptions-item label="管线长度">{{ currentOrder.flow_process || "-" }}</el-descriptions-item>
           <el-descriptions-item label="是否需要下发指令">
             {{ yesNoText(currentOrder.need_command_transfer) }}
           </el-descriptions-item>
-          <el-descriptions-item label="是否需要调压">{{ yesNoText(currentOrder.need_pressure_test) }}</el-descriptions-item>
+          <el-descriptions-item label="是否需要调压">{{
+            yesNoText(currentOrder.need_pressure_test)
+          }}</el-descriptions-item>
         </el-descriptions>
 
         <div class="detail-section-title">测试说明</div>
@@ -324,7 +343,9 @@
           <el-descriptions-item label="测试目的">{{ currentOrder.test_purpose || "-" }}</el-descriptions-item>
           <el-descriptions-item label="项目成员">{{ currentOrder.project_members || "-" }}</el-descriptions-item>
           <el-descriptions-item label="设备清单">{{ currentOrder.equipment_list || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="仪器串组合">{{ currentOrder.instrument_combination || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="仪器串组合">{{
+            currentOrder.instrument_combination || "-"
+          }}</el-descriptions-item>
           <el-descriptions-item label="测试步骤">{{ currentOrder.test_steps || "-" }}</el-descriptions-item>
           <el-descriptions-item label="安全风险及预防措施">{{ currentOrder.safety_risks || "-" }}</el-descriptions-item>
         </el-descriptions>
@@ -345,11 +366,7 @@ import {
   getWaterCycleOrderListApi,
   publishWaterCycleOrderApi
 } from "@/api/water-cycle"
-import type {
-  WaterCycleInstrumentItem,
-  WaterCycleOrderDetail,
-  WaterCycleOrderListItem
-} from "@/api/water-cycle/types"
+import type { WaterCycleInstrumentItem, WaterCycleOrderDetail, WaterCycleOrderListItem } from "@/api/water-cycle/types"
 
 type StatusTagType = "success" | "warning" | "info" | "primary" | "danger"
 
@@ -407,6 +424,7 @@ const createForm = reactive({
   instruments: [{ instrument_name: "", sn_numbers: "", quantity: 1 }] as WaterCycleInstrumentItem[],
   client: "",
   planned_time: "",
+  test_location: "",
   test_purpose: "",
   test_type: "水循环测试",
   flow_process: "",
@@ -438,7 +456,9 @@ const detailDialogVisible = ref(false)
 const currentOrder = ref<WaterCycleOrderDetail | null>(null)
 
 const canCreate = computed(() => {
-  const hasInstrument = createForm.instruments.some((item) => item.instrument_name && item.sn_numbers && item.quantity > 0)
+  const hasInstrument = createForm.instruments.some(
+    (item) => item.instrument_name && item.sn_numbers && item.quantity > 0
+  )
   return !!(
     createForm.table_no &&
     createForm.task_number &&
@@ -614,6 +634,7 @@ const showCreateDialog = () => {
     instruments: [newInstrument()],
     client: "",
     planned_time: "",
+    test_location: "",
     test_purpose: "",
     test_type: "水循环测试",
     flow_process: "",

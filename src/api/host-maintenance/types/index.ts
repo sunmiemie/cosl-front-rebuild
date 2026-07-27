@@ -3,6 +3,8 @@ export interface HostMaintenanceListRequest {
   host_sn?: string
   work_order_no?: string
   usage_date?: string
+  usage_date_start?: string
+  usage_date_end?: string
   maintenance_date?: string
   maintenance_type?: string
   status?: string

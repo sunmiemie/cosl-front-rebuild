@@ -18,4 +18,13 @@ describe("巡检记录查看页面", () => {
     expect(content).toContain("if (shouldReplaceResults) {")
     expect(content).toContain("if (!assistantResults.value.length) {")
   })
+
+  it("支持导出当前设备类型和月份的巡检记录表格", () => {
+    expect(content).toContain("导出表格")
+    expect(content).toContain("buildInspectionRecordExportRows(")
+    expect(content).toContain("filteredMonthRecords.value")
+    expect(content).toContain("currentMonthAssistantResults.value")
+    expect(content).toContain("downloadInspectionRecordExcel(")
+    expect(content).toContain(':disabled="loading || assistantResultLoading || currentMonthRecordCount === 0"')
+  })
 })

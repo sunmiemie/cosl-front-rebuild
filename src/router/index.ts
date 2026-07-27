@@ -708,6 +708,40 @@ export const dynamicRoutes: RouteRecordRaw[] = [
     ]
   },
   {
+    path: "/system-operations",
+    component: Layouts,
+    redirect: "/system-operations/backups",
+    name: "SystemOperations",
+    meta: {
+      title: "系统运维",
+      elIcon: "Setting",
+      permissions: [PermissionCode.SystemBackupManage, PermissionCode.OperationLogView],
+      alwaysShow: true
+    },
+    children: [
+      {
+        path: "backups",
+        component: () => import("@/views/system-operations/backups/index.vue"),
+        name: "DatabaseBackups",
+        meta: {
+          title: "数据热备份",
+          elIcon: "Coin",
+          permissions: [PermissionCode.SystemBackupManage]
+        }
+      },
+      {
+        path: "operation-logs",
+        component: () => import("@/views/system-operations/operation-logs/index.vue"),
+        name: "SystemOperationLogs",
+        meta: {
+          title: "操作日志",
+          elIcon: "Document",
+          permissions: [PermissionCode.OperationLogView]
+        }
+      }
+    ]
+  },
+  {
     path: "/permission",
     component: Layouts,
     redirect: "/permission/page",

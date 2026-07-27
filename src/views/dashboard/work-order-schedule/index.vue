@@ -85,38 +85,30 @@
                       <el-tag v-if="order.applicant" size="small" effect="plain">{{ order.applicant }}</el-tag>
                     </div>
                     <div class="order-card__actions">
-                      <template v-if="isCircuitBoardModule">
-                        <el-button
-                          size="small"
-                          type="primary"
-                          :loading="circuitBoardSequenceSaving"
-                          @click.stop="scheduleCircuitBoardOrderAt(order, priorityOrders.length)"
-                        >
-                          加入排期
-                        </el-button>
-                      </template>
-                      <template v-else-if="activeScheduleState === 'unpublished'">
-                        <el-button
-                          size="small"
-                          type="primary"
-                          :loading="publishingId === order.id"
-                          @click.stop="handlePublishOrder(order)"
-                        >
-                          发布
-                        </el-button>
-                      </template>
-                      <template v-else-if="activeScheduleState === 'scheduled'">
-                        <el-button size="small" type="primary" @click.stop="showDragScheduleHint(order)">
-                          拖动调整
-                        </el-button>
-                        <el-button size="small" @click.stop="openScheduleDialog(order)">编辑多段</el-button>
-                        <el-button size="small" @click.stop="handleClearSchedule(order)">清除</el-button>
-                      </template>
-                      <template v-else>
-                        <el-button size="small" type="primary" @click.stop="showDragScheduleHint(order)">
-                          拖入日历
-                        </el-button>
-                        <el-button size="small" @click.stop="openScheduleDialog(order)">手动排程</el-button>
+                      <template v-if="!isCircuitBoardModule">
+                        <template v-if="activeScheduleState === 'unpublished'">
+                          <el-button
+                            size="small"
+                            type="primary"
+                            :loading="publishingId === order.id"
+                            @click.stop="handlePublishOrder(order)"
+                          >
+                            发布
+                          </el-button>
+                        </template>
+                        <template v-else-if="activeScheduleState === 'scheduled'">
+                          <el-button size="small" type="primary" @click.stop="showDragScheduleHint(order)">
+                            拖动调整
+                          </el-button>
+                          <el-button size="small" @click.stop="openScheduleDialog(order)">编辑多段</el-button>
+                          <el-button size="small" @click.stop="handleClearSchedule(order)">清除</el-button>
+                        </template>
+                        <template v-else>
+                          <el-button size="small" type="primary" @click.stop="showDragScheduleHint(order)">
+                            拖入日历
+                          </el-button>
+                          <el-button size="small" @click.stop="openScheduleDialog(order)">手动排程</el-button>
+                        </template>
                       </template>
                       <el-button size="small" @click.stop="openDetailDialog(order)">详情</el-button>
                     </div>
@@ -130,7 +122,7 @@
               <div class="priority-header">
                 <div>
                   <div class="priority-title">{{ priorityTitle }}</div>
-                  <div class="priority-subtitle">从左侧拖入排期顺序；拖动六点手柄调整顺序</div>
+                  <div class="priority-subtitle">拖动六点手柄调整顺序</div>
                 </div>
                 <el-button size="small" plain @click="handleRefreshClick">刷新</el-button>
               </div>
@@ -172,26 +164,10 @@
                     <el-tag :type="getOrderTagType(order)" size="small" effect="light">{{
                       getOrderStatusText(order)
                     }}</el-tag>
-                    <div class="priority-actions">
-                      <el-button
-                        size="small"
-                        type="danger"
-                        plain
-                        :loading="circuitBoardSequenceSaving"
-                        @click="removePriorityOrder(order)"
-                      >
-                        移除
-                      </el-button>
-                    </div>
                   </div>
                 </div>
-                <div
-                  v-else
-                  class="priority-list priority-list--empty"
-                  @dragover.prevent="handleCircuitBoardPriorityDragOver(0)"
-                  @drop.prevent="handleCircuitBoardPriorityDrop(0, $event)"
-                >
-                  <el-empty description="暂无已排程工单，拖入左侧工单开始排序" />
+                <div v-else class="priority-list priority-list--empty">
+                  <el-empty description="暂无已排程工单" />
                 </div>
               </el-scrollbar>
             </section>
@@ -408,6 +384,7 @@ import { getDeviceInstanceListApi } from "@/api/device-instance"
 import { getHostModelDisplayName } from "@/views/devicemanage/device/psi/model-options"
 import {
   clearWorkOrderSchedule,
+  saveCircuitBoardSequenceBatch,
   saveWorkOrderSchedule,
   type WorkOrderScheduleEquipment,
   type WorkOrderSchedulePayload,
@@ -425,7 +402,6 @@ import {
   applySchedulePayloadToTargetOrder,
   buildSecondaryDeviceTabs,
   buildSingleCellSchedulePayload,
-  filterOrdersByActiveDeviceTab,
   filteredOrdersByScheduleState,
   getScheduleLifecycleStatusText,
   hostMatchesModelKeywords,
@@ -701,15 +677,16 @@ const stateCounts = computed<Record<ScheduleListState, number>>(() => ({
 
 const stateOrders = computed(() => filteredOrdersByScheduleState(activeOrders.value, activeScheduleState.value))
 
-const circuitBoardPendingOrders = computed(() =>
-  filteredOrdersByScheduleState(activeOrders.value, "pending").filter(
-    (order) => order.equipment === "circuit-board-module"
-  )
-)
-
 const circuitBoardScheduledOrders = computed(() =>
-  filteredOrdersByScheduleState(activeOrders.value, "scheduled")
-    .filter((order) => order.equipment === "circuit-board-module")
+  activeOrders.value
+    .filter(
+      (order) =>
+        order.equipment === "circuit-board-module" &&
+        Number(order.status) === PENDING_CLAIM_STATUS &&
+        order.isSequenceScheduled === true &&
+        typeof order.sequenceOrder === "number" &&
+        order.sequenceOrder > 0
+    )
     .slice()
     .sort(
       (left, right) =>
@@ -728,10 +705,6 @@ const secondaryDeviceTabs = computed(() => {
 
 const deviceScopedOrders = computed(() => stateOrders.value)
 
-const deviceScopedActiveOrders = computed(() =>
-  filterOrdersByActiveDeviceTab(activeOrders.value, activeEquipment.value, activeDeviceTab.value, "")
-)
-
 const filteredOrders = computed(() => {
   const keyword = searchForm.keyword.trim().toLowerCase()
   if (!keyword) return deviceScopedOrders.value
@@ -742,25 +715,27 @@ const filteredOrders = computed(() => {
   )
 })
 
-const filteredCircuitBoardPendingOrders = computed(() => {
+const filteredCircuitBoardScheduledOrders = computed(() => {
   const keyword = searchForm.keyword.trim().toLowerCase()
-  if (!keyword) return circuitBoardPendingOrders.value
-  return circuitBoardPendingOrders.value.filter((order) =>
+  if (!keyword) return circuitBoardScheduledOrders.value
+  return circuitBoardScheduledOrders.value.filter((order) =>
     [order.taskNumber, order.title, order.applicant, order.targetName, order.hostDeviceName]
       .filter(Boolean)
       .some((value) => String(value).toLowerCase().includes(keyword))
   )
 })
 
-const pendingStateMeta = computed(
-  () => scheduleStateTabs.find((item) => item.key === "pending") ?? scheduleStateTabs[0]
-)
+const circuitBoardPanelMeta = {
+  panelTitle: "已排程工单",
+  panelSubtitle: "整单发布后自动进入排期顺序",
+  emptyText: "暂无已排程工单"
+}
 
 const orderPanelOrders = computed(() =>
-  isCircuitBoardModule.value ? filteredCircuitBoardPendingOrders.value : filteredOrders.value
+  isCircuitBoardModule.value ? filteredCircuitBoardScheduledOrders.value : filteredOrders.value
 )
 
-const orderPanelMeta = computed(() => (isCircuitBoardModule.value ? pendingStateMeta.value : activeStateMeta.value))
+const orderPanelMeta = computed(() => (isCircuitBoardModule.value ? circuitBoardPanelMeta : activeStateMeta.value))
 
 const priorityOrders = computed(() => {
   if (isCircuitBoardModule.value) return circuitBoardScheduledOrders.value
@@ -1353,7 +1328,9 @@ function normalizeWaterCycleOrders(list: any[]): ScheduleOrder[] {
       durationHours: 2,
       status: item.status,
       statusText:
-        completedStatusText || item.status_text || defaultStatusText(item.status, item.scheduled_start_at, item.scheduled_end_at),
+        completedStatusText ||
+        item.status_text ||
+        defaultStatusText(item.status, item.scheduled_start_at, item.scheduled_end_at),
       isRunningTarget: hasRunningScheduleInstrument(item.instruments),
       scheduledStartAt: item.scheduled_start_at || null,
       scheduledEndAt: item.scheduled_end_at || null,
@@ -1382,7 +1359,9 @@ function normalizeVibrationOrders(list: any[]): ScheduleOrder[] {
       durationHours: getNumber(item.duration, 2),
       status: item.status,
       statusText:
-        completedStatusText || item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
+        completedStatusText ||
+        item.statusText ||
+        defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
       isRunningTarget: hasRunningScheduleInstrument(item.instruments),
       scheduledStartAt: item.scheduledStartAt || null,
       scheduledEndAt: item.scheduledEndAt || null,
@@ -1411,7 +1390,9 @@ function normalizeHighTempBoxOrders(list: any[]): ScheduleOrder[] {
       durationHours: getNumber(item.holdTime, 2),
       status: item.status,
       statusText:
-        completedStatusText || item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
+        completedStatusText ||
+        item.statusText ||
+        defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
       isRunningTarget: hasRunningScheduleInstrument(item.instruments),
       scheduledStartAt: item.scheduledStartAt || null,
       scheduledEndAt: item.scheduledEndAt || null,
@@ -1455,7 +1436,9 @@ function normalizeHaltHassOrders(list: any[]): ScheduleOrder[] {
       durationHours: getNumber(item.duration, 2),
       status: item.status,
       statusText:
-        completedStatusText || item.statusText || defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
+        completedStatusText ||
+        item.statusText ||
+        defaultStatusText(item.status, item.scheduledStartAt, item.scheduledEndAt),
       isRunningTarget: Number(item.status) === 2,
       scheduledStartAt: item.scheduledStartAt || item.scheduled_start_at || null,
       scheduledEndAt: item.scheduledEndAt || item.scheduled_end_at || null,
@@ -1599,7 +1582,9 @@ function buildHighTempPressureOrder(
     useDevice: getString(order.use_device) || "",
     durationHours: getNumber(order.hold_time, 2),
     status: order.status,
-    statusText: completedInstrumentStatusText || defaultStatusText(order.status, instrument?.scheduled_start_at, instrument?.scheduled_end_at),
+    statusText:
+      completedInstrumentStatusText ||
+      defaultStatusText(order.status, instrument?.scheduled_start_at, instrument?.scheduled_end_at),
     isRunningTarget: hasRunningScheduleInstrument([instrument]),
     scheduledStartAt: instrument?.scheduled_start_at || null,
     scheduledEndAt: instrument?.scheduled_end_at || null,
@@ -1638,7 +1623,9 @@ function normalizeSimulatedWellOrders(list: any[]): ScheduleOrder[] {
         useDevice,
         durationHours: 2,
         status: order.status,
-        statusText: completedDeviceStatusText || defaultStatusText(order.status, device?.scheduled_start_at, device?.scheduled_end_at),
+        statusText:
+          completedDeviceStatusText ||
+          defaultStatusText(order.status, device?.scheduled_start_at, device?.scheduled_end_at),
         isRunningTarget: false,
         scheduledStartAt: device?.scheduled_start_at || null,
         scheduledEndAt: device?.scheduled_end_at || null,
@@ -1993,9 +1980,7 @@ async function publishScheduleOrder(order: ScheduleOrder) {
 }
 
 function canDragOrderCard(order: ScheduleOrder) {
-  if (isCircuitBoardModule.value) {
-    return order.equipment === "circuit-board-module" && !circuitBoardSequenceSaving.value
-  }
+  if (isCircuitBoardModule.value) return false
   return canDragCalendarOrder(order)
 }
 
@@ -2038,10 +2023,7 @@ function handleCalendarOrderDragStart(order: ScheduleOrder, event: DragEvent) {
 }
 
 function handleOrderCardDragStart(order: ScheduleOrder, event: DragEvent) {
-  if (isCircuitBoardModule.value) {
-    handleCircuitBoardPendingDragStart(order, event)
-    return
-  }
+  if (isCircuitBoardModule.value) return
   handleCalendarOrderDragStart(order, event)
 }
 
@@ -2150,11 +2132,6 @@ function readCircuitBoardDragData(event?: DragEvent) {
   }
 }
 
-function handleCircuitBoardPendingDragStart(order: ScheduleOrder, event: DragEvent) {
-  if (!canDragOrderCard(order)) return
-  setCircuitBoardDragData(event, { source: "pending", orderId: order.id })
-}
-
 function handleCircuitBoardPriorityDragStart(order: ScheduleOrder, event: DragEvent) {
   if (order.equipment !== "circuit-board-module" || circuitBoardSequenceSaving.value) return
   setCircuitBoardDragData(event, { source: "priority", orderId: order.id })
@@ -2224,31 +2201,21 @@ function restoreCircuitBoardOrders(snapshot: Map<string, CircuitBoardOrderSnapsh
   })
 }
 
-async function persistCircuitBoardPriorityOrders(nextOrders: ScheduleOrder[], pushOrderId: string | null = null) {
+async function persistCircuitBoardPriorityOrders(nextOrders: ScheduleOrder[]) {
   const snapshot = snapshotCircuitBoardOrders()
   circuitBoardSequenceSaving.value = true
   const useDevice = activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""
-  updateCircuitBoardOrderSequence(nextOrders, useDevice)
   try {
-    for (const [index, order] of nextOrders.entries()) {
+    const orderIds = nextOrders.map((order) => {
       const targetId = requireScheduleTargetId(order)
       if (targetId === null) throw new Error("missing target id")
-      const shouldPushAssistant = pushOrderId !== null && order.id === pushOrderId
-      await saveWorkOrderSchedule("circuit-board-module", targetId, {
-        sequence_only: true,
-        sequence_order: index + 1,
-        skip_assistant_push: !shouldPushAssistant,
-        skipAssistantPush: !shouldPushAssistant,
-        ...(useDevice ? { use_device: useDevice, useDevice, equipmentName: useDevice } : {}),
-        schedule_segments: [
-          {
-            sequence_only: true,
-            sequence_order: index + 1,
-            ...(useDevice ? { use_device: useDevice, useDevice } : {})
-          }
-        ]
-      })
-    }
+      return targetId
+    })
+    updateCircuitBoardOrderSequence(nextOrders, useDevice)
+    await saveCircuitBoardSequenceBatch({
+      order_ids: orderIds,
+      ...(useDevice ? { use_device: useDevice, useDevice } : {})
+    })
   } catch (error) {
     restoreCircuitBoardOrders(snapshot)
     throw error
@@ -2263,15 +2230,14 @@ function normalizeCircuitBoardInsertIndex(order: ScheduleOrder, targetIndex: num
   return Math.max(0, Math.min(adjustedIndex, priorityOrders.value.length))
 }
 
-async function scheduleCircuitBoardOrderAt(order: ScheduleOrder, targetIndex: number) {
+async function reorderCircuitBoardOrderAt(order: ScheduleOrder, targetIndex: number) {
   if (order.equipment !== "circuit-board-module") return
   const nextOrders = priorityOrders.value.filter((item) => item.id !== order.id)
   const insertIndex = Math.max(0, Math.min(normalizeCircuitBoardInsertIndex(order, targetIndex), nextOrders.length))
   nextOrders.splice(insertIndex, 0, order)
   try {
-    await persistCircuitBoardPriorityOrders(nextOrders, order.id)
-    activeScheduleState.value = "scheduled"
-    ElMessage.success("已加入电路板排期顺序")
+    await persistCircuitBoardPriorityOrders(nextOrders)
+    ElMessage.success("电路板排期顺序已保存")
   } catch (error) {
     ElMessage.error("电路板排期顺序保存失败")
     await loadOrders({ silent: true }).catch(() => undefined)
@@ -2288,38 +2254,7 @@ async function handleCircuitBoardPriorityDrop(index: number, event?: DragEvent) 
     handleCircuitBoardDragEnd()
     return
   }
-  await scheduleCircuitBoardOrderAt(order, index)
-}
-
-async function removePriorityOrder(order: ScheduleOrder) {
-  if (order.equipment === "circuit-board-module") {
-    const targetId = requireScheduleTargetId(order)
-    if (targetId === null) return
-    const remainingOrders = priorityOrders.value.filter((item) => item.id !== order.id)
-    circuitBoardSequenceSaving.value = true
-    try {
-      await clearWorkOrderSchedule(order.scheduleEquipment, targetId)
-      order.isSequenceScheduled = false
-      order.sequenceOrder = null
-      order.scheduledStartAt = null
-      order.scheduledEndAt = null
-      order.scheduleSegments = []
-      order.status = PENDING_CLAIM_STATUS
-      order.statusText = "待领取"
-      if (remainingOrders.length) await persistCircuitBoardPriorityOrders(remainingOrders)
-      ElMessage.success("已移出电路板排期顺序")
-    } catch (error) {
-      ElMessage.error("移除排期顺序失败")
-      await loadOrders({ silent: true }).catch(() => undefined)
-    } finally {
-      circuitBoardSequenceSaving.value = false
-      handleCircuitBoardDragEnd()
-    }
-    return
-  }
-  const ids = removedPriorityOrderIds[activeEquipment.value]
-  if (!ids.includes(order.id)) removedPriorityOrderIds[activeEquipment.value] = [...ids, order.id]
-  ElMessage.success("已从当前排期顺序移除")
+  await reorderCircuitBoardOrderAt(order, index)
 }
 
 onMounted(() => {

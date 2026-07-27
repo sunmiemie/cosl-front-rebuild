@@ -138,13 +138,13 @@
             </el-form-item>
           </el-col>
           <el-col :span="24">
-            <el-form-item label="地址" prop="address">
-              <el-input v-model="createForm.address" placeholder="请输入地址" clearable />
+            <el-form-item label="委托单位地址" prop="address">
+              <el-input v-model="createForm.address" placeholder="请输入委托单位地址" clearable />
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="联系人（申请人）" prop="applicant">
-              <el-input v-model="createForm.applicant" placeholder="请输入联系人" clearable />
+            <el-form-item label="申请人" prop="applicant">
+              <el-input v-model="createForm.applicant" placeholder="请输入申请人" clearable />
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -377,7 +377,7 @@
     <!-- 详情对话框 -->
     <el-dialog v-model="detailDialogVisible" title="工单详情" width="700px">
       <el-descriptions :column="2" border v-if="currentOrder">
-        <el-descriptions-item label="工单号">{{ currentOrder.orderNo }}</el-descriptions-item>
+        <el-descriptions-item label="任务单编号">{{ currentOrder.orderNo }}</el-descriptions-item>
         <el-descriptions-item label="状态">
           <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.statusText }}</el-tag>
         </el-descriptions-item>
@@ -393,10 +393,10 @@
         <el-descriptions-item label="项目名称">
           {{ getOrderField(currentOrder, "projectName", "project_name") }}
         </el-descriptions-item>
-        <el-descriptions-item label="地址" :span="2">
+        <el-descriptions-item label="委托单位地址" :span="2">
           {{ getOrderField(currentOrder, "address", "address") }}
         </el-descriptions-item>
-        <el-descriptions-item label="联系人（申请人）">
+        <el-descriptions-item label="申请人">
           {{ getOrderField(currentOrder, "applicant", "applicant") }}
         </el-descriptions-item>
         <el-descriptions-item label="电话">
@@ -564,8 +564,8 @@ const createRules = {
   researchNumber: [{ required: true, message: "请输入科研编号", trigger: "blur" }],
   projectBudgetNumber: [{ required: true, message: "请输入项目预算编号", trigger: "blur" }],
   projectName: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
-  address: [{ required: true, message: "请输入地址", trigger: "blur" }],
-  applicant: [{ required: true, message: "请输入联系人（申请人）", trigger: "blur" }],
+  address: [{ required: true, message: "请输入委托单位地址", trigger: "blur" }],
+  applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }],
   phone: [{ required: true, message: "请输入电话", trigger: "blur" }],
   mobile: [{ required: true, message: "请输入手机", trigger: "blur" }],
   experimentType: [{ required: true, message: "请选择实验类型", trigger: "change" }],
@@ -665,7 +665,9 @@ const totalCycleDuration = computed(() => {
   }
   return Number((singleDuration * cycleCount).toFixed(2))
 })
-const totalCycleDurationText = computed(() => (totalCycleDuration.value > 0 ? totalCycleDuration.value.toFixed(2) : "-"))
+const totalCycleDurationText = computed(() =>
+  totalCycleDuration.value > 0 ? totalCycleDuration.value.toFixed(2) : "-"
+)
 const canCreate = computed(() => {
   return isHaltHassCreateFormReady(createForm, allBoardsSelected.value)
 })
@@ -692,11 +694,7 @@ const getStatusType = (status: number): StatusTagType | undefined => {
   return map[status]
 }
 
-const getOrderRawField = (
-  order: HaltHassOrderListItem | HaltHassOrderDetail,
-  camelKey: string,
-  snakeKey: string
-) => {
+const getOrderRawField = (order: HaltHassOrderListItem | HaltHassOrderDetail, camelKey: string, snakeKey: string) => {
   const target = order as unknown as Record<string, unknown>
   return target[camelKey] ?? target[snakeKey] ?? ""
 }
@@ -710,7 +708,9 @@ const getOrderExperimentTypeText = (order: HaltHassOrderListItem | HaltHassOrder
 }
 
 const getOrderCircuitBoardStatusText = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
-  return getHaltHassCircuitBoardStatusText(String(getOrderRawField(order, "circuitBoardStatus", "circuit_board_status")))
+  return getHaltHassCircuitBoardStatusText(
+    String(getOrderRawField(order, "circuitBoardStatus", "circuit_board_status"))
+  )
 }
 
 const getOrderOtherProcessName = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {

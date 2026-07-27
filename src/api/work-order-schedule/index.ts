@@ -35,6 +35,12 @@ export type WorkOrderSchedulePayload = {
   skipAssistantPush?: boolean
 }
 
+export type CircuitBoardSequenceBatchPayload = {
+  order_ids: number[]
+  use_device?: string
+  useDevice?: string
+}
+
 type ScheduleEndpointConfig = {
   targetKind: ScheduleTargetKind
   baseUrl: string
@@ -97,5 +103,13 @@ export function clearWorkOrderSchedule(equipment: EndpointScheduleEquipment, tar
   return request<any>({
     url: buildScheduleUrl(equipment, targetId),
     method: "delete"
+  })
+}
+
+export function saveCircuitBoardSequenceBatch(data: CircuitBoardSequenceBatchPayload) {
+  return request<any>({
+    url: "test/circuit-board-module/order/sequence/",
+    method: "post",
+    data
   })
 }

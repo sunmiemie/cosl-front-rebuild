@@ -2,7 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import dayjs from "dayjs"
 import { ElMessage, type CalendarDateType, type CalendarInstance } from "element-plus"
-import { ArrowLeft, ArrowRight, Refresh } from "@element-plus/icons-vue"
+import { ArrowLeft, ArrowRight, Download, Refresh } from "@element-plus/icons-vue"
 import {
   getAssistantInspectionResultsApi,
   getInspectionBaseInfoDetailApi,
@@ -23,6 +23,7 @@ import {
   getAssistantResultsByDate,
   getParticipantText
 } from "./assistant-results"
+import { buildInspectionRecordExportRows, downloadInspectionRecordExcel } from "./inspection-record-export"
 import { useRouter } from "vue-router"
 
 interface InspectionGroup {
@@ -51,6 +52,7 @@ const drawerVisible = ref(false)
 const currentRecord = ref<InspectionBaseInfoDetail | null>(null)
 const currentAssistantRecord = ref<AssistantInspectionResult | null>(null)
 const assistantResultLoading = ref(false)
+const exportLoading = ref(false)
 const assistantResults = ref<AssistantInspectionResult[]>([])
 let assistantRefreshTimer: ReturnType<typeof setInterval> | undefined
 
@@ -175,6 +177,24 @@ async function refreshInspectionRecords() {
   await Promise.all([getCalendarData(), loadAssistantResults(true, true)])
 }
 
+function exportInspectionRecords() {
+  const rows = buildInspectionRecordExportRows(filteredMonthRecords.value, currentMonthAssistantResults.value)
+  if (!rows.length) {
+    ElMessage.warning("当前月份暂无可导出的巡检记录")
+    return
+  }
+
+  exportLoading.value = true
+  try {
+    downloadInspectionRecordExcel(rows, `${activeGroupInfo.value.label}巡检记录_${currentMonth.value}.xls`)
+    ElMessage.success("巡检记录导出成功")
+  } catch {
+    ElMessage.error("巡检记录导出失败")
+  } finally {
+    exportLoading.value = false
+  }
+}
+
 function handleEditRecord(row: ReturnType<typeof buildInspectionRecordRows>[number]) {
   if (row.localRecord) {
     handleEdit(row.localRecord)
@@ -227,15 +247,27 @@ onBeforeUnmount(() => {
       <el-tabs v-model="activeGroup" class="inspection-tabs">
         <el-tab-pane v-for="item in inspectionGroups" :key="item.value" :label="item.label" :name="item.value" />
       </el-tabs>
-      <el-button
-        type="primary"
-        plain
-        :icon="Refresh"
-        :loading="loading || assistantResultLoading"
-        @click="refreshInspectionRecords"
-      >
-        刷新巡检记录
-      </el-button>
+      <div class="inspection-actions">
+        <el-button
+          type="primary"
+          plain
+          :icon="Download"
+          :disabled="loading || assistantResultLoading || currentMonthRecordCount === 0"
+          :loading="exportLoading"
+          @click="exportInspectionRecords"
+        >
+          导出表格
+        </el-button>
+        <el-button
+          type="primary"
+          plain
+          :icon="Refresh"
+          :loading="loading || assistantResultLoading"
+          @click="refreshInspectionRecords"
+        >
+          刷新巡检记录
+        </el-button>
+      </div>
     </div>
 
     <div class="calendar-layout">
@@ -424,6 +456,12 @@ onBeforeUnmount(() => {
     height: 42px;
     font-weight: 600;
   }
+}
+
+.inspection-actions {
+  display: flex;
+  align-items: center;
+  flex: none;
 }
 
 .calendar-layout {
@@ -683,6 +721,10 @@ onBeforeUnmount(() => {
   .calendar-header {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .inspection-actions {
+    justify-content: flex-end;
   }
 
   .inspection-tabs :deep(.el-tabs__item) {

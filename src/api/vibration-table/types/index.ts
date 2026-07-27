@@ -52,7 +52,9 @@ export type VibrationTableOrderListItem = {
   projectName?: string
   client?: string
   plannedTime?: string
+  testLocation?: string
   testPurpose?: string
+  others?: unknown
   testType?: string
   vibrationDirection?: string
   level?: string

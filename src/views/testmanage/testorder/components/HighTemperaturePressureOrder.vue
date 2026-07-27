@@ -119,6 +119,8 @@ const createForm = reactive({
   project_name: "",
   client: "",
   planned_time: "",
+  test_location: "",
+  test_purpose: "",
   test_type: testTypeOptions[0],
   target_temp: 0,
   target_pressure: 0,
@@ -409,6 +411,8 @@ const showCreateDialog = () => {
     project_name: "",
     client: "",
     planned_time: "",
+    test_location: "",
+    test_purpose: "",
     test_type: testTypeOptions[0],
     target_temp: 0,
     target_pressure: 0,
@@ -956,6 +960,11 @@ onMounted(() => {
               </el-select>
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="测试地点" prop="test_location">
+              <el-input v-model="createForm.test_location" placeholder="请输入测试地点" />
+            </el-form-item>
+          </el-col>
           <el-col :span="8">
             <el-form-item label="温度(°C)" prop="target_temp">
               <el-input-number v-model="createForm.target_temp" :min="0" style="width: 100%" />
@@ -974,6 +983,9 @@ onMounted(() => {
         </el-row>
 
         <el-divider content-position="left">测试说明</el-divider>
+        <el-form-item label="测试目的" prop="test_purpose">
+          <el-input v-model="createForm.test_purpose" type="textarea" :rows="3" placeholder="请输入测试目的" />
+        </el-form-item>
         <el-form-item label="设备清单" prop="equipment_list">
           <el-input v-model="createForm.equipment_list" type="textarea" :rows="3" placeholder="请输入设备清单" />
         </el-form-item>
@@ -1191,6 +1203,9 @@ onMounted(() => {
           <el-descriptions-item label="设备编号">{{ currentOrder.device_number }}</el-descriptions-item>
           <el-descriptions-item label="测试类型">{{ currentOrder.test_type || "-" }}</el-descriptions-item>
           <el-descriptions-item label="时间">{{ currentOrder.planned_time || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试地点" :span="2">{{
+            currentOrder.test_location || "-"
+          }}</el-descriptions-item>
           <el-descriptions-item label="目标温度(°C)">{{ currentOrder.target_temp }}</el-descriptions-item>
           <el-descriptions-item label="目标压力(MPa)">{{ currentOrder.target_pressure }}</el-descriptions-item>
           <el-descriptions-item label="保温保压时间(分)">{{ currentOrder.hold_time ?? "-" }}</el-descriptions-item>
@@ -1198,6 +1213,7 @@ onMounted(() => {
           <el-descriptions-item label="项目成员" :span="2">{{
             currentOrder.project_members || "-"
           }}</el-descriptions-item>
+          <el-descriptions-item label="测试目的" :span="2">{{ currentOrder.test_purpose || "-" }}</el-descriptions-item>
           <el-descriptions-item label="设备清单" :span="2">{{
             currentOrder.equipment_list || "-"
           }}</el-descriptions-item>

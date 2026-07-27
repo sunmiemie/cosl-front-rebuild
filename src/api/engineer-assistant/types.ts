@@ -36,13 +36,22 @@ export type EngineerAssistantTestStatus = {
   raw?: unknown
 }
 
+export type EngineerAssistantApplicationBaseInfo = Record<string, unknown> & {
+  csdd?: string
+  csmd?: string
+  others?: unknown
+}
+
 export type EngineerAssistantApplicationForm = {
   testId: string
   testType: string
   testTypeName?: string
   status?: string
   zt?: string
-  baseInfo?: unknown
+  baseInfo?: EngineerAssistantApplicationBaseInfo
+  csdd?: string
+  csmd?: string
+  others?: unknown
   instruments?: unknown[]
   devices?: unknown[]
   users?: unknown[]
@@ -72,6 +81,7 @@ export type PushEngineerAssistantProcessesBody = {
       processId: string
       processName: string
       processDescription: string
+      xssj: string
     }>
   }>
 }

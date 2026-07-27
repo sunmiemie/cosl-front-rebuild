@@ -15,7 +15,9 @@ export interface SimulatedWellOrderListItem {
   quantity?: number
   client?: string
   entrusted_time?: string
+  test_location?: string | null
   test_purpose?: string
+  others?: unknown
   test_steps?: string
   safety_risks?: string
   customer_unit?: string
@@ -74,7 +76,9 @@ export interface CreateSimulatedWellOrderRequest {
   quantity?: number
   client?: string
   entrusted_time?: string
+  test_location?: string | null
   test_purpose?: string
+  others?: unknown
   test_steps?: string
   safety_risks?: string
   customer_unit?: string

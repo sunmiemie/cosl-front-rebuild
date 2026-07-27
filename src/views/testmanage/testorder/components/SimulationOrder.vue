@@ -74,6 +74,7 @@ const createDefaultForm = () => ({
   quantity: 1,
   client: "",
   entrusted_time: todayText(),
+  test_location: "",
   test_purpose: "",
   test_steps: "",
   safety_risks: "",
@@ -594,7 +595,12 @@ onMounted(() => {
           </el-col>
           <el-col :span="8">
             <el-form-item label="申请日期" prop="application_date">
-              <el-date-picker v-model="createForm.application_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+              <el-date-picker
+                v-model="createForm.application_date"
+                type="date"
+                value-format="YYYY-MM-DD"
+                style="width: 100%"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -619,7 +625,12 @@ onMounted(() => {
           </el-col>
           <el-col :span="16">
             <el-form-item label="仪器SN号（资产号，多个）" prop="instrument_sn_numbers">
-              <el-input v-model="createForm.instrument_sn_numbers" type="textarea" :rows="2" placeholder="多个 SN 可用逗号、分号或换行分隔" />
+              <el-input
+                v-model="createForm.instrument_sn_numbers"
+                type="textarea"
+                :rows="2"
+                placeholder="多个 SN 可用逗号、分号或换行分隔"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -635,6 +646,11 @@ onMounted(() => {
           <el-col :span="12">
             <el-form-item label="时间" prop="entrusted_time">
               <el-input v-model="createForm.entrusted_time" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="测试地点" prop="test_location">
+              <el-input v-model="createForm.test_location" placeholder="请输入测试地点" />
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -660,24 +676,40 @@ onMounted(() => {
       </template>
     </el-dialog>
 
-    <el-drawer v-model="detailDialogVisible" title="工单详情" size="var(--test-order-detail-drawer-size)" class="test-order-detail-drawer">
+    <el-drawer
+      v-model="detailDialogVisible"
+      title="工单详情"
+      size="var(--test-order-detail-drawer-size)"
+      class="test-order-detail-drawer"
+    >
       <div v-if="currentOrder" class="detail-content">
         <el-descriptions :column="1" border>
           <el-descriptions-item label="表格编号">{{ currentOrder.table_number || "-" }}</el-descriptions-item>
           <el-descriptions-item label="任务单编号">{{ currentOrder.task_number }}</el-descriptions-item>
           <el-descriptions-item label="申请人">{{ currentOrder.applicant || "-" }}</el-descriptions-item>
           <el-descriptions-item label="申请人电话">{{ currentOrder.applicant_phone || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="测试申请单位">{{ currentOrder.test_unit || currentOrder.customer_unit || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="测试申请单位负责人">{{ currentOrder.test_unit_manager || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试申请单位">{{
+            currentOrder.test_unit || currentOrder.customer_unit || "-"
+          }}</el-descriptions-item>
+          <el-descriptions-item label="测试申请单位负责人">{{
+            currentOrder.test_unit_manager || "-"
+          }}</el-descriptions-item>
           <el-descriptions-item label="申请日期">{{ currentOrder.application_date || "-" }}</el-descriptions-item>
           <el-descriptions-item label="科研编号">{{ currentOrder.research_no || "-" }}</el-descriptions-item>
           <el-descriptions-item label="项目预算编号">{{ currentOrder.project_budget_no || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="项目名称">{{ currentOrder.project_name || currentOrder.task_desc || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="项目名称">{{
+            currentOrder.project_name || currentOrder.task_desc || "-"
+          }}</el-descriptions-item>
           <el-descriptions-item label="待测仪器">{{ currentOrder.tested_instrument || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="仪器SN号（资产号，多个）">{{ currentOrder.instrument_sn_numbers || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="数量">{{ currentOrder.quantity ?? currentOrder.device_count ?? 1 }}</el-descriptions-item>
+          <el-descriptions-item label="仪器SN号（资产号，多个）">{{
+            currentOrder.instrument_sn_numbers || "-"
+          }}</el-descriptions-item>
+          <el-descriptions-item label="数量">{{
+            currentOrder.quantity ?? currentOrder.device_count ?? 1
+          }}</el-descriptions-item>
           <el-descriptions-item label="委托人">{{ currentOrder.client || "-" }}</el-descriptions-item>
           <el-descriptions-item label="时间">{{ currentOrder.entrusted_time || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试地点">{{ currentOrder.test_location || "-" }}</el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.status_text }}</el-tag>
           </el-descriptions-item>

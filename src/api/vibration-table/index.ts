@@ -70,7 +70,9 @@ type SnakeOrder = {
   project_name?: string
   client?: string
   planned_time?: string | null
+  test_location?: string | null
   test_purpose?: string
+  others?: unknown
   test_type?: string
   vibration_direction?: string
   level?: string
@@ -219,7 +221,9 @@ function toListItem(order: SnakeOrder): VibrationTableOrderListItem {
     projectName: order.project_name || "",
     client: order.client || "",
     plannedTime: order.planned_time || order.test_date || undefined,
+    testLocation: order.test_location || "",
     testPurpose: order.test_purpose || order.remark || "",
+    others: order.others,
     testType: order.test_type || order.order_type || "",
     vibrationDirection: order.vibration_direction || "",
     level: order.level || "",
@@ -269,7 +273,9 @@ function toPayload(data: Partial<VibrationTableOrderDetail>) {
     project_name: data.projectName,
     client: data.client,
     planned_time: data.plannedTime ? formatDateTime(data.plannedTime) : null,
+    test_location: data.testLocation,
     test_purpose: data.testPurpose,
+    others: data.others,
     test_type: data.testType,
     vibration_direction: data.vibrationDirection,
     level: data.level,

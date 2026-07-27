@@ -109,6 +109,7 @@ const tableData = ref<DeviceInstanceRow[]>([])
 const hostModelOptions = ref<HostModelOption[]>([])
 const detailTab = ref("usage")
 const usageRecords = ref<HostUsageRecordItem[]>([])
+const usageDateRange = ref<[string, string] | null>(null)
 const maintenanceRecords = ref<HostMaintenanceRecordItem[]>([])
 const reminderRecords = ref<HostMaintenanceConfigItem[]>([])
 const hostConfig = ref<HostMaintenanceConfigItem | null>(null)
@@ -158,9 +159,7 @@ const stats = reactive({
 const detailTitle = computed(() => (detailData.value ? `主机详情：${detailData.value.serialNumber}` : "主机详情"))
 const usageDialogTitle = computed(() => (usageMode.value === "create" ? "新增使用记录" : "编辑使用记录"))
 const maintenanceDialogTitle = computed(() => (maintenanceMode.value === "create" ? "新增维保记录" : "编辑维保记录"))
-const totalUsageHours = computed(() =>
-  usageRecords.value.reduce((total, item) => total + Number(item.duration_hours || 0), 0)
-)
+const totalUsageHours = computed(() => Number(hostConfig.value?.total_hours || 0))
 
 const formRules: FormRules = {
   serialNumber: [{ required: true, message: "请输入SN号", trigger: "blur" }],
@@ -377,11 +376,22 @@ const loadUsageRecords = async () => {
   }
   usageLoading.value = true
   try {
-    const res = await getHostUsageRecordListApi({ host_id: hostId, currentPage: 1, pageSize: 2000 })
+    const res = await getHostUsageRecordListApi({
+      host_id: hostId,
+      usage_date_start: usageDateRange.value?.[0] || undefined,
+      usage_date_end: usageDateRange.value?.[1] || undefined,
+      currentPage: 1,
+      pageSize: 2000
+    })
     usageRecords.value = extractList<HostUsageRecordItem>(res)
   } finally {
     usageLoading.value = false
   }
+}
+
+const clearUsageDateRange = () => {
+  usageDateRange.value = null
+  void loadUsageRecords()
 }
 
 const loadMaintenanceRecords = async () => {
@@ -443,6 +453,7 @@ const loadHostMaintenanceData = async () => {
 const openDetailDialog = async (row: DeviceInstanceRow) => {
   detailData.value = row
   detailTab.value = "usage"
+  usageDateRange.value = null
   detailVisible.value = true
   await loadHostMaintenanceData()
 }
@@ -830,7 +841,21 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
                   <div class="tab-title">主机使用记录</div>
                   <div class="tab-subtitle">记录主机关联工单、运转小时、完成任务和操作者</div>
                 </div>
-                <el-button type="primary" :icon="CirclePlus" @click="openUsageCreate">新增使用记录</el-button>
+                <div class="usage-toolbar-actions">
+                  <el-date-picker
+                    v-model="usageDateRange"
+                    type="daterange"
+                    range-separator="至"
+                    start-placeholder="开始日期"
+                    end-placeholder="结束日期"
+                    value-format="YYYY-MM-DD"
+                    unlink-panels
+                    class="usage-date-range"
+                  />
+                  <el-button :loading="usageLoading" @click="loadUsageRecords">查询</el-button>
+                  <el-button :disabled="!usageDateRange?.length" @click="clearUsageDateRange">清空</el-button>
+                  <el-button type="primary" :icon="CirclePlus" @click="openUsageCreate">新增使用记录</el-button>
+                </div>
               </div>
               <el-table v-loading="usageLoading" :data="usageRecords" height="360" border>
                 <el-table-column prop="host_sn" label="主机SN" min-width="140" show-overflow-tooltip />
@@ -971,7 +996,12 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           />
         </el-form-item>
         <el-form-item label="完成任务">
-          <el-input v-model.trim="usageForm.completed_task" type="textarea" :rows="3" placeholder="请输入主要完成任务" />
+          <el-input
+            v-model.trim="usageForm.completed_task"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入主要完成任务"
+          />
         </el-form-item>
         <el-form-item label="操作者">
           <el-input v-model.trim="usageForm.operator" placeholder="请输入操作者" />
@@ -1410,6 +1440,18 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
   line-height: 18px;
 }
 
+.usage-toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.usage-date-range {
+  width: 270px;
+}
+
 .cycle-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1495,6 +1537,16 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
   .tab-toolbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .usage-toolbar-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .usage-date-range {
+    width: min(100%, 320px);
   }
 }
 </style>

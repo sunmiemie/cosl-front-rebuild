@@ -220,6 +220,11 @@
               </el-select>
             </el-form-item>
           </el-col>
+          <el-col :span="12">
+            <el-form-item label="测试地点" prop="testLocation">
+              <el-input v-model="createForm.testLocation" placeholder="请输入测试地点" />
+            </el-form-item>
+          </el-col>
           <el-col :span="8">
             <el-form-item label="振动方向" prop="vibrationDirection">
               <el-input v-model="createForm.vibrationDirection" placeholder="如 X/Y/Z" />
@@ -309,6 +314,7 @@
           <el-descriptions-item label="项目名称" :span="2">{{ currentOrder.projectName || "-" }}</el-descriptions-item>
           <el-descriptions-item label="测试类型">{{ currentOrder.testType || "-" }}</el-descriptions-item>
           <el-descriptions-item label="时间">{{ currentOrder.plannedTime || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试地点" :span="2">{{ currentOrder.testLocation || "-" }}</el-descriptions-item>
           <el-descriptions-item label="使用设备">{{
             currentOrder.useDevice || currentOrder.deviceName || "-"
           }}</el-descriptions-item>
@@ -514,6 +520,7 @@ const createDefaultForm = (): CreateForm => ({
   instruments: [createEmptyInstrument()],
   client: "",
   plannedTime: "",
+  testLocation: "",
   testPurpose: "",
   testType: testTypeOptions[0],
   vibrationDirection: "",

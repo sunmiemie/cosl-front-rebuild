@@ -36,7 +36,7 @@ const filterDynamicRoutes = (routes: RouteRecordRaw[], roles: string[], permissi
       if (tempRoute.children) {
         tempRoute.children = filterDynamicRoutes(tempRoute.children, roles, permissionCodes)
         if (route.children?.length && tempRoute.children.length === 0 && !tempRoute.meta?.alwaysShow) return
-        if (tempRoute.path === "/permission") {
+        if (["/permission", "/system-operations"].includes(tempRoute.path)) {
           const firstAccessibleChildPath = resolveFirstAccessibleChildPath(tempRoute)
           if (firstAccessibleChildPath) tempRoute.redirect = firstAccessibleChildPath
         }

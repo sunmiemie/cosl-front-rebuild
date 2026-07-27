@@ -27,7 +27,9 @@ export interface WaterCycleOrderListItem {
   quantity: number
   client?: string
   planned_time?: string
+  test_location?: string | null
   test_purpose?: string
+  others?: unknown
   test_type: string
   flow_process: string
   need_pressure_test?: string
@@ -41,12 +43,10 @@ export interface WaterCycleOrderListItem {
   status_text: string
   scheduled_start_at?: string | null
   scheduled_end_at?: string | null
-  schedule_segments?:
-    | Array<{
-        scheduled_start_at?: string | null
-        scheduled_end_at?: string | null
-      }>
-    | null
+  schedule_segments?: Array<{
+    scheduled_start_at?: string | null
+    scheduled_end_at?: string | null
+  }> | null
   created_at: string
 }
 

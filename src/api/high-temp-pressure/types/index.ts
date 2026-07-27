@@ -18,6 +18,9 @@ export interface HighTempPressureOrderListItem {
   project_name?: string
   client?: string
   planned_time?: string | null
+  test_location?: string | null
+  test_purpose?: string | null
+  others?: unknown
   test_type?: string
   project_members?: string
   equipment_list?: string
@@ -60,12 +63,10 @@ export interface HighTempPressureOrderInstrumentItem {
   max_diameter?: number | null
   scheduled_start_at?: string | null
   scheduled_end_at?: string | null
-  schedule_segments?:
-    | Array<{
-        scheduled_start_at?: string | null
-        scheduled_end_at?: string | null
-      }>
-    | null
+  schedule_segments?: Array<{
+    scheduled_start_at?: string | null
+    scheduled_end_at?: string | null
+  }> | null
   instrument_status?: number
   is_completed?: boolean
   completed_at?: string | null
@@ -108,6 +109,9 @@ export interface CreateHighTempPressureOrderRequest {
   project_name?: string
   client?: string
   planned_time?: string | null
+  test_location?: string | null
+  test_purpose?: string | null
+  others?: unknown
   test_type?: string
   project_members?: string
   equipment_list?: string

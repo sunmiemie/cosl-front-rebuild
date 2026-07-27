@@ -44,26 +44,13 @@
       </el-form>
 
       <div class="table-toolbar">
-        <div class="toolbar-left">
-          <el-button type="primary" :loading="exportLoading" @click="handleExport">批量导出</el-button>
-          <span v-if="selectedRows.length" class="selection-tip">已选择 {{ selectedRows.length }} 条</span>
-        </div>
+        <div />
         <el-tooltip content="刷新数据">
           <el-button circle icon="RefreshRight" type="primary" @click="getList" />
         </el-tooltip>
       </div>
 
-      <el-table
-        :data="tableData"
-        v-loading="loading"
-        class="summary-table"
-        max-height="600"
-        stripe
-        border
-        :row-key="getRelationRowKey"
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column type="selection" width="46" fixed="left" />
+      <el-table :data="tableData" v-loading="loading" class="summary-table" max-height="600" stripe border>
         <el-table-column prop="applicationNo" label="申请单号" min-width="136" show-overflow-tooltip />
         <el-table-column label="SN号" min-width="106">
           <template #default="{ row }">
@@ -262,9 +249,7 @@ const sampleDetailFields = [
 ]
 
 const loading = ref(false)
-const exportLoading = ref(false)
 const tableData = ref<any[]>([])
-const selectedRows = ref<any[]>([])
 const stats = reactive({ total: 0, linked: 0, unlinked: 0 })
 
 const filters = reactive({
@@ -298,52 +283,11 @@ const filterRowsByStatus = (rows: any[]) => {
   return normalizedRows.filter((row) => row.status === filters.status)
 }
 
-const getRelationRowKey = (row: any) => `${row?.applicationNo || ""}@@${row?.sn || ""}`
-
 const formatHours = (value: unknown) => {
   if (value === null || value === undefined || value === "") return "-"
   const numeric = Number(value)
   if (!Number.isFinite(numeric)) return String(value)
   return Number.isInteger(numeric) ? String(numeric) : String(numeric)
-}
-
-const handleSelectionChange = (rows: any[]) => {
-  selectedRows.value = rows
-}
-
-const saveBlob = (blob: Blob, filename: string) => {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement("a")
-  link.href = url
-  link.download = filename
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
-}
-
-const handleExport = async () => {
-  exportLoading.value = true
-  try {
-    const selectedKeys = selectedRows.value.map(getRelationRowKey).filter(Boolean).join(",")
-    const params = selectedKeys
-      ? { keys: selectedKeys }
-      : {
-          search: filters.search,
-          status: filters.status
-        }
-    const blob = await request<Blob>({
-      url: "data/commission-board-relation/export",
-      method: "get",
-      params,
-      responseType: "blob"
-    })
-    saveBlob(blob, `电路板委托关联汇总_${new Date().toISOString().slice(0, 10)}.pdf`)
-  } catch (error) {
-    ElMessage.error("导出失败")
-  } finally {
-    exportLoading.value = false
-  }
 }
 
 const getAssistantSyncPayload = () => {
@@ -378,7 +322,6 @@ const getList = async () => {
       }
     })
     tableData.value = filterRowsByStatus(res.data.list || [])
-    selectedRows.value = []
     const s = res.data.stats || {}
     stats.total = s.total || 0
     stats.linked = s.linked || 0

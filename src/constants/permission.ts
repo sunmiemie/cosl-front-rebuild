@@ -17,7 +17,9 @@ export const PermissionCode = {
   ReportReviewSimulatedWell: "REPORT_REVIEW_SIMULATED_WELL",
   UserManage: "USER_MANAGE",
   RoleManage: "ROLE_MANAGE",
-  SignatureManage: "SIGNATURE_MANAGE"
+  SignatureManage: "SIGNATURE_MANAGE",
+  SystemBackupManage: "SYSTEM_BACKUP_MANAGE",
+  OperationLogView: "OPERATION_LOG_VIEW"
 } as const
 
 export const AddOrderPermissionCodes = [

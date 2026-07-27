@@ -245,6 +245,18 @@ export interface CircuitModuleApplicationSyncResponse {
   msg?: string
   data: {
     updated: number
+    autoScheduled?: Array<{
+      orderId: number
+      sequenceOrder: number | null
+      scheduled: boolean
+      reason: string
+      assistantPush: {
+        success: boolean
+        skipped: boolean
+        reason: string
+        error?: string
+      } | null
+    }>
   }
 }
 

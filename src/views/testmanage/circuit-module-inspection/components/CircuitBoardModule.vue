@@ -86,7 +86,7 @@
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="120px">
         <el-row :gutter="16">
           <el-col :span="12">
-            <el-form-item label="申请单号" prop="orderNo">
+            <el-form-item label="任务单编号" prop="orderNo">
               <el-input v-model="createForm.orderNo" />
             </el-form-item>
           </el-col>
@@ -128,7 +128,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="是否需要检测工艺" prop="sfxyjcgy">
+            <el-form-item label="工单类型" prop="sfxyjcgy">
               <el-select v-model="createForm.sfxyjcgy" style="width: 100%">
                 <el-option label="是" value="是" />
                 <el-option label="否" value="否" />
@@ -179,16 +179,15 @@
             }}</el-tag>
           </div>
           <el-descriptions :column="3" border>
-            <el-descriptions-item label="单据编号">{{ selectedApplication.orderNo || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="任务单编号">{{ selectedApplication.orderNo || "-" }}</el-descriptions-item>
             <el-descriptions-item label="委托单位">{{ selectedApplication.client || "-" }}</el-descriptions-item>
             <el-descriptions-item label="项目编码">{{ selectedApplication.projectCode || "-" }}</el-descriptions-item>
             <el-descriptions-item label="项目预算编码">{{
               selectedApplication.projectBudgetCode || "-"
             }}</el-descriptions-item>
             <el-descriptions-item label="项目名称">{{ selectedApplication.name || "-" }}</el-descriptions-item>
-            <el-descriptions-item label="地址">{{ selectedApplication.address || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="委托单位地址">{{ selectedApplication.address || "-" }}</el-descriptions-item>
             <el-descriptions-item label="手机号">{{ selectedApplication.mobilePhone || "-" }}</el-descriptions-item>
-            <el-descriptions-item label="座机">{{ selectedApplication.landline || "-" }}</el-descriptions-item>
             <el-descriptions-item label="实验类型">{{
               selectedApplication.experimentType || "-"
             }}</el-descriptions-item>
@@ -196,9 +195,7 @@
               selectedApplication.boardState || "-"
             }}</el-descriptions-item>
             <el-descriptions-item label="测试工艺">{{ selectedApplication.craft || "-" }}</el-descriptions-item>
-            <el-descriptions-item label="是否需要检测工艺">{{
-              selectedApplication.sfxyjcgy || "-"
-            }}</el-descriptions-item>
+            <el-descriptions-item label="工单类型">{{ selectedApplication.sfxyjcgy || "-" }}</el-descriptions-item>
             <el-descriptions-item label="申请人名称">{{ selectedApplication.applicant || "-" }}</el-descriptions-item>
             <el-descriptions-item label="申请日期">{{ selectedApplication.applyDate || "-" }}</el-descriptions-item>
             <el-descriptions-item label="文件名">{{ selectedApplication.filename || "-" }}</el-descriptions-item>
@@ -838,16 +835,21 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
     }
   }
 
-  const serial =
-    getString(
-      board?.seria,
-      board?.sn,
-      board?.serial,
-      board?.serial_num,
-      board?.serialNumber,
-      board?.board_serial
-    )
-  const boardIdentity = getDisplayString(board?.id, board?.boardId, board?.board_id, board?.prodBoardId, board?.tempBoardId)
+  const serial = getString(
+    board?.seria,
+    board?.sn,
+    board?.serial,
+    board?.serial_num,
+    board?.serialNumber,
+    board?.board_serial
+  )
+  const boardIdentity = getDisplayString(
+    board?.id,
+    board?.boardId,
+    board?.board_id,
+    board?.prodBoardId,
+    board?.tempBoardId
+  )
   const model = getString(board?.model, board?.name, row.specModel, row.sampleName, row.ggxh, "电路板模块")
   const fallbackBatchNo = `${applicationNo || "DLB"}-${String(index + 1).padStart(2, "0")}`
   return {
@@ -862,9 +864,30 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
     name: model,
     sampleName: getString(board?.sampleName, board?.name, row.sampleName, row.moduleName, model),
     model,
-    assistantSn: getString(board?.assistantSn, board?.assistant_sn, board?.sourceSn, board?.source_sn, board?.originalSn, board?.original_sn),
-    sourceSn: getString(board?.sourceSn, board?.source_sn, board?.assistantSn, board?.assistant_sn, board?.originalSn, board?.original_sn),
-    originalSn: getString(board?.originalSn, board?.original_sn, board?.assistantSn, board?.assistant_sn, board?.sourceSn, board?.source_sn),
+    assistantSn: getString(
+      board?.assistantSn,
+      board?.assistant_sn,
+      board?.sourceSn,
+      board?.source_sn,
+      board?.originalSn,
+      board?.original_sn
+    ),
+    sourceSn: getString(
+      board?.sourceSn,
+      board?.source_sn,
+      board?.assistantSn,
+      board?.assistant_sn,
+      board?.originalSn,
+      board?.original_sn
+    ),
+    originalSn: getString(
+      board?.originalSn,
+      board?.original_sn,
+      board?.assistantSn,
+      board?.assistant_sn,
+      board?.sourceSn,
+      board?.source_sn
+    ),
     batchNo: getString(board?.batchNo, board?.pch) || fallbackBatchNo,
     supplier: getString(board?.supplier, board?.gysmc) || "未提供",
     materialNo: getString(board?.materialNo, board?.wlh),
@@ -1207,8 +1230,9 @@ function rowMatchesGeneratedBoard(application: CircuitApplication, board: Circui
   )
   const matchesOrder = rowOrderNo ? rowOrderNo === orderNo : rowName.includes(orderNo)
   const matchesBoard =
-    rowIdentityValues.some((value) => boardIdentityValues.has(value) || isGeneratedSerialMatch(serial, value, quantity)) ||
-    (rowSerial ? isGeneratedSerialMatch(serial, rowSerial, quantity) : rowName.includes(serial))
+    rowIdentityValues.some(
+      (value) => boardIdentityValues.has(value) || isGeneratedSerialMatch(serial, value, quantity)
+    ) || (rowSerial ? isGeneratedSerialMatch(serial, rowSerial, quantity) : rowName.includes(serial))
   return matchesOrder && matchesBoard
 }
 
@@ -1616,10 +1640,14 @@ function updateApplicationRawBoardSn(application: CircuitApplication, board: Cir
   const rows = getApplicationRelationRows(application)
   application.raw = rows.map((row) => {
     const dlbBoards = Array.isArray(row.dlbTestBoardList)
-      ? row.dlbTestBoardList.map((rawBoard) => (isMatchingBoardRecord(board, rawBoard) ? patchRawBoardSn(rawBoard, sn) : rawBoard))
+      ? row.dlbTestBoardList.map((rawBoard) =>
+          isMatchingBoardRecord(board, rawBoard) ? patchRawBoardSn(rawBoard, sn) : rawBoard
+        )
       : row.dlbTestBoardList
     const boards = Array.isArray(row.boards)
-      ? row.boards.map((rawBoard) => (isMatchingBoardRecord(board, rawBoard) ? patchRawBoardSn(rawBoard, sn) : rawBoard))
+      ? row.boards.map((rawBoard) =>
+          isMatchingBoardRecord(board, rawBoard) ? patchRawBoardSn(rawBoard, sn) : rawBoard
+        )
       : row.boards
     const rowMatched = isMatchingBoardRecord(board, row)
     const nextRow = (rowMatched ? patchRawBoardSn(row, sn) : row) as Record<string, unknown>
@@ -1636,9 +1664,10 @@ function normalizeSnInput(value: unknown) {
 }
 
 function buildAutoSnBase(application: CircuitApplication, board: CircuitApplicationBoard) {
-  return (
-    getString(board.batchNo, application.orderNo, board.sampleName, board.model) || `CBM-${todayKey()}`
-  ).replace(/[^\w.-]+/g, "-")
+  return (getString(board.batchNo, application.orderNo, board.sampleName, board.model) || `CBM-${todayKey()}`).replace(
+    /[^\w.-]+/g,
+    "-"
+  )
 }
 
 function collectExistingSnSet(application: CircuitApplication, excludedRows: SnFillRow[] = []) {
@@ -1812,7 +1841,14 @@ function buildGeneratedBoardRow(
   const sampleName = getString(board.sampleName, raw.ypmc, raw.sampleName, raw.board_name, model)
   const materialNo = getString(board.materialNo, raw.wlh, raw.materialNo, raw.material_no)
   const product = getString(raw.sscp, raw.product, raw.productName, raw.product_name, raw.belongProduct)
-  const instrument = getString(raw.instrument, raw.instrumentName, raw.instrument_name, raw.device, raw.deviceName, sampleName)
+  const instrument = getString(
+    raw.instrument,
+    raw.instrumentName,
+    raw.instrument_name,
+    raw.device,
+    raw.deviceName,
+    sampleName
+  )
   const testContent = getString(raw.csnr, raw.testContent, raw.test_content)
 
   return {
@@ -2210,7 +2246,10 @@ async function createGeneratedTestOrder(
     return
   }
 
-  const { boardList, addProdBoard, processList, testType } = await buildGeneratedTempOrderBoardList(application, boardsForOrder)
+  const { boardList, addProdBoard, processList, testType } = await buildGeneratedTempOrderBoardList(
+    application,
+    boardsForOrder
+  )
   const payload = {
     addProdBoard,
     processList,
