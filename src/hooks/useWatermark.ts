@@ -44,6 +44,9 @@ export function useWatermark(parentEl: Ref<HTMLElement | null> = bodyEl) {
   let mergeConfig: DefaultConfig
   /** 水印元素 */
   let watermarkEl: HTMLElement | null = null
+  let mountedParent: HTMLElement | null = null
+  let originalPosition: string | undefined
+  let resizeCallback: ReturnType<typeof debounce> | undefined
   /** 观察器 */
   const observer: Observer = {
     watermarkElMutationObserver: undefined,
@@ -57,6 +60,7 @@ export function useWatermark(parentEl: Ref<HTMLElement | null> = bodyEl) {
       console.warn("请在 DOM 挂载完成后再调用 setWatermark 方法设置水印")
       return
     }
+    if (mountedParent && mountedParent !== parentEl.value) clearWatermark()
     // 备份文本
     backupText = text
     // 合并配置
@@ -71,7 +75,7 @@ export function useWatermark(parentEl: Ref<HTMLElement | null> = bodyEl) {
   const createWatermarkEl = () => {
     const isBody = parentEl.value!.tagName.toLowerCase() === bodyEl.value.tagName.toLowerCase()
     const watermarkElPosition = isBody ? "fixed" : "absolute"
-    const parentElPosition = isBody ? "" : "relative"
+    mountedParent = parentEl.value!
     watermarkEl = document.createElement("div")
     watermarkEl.style.pointerEvents = "none"
     watermarkEl.style.top = "0"
@@ -80,8 +84,11 @@ export function useWatermark(parentEl: Ref<HTMLElement | null> = bodyEl) {
     watermarkEl.style.zIndex = "99999"
     const { clientWidth, clientHeight } = parentEl.value!
     updateWatermarkEl({ width: clientWidth, height: clientHeight })
-    // 设置水印容器为相对定位
-    parentEl.value!.style.position = parentElPosition
+    // 只为静态容器补充定位，保留调用方原有布局。
+    if (!isBody && ["", "static"].includes(getComputedStyle(mountedParent).position)) {
+      originalPosition = mountedParent.style.position
+      mountedParent.style.position = "relative"
+    }
     // 将水印元素添加到水印容器中
     parentEl.value!.appendChild(watermarkEl)
   }
@@ -94,9 +101,9 @@ export function useWatermark(parentEl: Ref<HTMLElement | null> = bodyEl) {
     }> = {}
   ) => {
     if (!watermarkEl) return
-    backupText && (watermarkEl.style.background = `url(${createBase64()}) left top repeat`)
-    options.width && (watermarkEl.style.width = `${options.width}px`)
-    options.height && (watermarkEl.style.height = `${options.height}px`)
+    watermarkEl.style.background = backupText ? `url(${createBase64()}) left top repeat` : ""
+    if (options.width !== undefined) watermarkEl.style.width = `${options.width}px`
+    if (options.height !== undefined) watermarkEl.style.height = `${options.height}px`
   }
 
   /** 创建 base64 图片 */
@@ -116,27 +123,25 @@ export function useWatermark(parentEl: Ref<HTMLElement | null> = bodyEl) {
     return canvasEl.toDataURL()
   }
 
-  /** 清除水印 */
+  /** 清除时取消排队的防御回调，即使模板引用已被清空也能释放资源。 */
   const clearWatermark = () => {
-    if (!parentEl.value || !watermarkEl) return
-    // 移除对水印元素和容器元素的监听
+    updateWatermark.cancel()
+    resizeCallback?.cancel()
     removeListener()
-    // 移除水印元素
-    try {
-      parentEl.value.removeChild(watermarkEl)
-    } catch {
-      // 比如在无防御情况下，用户打开控制台删除了这个元素
-      console.warn("水印元素已不存在，请重新创建")
-    } finally {
-      watermarkEl = null
+    watermarkEl?.remove()
+    watermarkEl = null
+    if (mountedParent && originalPosition !== undefined && mountedParent.style.position === "relative") {
+      mountedParent.style.position = originalPosition
     }
+    mountedParent = null
+    originalPosition = undefined
   }
 
   /** 刷新水印（防御时调用） */
   const updateWatermark = debounce(() => {
+    if (!watermarkEl || !parentEl.value) return
     clearWatermark()
-    createWatermarkEl()
-    addElListener(parentEl.value!)
+    setWatermark(backupText, mergeConfig)
   }, 100)
 
   /** 监听水印元素和容器元素的变化（DOM 变化 & DOM 大小变化） */
@@ -170,6 +175,7 @@ export function useWatermark(parentEl: Ref<HTMLElement | null> = bodyEl) {
     }
     // 移除 resize 监听
     if (kind === "resize" || kind === "all") {
+      resizeCallback?.cancel()
       observer.parentElResizeObserver?.disconnect()
       observer.parentElResizeObserver = undefined
     }
@@ -177,24 +183,16 @@ export function useWatermark(parentEl: Ref<HTMLElement | null> = bodyEl) {
 
   /** 监听 DOM 变化 */
   const addMutationListener = (targetNode: HTMLElement) => {
-    // 当观察到变动时执行的回调
-    const mutationCallback = debounce((mutationList: MutationRecord[]) => {
-      // 水印的防御（防止用户手动删除水印元素或通过 CSS 隐藏水印）
-      mutationList.forEach(
-        debounce((mutation: MutationRecord) => {
-          switch (mutation.type) {
-            case "attributes":
-              mutation.target === watermarkEl && updateWatermark()
-              break
-            case "childList":
-              mutation.removedNodes.forEach((item) => {
-                item === watermarkEl && targetNode.appendChild(watermarkEl)
-              })
-              break
-          }
-        }, 100)
-      )
-    }, 100)
+    // 不丢弃连续变更中的删除记录；排队的重建由 clearWatermark 统一取消。
+    const mutationCallback = (mutationList: MutationRecord[]) => {
+      if (!watermarkEl || mountedParent !== targetNode) return
+      mutationList.forEach((mutation) => {
+        if (mutation.type === "attributes" && mutation.target === watermarkEl) updateWatermark()
+        if (mutation.type === "childList" && Array.from(mutation.removedNodes).includes(watermarkEl!)) {
+          targetNode.appendChild(watermarkEl!)
+        }
+      })
+    }
     // 创建观察器实例并传入回调
     observer.watermarkElMutationObserver = new MutationObserver(mutationCallback)
     observer.parentElMutationObserver = new MutationObserver(mutationCallback)
@@ -217,7 +215,7 @@ export function useWatermark(parentEl: Ref<HTMLElement | null> = bodyEl) {
   /** 监听 DOM 大小变化 */
   const addResizeListener = (targetNode: HTMLElement) => {
     // 当 targetNode 元素大小变化时去更新整个水印的大小
-    const resizeCallback = debounce(() => {
+    resizeCallback = debounce(() => {
       const { clientWidth, clientHeight } = targetNode
       updateWatermarkEl({ width: clientWidth, height: clientHeight })
     }, 500)
