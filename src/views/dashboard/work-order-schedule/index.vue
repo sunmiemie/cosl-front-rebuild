@@ -101,6 +101,15 @@
                             拖动调整
                           </el-button>
                           <el-button size="small" @click.stop="openScheduleDialog(order)">编辑多段</el-button>
+                          <el-button
+                            v-if="isAssistantScheduleEquipment(order.scheduleEquipment)"
+                            :icon="Upload"
+                            :loading="assistantSchedulePushingId === order.id"
+                            size="small"
+                            @click.stop="handlePushAssistantSchedule(order)"
+                          >
+                            推送小助手
+                          </el-button>
                           <el-button size="small" @click.stop="handleClearSchedule(order)">清除</el-button>
                         </template>
                         <template v-else>
@@ -369,6 +378,7 @@
 import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
+import { Upload } from "@element-plus/icons-vue"
 import { getWaterCycleOrderList, publishWaterCycleOrderApi } from "@/api/water-cycle"
 import { getVibrationTableOrderList, publishVibrationTableOrder } from "@/api/vibration-table"
 import { getHighTemperatureOrderList, publishHighTemperatureOrder } from "@/api/high-temperature"
@@ -382,6 +392,7 @@ import {
 } from "@/api/circuit-module-application"
 import { getDeviceInstanceListApi } from "@/api/device-instance"
 import { getHostModelDisplayName } from "@/views/devicemanage/device/psi/model-options"
+import { syncEngineerAssistantLocalScheduleApi } from "@/api/engineer-assistant"
 import {
   clearWorkOrderSchedule,
   saveCircuitBoardSequenceBatch,
@@ -582,6 +593,7 @@ const selectedOrderId = ref("")
 const loading = ref(false)
 const saving = ref(false)
 const publishingId = ref("")
+const assistantSchedulePushingId = ref("")
 const calendarScheduleSavingId = ref("")
 const calendarDraggingOrderId = ref("")
 const calendarDropTarget = ref<CalendarDropTarget | null>(null)
@@ -1871,6 +1883,32 @@ function requireScheduleTargetId(order: ScheduleOrder) {
     ElMessage.warning("当前工单缺少后端排程 ID，请刷新列表后再排程")
   }
   return targetId
+}
+
+function isAssistantScheduleEquipment(
+  equipment: WorkOrderScheduleEquipment
+): equipment is "high-temp-pressure" | "vibration-table" | "simulated-well" {
+  return equipment === "high-temp-pressure" || equipment === "vibration-table" || equipment === "simulated-well"
+}
+
+async function handlePushAssistantSchedule(order: ScheduleOrder) {
+  if (!isAssistantScheduleEquipment(order.scheduleEquipment)) return
+  const targetId = requireScheduleTargetId(order)
+  if (targetId === null) return
+
+  assistantSchedulePushingId.value = order.id
+  try {
+    await syncEngineerAssistantLocalScheduleApi({
+      orderType: order.scheduleEquipment,
+      targetId
+    })
+    ElMessage.success("排期已推送到小助手")
+  } catch (error) {
+    console.error("推送小助手排期失败", error)
+    ElMessage.error("排期推送失败，请检查小助手绑定和同步日志")
+  } finally {
+    assistantSchedulePushingId.value = ""
+  }
 }
 
 function openDetailDialog(order: ScheduleOrder) {

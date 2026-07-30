@@ -1319,7 +1319,10 @@ function getBoardsForCommissionPush(application: CircuitApplication, boards: Cir
 }
 
 function buildAssistantId(prefix: string, ...values: unknown[]) {
-  const rawValue = values.map((value) => getDisplayString(value)).find(Boolean) || `${Date.now()}`
+  const rawValue = values
+    .map((value) => getDisplayString(value))
+    .filter(Boolean)
+    .join("-") || `${Date.now()}`
   const safeValue = rawValue
     .replace(/[^a-zA-Z0-9_-]/g, "-")
     .replace(/-+/g, "-")
@@ -2009,7 +2012,7 @@ async function resolveTempOrderBoardRow(
   if (!serial) throw createMissingBoardsError([board], "样品缺少 SN，无法匹配电路板")
 
   try {
-    const prodBoardInfo = await getProdBoardDataBySn(serial)
+    const prodBoardInfo = await getProdBoardDataBySn(serial, { silentError: true })
     const batchId = prodBoardInfo?.data?.batch_id
     const boardModelId = prodBoardInfo?.data?.boardmodel_id
     if (batchId && boardModelId) {

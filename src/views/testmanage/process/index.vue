@@ -8,17 +8,21 @@ import { ElButton, ElDrawer } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search, View, Delete, Download } from "@element-plus/icons-vue"
 import { useDetailPagination, usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
+import EngineerAssistantPushDialog from "@/components/EngineerAssistantPushDialog/index.vue"
 import { getInstrumentDataApi } from "@/api/instrument"
 import { useTestStore } from "@/store/modules/test"
 import {
   getTestProcessDetail,
   getTestProcessList,
+  getProcessById,
   changeVersion,
   submitCheck,
   deleteTestProcessApi
 } from "@/api/addprocess"
 import { getHaltHassProcessList, deleteHaltHassProcess, submitHaltHassToCheck } from "@/api/halt-hass"
 import type { HaltHassProcessListItem } from "@/api/halt-hass/types"
+import { pushEngineerAssistantProcessesApi } from "@/api/engineer-assistant"
+import type { EngineerAssistantTestType } from "@/api/engineer-assistant/types"
 
 const testStore = useTestStore()
 
@@ -118,6 +122,55 @@ const onlyShowWithProcess = ref(false)
 const processFilterLoading = ref(false)
 const exportProcessLoading = ref(false)
 const boardProcessCache = reactive<Record<string, boolean>>({})
+const selectedProcesses = ref<any[]>([])
+const assistantPushDialogVisible = ref(false)
+const assistantPushLoading = ref(false)
+
+const handleProcessSelectionChange = (rows: any[]) => {
+  selectedProcesses.value = rows
+}
+
+const processRowKey = (row: any) => row.activateId || row.type
+
+const openProcessPushDialog = () => {
+  if (selectedProcesses.value.some((row) => !row.activateId)) {
+    ElMessage.warning("所选工艺中存在未激活版本，请先激活后再推送")
+    return
+  }
+  assistantPushDialogVisible.value = true
+}
+
+const pushSelectedProcesses = async (assistantTestType: EngineerAssistantTestType) => {
+  assistantPushLoading.value = true
+  try {
+    const details = await Promise.all(selectedProcesses.value.map((row) => getProcessById({ id: row.activateId })))
+    const processList = details.map((response: any, index) => {
+      const row = selectedProcesses.value[index]
+      const detail = response.data || {}
+      const version = detail.version || row.activateVersion || ""
+      return {
+        processId: String(row.activateId),
+        processName: String(detail.name || row.type),
+        processDescription: `${testStore.board_model_name || searchData.boardModel} ${row.type} V${version}`,
+        xssj: ""
+      }
+    })
+
+    await pushEngineerAssistantProcessesApi({
+      processDtoList: [
+        {
+          testTypeId: String(assistantTestType.typeId),
+          testTypeName: String(assistantTestType.typeName || assistantTestType.name),
+          list: processList
+        }
+      ]
+    })
+    assistantPushDialogVisible.value = false
+    ElMessage.success(`已向小助手推送 ${processList.length} 项工艺文件`)
+  } finally {
+    assistantPushLoading.value = false
+  }
+}
 
 const hasProcess = async (boardModelId: string | number) => {
   const cacheKey = String(boardModelId)
@@ -357,7 +410,7 @@ const handleLinkDetail = (data: any, i: string) => {
       cancelButtonText: "取消",
       type: "warning"
     }).then(() => {
-      deleteTestProcessApi(data.ID).then((res) => {
+      deleteTestProcessApi(data.ID).then(() => {
         getDetailTableData()
         getTableData()
         ElMessage.success("删除成功")
@@ -623,6 +676,9 @@ onMounted(() => {
                     <el-button v-permission="['12']" :icon="CirclePlus" type="primary" @click="addTest"
                       >新增流程</el-button
                     >
+                    <el-button type="primary" :disabled="selectedProcesses.length === 0" @click="openProcessPushDialog">
+                      推送小助手
+                    </el-button>
                   </div>
                   <div>
                     <el-tooltip content="刷新当前页">
@@ -631,7 +687,15 @@ onMounted(() => {
                   </div>
                 </div>
                 <div class="table-wrapper">
-                  <TableComponent v-if="TableData.length > 0" :column-data="headers1" :tableData="TableData" stripe>
+                  <TableComponent
+                    v-if="TableData.length > 0"
+                    :column-data="headers1"
+                    :tableData="TableData"
+                    :row-key="processRowKey"
+                    selection
+                    stripe
+                    @selection-change="handleProcessSelectionChange"
+                  >
                     <template #version="{ row }">
                       <el-select
                         v-model="row.activateVersion"
@@ -772,6 +836,14 @@ onMounted(() => {
         </el-tab-pane>
       </el-tabs>
     </el-card>
+    <EngineerAssistantPushDialog
+      v-model="assistantPushDialogVisible"
+      title="推送工艺文件到小助手"
+      item-name="工艺文件"
+      :item-count="selectedProcesses.length"
+      :loading="assistantPushLoading"
+      @confirm="pushSelectedProcesses"
+    />
 
     <!-- 详情抽屉 (普通工艺) -->
     <el-drawer v-model="drawer" :append-to-body="true" :with-header="false" size="65%">

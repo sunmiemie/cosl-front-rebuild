@@ -4,6 +4,10 @@ import { ElMessage } from "element-plus"
 import { get, merge } from "lodash-es"
 import { getToken } from "./cache/cookies"
 
+type RequestConfig = AxiosRequestConfig & {
+  silentError?: boolean
+}
+
 const httpStatusMessage: Record<number, string> = {
   400: "请求参数错误（400）",
   401: "登录状态已失效，请重新登录",
@@ -82,16 +86,18 @@ function createService() {
         case 401:
           // Token 过期时
           return logout()
-        default:
+        default: {
           // 不是正确的 code
-          ElMessage.error(apiData.message || "Error")
-          const error = new Error("Error") as Error & {
+          const businessMessage = apiData.message || apiData.msg || "请求失败"
+          ElMessage.error(businessMessage)
+          const error = new Error(businessMessage) as Error & {
             data?: unknown
             response?: { data?: unknown }
           }
           error.data = apiData
           error.response = { data: apiData }
           return Promise.reject(error)
+        }
       }
     },
     (error) => {
@@ -101,7 +107,7 @@ function createService() {
       if (status === 401) {
         // Token 过期时
         logout()
-      } else {
+      } else if (!get(error, "config.silentError")) {
         ElMessage.error(error.message)
       }
       return Promise.reject(error)
@@ -112,7 +118,7 @@ function createService() {
 
 /** 创建请求方法 */
 function createRequest(service: AxiosInstance) {
-  return function <T>(config: AxiosRequestConfig): Promise<T> {
+  return function <T>(config: RequestConfig): Promise<T> {
     const token = getToken()
     const defaultConfig = {
       headers: {

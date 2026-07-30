@@ -49,9 +49,10 @@ export function getBoardDataBySn(serialNumber: string) {
   })
 }
 
-export function getProdBoardDataBySn(serialNumber: string) {
+export function getProdBoardDataBySn(serialNumber: string, options: { silentError?: boolean } = {}) {
   return request<Board.GetProdBoardDataBySnResponseData>({
     url: `equipment/prod-board/${serialNumber}`,
-    method: "get"
+    method: "get",
+    silentError: options.silentError
   })
 }

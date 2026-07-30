@@ -48,11 +48,21 @@
               {{ formatTime(row.audit_time) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="160" align="center" fixed="right">
+          <el-table-column label="操作" width="250" align="center" fixed="right">
             <template #default="{ row }">
               <el-link type="primary" @click="handleDetail(row)">详情</el-link>
               <el-link type="warning" @click="handleEdit(row)">编辑</el-link>
               <el-link type="success" @click="handleDownload(row)">下载</el-link>
+              <el-button
+                v-if="row.status === 1"
+                :icon="Upload"
+                :loading="assistantPushingId === row.id"
+                link
+                type="primary"
+                @click="handlePushAssistant(row)"
+              >
+                推送
+              </el-button>
               <el-link type="danger" @click="handleDelete(row)">删除</el-link>
             </template>
           </el-table-column>
@@ -153,10 +163,7 @@
       </div>
       <div v-if="currentReport" class="detail-block">
         <h4>doc 报告内容</h4>
-        <VibrationDocReportView
-          :report-json="currentReport.report_json"
-          :attachments="currentReport.attachments"
-        />
+        <VibrationDocReportView :report-json="currentReport.report_json" :attachments="currentReport.attachments" />
       </div>
       <div v-if="currentReport" class="detail-block detail-grid">
         <div>
@@ -181,6 +188,8 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, defineExpose, computed } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
+import { Upload } from "@element-plus/icons-vue"
+import { syncEngineerAssistantLocalReportApi } from "@/api/engineer-assistant"
 import {
   getVibrationTableReportListApi,
   createVibrationTableReportApi,
@@ -203,6 +212,7 @@ const pagination = reactive({
 })
 
 const loading = ref(false)
+const assistantPushingId = ref<number | null>(null)
 const tableData = ref<VibrationTableReportListItem[]>([])
 
 const detailDialogVisible = ref(false)
@@ -369,6 +379,23 @@ const handleDownload = async (row: VibrationTableReportListItem) => {
 
   URL.revokeObjectURL(url)
   ElMessage.success("下载开始")
+}
+
+const handlePushAssistant = async (row: VibrationTableReportListItem) => {
+  await ElMessageBox.confirm("确定重新推送该正式报告到工程师小助手吗？", "推送报告", { type: "warning" })
+  assistantPushingId.value = row.id
+  try {
+    await syncEngineerAssistantLocalReportApi({
+      reportType: "vibration-table",
+      reportId: row.id
+    })
+    ElMessage.success("报告已推送到小助手")
+  } catch (error) {
+    console.error("推送振动台报告失败", error)
+    ElMessage.error("报告推送失败，请检查正式附件和同步日志")
+  } finally {
+    assistantPushingId.value = null
+  }
 }
 
 const handleDelete = async (row: VibrationTableReportListItem) => {

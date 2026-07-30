@@ -37,6 +37,14 @@ export function getEngineerAssistantApplicationFormDetailApi(testId: string, tes
   })
 }
 
+export function syncEngineerAssistantApplicationFormsApi(data: Types.SyncEngineerAssistantApplicationFormsBody) {
+  return request<Types.SyncEngineerAssistantApplicationFormsResponse>({
+    url: "external/assistant/sync/application-forms/",
+    method: "post",
+    data
+  })
+}
+
 export function pushEngineerAssistantProcessesApi(data: Types.PushEngineerAssistantProcessesBody) {
   return request({
     url: "external/assistant/push-processes/",
@@ -56,6 +64,22 @@ export function pushEngineerAssistantEquipmentApi(data: Types.PushEngineerAssist
 export function pushEngineerAssistantSchedulesApi(data: Types.PushEngineerAssistantSchedulesBody) {
   return request({
     url: "external/assistant/push-schedules/",
+    method: "post",
+    data
+  })
+}
+
+export function syncEngineerAssistantLocalScheduleApi(data: Types.SyncEngineerAssistantLocalScheduleBody) {
+  return request<Types.SyncEngineerAssistantLocalResponse>({
+    url: "external/assistant/sync/local-schedule/",
+    method: "post",
+    data
+  })
+}
+
+export function syncEngineerAssistantLocalReportApi(data: Types.SyncEngineerAssistantLocalReportBody) {
+  return request<Types.SyncEngineerAssistantLocalResponse>({
+    url: "external/assistant/sync/local-report/",
     method: "post",
     data
   })

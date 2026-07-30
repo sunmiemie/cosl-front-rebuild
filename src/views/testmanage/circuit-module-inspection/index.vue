@@ -36,7 +36,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
-import { TabsPaneContext } from "element-plus"
+import { ElMessage, TabsPaneContext } from "element-plus"
+import { syncEngineerAssistantApplicationFormsApi } from "@/api/engineer-assistant"
 import { PermissionCode } from "@/constants/permission"
 import { checkPermission } from "@/utils/permission"
 import HaltHassOrder from "../testorder/components/HaltHassOrder.vue"
@@ -89,6 +90,23 @@ const refreshActiveTab = (name: string) => {
   }
 }
 
+const syncApplicationFormsOnRefresh = async () => {
+  try {
+    const res = await syncEngineerAssistantApplicationFormsApi({
+      dryRun: false,
+      pushStatus: true
+    })
+    if (res.data.summary.failed > 0) {
+      ElMessage.warning(`有 ${res.data.summary.failed} 条小助手申请单同步失败，当前显示已成功同步及本地数据`)
+    }
+  } catch (error) {
+    console.warn("小助手申请单同步失败，继续显示本地工单数据", error)
+    ElMessage.warning("小助手申请单同步失败，当前显示本地工单数据")
+  } finally {
+    refreshActiveTab(String(activeName.value || ""))
+  }
+}
+
 const handleTabClick = (tab: TabsPaneContext) => {
   const name = String(tab.props.name || "")
   router.replace({ query: { tab: name } })
@@ -102,6 +120,7 @@ onMounted(() => {
   } else if (!availableTabs.value.some((item) => item.name === activeName.value)) {
     activeName.value = availableTabs.value[0]?.name || ""
   }
+  void syncApplicationFormsOnRefresh()
 })
 
 watch(

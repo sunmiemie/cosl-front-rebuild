@@ -2,6 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
+import { Upload } from "@element-plus/icons-vue"
+import { syncEngineerAssistantLocalReportApi } from "@/api/engineer-assistant"
 import { useUserStoreHook } from "@/store/modules/user"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
@@ -30,6 +32,7 @@ const taskCenterStore = useTaskCenterStoreHook()
 const reviewerName = computed(() => userStore.nickName || userStore.username || "-")
 
 const loading = ref(false)
+const assistantPushingId = ref<number | null>(null)
 const rows = ref<AuditRow[]>([])
 const detailDialogVisible = ref(false)
 const currentReport = ref<AuditRow | null>(null)
@@ -61,8 +64,7 @@ const taskNumberFilter = computed(() => {
 const pendingAllRows = computed(() =>
   rows.value.filter(
     (row) =>
-      row.status === 0 &&
-      (!taskNumberFilter.value || row.task_number.toLowerCase().includes(taskNumberFilter.value))
+      row.status === 0 && (!taskNumberFilter.value || row.task_number.toLowerCase().includes(taskNumberFilter.value))
   )
 )
 const reviewedAllRows = computed(() => rows.value.filter((row) => row.status !== 0))
@@ -247,7 +249,10 @@ const handleReject = async () => {
     ElMessage.warning("请填写驳回原因")
     return
   }
-  const res = await updateSimulatedWellReportApi(rejectingRow.value.id, reviewPayload(rejectingRow.value, 2, rejectReason.value))
+  const res = await updateSimulatedWellReportApi(
+    rejectingRow.value.id,
+    reviewPayload(rejectingRow.value, 2, rejectReason.value)
+  )
   if (res.code === 0) {
     ElMessage.success("已驳回")
     rejectDialogVisible.value = false
@@ -270,6 +275,23 @@ const handleDownload = (row: AuditRow) => {
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
+}
+
+const handlePushAssistant = async (row: AuditRow) => {
+  await ElMessageBox.confirm("确定重新推送该正式报告到工程师小助手吗？", "推送报告", { type: "warning" })
+  assistantPushingId.value = row.id
+  try {
+    await syncEngineerAssistantLocalReportApi({
+      reportType: "simulated-well",
+      reportId: row.id
+    })
+    ElMessage.success("报告已推送到小助手")
+  } catch (error) {
+    console.error("推送模拟井报告失败", error)
+    ElMessage.error("报告推送失败，请检查正式附件和同步日志")
+  } finally {
+    assistantPushingId.value = null
+  }
 }
 
 const openRouteReportDetail = async () => {
@@ -382,10 +404,20 @@ defineExpose({ resetSearch: getList })
             <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" fixed="right" align="center">
+        <el-table-column label="操作" width="230" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleDetail(row)">查看</el-button>
             <el-button link type="success" @click="handleDownload(row)">下载</el-button>
+            <el-button
+              v-if="row.status === 1"
+              :icon="Upload"
+              :loading="assistantPushingId === row.id"
+              link
+              type="primary"
+              @click="handlePushAssistant(row)"
+            >
+              推送
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -479,10 +511,18 @@ defineExpose({ resetSearch: getList })
       </div>
       <template #footer>
         <el-button @click="detailDialogVisible = false">关闭</el-button>
-        <el-button v-if="currentReport && currentReport.status === 0" type="success" @click="handleApprove(currentReport)">
+        <el-button
+          v-if="currentReport && currentReport.status === 0"
+          type="success"
+          @click="handleApprove(currentReport)"
+        >
           审核通过
         </el-button>
-        <el-button v-if="currentReport && currentReport.status === 0" type="danger" @click="showRejectDialog(currentReport)">
+        <el-button
+          v-if="currentReport && currentReport.status === 0"
+          type="danger"
+          @click="showRejectDialog(currentReport)"
+        >
           审核驳回
         </el-button>
       </template>

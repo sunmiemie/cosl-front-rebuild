@@ -9,9 +9,12 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "elem
 import { CirclePlus, Refresh, RefreshRight, Search, Printer, UploadFilled } from "@element-plus/icons-vue"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
+import EngineerAssistantPushDialog from "@/components/EngineerAssistantPushDialog/index.vue"
 import { fileDownoload } from "@/api/file"
 import QrcodeVue from "qrcode.vue"
 import { getQRcodeImgApi } from "@/api/qrcode"
+import { pushEngineerAssistantEquipmentApi } from "@/api/engineer-assistant"
+import type { EngineerAssistantTestType } from "@/api/engineer-assistant/types"
 
 const loading = ref<boolean>(false)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
@@ -143,9 +146,29 @@ const addOtherEquiment = () => {
   dialogVisible.value = true
 }
 
-const selectedRows = ref([])
+const selectedRows = ref<any[]>([])
+const assistantPushDialogVisible = ref(false)
+const assistantPushLoading = ref(false)
 const handleSelectionChange = (val: any) => {
   selectedRows.value = val
+}
+
+const pushSelectedEquipment = async (assistantTestType: EngineerAssistantTestType) => {
+  assistantPushLoading.value = true
+  try {
+    await pushEngineerAssistantEquipmentApi({
+      testEquipmentDtoList: selectedRows.value.map((row: any) => ({
+        testTypeId: String(assistantTestType.typeId),
+        equipmentId: String(row.equipment_id),
+        equipmentName: String(row.equipment_name),
+        sn: String(row.equipment_serialnumber || "")
+      }))
+    })
+    assistantPushDialogVisible.value = false
+    ElMessage.success(`已向小助手推送 ${selectedRows.value.length} 项测试设备`)
+  } finally {
+    assistantPushLoading.value = false
+  }
 }
 
 // 打印二维码
@@ -329,6 +352,9 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
           <el-button v-if="selectedRows.length > 0" type="warning" :icon="Printer" @click="getSelection"
             >打印二维码</el-button
           >
+          <el-button type="primary" :disabled="selectedRows.length === 0" @click="assistantPushDialogVisible = true">
+            推送小助手
+          </el-button>
         </div>
         <div>
           <el-tooltip content="刷新当前页">
@@ -340,6 +366,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         <TableComponent
           :tableData="TableData"
           :column-data="headers"
+          row-key="equipment_id"
           selection
           stripe
           @selection-change="handleSelectionChange"
@@ -388,6 +415,14 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
         />
       </div>
     </el-card>
+    <EngineerAssistantPushDialog
+      v-model="assistantPushDialogVisible"
+      title="推送测试设备到小助手"
+      item-name="设备"
+      :item-count="selectedRows.length"
+      :loading="assistantPushLoading"
+      @confirm="pushSelectedEquipment"
+    />
     <!-- 新增/修改 -->
     <el-dialog
       v-model="dialogVisible"

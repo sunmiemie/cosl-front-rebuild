@@ -73,6 +73,29 @@ export type GetEngineerAssistantApplicationFormsResponse = EngineerAssistantBase
 export type GetEngineerAssistantApplicationFormDetailResponse =
   EngineerAssistantBaseResponse<EngineerAssistantApplicationForm>
 
+export type SyncEngineerAssistantApplicationFormsBody = {
+  dryRun: boolean
+  testType?: string
+  limit?: number
+  pushStatus?: boolean
+}
+
+export type EngineerAssistantApplicationFormsSyncResult = {
+  summary: {
+    dryRun: boolean
+    pushStatus: boolean
+    total: number
+    success: number
+    failed: number
+    skipped: number
+    processed: number
+  }
+  list: Array<Record<string, unknown>>
+}
+
+export type SyncEngineerAssistantApplicationFormsResponse =
+  EngineerAssistantBaseResponse<EngineerAssistantApplicationFormsSyncResult>
+
 export type PushEngineerAssistantProcessesBody = {
   processDtoList: Array<{
     testTypeId: string
@@ -105,6 +128,19 @@ export type EngineerAssistantScheduleInfo = {
 
 export type PushEngineerAssistantSchedulesBody = {
   schedulesInfo: EngineerAssistantScheduleInfo[]
+}
+
+export type SyncEngineerAssistantLocalScheduleBody = {
+  orderType: "high-temp-pressure" | "vibration-table" | "simulated-well"
+  targetId: number
+  equipmentId?: string
+  dryRun?: boolean
+}
+
+export type SyncEngineerAssistantLocalReportBody = {
+  reportType: "high-temp-pressure" | "vibration-table" | "simulated-well"
+  reportId: number
+  dryRun?: boolean
 }
 
 export type ChangeEngineerAssistantStatusBody = {
@@ -175,6 +211,7 @@ export type GetEngineerAssistantCommissionBindingsParams = {
 }
 
 export type PushEngineerAssistantCommissionOrdersResponse = EngineerAssistantBaseResponse<unknown>
+export type SyncEngineerAssistantLocalResponse = EngineerAssistantBaseResponse<Record<string, unknown>>
 export type GetEngineerAssistantCommissionBindingsResponse = EngineerAssistantBaseResponse<
   EngineerAssistantCommissionBinding[]
 >
