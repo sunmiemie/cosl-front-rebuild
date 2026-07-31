@@ -60,13 +60,6 @@
                 <div>
                   <el-button type="primary" icon="circle-plus" @click="openModelDialog(false)">新增型号</el-button>
                   <el-button
-                    type="primary"
-                    :disabled="selectedRows.length === 0"
-                    @click="assistantPushDialogVisible = true"
-                  >
-                    推送小助手
-                  </el-button>
-                  <el-button
                     type="danger"
                     icon="delete"
                     @click="handleDeleteManage"
@@ -82,14 +75,7 @@
               </div>
 
               <div class="table-wrapper">
-                <TableComponent
-                  :tableData="InstrumentData"
-                  :column-data="headers"
-                  row-key="id"
-                  selection
-                  stripe
-                  @selection-change="handleSelectionChange"
-                >
+                <TableComponent :tableData="InstrumentData" :column-data="headers" row-key="id" stripe>
                   <template #link="{ row }">
                     <el-button link type="primary" @click="openModelDialog(true, row)">编辑</el-button>
                     <el-button link type="danger" @click="handleDeleteModel(row)">删除</el-button>
@@ -114,15 +100,6 @@
         </el-col>
       </el-row>
     </el-card>
-
-    <EngineerAssistantPushDialog
-      v-model="assistantPushDialogVisible"
-      title="推送测试设备到小助手"
-      item-name="仪器型号"
-      :item-count="selectedRows.length"
-      :loading="assistantPushLoading"
-      @confirm="pushSelectedEquipment"
-    />
 
     <!-- 新增/编辑仪器型号弹窗 -->
     <el-dialog
@@ -224,10 +201,7 @@ import { onMounted, reactive, ref, watch, computed } from "vue"
 import { ElMessage, ElMessageBox, ElTree, type FormInstance, type UploadProps, type UploadUserFile } from "element-plus"
 import { UploadFilled } from "@element-plus/icons-vue"
 import TableComponent from "@/components/Table/index.vue"
-import EngineerAssistantPushDialog from "@/components/EngineerAssistantPushDialog/index.vue"
 import { request } from "@/utils/service"
-import { pushEngineerAssistantEquipmentApi } from "@/api/engineer-assistant"
-import type { EngineerAssistantTestType } from "@/api/engineer-assistant/types"
 
 const paginationData = reactive({
   currentPage: 1,
@@ -250,32 +224,6 @@ const handleSizeChange = (val: number) => {
 const loading = ref(false)
 const treeLoading = ref(false)
 const submitLoading = ref(false)
-const assistantPushDialogVisible = ref(false)
-const assistantPushLoading = ref(false)
-const selectedRows = ref<any[]>([])
-
-const handleSelectionChange = (rows: any[]) => {
-  selectedRows.value = rows
-}
-
-const pushSelectedEquipment = async (assistantTestType: EngineerAssistantTestType) => {
-  assistantPushLoading.value = true
-  try {
-    await pushEngineerAssistantEquipmentApi({
-      testEquipmentDtoList: selectedRows.value.map((row) => ({
-        testTypeId: String(assistantTestType.typeId),
-        equipmentId: String(row.id),
-        equipmentName: String(row.name),
-        sn: String(row.model_number || "")
-      }))
-    })
-    assistantPushDialogVisible.value = false
-    ElMessage.success(`已向小助手推送 ${selectedRows.value.length} 项仪器型号`)
-  } finally {
-    assistantPushLoading.value = false
-  }
-}
-
 // 弹窗控制
 const modelDialogVisible = ref(false)
 const isEdit = ref(false)

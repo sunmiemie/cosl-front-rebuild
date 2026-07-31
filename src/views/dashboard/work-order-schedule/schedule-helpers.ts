@@ -47,6 +47,7 @@ export interface MatchHostDevicesOptions {
 export interface SecondaryDeviceTab {
   key: string
   label: string
+  deviceId: string
 }
 
 export interface SingleCellScheduleOptions {
@@ -59,6 +60,8 @@ export interface SingleCellScheduleOptions {
 export interface SchedulePayloadSegment {
   scheduled_start_at: string
   scheduled_end_at: string
+  equipment_id?: string
+  equipmentId?: string
   use_device?: string
   useDevice?: string
 }
@@ -75,6 +78,8 @@ export interface SchedulePayloadLike {
   schedule_segments: Array<{
     scheduled_start_at?: string
     scheduled_end_at?: string
+    equipment_id?: string
+    equipmentId?: string
     use_device?: string
     useDevice?: string
   }>
@@ -85,6 +90,10 @@ export interface ScheduleSegmentLike {
   scheduledEndAt?: string | null
   scheduled_start_at?: string | null
   scheduled_end_at?: string | null
+  equipmentId?: string | null
+  equipment_id?: string | null
+  psiId?: string | null
+  psi_id?: string | null
   useDevice?: string | null
   use_device?: string | null
 }
@@ -106,7 +115,12 @@ export type CalendarLaneEvent<T extends CalendarLaneInput> = T & {
 export interface ScheduleTargetOrder {
   scheduledStartAt?: string | null
   scheduledEndAt?: string | null
-  scheduleSegments?: Array<{ scheduledStartAt?: string; scheduledEndAt?: string; useDevice?: string }>
+  scheduleSegments?: Array<{
+    scheduledStartAt?: string
+    scheduledEndAt?: string
+    equipmentId?: string
+    useDevice?: string
+  }>
   status?: number | string
   statusText?: string
 }
@@ -180,9 +194,19 @@ function normalizeSchedulePayloadSegment(segment: ScheduleSegmentLike): Schedule
     : hasText(segment.useDevice)
       ? segment.useDevice.trim()
       : ""
+  const equipmentId = hasText(segment.equipment_id)
+    ? segment.equipment_id.trim()
+    : hasText(segment.equipmentId)
+      ? segment.equipmentId.trim()
+      : hasText(segment.psi_id)
+        ? segment.psi_id.trim()
+        : hasText(segment.psiId)
+          ? segment.psiId.trim()
+          : ""
   return {
     scheduled_start_at: formatBackendDateTimeFromDate(start),
     scheduled_end_at: formatBackendDateTimeFromDate(end),
+    ...(equipmentId ? { equipment_id: equipmentId, equipmentId } : {}),
     ...(useDevice ? { use_device: useDevice, useDevice } : {})
   }
 }
@@ -338,7 +362,16 @@ export function applySchedulePayloadToTargetOrder<T extends ScheduleTargetOrder>
   order.scheduleSegments = payload.schedule_segments.map((segment) => ({
     scheduledStartAt: segment.scheduled_start_at,
     scheduledEndAt: segment.scheduled_end_at,
-    useDevice: hasText(segment.use_device) ? segment.use_device.trim() : hasText(segment.useDevice) ? segment.useDevice.trim() : ""
+    equipmentId: hasText(segment.equipment_id)
+      ? segment.equipment_id.trim()
+      : hasText(segment.equipmentId)
+        ? segment.equipmentId.trim()
+        : "",
+    useDevice: hasText(segment.use_device)
+      ? segment.use_device.trim()
+      : hasText(segment.useDevice)
+        ? segment.useDevice.trim()
+        : ""
   }))
   if (options.status !== undefined) order.status = options.status
   if (options.statusText !== undefined) order.statusText = options.statusText
@@ -510,8 +543,9 @@ export function buildSecondaryDeviceTabs(
     .filter((host) => hostMatchesModelKeywords(host, keywords))
     .forEach((host) => {
       const label = host.deviceName?.trim()
-      if (!label || tabMap.has(label)) return
-      tabMap.set(label, { key: label, label })
+      const deviceId = String(host.id ?? "").trim()
+      if (!label || !deviceId || tabMap.has(deviceId)) return
+      tabMap.set(deviceId, { key: deviceId, label, deviceId })
     })
 
   return Array.from(tabMap.values())

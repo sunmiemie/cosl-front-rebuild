@@ -9,11 +9,24 @@ import {
 } from "../src/views/dashboard/work-order-schedule/schedule-status"
 import {
   applySchedulePayloadToTargetOrder,
+  buildSecondaryDeviceTabs,
   filteredOrdersByScheduleState,
   normalizeScheduleListState
 } from "../src/views/dashboard/work-order-schedule/schedule-helpers"
 
 describe("work order schedule status", () => {
+  it("uses psi id as the device tab key", () => {
+    expect(
+      buildSecondaryDeviceTabs("高温高压井", [
+        {
+          id: 14,
+          deviceName: "高温高压井-2",
+          model: "高温高压井"
+        }
+      ])
+    ).toEqual([{ key: "14", label: "高温高压井-2", deviceId: "14" }])
+  })
+
   it("shows running lifecycle status before scheduled status", () => {
     const order = {
       statusText: "测试中",
@@ -110,24 +123,21 @@ describe("work order schedule status", () => {
   })
 
   it("marks an order-level card completed only when all instrument rows are completed", () => {
-    expect(
-      getCompletedScheduleInstrumentGroupStatusText([
-        { is_completed: true },
-        { instrument_status: 2 }
-      ])
-    ).toBe("已完成")
-    expect(
-      getCompletedScheduleInstrumentGroupStatusText([
-        { is_completed: true },
-        { instrument_status: 0 }
-      ])
-    ).toBe("")
+    expect(getCompletedScheduleInstrumentGroupStatusText([{ is_completed: true }, { instrument_status: 2 }])).toBe(
+      "已完成"
+    )
+    expect(getCompletedScheduleInstrumentGroupStatusText([{ is_completed: true }, { instrument_status: 0 }])).toBe("")
     expect(getCompletedScheduleInstrumentGroupStatusText([])).toBe("")
   })
 
   it("keeps per-segment schedule device when applying saved schedule payload", () => {
     const order: {
-      scheduleSegments: Array<{ scheduledStartAt?: string; scheduledEndAt?: string; useDevice?: string }>
+      scheduleSegments: Array<{
+        scheduledStartAt?: string
+        scheduledEndAt?: string
+        equipmentId?: string
+        useDevice?: string
+      }>
     } = {
       scheduleSegments: []
     }
@@ -139,16 +149,19 @@ describe("work order schedule status", () => {
         {
           scheduled_start_at: "2026-07-07 08:00:00",
           scheduled_end_at: "2026-07-07 10:00:00",
+          equipment_id: "14",
           use_device: "高温高压井-2"
         },
         {
           scheduled_start_at: "2026-07-08 10:00:00",
           scheduled_end_at: "2026-07-08 13:00:00",
+          equipmentId: "18",
           useDevice: "高温高压井-1"
         }
       ]
     })
 
     expect(order.scheduleSegments.map((segment) => segment.useDevice)).toEqual(["高温高压井-2", "高温高压井-1"])
+    expect(order.scheduleSegments.map((segment) => segment.equipmentId)).toEqual(["14", "18"])
   })
 })

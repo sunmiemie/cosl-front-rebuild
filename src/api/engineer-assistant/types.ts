@@ -111,10 +111,10 @@ export type PushEngineerAssistantProcessesBody = {
 
 export type PushEngineerAssistantEquipmentBody = {
   testEquipmentDtoList: Array<{
-    testTypeId: string
+    testTypeId?: string
     equipmentId: string
     equipmentName: string
-    sn?: string
+    sn: string
   }>
 }
 

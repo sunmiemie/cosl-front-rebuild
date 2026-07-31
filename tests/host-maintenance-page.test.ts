@@ -49,4 +49,13 @@ describe("host management usage and maintenance page", () => {
     expect(content).not.toContain("instrument_id")
     expect(content).not.toContain("model_number")
   })
+
+  it("pushes only selected psi test benches with their required SN", () => {
+    expect(content).toContain("pushEngineerAssistantEquipmentApi")
+    expect(content).toContain("equipmentId: String(row.id)")
+    expect(content).toContain("equipmentName: row.deviceName")
+    expect(content).toContain("sn: row.serialNumber")
+    expect(content).not.toContain("EngineerAssistantPushDialog")
+    expect(content).not.toContain("assistantTestType.typeId")
+  })
 })

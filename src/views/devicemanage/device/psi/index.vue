@@ -22,6 +22,7 @@ import {
   updateHostUsageRecordApi
 } from "@/api/host-maintenance"
 import { getPsiModelDataApi } from "@/api/psimodel"
+import { pushEngineerAssistantEquipmentApi } from "@/api/engineer-assistant"
 import type {
   DeviceInstanceData,
   DeviceInstancePayload,
@@ -61,6 +62,8 @@ const detailVisible = ref(false)
 const detailLoading = ref(false)
 const hostModelLoading = ref(false)
 const currentUpdateId = ref<string | number>()
+const selectedRows = ref<DeviceInstanceRow[]>([])
+const assistantPushLoading = ref(false)
 const formRef = ref<FormInstance | null>(null)
 const { paginationData, handleCurrentChange, handleSizeChange } = usePagination()
 
@@ -221,6 +224,36 @@ const normalizeListData = (data: any) => {
     list: list.map(normalizeRow),
     total,
     stats: summary
+  }
+}
+
+const handleSelectionChange = (rows: DeviceInstanceRow[]) => {
+  selectedRows.value = rows
+}
+
+const pushSelectedEquipment = async () => {
+  if (!selectedRows.value.length) return
+  try {
+    await ElMessageBox.confirm(`确认向小助手推送已选择的 ${selectedRows.value.length} 个测试台？`, "推送确认", {
+      confirmButtonText: "确认推送",
+      cancelButtonText: "取消",
+      type: "warning"
+    })
+  } catch {
+    return
+  }
+  assistantPushLoading.value = true
+  try {
+    await pushEngineerAssistantEquipmentApi({
+      testEquipmentDtoList: selectedRows.value.map((row) => ({
+        equipmentId: String(row.id),
+        equipmentName: row.deviceName,
+        sn: row.serialNumber
+      }))
+    })
+    ElMessage.success(`已向小助手推送 ${selectedRows.value.length} 个测试台`)
+  } finally {
+    assistantPushLoading.value = false
   }
 }
 
@@ -698,9 +731,26 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
     <el-card v-loading="loading" shadow="never" class="table-card">
       <div class="table-header">
         <div class="table-title">主机管理</div>
-        <div class="table-total">共 {{ paginationData.total }} 条</div>
+        <div class="table-header-actions">
+          <el-button
+            type="primary"
+            :disabled="selectedRows.length === 0"
+            :loading="assistantPushLoading"
+            @click="pushSelectedEquipment"
+          >
+            推送小助手
+          </el-button>
+          <div class="table-total">共 {{ paginationData.total }} 条</div>
+        </div>
       </div>
-      <el-table :data="tableData" row-key="id" class="device-table" height="calc(100vh - 390px)">
+      <el-table
+        :data="tableData"
+        row-key="id"
+        class="device-table"
+        height="calc(100vh - 390px)"
+        @selection-change="handleSelectionChange"
+      >
+        <el-table-column type="selection" width="48" />
         <el-table-column prop="serialNumber" label="SN号" min-width="132" show-overflow-tooltip />
         <el-table-column prop="deviceName" label="设备名称" min-width="130" show-overflow-tooltip />
         <el-table-column prop="model" label="型号" min-width="118" show-overflow-tooltip />
@@ -1222,6 +1272,12 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
   justify-content: space-between;
   padding: 15px 18px;
   border-bottom: 1px solid var(--border-color);
+}
+
+.table-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .table-title {

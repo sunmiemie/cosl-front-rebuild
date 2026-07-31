@@ -314,7 +314,7 @@
       </el-tabs>
     </el-card>
 
-    <el-dialog v-model="scheduleDialogVisible" title="工单排程" width="760px" :close-on-click-modal="false">
+    <el-dialog v-model="scheduleDialogVisible" title="工单排程" width="920px" :close-on-click-modal="false">
       <el-form :model="scheduleForm" label-width="96px">
         <el-form-item label="工单号">
           <el-input :model-value="selectedScheduleOrder?.taskNumber" disabled />
@@ -325,6 +325,21 @@
         <el-form-item label="排程时间段">
           <div class="schedule-segment-list">
             <div v-for="(segment, index) in scheduleForm.segments" :key="segment.id" class="schedule-segment-row">
+              <el-select
+                v-if="secondaryDeviceTabs.length"
+                v-model="segment.equipmentId"
+                filterable
+                placeholder="请选择测试台"
+                class="schedule-device-select"
+                @change="handleScheduleSegmentDeviceChange(segment)"
+              >
+                <el-option
+                  v-for="deviceTab in secondaryDeviceTabs"
+                  :key="deviceTab.key"
+                  :label="deviceTab.label"
+                  :value="deviceTab.key"
+                />
+              </el-select>
               <el-date-picker v-model="segment.date" type="date" value-format="YYYY-MM-DD" />
               <el-time-picker v-model="segment.startTime" format="HH:mm" value-format="HH:mm" />
               <span class="segment-separator">至</span>
@@ -438,6 +453,8 @@ type EquipmentKey =
 type ScheduleSegment = {
   scheduledStartAt?: string
   scheduledEndAt?: string
+  equipmentId?: string
+  equipment_id?: string
   useDevice?: string
   use_device?: string
   sequenceOnly?: boolean
@@ -449,6 +466,8 @@ type ScheduleFormSegment = {
   date: string
   startTime: string
   endTime: string
+  equipmentId: string
+  useDevice: string
 }
 
 type DetailScheduleSegment = ScheduleFormSegment & {
@@ -908,12 +927,21 @@ function toBackendDateTimeFromMinutes(dateStr: string, minutes: number) {
   return `${dateStr} ${formatMinutes(minutes)}:00`
 }
 
-function createScheduleSegment(date = pickedDate.value, startTime = "09:00", endTime = "11:00"): ScheduleFormSegment {
+function createScheduleSegment(
+  date = pickedDate.value,
+  startTime = "09:00",
+  endTime = "11:00",
+  equipmentId = "",
+  useDevice = ""
+): ScheduleFormSegment {
+  const currentTarget = getCurrentScheduleTarget()
   return {
     id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
     date,
     startTime,
-    endTime
+    endTime,
+    equipmentId: equipmentId || currentTarget?.key || "",
+    useDevice: useDevice || currentTarget?.label || ""
   }
 }
 
@@ -933,7 +961,13 @@ function getExistingScheduleFormSegments(order: ScheduleOrder): ScheduleFormSegm
   return segments.map((segment) => {
     const start = parseDateTime(segment.scheduledStartAt) || new Date()
     const end = parseDateTime(segment.scheduledEndAt) || new Date(start.getTime() + 2 * 60 * 60 * 1000)
-    return createScheduleSegment(formatDate(start), formatHourMinute(start), formatHourMinute(end))
+    return createScheduleSegment(
+      formatDate(start),
+      formatHourMinute(start),
+      formatHourMinute(end),
+      getSegmentScheduleDeviceId(segment),
+      getSegmentScheduleDevice(order, segment)
+    )
   })
 }
 
@@ -962,7 +996,15 @@ function getOrderScheduleDeviceNames(order: ScheduleOrder) {
 
 function addScheduleSegment() {
   const last = scheduleForm.segments[scheduleForm.segments.length - 1]
-  scheduleForm.segments.push(createScheduleSegment(last?.date || pickedDate.value, "09:00", "11:00"))
+  scheduleForm.segments.push(
+    createScheduleSegment(
+      last?.date || pickedDate.value,
+      "09:00",
+      "11:00",
+      last?.equipmentId || "",
+      last?.useDevice || ""
+    )
+  )
 }
 
 function removeScheduleSegment(index: number) {
@@ -970,8 +1012,18 @@ function removeScheduleSegment(index: number) {
   if (!scheduleForm.segments.length) scheduleForm.segments.push(createScheduleSegment())
 }
 
+function handleScheduleSegmentDeviceChange(segment: ScheduleFormSegment) {
+  segment.useDevice = secondaryDeviceTabs.value.find((item) => item.key === segment.equipmentId)?.label || ""
+}
+
 function validateScheduleSegments(segments: ScheduleFormSegment[]) {
-  const normalized: Array<{ start: Date; end: Date; key: string }> = []
+  const normalized: Array<{
+    start: Date
+    end: Date
+    key: string
+    equipmentId: string
+    useDevice: string
+  }> = []
   const seen = new Set<string>()
   for (const segment of segments) {
     if (!segment.date || !segment.startTime || !segment.endTime) {
@@ -984,13 +1036,19 @@ function validateScheduleSegments(segments: ScheduleFormSegment[]) {
       ElMessage.warning("结束时间必须晚于开始时间")
       return null
     }
+    if (secondaryDeviceTabs.value.length && !segment.equipmentId) {
+      ElMessage.warning("请选择执行该排程的测试台")
+      return null
+    }
+    const deviceTab = secondaryDeviceTabs.value.find((item) => item.key === segment.equipmentId)
+    const useDevice = deviceTab?.label || segment.useDevice || ""
     const key = `${segment.date}-${segment.startTime}-${segment.endTime}`
     if (seen.has(key)) {
       ElMessage.warning("存在重复的排程时间段")
       return null
     }
     seen.add(key)
-    normalized.push({ start, end, key })
+    normalized.push({ start, end, key, equipmentId: segment.equipmentId, useDevice })
   }
   return normalized.sort((a, b) => a.start.getTime() - b.start.getTime())
 }
@@ -1003,12 +1061,12 @@ function buildSchedulePayload(): (WorkOrderSchedulePayload & { schedule_segments
 }
 
 function buildSchedulePayloadFromSegments(
-  normalized: Array<{ start: Date; end: Date }>
+  normalized: Array<{ start: Date; end: Date; equipmentId?: string; useDevice?: string }>
 ): WorkOrderSchedulePayload & { schedule_segments: WorkOrderScheduleSegment[] } {
-  const useDevice = getCurrentScheduleTargetDevice()
-  const scheduleSegments = normalized.map(({ start, end }) => ({
+  const scheduleSegments = normalized.map(({ start, end, equipmentId, useDevice }) => ({
     scheduled_start_at: toBackendDateTime(start),
     scheduled_end_at: toBackendDateTime(end),
+    ...(equipmentId ? { equipment_id: equipmentId, equipmentId } : {}),
     ...(useDevice ? { use_device: useDevice, useDevice } : {})
   }))
   const earliestStart = normalized[0].start
@@ -1017,11 +1075,14 @@ function buildSchedulePayloadFromSegments(
     normalized[0].end
   )
 
+  const firstEquipmentId = scheduleSegments[0]?.equipment_id || ""
+  const firstUseDevice = scheduleSegments[0]?.use_device || ""
   return {
     scheduled_start_at: toBackendDateTime(earliestStart),
     scheduled_end_at: toBackendDateTime(latestEnd),
     schedule_segments: scheduleSegments,
-    ...(useDevice ? { use_device: useDevice, useDevice } : {})
+    ...(firstEquipmentId ? { equipment_id: firstEquipmentId, equipmentId: firstEquipmentId } : {}),
+    ...(firstUseDevice ? { use_device: firstUseDevice, useDevice: firstUseDevice } : {})
   }
 }
 
@@ -1048,50 +1109,54 @@ function getString(...values: unknown[]) {
   }) as string | undefined
 }
 
-function getCurrentScheduleTargetDevice() {
-  if (isCircuitBoardModule.value || !secondaryDeviceTabs.value.length) return ""
-  return activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""
+function getCurrentScheduleTarget() {
+  if (isCircuitBoardModule.value || !secondaryDeviceTabs.value.length) return undefined
+  const targetId = activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""
+  return secondaryDeviceTabs.value.find((item) => item.key === targetId)
 }
 
-function getSegmentScheduleDevice(order: ScheduleOrder, segment?: ScheduleSegment) {
-  return (
-    getString(
-      segment?.useDevice,
-      order.useDevice,
-      order.hostDeviceName,
-      order.raw?.order?.use_device,
-      order.raw?.order?.device_name,
-      order.raw?.order?.deviceName,
-      order.raw?.device?.use_device,
-      order.raw?.device?.device_name,
-      order.raw?.device?.deviceName,
-      order.raw?.use_device,
-      order.raw?.device_name,
-      order.raw?.deviceName
-    ) || ""
-  )
+function getSegmentScheduleDeviceId(segment?: ScheduleSegment) {
+  const directId = getString(segment?.equipmentId, segment?.equipment_id)
+  if (directId) return directId
+  const deviceName = getString(segment?.useDevice, segment?.use_device)
+  return secondaryDeviceTabs.value.find((item) => item.label === deviceName)?.key || ""
+}
+
+function getSegmentScheduleDevice(_order: ScheduleOrder, segment?: ScheduleSegment) {
+  const directName = getString(segment?.useDevice, segment?.use_device)
+  if (directName) return directName
+  const equipmentId = getSegmentScheduleDeviceId(segment)
+  return secondaryDeviceTabs.value.find((item) => item.key === equipmentId)?.label || ""
 }
 
 function isScheduleSegmentVisibleInActiveDevice(order: ScheduleOrder, segment?: ScheduleSegment) {
   const activeTab = activeDeviceTab.value.trim()
   if (isCircuitBoardModule.value || !secondaryDeviceTabs.value.length || !activeTab) return true
+  const segmentDeviceId = getSegmentScheduleDeviceId(segment)
+  if (segmentDeviceId) return segmentDeviceId === activeTab
   const segmentDevice = getSegmentScheduleDevice(order, segment)
-  return segmentDevice.trim().toLowerCase() === activeTab.toLowerCase()
+  if (!segmentDevice) return true
+  const activeDeviceName = secondaryDeviceTabs.value.find((item) => item.key === activeTab)?.label || ""
+  return segmentDevice.trim().toLowerCase() === activeDeviceName.toLowerCase()
 }
 
 function withScheduleTargetDevice<
   T extends WorkOrderSchedulePayload & { schedule_segments: WorkOrderScheduleSegment[] }
 >(payload: T): T {
-  const useDevice = getCurrentScheduleTargetDevice()
-  if (!useDevice) return payload
+  const target = getCurrentScheduleTarget()
+  if (!target) return payload
   return {
     ...payload,
-    use_device: useDevice,
-    useDevice,
+    equipment_id: target.key,
+    equipmentId: target.key,
+    use_device: target.label,
+    useDevice: target.label,
     schedule_segments: payload.schedule_segments.map((segment) => ({
       ...segment,
-      use_device: segment.use_device || useDevice,
-      useDevice: segment.useDevice || useDevice
+      equipment_id: segment.equipment_id || target.key,
+      equipmentId: segment.equipmentId || target.key,
+      use_device: segment.use_device || target.label,
+      useDevice: segment.useDevice || target.label
     }))
   }
 }
@@ -1169,7 +1234,12 @@ function normalizeSnakeSegments(value: any): ScheduleSegment[] {
           const scheduledStartAt = item?.scheduled_start_at || ""
           const scheduledEndAt = item?.scheduled_end_at || ""
           if (!scheduledStartAt || !scheduledEndAt) return null
-          return { scheduledStartAt, scheduledEndAt, useDevice: getString(item?.use_device, item?.useDevice) || "" }
+          return {
+            scheduledStartAt,
+            scheduledEndAt,
+            equipmentId: getString(item?.equipment_id, item?.equipmentId, item?.psi_id, item?.psiId) || "",
+            useDevice: getString(item?.use_device, item?.useDevice) || ""
+          }
         })
         .filter((item): item is ScheduleSegment => item !== null)
     : []
@@ -1182,7 +1252,12 @@ function normalizeCamelSegments(value: any): ScheduleSegment[] {
           const scheduledStartAt = item?.scheduledStartAt || item?.scheduled_start_at || ""
           const scheduledEndAt = item?.scheduledEndAt || item?.scheduled_end_at || ""
           if (!scheduledStartAt || !scheduledEndAt) return null
-          return { scheduledStartAt, scheduledEndAt, useDevice: getString(item?.useDevice, item?.use_device) || "" }
+          return {
+            scheduledStartAt,
+            scheduledEndAt,
+            equipmentId: getString(item?.equipmentId, item?.equipment_id, item?.psiId, item?.psi_id) || "",
+            useDevice: getString(item?.useDevice, item?.use_device) || ""
+          }
         })
         .filter((item): item is ScheduleSegment => item !== null)
     : []
@@ -1781,10 +1856,15 @@ function buildResizedCalendarEventPayload(
     )
   }
 
-  const useDevice = getCurrentScheduleTargetDevice()
+  const currentSegment = state.originalSegments[state.segmentIndex]
+  const order = activeOrders.value.find((item) => item.id === state.orderId)
+  const target = getCurrentScheduleTarget()
+  const equipmentId = getSegmentScheduleDeviceId(currentSegment) || target?.key || ""
+  const useDevice = (order ? getSegmentScheduleDevice(order, currentSegment) : "") || target?.label || ""
   return replaceSchedulePayloadSegment(state.originalSegments, state.segmentIndex, {
     scheduled_start_at: toBackendDateTimeFromMinutes(state.dateStr, startMinutes),
     scheduled_end_at: toBackendDateTimeFromMinutes(state.dateStr, endMinutes),
+    ...(equipmentId ? { equipment_id: equipmentId, equipmentId } : {}),
     ...(useDevice ? { use_device: useDevice, useDevice } : {})
   })
 }
@@ -2185,7 +2265,7 @@ function handleCircuitBoardDragEnd() {
   circuitBoardDropIndex.value = null
 }
 
-function updateCircuitBoardOrderSequence(nextOrders: ScheduleOrder[], useDevice = "") {
+function updateCircuitBoardOrderSequence(nextOrders: ScheduleOrder[], equipmentId = "", useDevice = "") {
   nextOrders.forEach((order, index) => {
     order.isSequenceScheduled = true
     order.sequenceOrder = index + 1
@@ -2202,6 +2282,7 @@ function updateCircuitBoardOrderSequence(nextOrders: ScheduleOrder[], useDevice 
       {
         sequenceOnly: true,
         sequenceOrder: index + 1,
+        ...(equipmentId ? { equipment_id: equipmentId, equipmentId } : {}),
         ...(useDevice ? { use_device: useDevice, useDevice } : {})
       }
     ]
@@ -2242,16 +2323,24 @@ function restoreCircuitBoardOrders(snapshot: Map<string, CircuitBoardOrderSnapsh
 async function persistCircuitBoardPriorityOrders(nextOrders: ScheduleOrder[]) {
   const snapshot = snapshotCircuitBoardOrders()
   circuitBoardSequenceSaving.value = true
-  const useDevice = activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""
+  const equipmentId = activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""
+  const targetDevice = secondaryDeviceTabs.value.find((item) => item.key === equipmentId)
+  if (!targetDevice) {
+    circuitBoardSequenceSaving.value = false
+    throw new Error("missing circuit-board test bench")
+  }
+  const useDevice = targetDevice.label
   try {
     const orderIds = nextOrders.map((order) => {
       const targetId = requireScheduleTargetId(order)
       if (targetId === null) throw new Error("missing target id")
       return targetId
     })
-    updateCircuitBoardOrderSequence(nextOrders, useDevice)
+    updateCircuitBoardOrderSequence(nextOrders, equipmentId, useDevice)
     await saveCircuitBoardSequenceBatch({
       order_ids: orderIds,
+      equipment_id: equipmentId,
+      equipmentId,
       ...(useDevice ? { use_device: useDevice, useDevice } : {})
     })
   } catch (error) {
@@ -2912,12 +3001,23 @@ onUnmounted(() => {
 
 .schedule-segment-row {
   display: grid;
-  grid-template-columns: minmax(130px, 1fr) minmax(110px, 1fr) 24px minmax(110px, 1fr) auto;
+  grid-template-columns:
+    minmax(150px, 1.2fr)
+    minmax(130px, 1fr)
+    minmax(110px, 1fr)
+    24px
+    minmax(110px, 1fr)
+    auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
 
   :deep(.el-date-editor.el-input) {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .schedule-device-select {
     width: 100%;
     min-width: 0;
   }
