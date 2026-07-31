@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { CalibrationWorkOrder } from "../types"
-import { getToolDisplayName } from "../constants/tool-params"
+import { getStatusLabel, getStatusTagType } from "../constants/options"
 
 defineProps<{
   order: CalibrationWorkOrder
@@ -9,15 +9,12 @@ defineProps<{
 const emit = defineEmits<{
   click: [order: CalibrationWorkOrder]
 }>()
-
-const statusLabel = (status: CalibrationWorkOrder["status"]) => (status === "completed" ? "已完成" : "待处理")
-const statusType = (status: CalibrationWorkOrder["status"]) => (status === "completed" ? "success" : "warning")
 </script>
 
 <template>
   <article class="work-order-card" @click="emit('click', order)">
-    <div class="work-order-card__id">{{ order.id }}</div>
-    <div class="work-order-card__title">{{ getToolDisplayName(order.toolType) }} 伽马刻度</div>
+    <div class="work-order-card__id">{{ order.taskNumber }}</div>
+    <div class="work-order-card__title">{{ order.modelName }} 伽马刻度</div>
 
     <div class="work-order-card__meta">
       <div class="work-order-card__meta-item">
@@ -48,7 +45,9 @@ const statusType = (status: CalibrationWorkOrder["status"]) => (status === "comp
 
     <div class="work-order-card__footer">
       <span class="work-order-card__date">{{ order.planDate }}</span>
-      <el-tag :type="statusType(order.status)" size="small">{{ statusLabel(order.status) }}</el-tag>
+      <el-tag :type="getStatusTagType(order.status)" size="small">
+        {{ getStatusLabel(order.status, order.statusText) }}
+      </el-tag>
     </div>
   </article>
 </template>

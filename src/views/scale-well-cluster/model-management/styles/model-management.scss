@@ -1,0 +1,52 @@
+.model-management-page {
+  min-height: calc(100vh - var(--v3-header-height));
+}
+
+.model-management-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.model-management-toolbar__actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.model-management-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.model-management-panel {
+  border-radius: 8px;
+
+  :deep(.el-card__body) {
+    padding: 16px 18px 18px;
+  }
+}
+
+.model-management-table {
+  width: 100%;
+
+  :deep(.el-table__cell) {
+    font-size: 13px;
+  }
+
+  :deep(.el-table__header-wrapper table),
+  :deep(.el-table__body-wrapper table) {
+    width: 100% !important;
+    table-layout: fixed;
+  }
+}
+
+.model-management-form {
+  :deep(.el-input-number) {
+    width: 100%;
+  }
+}

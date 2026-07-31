@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { onMounted, ref } from "vue"
 import { Plus, Refresh, Search } from "@element-plus/icons-vue"
+import { getCalibrationModelOptionsApi } from "@/api/calibration-well/model"
+import type { ModelOptionItem } from "@/api/calibration-well/types"
 import type { WorkOrderFilter } from "../types"
 import { STATUS_OPTIONS } from "../constants/options"
-import { TOOL_TYPE_OPTIONS } from "../constants/tool-params"
 
 const filter = defineModel<WorkOrderFilter>("filter", { required: true })
 
@@ -15,6 +17,13 @@ const emit = defineEmits<{
   reset: []
   create: []
 }>()
+
+const modelOptions = ref<ModelOptionItem[]>([])
+
+onMounted(async () => {
+  const res = await getCalibrationModelOptionsApi()
+  modelOptions.value = res.data?.list ?? []
+})
 </script>
 
 <template>
@@ -30,8 +39,8 @@ const emit = defineEmits<{
         />
       </el-form-item>
       <el-form-item label="仪器型号">
-        <el-select v-model="filter.toolType" placeholder="全部" clearable style="width: 150px">
-          <el-option v-for="item in TOOL_TYPE_OPTIONS" :key="item.value" :label="item.label" :value="item.value" />
+        <el-select v-model="filter.modelId" placeholder="全部" clearable filterable style="width: 180px">
+          <el-option v-for="item in modelOptions" :key="item.id" :label="item.displayName" :value="item.id" />
         </el-select>
       </el-form-item>
       <el-form-item label="状态">

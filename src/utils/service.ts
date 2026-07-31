@@ -83,9 +83,9 @@ function createService() {
           // Token 过期时
           return logout()
         default:
-          // 不是正确的 code
-          ElMessage.error(apiData.message || "Error")
-          return Promise.reject(new Error("Error"))
+          // 不是正确的 code（后端常用 msg 字段）
+          ElMessage.error(apiData.message || apiData.msg || "Error")
+          return Promise.reject(new Error(apiData.message || apiData.msg || "Error"))
       }
     },
     (error) => {

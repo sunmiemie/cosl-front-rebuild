@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { onMounted, ref } from "vue"
 import { ElMessageBox } from "element-plus"
 import WorkOrderHeader from "./components/WorkOrderHeader.vue"
 import WorkOrderToolbar from "./components/WorkOrderToolbar.vue"
@@ -8,6 +8,7 @@ import WorkOrderCardGrid from "./components/WorkOrderCardGrid.vue"
 import WorkOrderFormDialog from "./components/WorkOrderFormDialog.vue"
 import WorkOrderDetailDialog from "./components/WorkOrderDetailDialog.vue"
 import { createEmptyForm, orderToForm, useWorkOrder } from "./composables/use-work-order"
+import { getStatusActionLabel } from "./constants/options"
 import type { CalibrationWorkOrder, WorkOrderFormModel } from "./types"
 
 const {
@@ -15,32 +16,51 @@ const {
   filter,
   filteredOrders,
   pendingCount,
+  total,
+  pagination,
   resetFilter,
+  fetchOrders,
   createOrder,
   updateOrder,
-  removeOrder
+  removeOrder,
+  publishOrder,
+  changeStatus
 } = useWorkOrder()
 
 const viewMode = ref<"table" | "card">("table")
 
 const formVisible = ref(false)
 const formMode = ref<"create" | "edit">("create")
-const editingId = ref("")
+const editingId = ref(0)
 const formInitial = ref<WorkOrderFormModel>(createEmptyForm())
 
 const detailVisible = ref(false)
 const currentOrder = ref<CalibrationWorkOrder | null>(null)
 
 const handleSearch = () => {
-  loading.value = true
-  window.setTimeout(() => {
-    loading.value = false
-  }, 200)
+  pagination.page = 1
+  void fetchOrders()
+}
+
+const handleReset = () => {
+  resetFilter()
+  void fetchOrders()
+}
+
+const handlePageChange = (page: number) => {
+  pagination.page = page
+  void fetchOrders()
+}
+
+const handleSizeChange = (size: number) => {
+  pagination.pageSize = size
+  pagination.page = 1
+  void fetchOrders()
 }
 
 const openCreate = () => {
   formMode.value = "create"
-  editingId.value = ""
+  editingId.value = 0
   formInitial.value = createEmptyForm()
   formVisible.value = true
 }
@@ -57,26 +77,57 @@ const openDetail = (order: CalibrationWorkOrder) => {
   detailVisible.value = true
 }
 
-const handleFormSubmit = (form: WorkOrderFormModel) => {
+const handleFormSubmit = async (form: WorkOrderFormModel) => {
   if (formMode.value === "create") {
-    createOrder(form)
+    await createOrder(form)
     return
   }
-  updateOrder(editingId.value, form)
+  await updateOrder(editingId.value, form)
 }
 
 const handleDelete = async (order: CalibrationWorkOrder) => {
   try {
-    await ElMessageBox.confirm(`确认删除工单 ${order.id} 吗？`, "删除确认", {
+    await ElMessageBox.confirm(`确认删除工单 ${order.taskNumber} 吗？`, "删除确认", {
       type: "warning",
       confirmButtonText: "删除",
       cancelButtonText: "取消"
     })
-    removeOrder(order.id)
+    await removeOrder(order.id, order.taskNumber)
   } catch {
     // 用户取消
   }
 }
+
+const handlePublish = async (order: CalibrationWorkOrder) => {
+  try {
+    await ElMessageBox.confirm(`确认发布工单 ${order.taskNumber} 吗？`, "发布确认", {
+      type: "warning"
+    })
+    await publishOrder(order.id)
+  } catch {
+    // 用户取消
+  }
+}
+
+const handleChangeStatus = async (order: CalibrationWorkOrder, status: number) => {
+  try {
+    await ElMessageBox.confirm(
+      `确认将工单 ${order.taskNumber} ${getStatusActionLabel(order.status, status)} 吗？`,
+      "状态变更",
+      { type: "warning" }
+    )
+    await changeStatus(order.id, status)
+    if (currentOrder.value?.id === order.id) {
+      currentOrder.value = filteredOrders.value.find((item) => item.id === order.id) ?? currentOrder.value
+    }
+  } catch {
+    // 用户取消
+  }
+}
+
+onMounted(() => {
+  void fetchOrders()
+})
 </script>
 
 <template>
@@ -88,7 +139,7 @@ const handleDelete = async (order: CalibrationWorkOrder) => {
         v-model:filter="filter"
         :loading="loading"
         @search="handleSearch"
-        @reset="resetFilter"
+        @reset="handleReset"
         @create="openCreate"
       />
 
@@ -106,8 +157,22 @@ const handleDelete = async (order: CalibrationWorkOrder) => {
         @detail="openDetail"
         @edit="openEdit"
         @delete="handleDelete"
+        @publish="handlePublish"
+        @change-status="handleChangeStatus"
       />
       <WorkOrderCardGrid v-else :orders="filteredOrders" @select="openDetail" />
+
+      <div class="pagination-wrapper">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :page-sizes="[10, 20, 50]"
+          :total="total"
+          layout="total, sizes, prev, pager, next"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
     </el-card>
 
     <WorkOrderFormDialog
@@ -117,10 +182,21 @@ const handleDelete = async (order: CalibrationWorkOrder) => {
       @submit="handleFormSubmit"
     />
 
-    <WorkOrderDetailDialog v-model:visible="detailVisible" :order="currentOrder" />
+    <WorkOrderDetailDialog
+      v-model:visible="detailVisible"
+      :order="currentOrder"
+      @publish="handlePublish"
+      @change-status="handleChangeStatus"
+    />
   </div>
 </template>
 
 <style scoped lang="scss">
 @import "./styles/work-order.scss";
+
+.pagination-wrapper {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
 </style>

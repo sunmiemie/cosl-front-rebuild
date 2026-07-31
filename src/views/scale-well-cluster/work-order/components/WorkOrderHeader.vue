@@ -5,7 +5,7 @@
       <h1>工单管理</h1>
       <p class="board-header__desc">创建、分配、追踪伽马刻度工单</p>
     </div>
-    <el-tag type="warning" effect="plain">待处理 {{ pendingCount }} 件</el-tag>
+    <el-tag type="warning" effect="plain">待领取 {{ pendingCount }} 件</el-tag>
   </header>
 </template>
 

@@ -15,6 +15,7 @@ export const PermissionCode = {
   ReportReviewVibrationTable: "REPORT_REVIEW_VIBRATION_TABLE",
   ReportReviewHighTempPressure: "REPORT_REVIEW_HIGH_TEMP_PRESSURE",
   ReportReviewSimulatedWell: "REPORT_REVIEW_SIMULATED_WELL",
+  ReportReviewCalibration: "REPORT_REVIEW_CALIBRATION",
   UserManage: "USER_MANAGE",
   RoleManage: "ROLE_MANAGE",
   SignatureManage: "SIGNATURE_MANAGE"
@@ -37,5 +38,6 @@ export const ReportReviewPermissionCodes = [
   PermissionCode.ReportReviewHighTempBox,
   PermissionCode.ReportReviewVibrationTable,
   PermissionCode.ReportReviewHighTempPressure,
-  PermissionCode.ReportReviewSimulatedWell
+  PermissionCode.ReportReviewSimulatedWell,
+  PermissionCode.ReportReviewCalibration
 ]

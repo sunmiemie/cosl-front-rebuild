@@ -8,6 +8,7 @@ export type WorkOrderScheduleEquipment =
   | "simulated-well"
   | "halt-hass"
   | "circuit-board-module"
+  | "calibration-well"
 
 export type ScheduleTargetKind = "order" | "instrument" | "device"
 export type EndpointScheduleEquipment = WorkOrderScheduleEquipment
@@ -56,6 +57,10 @@ const scheduleEndpointMap: Record<EndpointScheduleEquipment, ScheduleEndpointCon
   "circuit-board-module": {
     targetKind: "order",
     baseUrl: "test/circuit-board-module/order/schedule/"
+  },
+  "calibration-well": {
+    targetKind: "order",
+    baseUrl: "test/calibration-well/order/schedule/"
   }
 }
 

@@ -14,6 +14,7 @@ const {
   filteredReports,
   pendingCount,
   resetFilter,
+  fetchReports,
   approveReport,
   rejectReport,
   getStatusLabel,
@@ -24,10 +25,7 @@ const drawerVisible = ref(false)
 const currentReport = ref<CalibrationReport | null>(null)
 
 const handleSearch = () => {
-  loading.value = true
-  window.setTimeout(() => {
-    loading.value = false
-  }, 200)
+  fetchReports()
 }
 
 const openReport = (report: CalibrationReport) => {
@@ -42,8 +40,8 @@ const handleApprove = async (report: CalibrationReport) => {
       confirmButtonText: "通过",
       cancelButtonText: "取消"
     })
-    approveReport(report.id)
-    drawerVisible.value = false
+    const ok = await approveReport(report.id)
+    if (ok) drawerVisible.value = false
   } catch {
     // 用户取消
   }
@@ -51,13 +49,15 @@ const handleApprove = async (report: CalibrationReport) => {
 
 const handleReject = async (report: CalibrationReport) => {
   try {
-    await ElMessageBox.confirm(`确认驳回报告 ${report.id} 吗？`, "驳回确认", {
+    const { value } = await ElMessageBox.prompt("请填写驳回原因", "驳回确认", {
       type: "warning",
       confirmButtonText: "驳回",
-      cancelButtonText: "取消"
+      cancelButtonText: "取消",
+      inputPlaceholder: "驳回原因",
+      inputValidator: (val) => !!(val && val.trim()) || "请填写驳回原因"
     })
-    rejectReport(report.id)
-    drawerVisible.value = false
+    const ok = await rejectReport(report.id, value.trim())
+    if (ok) drawerVisible.value = false
   } catch {
     // 用户取消
   }

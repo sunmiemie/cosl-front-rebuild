@@ -349,13 +349,24 @@ export const constantRoutes: RouteRecordRaw[] = [
         }
       },
       {
+        path: "model-management",
+        component: () => import("@/views/scale-well-cluster/model-management/index.vue"),
+        name: "ScaleWellModelManagement",
+        meta: {
+          title: "仪器管理",
+          elIcon: "Setting",
+          keepAlive: true
+        }
+      },
+      {
         path: "report-review",
         component: () => import("@/views/scale-well-cluster/report-review/index.vue"),
         name: "ScaleWellReportReview",
         meta: {
           title: "报告审核",
           elIcon: "DocumentChecked",
-          keepAlive: true
+          keepAlive: true,
+          permissions: [PermissionCode.ReportReviewCalibration]
         }
       }
     ]

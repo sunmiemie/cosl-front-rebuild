@@ -1,0 +1,35 @@
+@import "../../model-management/styles/model-management.scss";
+
+.well-management-page {
+  min-height: calc(100vh - var(--v3-header-height));
+}
+
+.well-management-toolbar {
+  @extend .model-management-toolbar;
+}
+
+.well-management-toolbar__actions {
+  @extend .model-management-toolbar__actions;
+}
+
+.well-management-filter {
+  @extend .model-management-filter;
+}
+
+.well-management-panel {
+  @extend .model-management-panel;
+}
+
+.well-management-table {
+  @extend .model-management-table;
+}
+
+.well-management-form {
+  @extend .model-management-form;
+}
+
+.well-management-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}

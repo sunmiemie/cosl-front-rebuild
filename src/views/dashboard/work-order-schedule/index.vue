@@ -171,6 +171,7 @@ import { getHighTemperatureOrderList } from "@/api/high-temperature"
 import { getHighTempPressureOrderList } from "@/api/high-temp-pressure"
 import { getSimulatedWellOrderList } from "@/api/simulated-well"
 import { getHaltHassOrderList } from "@/api/halt-hass"
+import { getCalibrationOrderListApi } from "@/api/calibration-well/order"
 import {
   getCircuitModuleApplicationList,
   type CircuitModuleApplicationRelation
@@ -197,6 +198,7 @@ type EquipmentKey =
   | "high-temp-box"
   | "halt-hass"
   | "circuit-board-module"
+  | "calibration-well"
 
 type ScheduleSegment = {
   scheduledStartAt: string
@@ -248,7 +250,8 @@ const equipmentTabs: Array<{ key: EquipmentKey; label: string; scheduleEquipment
   { key: "water-cycle", label: "水循环工单", scheduleEquipment: "water-cycle" },
   { key: "simulated-well", label: "模拟井工单", scheduleEquipment: "simulated-well" },
   { key: "high-temp-box", label: "高温箱工单", scheduleEquipment: "high-temp-box" },
-  { key: "circuit-board-module", label: "电路板模块", scheduleEquipment: "circuit-board-module" }
+  { key: "circuit-board-module", label: "电路板模块", scheduleEquipment: "circuit-board-module" },
+  { key: "calibration-well", label: "刻度井群工单", scheduleEquipment: "calibration-well" }
 ]
 
 const activeEquipment = ref<EquipmentKey>("high-temp-pressure")
@@ -277,7 +280,8 @@ const orderMap = reactive<Record<EquipmentKey, ScheduleOrder[]>>({
   "water-cycle": [],
   "simulated-well": [],
   "high-temp-box": [],
-  "circuit-board-module": []
+  "circuit-board-module": [],
+  "calibration-well": []
 })
 
 const timeSlots = Array.from({ length: 17 }, (_, index) => `${String(index + 6).padStart(2, "0")}:00`)
@@ -645,6 +649,10 @@ async function fetchOrders(equipment: EquipmentKey) {
     const res = await getCircuitModuleApplicationList()
     return res.data?.list || []
   }
+  if (equipment === "calibration-well") {
+    const res = await getCalibrationOrderListApi({ ...params, status: PENDING_CLAIM_STATUS })
+    return res.data?.list || []
+  }
   const res = await getHighTemperatureOrderList(params)
   return res.data?.list || []
 }
@@ -663,6 +671,7 @@ function normalizeOrders(equipment: EquipmentKey, list: any[]): ScheduleOrder[] 
   if (equipment === "simulated-well") return normalizeSimulatedWellOrders(list)
   if (equipment === "vibration-table") return normalizeVibrationOrders(list)
   if (equipment === "water-cycle") return normalizeWaterCycleOrders(list)
+  if (equipment === "calibration-well") return normalizeCalibrationWellOrders(list)
   return normalizeHighTempBoxOrders(list)
 }
 
@@ -752,6 +761,30 @@ function normalizeHaltHassOrders(list: any[]): ScheduleOrder[] {
     scheduleSegments: normalizeCamelSegments(item.scheduleSegments).length
       ? normalizeCamelSegments(item.scheduleSegments)
       : normalizeSnakeSegments(item.schedule_segments),
+    raw: item
+  }))
+}
+
+function normalizeCalibrationWellOrders(list: any[]): ScheduleOrder[] {
+  return list.map((item) => ({
+    id: `calibration-well-${item.id}`,
+    dbId: item.id,
+    targetId: item.id,
+    equipment: "calibration-well",
+    scheduleEquipment: "calibration-well",
+    taskNumber: getString(item.task_number) || `GR-${item.id}`,
+    title: `${getString(item.instrument_model_name) || "仪器"} 伽马刻度`,
+    applicant: getString(item.tester_name) || "",
+    targetName:
+      getString(item.hi_well_no && item.lo_well_no ? `${item.hi_well_no}/${item.lo_well_no}` : "", item.serial_number) ||
+      "刻度井",
+    durationHours: 4,
+    status: item.status,
+    statusText: item.status_text,
+    isRunningTarget: Number(item.status) === 2,
+    scheduledStartAt: item.scheduled_start_at || null,
+    scheduledEndAt: item.scheduled_end_at || null,
+    scheduleSegments: normalizeSnakeSegments(item.schedule_segments),
     raw: item
   }))
 }

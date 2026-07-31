@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { CalibrationWorkOrder } from "../types"
-import { getToolDisplayName } from "../constants/tool-params"
+import {
+  getAvailableNextStatuses,
+  getStatusActionLabel,
+  getStatusLabel,
+  getStatusTagType
+} from "../constants/options"
 
 const visible = defineModel<boolean>("visible", { default: false })
 
@@ -8,8 +13,10 @@ defineProps<{
   order: CalibrationWorkOrder | null
 }>()
 
-const statusLabel = (status: CalibrationWorkOrder["status"]) => (status === "completed" ? "已完成" : "待处理")
-const statusType = (status: CalibrationWorkOrder["status"]) => (status === "completed" ? "success" : "warning")
+const emit = defineEmits<{
+  publish: [order: CalibrationWorkOrder]
+  changeStatus: [order: CalibrationWorkOrder, status: number]
+}>()
 </script>
 
 <template>
@@ -20,17 +27,19 @@ const statusType = (status: CalibrationWorkOrder["status"]) => (status === "comp
           <div class="detail-header__code">WT3-GR/ZZ-Appendix-A</div>
           <div class="detail-header__title">附录A · 伽马刻度工单</div>
         </div>
-        <el-tag :type="statusType(order.status)">{{ statusLabel(order.status) }}</el-tag>
+        <el-tag :type="getStatusTagType(order.status)">
+          {{ getStatusLabel(order.status, order.statusText) }}
+        </el-tag>
       </div>
 
       <div class="detail-grid">
         <div class="detail-item">
           <div class="detail-item__label">任务单号</div>
-          <div class="detail-item__value">{{ order.id }}</div>
+          <div class="detail-item__value">{{ order.taskNumber }}</div>
         </div>
         <div class="detail-item">
           <div class="detail-item__label">仪器型号</div>
-          <div class="detail-item__value">{{ getToolDisplayName(order.toolType) }}</div>
+          <div class="detail-item__value">{{ order.modelName }}</div>
         </div>
         <div class="detail-item">
           <div class="detail-item__label">仪器 SN</div>
@@ -81,7 +90,26 @@ const statusType = (status: CalibrationWorkOrder["status"]) => (status === "comp
     </template>
 
     <template #footer>
-      <el-button type="primary" @click="visible = false">关闭</el-button>
+      <el-button v-if="order?.status === 0" type="success" @click="order && emit('publish', order)">发布工单</el-button>
+      <el-dropdown
+        v-if="order && getAvailableNextStatuses(order.status).length"
+        trigger="click"
+        @command="(status: number) => order && emit('changeStatus', order, status)"
+      >
+        <el-button type="primary">变更状态</el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item
+              v-for="nextStatus in getAvailableNextStatuses(order?.status ?? -1)"
+              :key="nextStatus"
+              :command="nextStatus"
+            >
+              {{ getStatusActionLabel(order?.status ?? -1, nextStatus) }}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <el-button @click="visible = false">关闭</el-button>
     </template>
   </el-dialog>
 </template>

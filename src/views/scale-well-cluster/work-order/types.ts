@@ -1,43 +1,33 @@
-/** 工单状态 */
-export type WorkOrderStatus = "pending" | "completed"
+/** 工单状态（0-8） */
+export type WorkOrderStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8
 
 /** 伽马刻度工单 */
 export interface CalibrationWorkOrder {
-  /** 任务单号 */
-  id: string
-  /** 仪器型号（内部 key） */
-  toolType: string
-  /** 仪器 SN */
+  id: number
+  taskNumber: string
+  modelId: number
+  modelName: string
   serialNumber: string
-  /** 测试人员 */
+  testerId: number | null
   engineer: string
-  /** 地点 */
   location: string
-  /** 刻度设备 */
   calibrationDevice: string
-  /** 高刻井 */
   hiWell: string
-  /** 低刻井 */
   loWell: string
-  /** 高刻 API */
   hiApi: number
-  /** 低刻 API */
   loApi: number
-  /** 备注 */
   remark: string
-  /** 计划日期 */
   planDate: string
-  /** 状态 */
   status: WorkOrderStatus
-  /** 刻度结果 Kc（完成后填写） */
+  statusText: string
   kc: number | null
 }
 
 /** 新建/编辑表单 */
 export interface WorkOrderFormModel {
-  toolType: string
+  modelId: number | null
   serialNumber: string
-  engineer: string
+  testerId: number | null
   location: string
   calibrationDevice: string
   hiWell: string
@@ -51,6 +41,6 @@ export interface WorkOrderFormModel {
 /** 列表筛选 */
 export interface WorkOrderFilter {
   keyword: string
-  status: WorkOrderStatus | ""
-  toolType: string
+  status: WorkOrderStatus | "" | number
+  modelId: number | ""
 }
