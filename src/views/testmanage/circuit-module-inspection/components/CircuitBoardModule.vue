@@ -411,22 +411,14 @@
 import { computed, onMounted, reactive, ref } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
 import { Plus, Printer, Refresh, RefreshRight } from "@element-plus/icons-vue"
-import {
-  getEngineerAssistantCommissionBindingsApi,
-  getEngineerAssistantUsersApi,
-  pushEngineerAssistantCommissionOrdersApi
-} from "@/api/engineer-assistant"
+import { getEngineerAssistantCommissionBindingsApi } from "@/api/engineer-assistant"
 import {
   getCircuitModuleApplicationList,
   getCircuitModulePublishMissingBoards,
   syncCircuitModuleApplicationList,
   type CircuitModuleApplicationRelation
 } from "@/api/circuit-module-application"
-import type {
-  EngineerAssistantCommissionBinding,
-  EngineerAssistantUser,
-  PushEngineerAssistantCommissionOrdersBody
-} from "@/api/engineer-assistant/types"
+import type { EngineerAssistantCommissionBinding } from "@/api/engineer-assistant/types"
 import { getProdBoardDataBySn } from "@/api/board"
 import { getTempBoardDataApi } from "@/api/temp-board"
 import {
@@ -500,13 +492,6 @@ interface CommissionBindingRow {
   boardId: string
   fpNumber: string
   raw: EngineerAssistantCommissionBinding
-}
-
-interface AssistantCommissionUser {
-  userName: string
-  userId: string
-  departmentId: string
-  departmentName: string
 }
 
 interface SnFillRow {
@@ -601,13 +586,6 @@ const statusMeta: Record<
 
 const circuitPublishedSyncState = { status: 1 } as const
 const defaultModuleName = "电路板模块"
-const ASSISTANT_FALLBACK_USER: Pick<EngineerAssistantUser, "userId" | "userName" | "departmentId" | "departmentName"> =
-  {
-    userId: "1",
-    userName: "超级管理员",
-    departmentId: "101",
-    departmentName: "中海油服"
-  }
 
 const loading = ref(false)
 const detailVisible = ref(false)
@@ -1296,134 +1274,6 @@ function normalizeCommissionBindingRow(item: EngineerAssistantCommissionBinding,
     fpNumber,
     raw: item
   }
-}
-
-function getCommissionBoardKey(application: CircuitApplication, board: CircuitApplicationBoard, index: number) {
-  return (
-    getDisplayString(
-      board.id,
-      board.boardId,
-      board.prodBoardId,
-      board.tempBoardId,
-      getBoardSerial(board),
-      board.sampleName
-    ) || `${application.orderNo}-${index + 1}`
-  )
-}
-
-function getBoardsForCommissionPush(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
-  const mergedBoards = [...application.boards.filter((board) => normalizeStatus(board.status) !== "draft"), ...boards]
-  const boardMap = new Map<string, CircuitApplicationBoard>()
-
-  mergedBoards.forEach((board, index) => {
-    boardMap.set(getCommissionBoardKey(application, board, index), board)
-  })
-  return Array.from(boardMap.values())
-}
-
-function buildAssistantId(prefix: string, ...values: unknown[]) {
-  const rawValue =
-    values
-      .map((value) => getDisplayString(value))
-      .filter(Boolean)
-      .join("-") || `${Date.now()}`
-  const safeValue = rawValue
-    .replace(/[^a-zA-Z0-9_-]/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "")
-  return `${prefix}-${safeValue || Date.now()}`
-}
-
-function getBoardRawValue(board: CircuitApplicationBoard, ...keys: string[]) {
-  const raw = (board.raw || {}) as Record<string, unknown>
-  return getString(...keys.map((key) => raw[key]))
-}
-
-function normalizeAssistantCommissionUser(user: Partial<EngineerAssistantUser>): AssistantCommissionUser {
-  return {
-    userName: getString(user.userName, user.name, ASSISTANT_FALLBACK_USER.userName),
-    userId: getDisplayString(user.userId, user.id, ASSISTANT_FALLBACK_USER.userId),
-    departmentId: getDisplayString(user.departmentId, ASSISTANT_FALLBACK_USER.departmentId),
-    departmentName: getString(user.departmentName, ASSISTANT_FALLBACK_USER.departmentName)
-  }
-}
-
-async function resolveAssistantCommissionUser(application: CircuitApplication): Promise<AssistantCommissionUser> {
-  try {
-    const result = await getEngineerAssistantUsersApi()
-    const rows = Array.isArray(result?.data?.list) ? result.data.list : []
-    const currentUserId = userStore.userid ? String(userStore.userid) : ""
-    const candidateNames = [userStore.nickName, userStore.username, application.applicant]
-      .map((value) => getDisplayString(value))
-      .filter(Boolean)
-
-    const matched =
-      rows.find((row) => currentUserId && getDisplayString(row.userId, row.id) === currentUserId) ||
-      rows.find((row) => candidateNames.includes(getDisplayString(row.userName, row.name))) ||
-      rows.find((row) => getDisplayString(row.userId, row.id) === ASSISTANT_FALLBACK_USER.userId) ||
-      rows.find((row) => getDisplayString(row.departmentId) && getString(row.departmentName))
-
-    return normalizeAssistantCommissionUser(matched || ASSISTANT_FALLBACK_USER)
-  } catch (error) {
-    return normalizeAssistantCommissionUser(ASSISTANT_FALLBACK_USER)
-  }
-}
-
-function buildCommissionOrderPayload(
-  application: CircuitApplication,
-  boards: CircuitApplicationBoard[],
-  assistantUser: AssistantCommissionUser
-): PushEngineerAssistantCommissionOrdersBody {
-  const commissionId = application.orderNo || application.key
-  const commissionOrderId = buildAssistantId("CO", commissionId)
-  const sampleBoards = getBoardsForCommissionPush(application, boards)
-
-  return {
-    orderList: [
-      {
-        id: commissionOrderId,
-        commissionId,
-        budgetId: getString(application.projectBudgetCode, application.projectCode, commissionId),
-        commissionOrg: getString(application.client) || "未提供",
-        userName: assistantUser.userName,
-        userId: assistantUser.userId,
-        departmentId: assistantUser.departmentId,
-        departmentName: assistantUser.departmentName,
-        phone: getString(application.mobilePhone, application.landline),
-        samples: sampleBoards.map((board, index) => {
-          const boardKey = getCommissionBoardKey(application, board, index)
-          return {
-            id: buildAssistantId("S", commissionOrderId, boardKey || index + 1),
-            commissionOrderId,
-            sampleName: getString(board.sampleName, board.name) || `电路板样品${index + 1}`,
-            category:
-              getString(board.testCategory, getBoardRawValue(board, "cslb", "testCategory", "category")) || "电路板",
-            specModel: getString(board.model, getBoardRawValue(board, "ggxh", "model", "specModel")),
-            manufacturer:
-              getString(
-                board.supplier,
-                getBoardRawValue(board, "gysmc", "supplier", "manufacturer"),
-                application.client
-              ) || "未提供",
-            batchNo: getString(board.batchNo, getBoardRawValue(board, "pch", "batchNo", "batch_id", "batchId")),
-            sn: getString(board.sn, board.serial, board.seria, getBoardRawValue(board, "sn", "serial", "seria")),
-            materialNo: getString(board.materialNo, getBoardRawValue(board, "wlh", "materialNo", "material_no")),
-            testContent: getString(board.testContent, getBoardRawValue(board, "csnr", "testContent", "test_content")),
-            number: Math.max(
-              1,
-              Number(board.quantity) || Number(getBoardRawValue(board, "sl", "number", "quantity")) || 1
-            )
-          }
-        })
-      }
-    ]
-  }
-}
-
-async function pushCommissionOrderForBoards(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
-  const assistantUser = await resolveAssistantCommissionUser(application)
-  const payload = buildCommissionOrderPayload(application, boards, assistantUser)
-  await pushEngineerAssistantCommissionOrdersApi(payload, { persistLocal: false })
 }
 
 function canViewCommissionBindings(application: CircuitApplication) {
@@ -2505,13 +2355,6 @@ async function publishApplication(application: CircuitApplication, silent = fals
     }
 
     try {
-      await pushCommissionOrderForBoards(application, boardsToPublish)
-    } catch (syncError) {
-      if (!silent) ElMessage.warning("测试工单已生成，但委托单未成功推送到工程师助手，请稍后重试发布")
-      return "failed"
-    }
-
-    try {
       await persistBoardsStatus(application, boardsToPublish, circuitPublishedSyncState.status)
     } catch (statusError) {
       if (!silent) ElMessage.warning("测试工单已生成，但申请单状态同步失败，未标记已发布")
@@ -2559,13 +2402,6 @@ async function publishBoard(application: CircuitApplication, board: CircuitAppli
       }
 
       ElMessage.error(createError instanceof Error ? createError.message : "发布失败，未生成测试工单")
-      return
-    }
-
-    try {
-      await pushCommissionOrderForBoards(application, [board])
-    } catch (syncError) {
-      ElMessage.warning("测试工单已生成，但委托单未成功推送到工程师助手，请稍后重试发布")
       return
     }
 
