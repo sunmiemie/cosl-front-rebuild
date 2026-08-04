@@ -441,10 +441,10 @@ async function handleSave() {
         })
       }
     }
-    if (res.data?.assistantSync?.success === false) {
-      ElMessage.warning(res.data.assistantSync.message || "巡检项已保存，但自动推送小助手失败")
+    if (res.data?.assistantSync?.success === true) {
+      ElMessage.success(`保存成功，已自动推送小助手（${res.data.assistantSync.synced}项）`)
     } else {
-      ElMessage.success(res.msg || "保存成功，已自动推送小助手")
+      ElMessage.warning(res.data?.assistantSync?.message || "巡检项已保存，但自动推送小助手失败")
     }
   } catch {
     ElMessage.error("保存巡检信息失败")

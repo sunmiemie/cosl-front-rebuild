@@ -196,6 +196,10 @@ export type PushEngineerAssistantCommissionOrdersBody = {
   orderList: EngineerAssistantCommissionOrder[]
 }
 
+export type PushEngineerAssistantCommissionOrdersOptions = {
+  persistLocal?: boolean
+}
+
 export type EngineerAssistantCommissionBinding = {
   applicationNum?: string
   orderId?: string

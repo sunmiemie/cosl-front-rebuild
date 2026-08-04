@@ -101,10 +101,14 @@ export function pushEngineerAssistantReportsApi(data: Types.PushEngineerAssistan
   })
 }
 
-export function pushEngineerAssistantCommissionOrdersApi(data: Types.PushEngineerAssistantCommissionOrdersBody) {
+export function pushEngineerAssistantCommissionOrdersApi(
+  data: Types.PushEngineerAssistantCommissionOrdersBody,
+  options: Types.PushEngineerAssistantCommissionOrdersOptions = {}
+) {
   return request<Types.PushEngineerAssistantCommissionOrdersResponse>({
     url: "external/assistant/push-commission-orders/",
     method: "post",
+    params: options.persistLocal === false ? { persistLocal: false } : undefined,
     data
   })
 }

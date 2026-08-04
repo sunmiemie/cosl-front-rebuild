@@ -218,7 +218,10 @@
             >
               {{ getApplicationPublishText(selectedApplication) }}
             </el-button>
-            <el-button v-if="selectedApplication.orderNo" @click="openBindingDialog(selectedApplication)">
+            <el-button
+              v-if="canViewCommissionBindings(selectedApplication)"
+              @click="openBindingDialog(selectedApplication)"
+            >
               查看关联
             </el-button>
             <el-button
@@ -1319,10 +1322,11 @@ function getBoardsForCommissionPush(application: CircuitApplication, boards: Cir
 }
 
 function buildAssistantId(prefix: string, ...values: unknown[]) {
-  const rawValue = values
-    .map((value) => getDisplayString(value))
-    .filter(Boolean)
-    .join("-") || `${Date.now()}`
+  const rawValue =
+    values
+      .map((value) => getDisplayString(value))
+      .filter(Boolean)
+      .join("-") || `${Date.now()}`
   const safeValue = rawValue
     .replace(/[^a-zA-Z0-9_-]/g, "-")
     .replace(/-+/g, "-")
@@ -1419,7 +1423,13 @@ function buildCommissionOrderPayload(
 async function pushCommissionOrderForBoards(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
   const assistantUser = await resolveAssistantCommissionUser(application)
   const payload = buildCommissionOrderPayload(application, boards, assistantUser)
-  await pushEngineerAssistantCommissionOrdersApi(payload)
+  await pushEngineerAssistantCommissionOrdersApi(payload, { persistLocal: false })
+}
+
+function canViewCommissionBindings(application: CircuitApplication) {
+  if (!application.orderNo) return false
+  if (normalizeStatus(application.status) !== "draft") return true
+  return application.boards.some((board) => normalizeStatus(board.status) !== "draft")
 }
 
 async function loadCommissionBindings(application: CircuitApplication, options: { silent?: boolean } = {}) {
