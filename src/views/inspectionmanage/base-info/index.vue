@@ -20,12 +20,7 @@
                 filterable
                 @change="handleDeviceSnChange"
               >
-                <el-option
-                  v-for="host in hostDeviceOptions"
-                  :key="host.sn"
-                  :label="host.sn"
-                  :value="host.sn"
-                >
+                <el-option v-for="host in hostDeviceOptions" :key="host.sn" :label="host.sn" :value="host.sn">
                   <span>{{ host.sn }}</span>
                   <span class="host-option-name">{{ host.hostName }}</span>
                 </el-option>
@@ -46,7 +41,6 @@
         <div class="toolbar-title">巡检内容</div>
         <div class="toolbar-actions">
           <el-button type="primary" @click="openCreateDialog">新增</el-button>
-          <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
           <el-button @click="handleClose">关闭</el-button>
         </div>
       </div>
@@ -62,15 +56,32 @@
           </el-table-column>
           <el-table-column label="操作" width="140" align="center">
             <template #default="{ row }">
-              <el-button link type="primary" @click="openEditDialog(row)">编辑</el-button>
-              <el-button link type="danger" @click="handleDeleteItem(row.id)">删除</el-button>
+              <el-button link type="primary" :disabled="Boolean(deletingItemId)" @click="openEditDialog(row)">
+                编辑
+              </el-button>
+              <el-button
+                link
+                type="danger"
+                :loading="deletingItemId === row.id"
+                :disabled="Boolean(deletingItemId)"
+                @click="handleDeleteItem(row.id)"
+              >
+                删除
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
       </div>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="dialogTitle" width="460px">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="460px"
+      :close-on-click-modal="!itemSaving"
+      :close-on-press-escape="!itemSaving"
+      :show-close="!itemSaving"
+    >
       <el-form label-width="96px">
         <el-form-item label="巡检内容" required>
           <el-input v-model="editingItem.content" type="textarea" :rows="3" maxlength="200" show-word-limit />
@@ -80,8 +91,8 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="handleConfirmItem">确定</el-button>
+        <el-button :disabled="itemSaving" @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="itemSaving" @click="handleConfirmItem">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -96,9 +107,10 @@ import { getDeviceInstanceListApi } from "@/api/device-instance"
 import type { DeviceInstanceData } from "@/api/device-instance/types"
 import { getHostModelDisplayName } from "@/views/devicemanage/device/psi/model-options"
 import {
+  deleteInspectionBaseItemApi,
   getInspectionBaseInfoDetailApi,
   getInspectionBaseInfoListApi,
-  saveInspectionBaseInfoApi
+  saveInspectionBaseItemApi
 } from "@/api/inspection-base"
 import type { InspectionBaseInfoDetail } from "@/api/inspection-base/types"
 import { useUserStore } from "@/store/modules/user"
@@ -107,8 +119,6 @@ import { getInspectionInspector } from "./inspection-save"
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
-
-const createItemId = () => `item-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 
 type InspectionHostDeviceOption = {
   sn: string
@@ -119,7 +129,8 @@ type InspectionHostDeviceOption = {
 const deviceOptions = inspectionDeviceOptions
 const hostDeviceOptions = ref<InspectionHostDeviceOption[]>([])
 const snLoading = ref(false)
-const saving = ref(false)
+const itemSaving = ref(false)
+const deletingItemId = ref("")
 const contentLoading = ref(false)
 let snRequestId = 0
 let hostDeviceCache: InspectionHostDeviceOption[] | null = null
@@ -227,7 +238,8 @@ async function loadSnOptions(deviceName: string, keepSn = "") {
     const options = await getInspectionDeviceGroupHosts(deviceName)
     if (requestId !== snRequestId) return
     const existsKeepSn = keepSn && options.some((item) => item.sn === keepSn)
-    hostDeviceOptions.value = existsKeepSn || !keepSn ? options : [{ sn: keepSn, hostName: "", modelName: "" }, ...options]
+    hostDeviceOptions.value =
+      existsKeepSn || !keepSn ? options : [{ sn: keepSn, hostName: "", modelName: "" }, ...options]
   } catch {
     if (requestId !== snRequestId) return
     hostDeviceOptions.value = keepSn ? [{ sn: keepSn, hostName: "", modelName: "" }] : []
@@ -350,6 +362,10 @@ const editingItem = reactive<InspectionItem>({
 })
 
 function openCreateDialog() {
+  if (!formData.device_name || !formData.device_sn) {
+    ElMessage.warning("请先选择巡检设备名称和SN号")
+    return
+  }
   dialogTitle.value = "新增巡检内容"
   editingItem.id = ""
   editingItem.content = ""
@@ -365,91 +381,103 @@ function openEditDialog(item: InspectionItem) {
   dialogVisible.value = true
 }
 
-function handleConfirmItem() {
+async function handleConfirmItem() {
+  if (itemSaving.value) return
+  if (!formData.device_name || !formData.device_sn) {
+    ElMessage.warning("请先选择巡检设备名称和SN号")
+    return
+  }
   const content = editingItem.content.trim()
   if (!content) {
     ElMessage.warning("请输入巡检内容")
     return
   }
-  if (editingItem.id) {
-    const target = formData.items.find((item) => item.id === editingItem.id)
-    if (target) {
-      target.content = content
-      target.requirePhoto = editingItem.requirePhoto
-    }
-  } else {
-    formData.items.push({
-      id: createItemId(),
-      content,
-      requirePhoto: editingItem.requirePhoto
-    })
-  }
-  dialogVisible.value = false
-}
 
-function handleDeleteItem(id: string) {
-  ElMessageBox.confirm("确定删除该巡检内容吗？", "提示", {
-    type: "warning",
-    confirmButtonText: "确定",
-    cancelButtonText: "取消"
-  }).then(() => {
-    formData.items = formData.items.filter((item) => item.id !== id)
-    ElMessage.success("删除成功")
+  const isEditing = Boolean(editingItem.id)
+  const itemIndex = isEditing ? formData.items.findIndex((item) => item.id === editingItem.id) : -1
+  const itemId = Number(editingItem.id)
+  const inspector = getInspectionInspector({
+    inspector: formData.inspector,
+    nickName: userStore.nickName,
+    username: userStore.username
   })
-}
-
-async function handleSave() {
-  if (saving.value) return
-  if (!formData.device_name || !formData.device_sn) {
-    ElMessage.warning("请完善巡检基础信息")
-    return
-  }
-  if (formData.items.length === 0) {
-    ElMessage.warning("请至少新增一条巡检内容")
-    return
-  }
-  const payload = {
-    id: formData.id ? Number(formData.id) : undefined,
-    device_name: formData.device_name,
-    device_sn: formData.device_sn,
-    inspector: getInspectionInspector({
-      inspector: formData.inspector,
-      nickName: userStore.nickName,
-      username: userStore.username
-    }),
-    status: formData.status,
-    assistant_equipment_type: getAssistantEquipmentType(formData.device_name),
-    items: formData.items.map((it, idx) => ({
-      sort_no: idx + 1,
-      content: it.content,
-      require_photo: Boolean(it.requirePhoto)
-    }))
-  }
-  saving.value = true
+  itemSaving.value = true
   try {
-    const res = await saveInspectionBaseInfoApi(payload)
-    const savedId = Number(res.data?.id)
-    if (Number.isFinite(savedId)) {
-      formData.id = String(savedId)
-      if (String(route.query.id || "") !== String(savedId)) {
-        await router.replace({
-          path: route.path,
-          query: {
-            ...route.query,
-            id: String(savedId)
-          }
-        })
+    const res = await saveInspectionBaseItemApi({
+      base_id: formData.id ? Number(formData.id) : undefined,
+      item_id: isEditing && Number.isFinite(itemId) ? itemId : undefined,
+      device_name: formData.device_name,
+      device_sn: formData.device_sn,
+      inspector,
+      status: formData.status,
+      assistant_equipment_type: getAssistantEquipmentType(formData.device_name),
+      sort_no: itemIndex >= 0 ? itemIndex + 1 : undefined,
+      content,
+      require_photo: Boolean(editingItem.requirePhoto)
+    })
+
+    const savedBaseId = Number(res.data?.id)
+    if (Number.isFinite(savedBaseId)) {
+      formData.id = String(savedBaseId)
+      formData.inspection_no = res.data.inspection_no || formData.inspection_no
+      formData.inspector = inspector
+      if (String(route.query.id || "") !== String(savedBaseId)) {
+        await replaceRouteInspectionId(savedBaseId)
       }
     }
-    if (res.data?.assistantSync?.success === true) {
-      ElMessage.success(`保存成功，已自动推送小助手（${res.data.assistantSync.synced}项）`)
-    } else {
-      ElMessage.warning(res.data?.assistantSync?.message || "巡检项已保存，但自动推送小助手失败")
+
+    const savedItem = res.data?.item
+    const normalizedItem: InspectionItem = {
+      id: String(savedItem.id),
+      content: savedItem.content,
+      requirePhoto: Boolean(savedItem.require_photo)
     }
-  } catch {
-    ElMessage.error("保存巡检信息失败")
+    if (itemIndex >= 0) {
+      formData.items.splice(itemIndex, 1, normalizedItem)
+    } else {
+      formData.items.push(normalizedItem)
+    }
+    dialogVisible.value = false
+
+    const actionText = isEditing ? "编辑" : "新增"
+    if (res.data?.assistantSync?.success === true) {
+      ElMessage.success(`${actionText}成功，已推送小助手`)
+    } else {
+      ElMessage.warning(res.data?.assistantSync?.message || `${actionText}成功，但推送小助手失败`)
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || error?.response?.data?.msg || "保存巡检项失败")
   } finally {
-    saving.value = false
+    itemSaving.value = false
+  }
+}
+
+async function handleDeleteItem(id: string) {
+  if (deletingItemId.value) return
+  try {
+    await ElMessageBox.confirm("确定删除该巡检内容吗？删除后立即生效。", "提示", {
+      type: "warning",
+      confirmButtonText: "确定",
+      cancelButtonText: "取消"
+    })
+  } catch {
+    return
+  }
+
+  const itemId = Number(id)
+  if (!Number.isFinite(itemId)) {
+    ElMessage.error("巡检项ID无效，请刷新后重试")
+    return
+  }
+  deletingItemId.value = id
+  try {
+    await deleteInspectionBaseItemApi(itemId)
+    formData.items = formData.items.filter((item) => item.id !== id)
+    ElMessage.success("删除成功")
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || error?.response?.data?.msg || "删除巡检项失败")
+  } finally {
+    deletingItemId.value = ""
   }
 }
 

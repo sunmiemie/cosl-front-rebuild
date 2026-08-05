@@ -24,6 +24,21 @@ export function saveInspectionBaseInfoApi(data: InspectionBase.InspectionBaseInf
   })
 }
 
+export function saveInspectionBaseItemApi(data: InspectionBase.InspectionBaseItemSaveRequest) {
+  return request<InspectionBase.InspectionBaseItemSaveResponse>({
+    url: "data/inspection-base/item/save",
+    method: "post",
+    data
+  })
+}
+
+export function deleteInspectionBaseItemApi(itemId: number) {
+  return request<InspectionBase.InspectionBaseItemDeleteResponse>({
+    url: `data/inspection-base/item/delete/${itemId}/`,
+    method: "delete"
+  })
+}
+
 export function deleteInspectionBaseInfoApi(baseId: number) {
   return request({
     url: `data/inspection-base/delete/${baseId}/`,

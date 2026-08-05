@@ -644,7 +644,7 @@ const handleSave = async () => {
     if (!validateSampleRows()) return
     saveLoading.value = true
     try {
-      await request({
+      const res: any = await request({
         url: "data/commission-order/save",
         method: "post",
         data: {
@@ -669,7 +669,11 @@ const handleSave = async () => {
           samples: editForm.samples
         }
       })
-      ElMessage.success("保存成功")
+      if (res.data?.assistantSync?.success === false) {
+        ElMessage.warning(res.data.assistantSync.message || "委托单已保存，但自动推送小助手失败")
+      } else {
+        ElMessage.success("委托单已保存，已自动推送小助手")
+      }
       editDialogVisible.value = false
       getList()
     } catch {

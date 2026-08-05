@@ -104,6 +104,56 @@ export interface InspectionBaseInfoSaveResponse {
   }
 }
 
+export interface InspectionBaseItemSaveRequest {
+  base_id?: number
+  item_id?: number
+  device_name: string
+  device_sn: string
+  inspector: string
+  status: "正常" | "维保中" | "维修中"
+  assistant_equipment_type?: string
+  sort_no?: number
+  content: string
+  require_photo: boolean
+  photo?: string | null
+}
+
+export interface InspectionBaseItemSaveResponse {
+  code: number
+  msg: string
+  message?: string
+  data: {
+    id: number
+    inspection_no: string
+    item: InspectionBaseInfoDetailItem
+    assistantSync?: {
+      success: boolean
+      synced: number
+      message?: string
+      payload?: {
+        equipmentType: string
+        inspectionItems: Array<{
+          itemId: string
+          itemContent: string
+          orderNum: string
+          isPhoto: boolean
+        }>
+      }
+      assistant?: unknown
+    }
+  }
+}
+
+export interface InspectionBaseItemDeleteResponse {
+  code: number
+  msg: string
+  message?: string
+  data: {
+    base_id: number
+    item_id: number
+  }
+}
+
 export interface InspectionBaseAssistantSyncRequest {
   equipmentType: string
   dryRun?: boolean
