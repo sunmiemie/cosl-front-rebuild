@@ -53,19 +53,26 @@ export const normalizeBoardForQrcode = (
   }
 }
 
-const writePrintImages = (printWindow: Window, imageData: Record<string, string>) => {
-  printWindow.document.write("<html><head><title>Print QR Codes</title></head><body>")
-
-  Object.values(imageData).forEach((src) => {
-    const img = new Image()
-    img.src = src
-    img.alt = "QR Code"
-    printWindow.document.body.appendChild(img)
-    printWindow.document.body.appendChild(document.createElement("br"))
-  })
-
-  printWindow.document.write("</body></html>")
-  printWindow.document.close()
+const writePrintImages = async (printWindow: Window, imageData: Record<string, string>) => {
+  const doc = printWindow.document
+  doc.write("<html><head><title>Print QR Codes</title></head><body></body></html>")
+  doc.close()
+  // 图片实际加载完成后再打印，避免文档 onload 早于异步图片。
+  await Promise.all(
+    Object.values(imageData).map(
+      (src) =>
+        new Promise<void>((resolve, reject) => {
+          const img = doc.createElement("img")
+          img.alt = "QR Code"
+          img.onload = () => resolve()
+          img.onerror = () => reject(new Error("二维码图片加载失败"))
+          doc.body.appendChild(img)
+          doc.body.appendChild(doc.createElement("br"))
+          img.src = src
+          if (img.complete && img.naturalWidth > 0) resolve()
+        })
+    )
+  )
 }
 
 export const printBoardQrcodes = async (rows: QrcodeBoardRow[], options: QrcodePrintOptions = {}) => {
@@ -78,35 +85,37 @@ export const printBoardQrcodes = async (rows: QrcodeBoardRow[], options: QrcodeP
     return false
   }
 
-  const res = await getQRcodeImgApi({
-    data: normalizedRows,
-    headerKey: "name",
-    seriaKey: "seria",
-    startTimeKey: "startTime"
-  })
-
-  if (res.code !== 0) {
-    ElMessage.error(res.message || "获取二维码失败")
-    return false
-  }
-
-  const imageData = res.data || {}
-  if (Object.keys(imageData).length === 0) {
-    ElMessage.warning("未获取到二维码图片")
-    return false
-  }
-
+  // 在用户点击的同步阶段打开窗口，避免请求完成后被浏览器拦截。
   const printWindow = window.open("", "_blank")
   if (!printWindow) {
     ElMessage.error("无法打开打印窗口")
     return false
   }
-
-  writePrintImages(printWindow, imageData)
-  printWindow.onload = function () {
+  try {
+    const res = await getQRcodeImgApi({
+      data: normalizedRows,
+      headerKey: "name",
+      seriaKey: "seria",
+      startTimeKey: "startTime"
+    })
+    if (printWindow.closed) return false
+    if (res.code !== 0) {
+      ElMessage.error(res.message || "获取二维码失败")
+      return false
+    }
+    const imageData = res.data || {}
+    if (Object.keys(imageData).length === 0) {
+      ElMessage.warning("未获取到二维码图片")
+      return false
+    }
+    await writePrintImages(printWindow, imageData)
+    if (printWindow.closed) return false
     printWindow.print()
+    return true
+  } catch (error) {
+    ElMessage.error(error instanceof Error ? error.message : "二维码打印失败")
+    return false
+  } finally {
     printWindow.close()
   }
-
-  return true
 }
