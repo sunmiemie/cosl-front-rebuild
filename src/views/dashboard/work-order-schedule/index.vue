@@ -412,6 +412,7 @@ import {
   clearWorkOrderSchedule,
   saveCircuitBoardSequenceBatch,
   saveWorkOrderSchedule,
+  type CircuitBoardSequenceBatchResponse,
   type WorkOrderScheduleEquipment,
   type WorkOrderSchedulePayload,
   type WorkOrderScheduleSegment
@@ -674,7 +675,7 @@ const EQUIPMENT_DEVICE_KEYWORDS: Record<EquipmentKey, string[]> = {
   "water-cycle": ["水循环"],
   "simulated-well": ["模拟井"],
   "high-temp-box": ["高温箱"],
-  "circuit-board-module": ["电路板模块", "电路板"]
+  "circuit-board-module": ["电路板模块", "电路板", "X-Ray", "XRay", "X射线"]
 }
 
 const activeConfig = computed(
@@ -2337,7 +2338,7 @@ async function persistCircuitBoardPriorityOrders(nextOrders: ScheduleOrder[]) {
       return targetId
     })
     updateCircuitBoardOrderSequence(nextOrders, equipmentId, useDevice)
-    await saveCircuitBoardSequenceBatch({
+    return await saveCircuitBoardSequenceBatch({
       order_ids: orderIds,
       equipment_id: equipmentId,
       equipmentId,
@@ -2349,6 +2350,26 @@ async function persistCircuitBoardPriorityOrders(nextOrders: ScheduleOrder[]) {
   } finally {
     circuitBoardSequenceSaving.value = false
   }
+}
+
+function showCircuitBoardAssistantPushResult(response: CircuitBoardSequenceBatchResponse) {
+  const rows = Array.isArray(response?.data?.list) ? response.data.list : []
+  const pushes = rows.map((row) => row.assistantPush).filter((item) => item !== null && item !== undefined)
+  const successCount = pushes.filter((item) => item?.success && !item.skipped).length
+  const skippedCount = pushes.filter((item) => item?.skipped).length
+  const failedCount = pushes.filter((item) => !item?.success && !item?.skipped).length
+
+  if (!pushes.length) {
+    ElMessage.warning("电路板排期顺序已保存，但后端未返回小助手推送结果")
+    return
+  }
+  if (failedCount || skippedCount) {
+    ElMessage.warning(
+      `电路板排期顺序已保存；小助手推送成功 ${successCount} 条，失败 ${failedCount} 条，跳过 ${skippedCount} 条`
+    )
+    return
+  }
+  ElMessage.success(`电路板排期顺序已保存，已推送小助手 ${successCount} 条`)
 }
 
 function normalizeCircuitBoardInsertIndex(order: ScheduleOrder, targetIndex: number) {
@@ -2363,8 +2384,9 @@ async function reorderCircuitBoardOrderAt(order: ScheduleOrder, targetIndex: num
   const insertIndex = Math.max(0, Math.min(normalizeCircuitBoardInsertIndex(order, targetIndex), nextOrders.length))
   nextOrders.splice(insertIndex, 0, order)
   try {
-    await persistCircuitBoardPriorityOrders(nextOrders)
-    ElMessage.success("电路板排期顺序已保存")
+    const response = await persistCircuitBoardPriorityOrders(nextOrders)
+    showCircuitBoardAssistantPushResult(response)
+    await loadOrders({ silent: true })
   } catch (error) {
     ElMessage.error("电路板排期顺序保存失败")
     await loadOrders({ silent: true }).catch(() => undefined)

@@ -43,33 +43,13 @@ const handleCreate = () => {
     if (valid) {
       if (currentUpdateId.value === undefined) {
         createInstrumentDataApi(formData)
-          .then((res) => {
-            if (res.status === "exists") {
-              ElMessageBox.confirm(res.message, "警告", {
-                type: "warning",
-                confirmButtonText: "是",
-                cancelButtonText: "否"
-              }).then(() => {
-                createInstrumentDataApi({ ...formData, force: true })
-                  .then(() => {
-                    ElMessage.success("新增成功")
-                    getTableData()
-                  })
-                  .catch((err) => {
-                    ElMessage.error(err.response.data.error)
-                  })
-                  .finally(() => {
-                    resetFormData()
-                  })
-              })
-            } else {
-              ElMessage.success("新增成功")
-              getTableData()
-              resetFormData()
-            }
+          .then(() => {
+            ElMessage.success("新增成功")
+            getTableData()
+            resetFormData()
           })
           .catch((err) => {
-            ElMessage.error(err.response.data.error)
+            ElMessage.error(err.response?.data?.error || "新增失败")
           })
       } else {
         updateInstrumentDataApi({

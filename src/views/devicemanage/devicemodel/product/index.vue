@@ -109,28 +109,35 @@ const closeProduct = () => {
   formData.name = ""
 }
 const handleCreate = () => {
+  const name = String(formData.name || "").trim()
+  if (!name) {
+    ElMessage.warning("请输入产品名称")
+    return
+  }
+
   if (currentUpdateId.value === undefined) {
-    delete formData.id
-    createProductDataApi(formData)
+    createProductDataApi({ name })
       .then(() => {
         ElMessage.success("新增成功")
         getTableData()
-      })
-      .finally(() => {
         Object.keys(formData).forEach((key: any) => (formData[key] = ""))
         dialogVisible.value = false
       })
+      .catch((err) => {
+        ElMessage.error(err.response?.data?.error || "新增失败")
+      })
   } else {
     updateProductDataApi({
-      name: formData.name,
+      name,
       id: formData.id
     })
       .then(() => {
         ElMessage.success("修改成功")
         getTableData()
-      })
-      .finally(() => {
         dialogVisible.value = false
+      })
+      .catch((err) => {
+        ElMessage.error(err.response?.data?.error || "修改失败")
       })
   }
 }

@@ -47,6 +47,33 @@ export type CircuitBoardSequenceBatchPayload = {
   useDevice?: string
 }
 
+export type CircuitBoardAssistantPushResult = {
+  success: boolean
+  skipped?: boolean
+  reason?: string
+  error?: string
+}
+
+export type CircuitBoardSequenceBatchItem = {
+  orderId: number
+  sequenceOrder: number
+  assistantPush?: CircuitBoardAssistantPushResult | null
+}
+
+export type CircuitBoardSequenceBatchResponse = {
+  code: number
+  msg?: string
+  data: {
+    list: CircuitBoardSequenceBatchItem[]
+    summary?: {
+      total: number
+      success: number
+      failed: number
+      skipped: number
+    }
+  }
+}
+
 type ScheduleEndpointConfig = {
   targetKind: ScheduleTargetKind
   baseUrl: string
@@ -113,7 +140,7 @@ export function clearWorkOrderSchedule(equipment: EndpointScheduleEquipment, tar
 }
 
 export function saveCircuitBoardSequenceBatch(data: CircuitBoardSequenceBatchPayload) {
-  return request<any>({
+  return request<CircuitBoardSequenceBatchResponse>({
     url: "test/circuit-board-module/order/sequence/",
     method: "post",
     data

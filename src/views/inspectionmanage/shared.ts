@@ -1,6 +1,9 @@
+export type InspectionResultType = 0 | 1
+
 export interface InspectionItem {
   id: string
   content: string
+  resultType: InspectionResultType
   requirePhoto: boolean
 }
 
@@ -41,8 +44,8 @@ export function createDefaultInspectionRecord(): InspectionRecord {
     inspector: "常宏,马晓涵",
     status: "正常",
     items: [
-      { id: buildId("item"), content: "巡检内容1", requirePhoto: true },
-      { id: buildId("item"), content: "巡检内容2", requirePhoto: false }
+      { id: buildId("item"), content: "巡检内容1", resultType: 0, requirePhoto: true },
+      { id: buildId("item"), content: "巡检内容2", resultType: 0, requirePhoto: false }
     ],
     createdAt: time,
     updatedAt: time
@@ -69,6 +72,7 @@ export function loadInspectionRecords(): InspectionRecord[] {
           ? item.items.map((subItem: any) => ({
               id: subItem.id || buildId("item"),
               content: subItem.content || "",
+              resultType: subItem.resultType === 1 ? 1 : 0,
               requirePhoto: Boolean(subItem.requirePhoto)
             }))
           : [],
@@ -76,7 +80,9 @@ export function loadInspectionRecords(): InspectionRecord[] {
         updatedAt: item.updatedAt || item.createdAt || nowText()
       }))
     }
-  } catch {}
+  } catch {
+    // 忽略损坏的本地缓存，使用下方默认数据。
+  }
   const fallback = [createDefaultInspectionRecord()]
   saveInspectionRecords(fallback)
   return fallback

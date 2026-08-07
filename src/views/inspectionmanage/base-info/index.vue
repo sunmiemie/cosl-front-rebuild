@@ -49,6 +49,11 @@
         <el-table :data="formData.items" border stripe class="inspection-table" v-loading="contentLoading">
           <el-table-column type="index" label="序号" width="70" align="center" />
           <el-table-column prop="content" label="巡检内容" min-width="280" />
+          <el-table-column label="巡检结果填写方式" width="160" align="center">
+            <template #default="{ row }">
+              {{ row.resultType === 1 ? "文本填写" : "选项选择" }}
+            </template>
+          </el-table-column>
           <el-table-column label="是否需要拍照" width="140" align="center">
             <template #default="{ row }">
               {{ row.requirePhoto ? "是" : "否" }}
@@ -77,14 +82,17 @@
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
-      width="460px"
+      width="520px"
       :close-on-click-modal="!itemSaving"
       :close-on-press-escape="!itemSaving"
       :show-close="!itemSaving"
     >
-      <el-form label-width="96px">
+      <el-form label-width="128px">
         <el-form-item label="巡检内容" required>
           <el-input v-model="editingItem.content" type="textarea" :rows="3" maxlength="200" show-word-limit />
+        </el-form-item>
+        <el-form-item label="结果填写方式" required>
+          <el-segmented v-model="editingItem.resultType" :options="resultTypeOptions" />
         </el-form-item>
         <el-form-item label="需要拍照">
           <el-switch v-model="editingItem.requirePhoto" />
@@ -102,7 +110,7 @@
 import { computed, reactive, ref, watch } from "vue"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { useRoute, useRouter } from "vue-router"
-import { inspectionDeviceOptions, type InspectionItem } from "../shared"
+import { inspectionDeviceOptions, type InspectionItem, type InspectionResultType } from "../shared"
 import { getDeviceInstanceListApi } from "@/api/device-instance"
 import type { DeviceInstanceData } from "@/api/device-instance/types"
 import { getHostModelDisplayName } from "@/views/devicemanage/device/psi/model-options"
@@ -127,6 +135,10 @@ type InspectionHostDeviceOption = {
 }
 
 const deviceOptions = inspectionDeviceOptions
+const resultTypeOptions: Array<{ label: string; value: InspectionResultType }> = [
+  { label: "选项选择", value: 0 },
+  { label: "文本填写", value: 1 }
+]
 const hostDeviceOptions = ref<InspectionHostDeviceOption[]>([])
 const snLoading = ref(false)
 const itemSaving = ref(false)
@@ -274,6 +286,7 @@ function applyDetail(detail: InspectionBaseInfoDetail) {
   formData.items = (detail.items || []).map((it) => ({
     id: String(it.id),
     content: it.content,
+    resultType: normalizeResultType(it.result_type),
     requirePhoto: Boolean(it.require_photo)
   }))
   formData.created_at = detail.created_at || ""
@@ -355,9 +368,14 @@ watch(() => route.fullPath, fetchDetail, { immediate: true })
 
 const dialogVisible = ref(false)
 const dialogTitle = ref("新增巡检内容")
+function normalizeResultType(value: unknown): InspectionResultType {
+  return Number(value) === 1 ? 1 : 0
+}
+
 const editingItem = reactive<InspectionItem>({
   id: "",
   content: "",
+  resultType: 0,
   requirePhoto: false
 })
 
@@ -369,6 +387,7 @@ function openCreateDialog() {
   dialogTitle.value = "新增巡检内容"
   editingItem.id = ""
   editingItem.content = ""
+  editingItem.resultType = 0
   editingItem.requirePhoto = false
   dialogVisible.value = true
 }
@@ -377,6 +396,7 @@ function openEditDialog(item: InspectionItem) {
   dialogTitle.value = "编辑巡检内容"
   editingItem.id = item.id
   editingItem.content = item.content
+  editingItem.resultType = item.resultType
   editingItem.requirePhoto = item.requirePhoto
   dialogVisible.value = true
 }
@@ -413,6 +433,7 @@ async function handleConfirmItem() {
       assistant_equipment_type: getAssistantEquipmentType(formData.device_name),
       sort_no: itemIndex >= 0 ? itemIndex + 1 : undefined,
       content,
+      result_type: editingItem.resultType,
       require_photo: Boolean(editingItem.requirePhoto)
     })
 
@@ -430,6 +451,7 @@ async function handleConfirmItem() {
     const normalizedItem: InspectionItem = {
       id: String(savedItem.id),
       content: savedItem.content,
+      resultType: normalizeResultType(savedItem.result_type),
       requirePhoto: Boolean(savedItem.require_photo)
     }
     if (itemIndex >= 0) {

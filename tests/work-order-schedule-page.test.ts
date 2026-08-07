@@ -84,6 +84,10 @@ describe("工单排程页面", () => {
     expect(content).toContain("isCircuitModuleScheduleStatus")
   })
 
+  it("将 X-Ray 主机归入电路板模块设备选项", () => {
+    expect(content).toContain('"circuit-board-module": ["电路板模块", "电路板", "X-Ray", "XRay", "X射线"]')
+  })
+
   it("静默轮询后端排程数据，让测试端删除排程后管理端自动刷新", () => {
     expect(content).toContain("onUnmounted")
     expect(content).toContain("const SCHEDULE_AUTO_REFRESH_MS = 5000")
@@ -181,6 +185,9 @@ describe("工单排程页面", () => {
     expect(content).toContain("await persistCircuitBoardPriorityOrders(nextOrders)")
     expect(content).toContain("saveCircuitBoardSequenceBatch")
     expect(content).toContain("order_ids: orderIds")
+    expect(content).toContain("showCircuitBoardAssistantPushResult")
+    expect(content).toContain("row.assistantPush")
+    expect(content).toContain("failedCount || skippedCount")
     expect(content).not.toContain("for (const [index, order] of nextOrders.entries())")
     expect(content).not.toContain("skip_assistant_push: !shouldPushAssistant")
   })

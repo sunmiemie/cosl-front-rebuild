@@ -328,7 +328,7 @@
 
     <el-dialog v-model="boardDetailVisible" title="电路板详情" width="min(920px, 96vw)" :close-on-click-modal="false">
       <el-descriptions v-if="selectedBoardDetail" :column="3" border class="board-detail-descriptions">
-        <el-descriptions-item label="所属产品">{{ getBoardDetailValue("product", "sscp") }}</el-descriptions-item>
+        <el-descriptions-item label="所属仪器">{{ getBoardDetailValue("instrument", "sscp") }}</el-descriptions-item>
         <el-descriptions-item label="测试品名称">{{
           getBoardDetailValue("sampleName", "ypmc", "name")
         }}</el-descriptions-item>
@@ -394,14 +394,14 @@
         <el-table-column prop="model" label="规格型号" min-width="150" show-overflow-tooltip />
         <el-table-column label="SN号" min-width="220">
           <template #default="{ row }">
-            <el-input v-model.trim="row.sn" placeholder="请输入唯一 SN" />
+            <el-input v-model.trim="row.sn" placeholder="请输入唯一 SN" :disabled="snFillSaving" />
           </template>
         </el-table-column>
       </el-table>
       <template #footer>
-        <el-button @click="cancelSnFill">取消发布</el-button>
-        <el-button @click="autoFillMissingSn">自动生成 SN</el-button>
-        <el-button type="primary" @click="confirmSnFill">确认并继续发布</el-button>
+        <el-button :disabled="snFillSaving" @click="cancelSnFill">取消发布</el-button>
+        <el-button :disabled="snFillSaving" @click="autoFillMissingSn">自动生成 SN</el-button>
+        <el-button type="primary" :loading="snFillSaving" @click="confirmSnFill">确认并继续发布</el-button>
       </template>
     </el-dialog>
   </div>
@@ -413,10 +413,12 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "elem
 import { Plus, Printer, Refresh, RefreshRight } from "@element-plus/icons-vue"
 import { getEngineerAssistantCommissionBindingsApi } from "@/api/engineer-assistant"
 import {
+  ensureCircuitModuleProductionBoards,
   getCircuitModuleApplicationList,
   getCircuitModulePublishMissingBoards,
   syncCircuitModuleApplicationList,
-  type CircuitModuleApplicationRelation
+  type CircuitModuleApplicationRelation,
+  type CircuitModuleApplicationSyncResponse
 } from "@/api/circuit-module-application"
 import type { EngineerAssistantCommissionBinding } from "@/api/engineer-assistant/types"
 import { getProdBoardDataBySn } from "@/api/board"
@@ -437,15 +439,19 @@ import { useUserStore } from "@/store/modules/user"
 import { printBoardQrcodes, type QrcodeBoardRow } from "@/utils/printQrcode"
 import {
   CIRCUIT_PROCESS_OPTIONS,
-  getCraftFlagText,
+  expandConsecutiveBoardSerials,
+  findMatchingLocalBoardRow,
   getDisplayString,
   getGeneratedOrderType,
   getGeneratedOrderTypeText,
   getString,
   formatMissingBoards,
+  markCircuitApplicationPendingForSnPersistence,
   mapDlbBoardToUiBoard,
+  isSameCircuitApplicationBoardRecord,
   normalizeDlbBoardState,
   normalizeCircuitProcessName,
+  resolveCraftFlagValue,
   resolveCircuitProcessName,
   type CircuitApplicationUiBoard
 } from "./circuit-application-helpers"
@@ -611,6 +617,7 @@ const snFillDialogVisible = ref(false)
 const snFillApplicationTitle = ref("")
 const snFillRows = ref<SnFillRow[]>([])
 const snFillApplication = ref<CircuitApplication | null>(null)
+const snFillSaving = ref(false)
 const userStore = useUserStore()
 let testTypeListCache: any[] | null = null
 let tempTestTypeListCache: any[] | null = null
@@ -836,8 +843,10 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
   return {
     id: boardIdentity || serial || `${applicationNo || "PCB"}-${index + 1}`,
     boardId: getDisplayString(board?.boardId, board?.board_id),
-    prodBoardId: getDisplayString(board?.prodBoardId, board?.prod_board_id, board?.board_id),
+    prodBoardId: getDisplayString(board?.prodBoardId, board?.prod_board_id),
     tempBoardId: getDisplayString(board?.tempBoardId, board?.temp_board_id),
+    instrumentModelId: getDisplayString(board?.instrumentModelId, board?.instrument_model_id),
+    productModelId: getDisplayString(board?.productModelId, board?.product_model_id),
     seria: serial,
     sn: serial,
     serial,
@@ -874,7 +883,8 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
     materialNo: getString(board?.materialNo, board?.wlh),
     quantity: getDisplayString(board?.quantity, board?.sl) || "1",
     consignor: getString(board?.consignor, board?.wtr, row.sqrmc, row.applicant),
-    product: getString(board?.product, board?.sscp),
+    product: getString(board?.product, board?.productModelName),
+    instrument: getString(board?.instrument, board?.sscp, board?.instrumentModelName),
     unit: getString(board?.unit, board?.ssdw),
     testCategory: getString(board?.testCategory, board?.cslb),
     testContent: getString(board?.testContent, board?.csnr),
@@ -897,14 +907,7 @@ function mapApiBoardToBoard(row: CircuitModuleApplicationRelation, board: any, i
 }
 
 function resolveCraftFlag(row: CircuitModuleApplicationRelation) {
-  const explicitCraft = getString(row.sfxyjcgy)
-  if (explicitCraft) return getCraftFlagText(explicitCraft)
-
-  const legacyNature = getString(row.nature)
-  if (legacyNature) return getCraftFlagText(legacyNature)
-
-  const legacyText = [row.sampleName, row.specModel, row.commissionNo].filter(Boolean).join(" ")
-  return legacyText.includes("临时") || /temp/i.test(legacyText) ? "否" : "是"
+  return resolveCraftFlagValue(row.sfxyjcgy, row.nature)
 }
 
 function mapRelationsToApplication(groupKey: string, rows: CircuitModuleApplicationRelation[]): CircuitApplication {
@@ -1438,9 +1441,7 @@ function expandBoardsForGeneratedOrders(application: CircuitApplication, boards:
     if (quantity <= 1) return [board]
     const providedSn = getProvidedBoardSn(board)
     if (providedSn) {
-      return Array.from({ length: quantity }, (_, index) =>
-        cloneBoardForGeneratedOrder(board, `${providedSn}-${String(index + 1).padStart(3, "0")}`)
-      )
+      return expandConsecutiveBoardSerials(providedSn, quantity).map((sn) => cloneBoardForGeneratedOrder(board, sn))
     }
     const startIndex = getBoardSplitStartIndex(application, board)
     return Array.from({ length: quantity }, (_, index) =>
@@ -1487,7 +1488,6 @@ function patchRawBoardSn(rawBoard: unknown, sn: string) {
 }
 
 function applyBoardSn(board: CircuitApplicationBoard, sn: string) {
-  board.id = sn
   board.seria = sn
   board.sn = sn
   board.serial = sn
@@ -1499,9 +1499,12 @@ function applyBoardSn(board: CircuitApplicationBoard, sn: string) {
   board.raw = patchRawBoardSn(board.raw, sn)
 }
 
-function updateApplicationRawBoardSn(application: CircuitApplication, board: CircuitApplicationBoard, sn: string) {
-  const rows = getApplicationRelationRows(application)
-  application.raw = rows.map((row) => {
+function patchApplicationRelationRowsSn(
+  rows: CircuitModuleApplicationRelation[],
+  board: CircuitApplicationBoard,
+  sn: string
+): CircuitModuleApplicationRelation[] {
+  return rows.map((row) => {
     const dlbBoards = Array.isArray(row.dlbTestBoardList)
       ? row.dlbTestBoardList.map((rawBoard) =>
           isMatchingBoardRecord(board, rawBoard) ? patchRawBoardSn(rawBoard, sn) : rawBoard
@@ -1513,13 +1516,24 @@ function updateApplicationRawBoardSn(application: CircuitApplication, board: Cir
         )
       : row.boards
     const rowMatched = isMatchingBoardRecord(board, row)
-    const nextRow = (rowMatched ? patchRawBoardSn(row, sn) : row) as Record<string, unknown>
+    const nextRow = (rowMatched ? patchRawBoardSn(row, sn) : row) as CircuitModuleApplicationRelation
     return {
       ...nextRow,
       ...(dlbBoards ? { dlbTestBoardList: dlbBoards as any } : {}),
       ...(boards ? { boards: boards as any } : {})
-    }
+    } as CircuitModuleApplicationRelation
   })
+}
+
+function buildSnPersistenceRows(application: CircuitApplication, fillRows: SnFillRow[]) {
+  let nextRows = getApplicationRelationRows(application).map((row) => ({ ...row }))
+  fillRows.forEach((row) => {
+    nextRows = patchApplicationRelationRowsSn(nextRows, row.board, normalizeSnInput(row.sn))
+  })
+
+  // 顶层仍按待发布状态保存，避免在 SN 补录步骤触发排程或推送；
+  // 子板状态保持原值，不能把同申请单中已经发布的兄弟板回退为未发布。
+  return markCircuitApplicationPendingForSnPersistence(nextRows)
 }
 
 function normalizeSnInput(value: unknown) {
@@ -1533,13 +1547,19 @@ function buildAutoSnBase(application: CircuitApplication, board: CircuitApplicat
   )
 }
 
+function getBoardSnRange(board: CircuitApplicationBoard, sn: string) {
+  const quantity = getBoardQuantity(board)
+  return quantity > 1 ? expandConsecutiveBoardSerials(sn, quantity) : [sn]
+}
+
 function collectExistingSnSet(application: CircuitApplication, excludedRows: SnFillRow[] = []) {
   const excludedBoards = new Set(excludedRows.map((row) => row.board))
   const values = application.boards
     .filter((board) => !excludedBoards.has(board))
-    .map((board) => getProvidedBoardSn(board) || getBoardSerial(board))
-    .filter(Boolean)
-    .map((value) => String(value).trim())
+    .flatMap((board) => {
+      const sn = String(getProvidedBoardSn(board) || getBoardSerial(board)).trim()
+      return sn ? getBoardSnRange(board, sn) : []
+    })
   return new Set(values)
 }
 
@@ -1547,11 +1567,11 @@ function createUniqueAutoSn(application: CircuitApplication, board: CircuitAppli
   const base = buildAutoSnBase(application, board)
   let index = 1
   let sn = `${base}-${String(index).padStart(3, "0")}`
-  while (used.has(sn)) {
+  while (getBoardSnRange(board, sn).some((value) => used.has(value))) {
     index += 1
     sn = `${base}-${String(index).padStart(3, "0")}`
   }
-  used.add(sn)
+  getBoardSnRange(board, sn).forEach((value) => used.add(value))
   return sn
 }
 
@@ -1563,12 +1583,13 @@ function autoFillMissingSn() {
     if (!normalizeSnInput(row.sn)) {
       row.sn = createUniqueAutoSn(application, row.board, used)
     } else {
-      used.add(normalizeSnInput(row.sn))
+      getBoardSnRange(row.board, normalizeSnInput(row.sn)).forEach((value) => used.add(value))
     }
   })
 }
 
 function cancelSnFill() {
+  if (snFillSaving.value) return
   snFillDialogVisible.value = false
   snFillRows.value = []
   snFillApplication.value = null
@@ -1576,7 +1597,8 @@ function cancelSnFill() {
   snFillResolver = null
 }
 
-function confirmSnFill() {
+async function confirmSnFill() {
+  if (snFillSaving.value) return
   const application = snFillApplication.value
   if (!application) {
     cancelSnFill()
@@ -1590,27 +1612,40 @@ function confirmSnFill() {
   const allSn = [
     ...application.boards
       .filter((board) => !snFillRows.value.some((row) => row.board === board))
-      .map((board) => getProvidedBoardSn(board) || getBoardSerial(board))
-      .filter(Boolean)
-      .map((value) => String(value).trim()),
-    ...snFillRows.value.map((row) => normalizeSnInput(row.sn))
+      .flatMap((board) => {
+        const sn = String(getProvidedBoardSn(board) || getBoardSerial(board)).trim()
+        return sn ? getBoardSnRange(board, sn) : []
+      }),
+    ...snFillRows.value.flatMap((row) => getBoardSnRange(row.board, normalizeSnInput(row.sn)))
   ]
   if (new Set(allSn).size !== allSn.length) {
     ElMessage.warning("SN 不能重复，请检查后再继续")
     return
   }
 
-  snFillRows.value.forEach((row) => {
-    const sn = normalizeSnInput(row.sn)
-    applyBoardSn(row.board, sn)
-    updateApplicationRawBoardSn(application, row.board, sn)
-  })
-  refreshSelectedApplication(application)
-  snFillDialogVisible.value = false
-  snFillRows.value = []
-  snFillApplication.value = null
-  snFillResolver?.(true)
-  snFillResolver = null
+  const fillRows = [...snFillRows.value]
+  const nextRows = buildSnPersistenceRows(application, fillRows)
+  snFillSaving.value = true
+  try {
+    await syncCircuitModuleApplicationList(nextRows)
+    fillRows.forEach((row) => applyBoardSn(row.board, normalizeSnInput(row.sn)))
+    application.raw = nextRows
+    refreshSelectedApplication(application)
+    snFillDialogVisible.value = false
+    snFillRows.value = []
+    snFillApplication.value = null
+    snFillResolver?.(true)
+    snFillResolver = null
+  } catch (error) {
+    const message = getString(
+      (error as any)?.response?.data?.msg,
+      (error as any)?.response?.data?.message,
+      (error as any)?.message
+    )
+    ElMessage.error(`SN 保存失败：${message || "申请单同步接口调用失败"}，工单保持待发布`)
+  } finally {
+    snFillSaving.value = false
+  }
 }
 
 function openSnFillDialog(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
@@ -1695,16 +1730,20 @@ function buildGeneratedBoardRow(
       raw.board_serial,
       raw.id
     ) || `${application.orderNo}-${index + 1}`
-  const prodBoardId = getDisplayString(board.prodBoardId, raw.prodBoardId, raw.prod_board_id, raw.board_id)
+  const prodBoardId = getDisplayString(board.prodBoardId, raw.prodBoardId, raw.prod_board_id)
   const tempBoardId = getDisplayString(board.tempBoardId, raw.tempBoardId, raw.temp_board_id)
+  const instrumentModelId = getDisplayString(board.instrumentModelId, raw.instrumentModelId, raw.instrument_model_id)
+  const productModelId = getDisplayString(board.productModelId, raw.productModelId, raw.product_model_id)
   const rawBoardId = getDisplayString(board.boardId, raw.boardId, raw.board_id, prodBoardId, tempBoardId)
   const batchNo = getDisplayString(board.batchNo, raw.pch, raw.batchNo, raw.batch_id, raw.batchId)
   const supplier = getString(board.supplier, raw.gysmc, raw.supplier)
   const model = getString(board.model, board.name, raw.ggxh, raw.model, raw.name)
   const sampleName = getString(board.sampleName, raw.ypmc, raw.sampleName, raw.board_name, model)
   const materialNo = getString(board.materialNo, raw.wlh, raw.materialNo, raw.material_no)
-  const product = getString(raw.sscp, raw.product, raw.productName, raw.product_name, raw.belongProduct)
+  const product = getString(board.product, raw.product, raw.productName, raw.product_name, raw.belongProduct)
   const instrument = getString(
+    board.instrument,
+    raw.sscp,
     raw.instrument,
     raw.instrumentName,
     raw.instrument_name,
@@ -1722,6 +1761,10 @@ function buildGeneratedBoardRow(
     prod_board_id: prodBoardId,
     tempBoardId,
     temp_board_id: tempBoardId,
+    instrumentModelId,
+    instrument_model_id: instrumentModelId,
+    productModelId,
+    product_model_id: productModelId,
     serial_num: serial,
     board_serial: serial,
     serial,
@@ -1760,39 +1803,8 @@ function buildGeneratedBoardRow(
     ypmc: sampleName,
     wlh: materialNo,
     csnr: testContent,
-    sscp: product
+    sscp: instrument
   }
-}
-
-function findMatchingBoardInfoRow(rows: any[], board: CircuitApplicationBoard) {
-  const serial = getBoardSerial(board)
-  const raw = (board.raw || {}) as Record<string, unknown>
-  const boardValues = new Set(
-    [board.id, board.boardId, board.prodBoardId, board.tempBoardId, serial, ...getRawBoardIdentityValues(raw)]
-      .map((value) => getDisplayString(value))
-      .filter(Boolean)
-  )
-  return rows.find((row) => {
-    const rowValues = [
-      row.id,
-      row.board_id,
-      row.boardId,
-      row.prod_board_id,
-      row.prodBoardId,
-      row.temp_board_id,
-      row.tempBoardId,
-      row.serial_num,
-      row.serialNumber,
-      row.board_serial,
-      row.boardSerial,
-      row.sn,
-      row.serial,
-      row.seria
-    ]
-      .map((value) => getDisplayString(value))
-      .filter(Boolean)
-    return rowValues.some((value) => boardValues.has(value))
-  })
 }
 
 function filterSelectedTests(selectedTests: any[], testType: ResolvedGeneratedTestType) {
@@ -1812,18 +1824,6 @@ function ensureSelectedTestHasProcess(
   }))
 }
 
-function buildFallbackProductionBoardRow(
-  application: CircuitApplication,
-  board: CircuitApplicationBoard,
-  index: number,
-  testType: ResolvedGeneratedTestType
-) {
-  const fallbackBoardId = getBoardSerial(board) || getDisplayString(board.id) || `${application.orderNo}-${index + 1}`
-  return buildGeneratedBoardRow(application, board, index, fallbackBoardId, [
-    buildGeneratedTestOption(testType, application.craft)
-  ])
-}
-
 async function resolveProductionBoardRow(
   application: CircuitApplication,
   board: CircuitApplicationBoard,
@@ -1834,14 +1834,14 @@ async function resolveProductionBoardRow(
   if (!serial) throw createMissingBoardsError([board], "样品缺少 SN，无法匹配生产电路板")
 
   try {
-    const prodBoardInfo = await getProdBoardDataBySn(serial)
+    const prodBoardInfo = await getProdBoardDataBySn(serial, { silentError: true })
     const batchId = prodBoardInfo?.data?.batch_id
     const boardModelId = prodBoardInfo?.data?.boardmodel_id
     if (!batchId || !boardModelId) throw new Error("生产电路板缺少批次或型号")
 
     const result = await getbordsinfo({ batchId, boardModelId })
-    const matched = findMatchingBoardInfoRow(result?.data || [], board)
-    if (!matched) throw new Error("生产电路板没有可用测试工艺")
+    const matched = findMatchingLocalBoardRow<any>(result?.data || [], board, "production")
+    if (!matched || !isNumericBoardId(matched.id)) throw new Error("生产电路板没有有效的本地实体或可用测试工艺")
 
     const availableTests =
       Array.isArray(matched.selectedTest) && matched.selectedTest.length
@@ -1852,13 +1852,12 @@ async function resolveProductionBoardRow(
       testType,
       application
     )
-    if (!selectedTests.length || selectedTests.some((item) => !item.processId)) {
-      throw new Error("生产电路板未绑定可用检测工艺")
-    }
+    const testsForOrder = selectedTests.length ? selectedTests : [buildGeneratedTestOption(testType, application.craft)]
 
-    return buildGeneratedBoardRow(application, board, index, matched.id, selectedTests)
+    return buildGeneratedBoardRow(application, board, index, matched.id, testsForOrder)
   } catch (error) {
-    return buildFallbackProductionBoardRow(application, board, index, testType)
+    const reason = error instanceof Error && error.message ? error.message : "未匹配到本地生产电路板"
+    throw createMissingBoardsError([board], `${reason}：${getBoardDisplayName(board)}`)
   }
 }
 
@@ -1877,8 +1876,8 @@ async function resolveTempOrderBoardRow(
     const boardModelId = prodBoardInfo?.data?.boardmodel_id
     if (batchId && boardModelId) {
       const result = await getboardsinfoForTempOrder({ batchId, boardModelId, tempBatch: false })
-      const matched = findMatchingBoardInfoRow(result?.data || [], board)
-      if (matched) {
+      const matched = findMatchingLocalBoardRow<any>(result?.data || [], board, "production")
+      if (matched && isNumericBoardId(matched.id)) {
         return {
           row: buildGeneratedBoardRow(application, board, index, matched.id, [
             buildGeneratedTestOption(testType, application.craft)
@@ -1897,7 +1896,7 @@ async function resolveTempOrderBoardRow(
   try {
     const result = await getTempBoardDataApi({ currentPage: 1, size: 999999, serialNumber: serial })
     tempBoardRows = result?.data?.list || []
-    matched = tempBoardRows.find((item) => getString(item.serialNumber, item.seria) === serial)
+    matched = findMatchingLocalBoardRow(tempBoardRows, board, "temporary")
   } catch (error) {
     tempBoardRows = []
   }
@@ -1905,7 +1904,7 @@ async function resolveTempOrderBoardRow(
   if (!matched) {
     const fallbackResult = await getTempBoardDataApi({ currentPage: 1, size: 999999 })
     tempBoardRows = fallbackResult?.data?.list || []
-    matched = tempBoardRows.find((item) => getString(item.serialNumber, item.seria) === serial)
+    matched = findMatchingLocalBoardRow(tempBoardRows, board, "temporary")
   }
 
   if (!matched || !isNumericBoardId(matched.id)) {
@@ -2084,6 +2083,42 @@ function markGeneratedOrderCreated(application: CircuitApplication) {
   }
 }
 
+function getProductionBoardEnsureSns(boards: CircuitApplicationBoard[]) {
+  return Array.from(new Set(boards.map((board) => getBoardSerial(board)).filter(Boolean)))
+}
+
+function getProductionBoardEnsureErrorMessage(error: unknown) {
+  const value = error as any
+  const message = getString(
+    value?.response?.data?.msg,
+    value?.response?.data?.message,
+    value?.data?.msg,
+    value?.data?.message,
+    value?.message
+  )
+  return message || "生产电路板自动补入接口调用失败"
+}
+
+async function ensureProductionBoardsBeforeGenerate(
+  application: CircuitApplication,
+  boards: CircuitApplicationBoard[]
+) {
+  const orderNo = application.orderNo.trim()
+  const boardSns = getProductionBoardEnsureSns(boards)
+  if (!orderNo) {
+    throw new Error("生产电路板自动补入失败：申请单号为空，工单保持待发布")
+  }
+  if (!boardSns.length || boardSns.length !== boards.length) {
+    throw new Error("生产电路板自动补入失败：存在无效或重复 SN，工单保持待发布")
+  }
+
+  try {
+    await ensureCircuitModuleProductionBoards({ orderNo, boardSns })
+  } catch (error) {
+    throw new Error(`生产电路板自动补入失败：${getProductionBoardEnsureErrorMessage(error)}，工单保持待发布`)
+  }
+}
+
 async function createGeneratedTestOrder(
   application: CircuitApplication,
   silent = false,
@@ -2093,6 +2128,7 @@ async function createGeneratedTestOrder(
   const boardsForOrder = expandBoardsForGeneratedOrders(application, boards)
 
   if (application.generatedOrderType === "production") {
+    await ensureProductionBoardsBeforeGenerate(application, boardsForOrder)
     const testType = await resolveGeneratedOrderTestType(application)
     const { boardList } = await buildGeneratedOrderBoardList(application, boardsForOrder, testType)
     const response = await createTestUnitApi({
@@ -2153,7 +2189,6 @@ async function createGeneratedTestOrder(
 function getRawBoardIdentityValues(raw: Record<string, unknown>) {
   return [
     raw.id,
-    raw.dlbTestId,
     raw.board_id,
     raw.boardId,
     raw.prodBoardId,
@@ -2173,39 +2208,7 @@ function getRawBoardIdentityValues(raw: Record<string, unknown>) {
 }
 
 function isMatchingBoardRecord(board: CircuitApplicationBoard, rawBoard: unknown) {
-  if (board.raw === rawBoard) return true
-  if (!rawBoard || typeof rawBoard !== "object") return false
-
-  const rawValues = getRawBoardIdentityValues(rawBoard as Record<string, unknown>)
-  const boardValues = new Set(
-    [
-      board.id,
-      board.boardId,
-      board.prodBoardId,
-      board.tempBoardId,
-      board.serial,
-      board.sn,
-      board.seria,
-      (board.raw as Record<string, unknown> | undefined)?.id,
-      (board.raw as Record<string, unknown> | undefined)?.dlbTestId,
-      (board.raw as Record<string, unknown> | undefined)?.board_id,
-      (board.raw as Record<string, unknown> | undefined)?.boardId,
-      (board.raw as Record<string, unknown> | undefined)?.prodBoardId,
-      (board.raw as Record<string, unknown> | undefined)?.prod_board_id,
-      (board.raw as Record<string, unknown> | undefined)?.tempBoardId,
-      (board.raw as Record<string, unknown> | undefined)?.temp_board_id,
-      (board.raw as Record<string, unknown> | undefined)?.sn,
-      (board.raw as Record<string, unknown> | undefined)?.seria,
-      (board.raw as Record<string, unknown> | undefined)?.serial,
-      (board.raw as Record<string, unknown> | undefined)?.serial_num,
-      (board.raw as Record<string, unknown> | undefined)?.serialNumber,
-      (board.raw as Record<string, unknown> | undefined)?.board_serial,
-      (board.raw as Record<string, unknown> | undefined)?.boardSerial
-    ]
-      .map((value) => getDisplayString(value))
-      .filter(Boolean)
-  )
-  return rawValues.some((value) => boardValues.has(value))
+  return isSameCircuitApplicationBoardRecord(board, rawBoard)
 }
 
 function buildBoardStatusPatch(status: string | number) {
@@ -2243,7 +2246,7 @@ async function persistBoardStatus(
   targetBoard: CircuitApplicationBoard,
   status: string | number
 ) {
-  await persistBoardsStatus(application, [targetBoard], status)
+  return persistBoardsStatus(application, [targetBoard], status)
 }
 
 async function persistBoardsStatus(
@@ -2282,8 +2285,27 @@ async function persistBoardsStatus(
     throw new Error("未找到要同步状态的样品")
   }
 
-  await syncCircuitModuleApplicationList(nextRows)
+  const response = await syncCircuitModuleApplicationList(nextRows)
   application.raw = nextRows
+  return response
+}
+
+function getAssistantSchedulePushFeedback(response?: CircuitModuleApplicationSyncResponse) {
+  const rows = Array.isArray(response?.data?.autoScheduled) ? response.data.autoScheduled : []
+  const pushes = rows
+    .map((row) => row.assistantPush)
+    .filter((push): push is NonNullable<typeof push> => push !== null && push !== undefined)
+  const failedPush = pushes.find((push) => !push.success)
+  if (failedPush) {
+    return {
+      state: "failed" as const,
+      detail: failedPush.error || failedPush.reason || "未知错误"
+    }
+  }
+  if (pushes.some((push) => push.success && !push.skipped)) {
+    return { state: "success" as const, detail: "" }
+  }
+  return { state: "none" as const, detail: "" }
 }
 
 function markBoardsPublished(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
@@ -2354,12 +2376,15 @@ async function publishApplication(application: CircuitApplication, silent = fals
       return "failed"
     }
 
+    let syncResponse: CircuitModuleApplicationSyncResponse | undefined
     try {
-      await persistBoardsStatus(application, boardsToPublish, circuitPublishedSyncState.status)
+      syncResponse = await persistBoardsStatus(application, boardsToPublish, circuitPublishedSyncState.status)
     } catch (statusError) {
       if (!silent) ElMessage.warning("测试工单已生成，但申请单状态同步失败，未标记已发布")
       return "failed"
     }
+
+    const assistantPushFeedback = getAssistantSchedulePushFeedback(syncResponse)
 
     markBoardsPublished(application, boardsToPublish)
     refreshSelectedApplication(application)
@@ -2369,9 +2394,17 @@ async function publishApplication(application: CircuitApplication, silent = fals
     if (!silent) {
       const generatedMessage =
         application.generatedOrderType === "production" ? "已生成生产测试工单" : "已生成临时测试工单"
-      ElMessage.success(`${application.orderNo} 已发布，${generatedMessage}`)
+      if (assistantPushFeedback.state === "failed") {
+        ElMessage.warning(
+          `${application.orderNo} 已发布，${generatedMessage}；排程已保存在本地，但推送小助手失败：${assistantPushFeedback.detail}`
+        )
+      } else if (assistantPushFeedback.state === "success") {
+        ElMessage.success(`${application.orderNo} 已发布，${generatedMessage}，排程已推送小助手`)
+      } else {
+        ElMessage.success(`${application.orderNo} 已发布，${generatedMessage}`)
+      }
     }
-    return "success"
+    return assistantPushFeedback.state === "failed" ? "push_failed" : "success"
   } finally {
     publishingKeys.value = publishingKeys.value.filter((key) => key !== application.key)
   }
@@ -2405,12 +2438,15 @@ async function publishBoard(application: CircuitApplication, board: CircuitAppli
       return
     }
 
+    let syncResponse: CircuitModuleApplicationSyncResponse | undefined
     try {
-      await persistBoardStatus(application, board, circuitPublishedSyncState.status)
+      syncResponse = await persistBoardStatus(application, board, circuitPublishedSyncState.status)
     } catch (statusError) {
       ElMessage.warning("测试工单已生成，但样品状态同步失败，未标记已发布")
       return
     }
+
+    const assistantPushFeedback = getAssistantSchedulePushFeedback(syncResponse)
 
     markBoardsPublished(application, [board])
     refreshSelectedApplication(application)
@@ -2418,7 +2454,15 @@ async function publishBoard(application: CircuitApplication, board: CircuitAppli
     selectedBoardRows.value = selectedBoardRows.value.filter((item) => item !== board)
     const generatedMessage =
       application.generatedOrderType === "production" ? "已生成生产测试工单" : "已生成临时测试工单"
-    ElMessage.success(`${board.sn || board.seria} 已发布，${generatedMessage}`)
+    if (assistantPushFeedback.state === "failed") {
+      ElMessage.warning(
+        `${board.sn || board.seria} 已发布，${generatedMessage}；排程已保存在本地，但推送小助手失败：${assistantPushFeedback.detail}`
+      )
+    } else if (assistantPushFeedback.state === "success") {
+      ElMessage.success(`${board.sn || board.seria} 已发布，${generatedMessage}，排程已推送小助手`)
+    } else {
+      ElMessage.success(`${board.sn || board.seria} 已发布，${generatedMessage}`)
+    }
   } finally {
     publishingBoardKeys.value = publishingBoardKeys.value.filter((item) => item !== key)
   }
@@ -2436,17 +2480,18 @@ async function batchPublishApplications() {
   const targets = applications.value.filter(
     (application) => selectedApplicationIds.value.includes(application.key) && isApplicationPublishable(application)
   )
-  const results: Array<"success" | "failed" | "missing_boards" | "skipped" | undefined> = []
+  const results: Array<"success" | "push_failed" | "failed" | "missing_boards" | "skipped" | undefined> = []
   for (const application of targets) {
     results.push(await publishApplication(application, true))
   }
   const successCount = results.filter((result) => result === "success").length
+  const pushFailedCount = results.filter((result) => result === "push_failed").length
   const missingCount = results.filter((result) => result === "missing_boards").length
   const failedCount = results.filter((result) => result === "failed").length
   const skippedCount = results.filter((result) => result === "skipped").length
 
   const succeededKeys = targets
-    .filter((application, index) => results[index] === "success")
+    .filter((_application, index) => results[index] === "success" || results[index] === "push_failed")
     .map((application) => application.key)
   selectedApplicationIds.value = selectedApplicationIds.value.filter((key) => !succeededKeys.includes(key))
 
@@ -2456,7 +2501,7 @@ async function batchPublishApplications() {
   }
 
   ElMessage.warning(
-    `批量发布完成：成功 ${successCount} 条，未匹配 ${missingCount} 条，失败 ${failedCount} 条，跳过 ${skippedCount} 条`
+    `批量发布完成：成功并推送 ${successCount} 条，已发布但推送失败 ${pushFailedCount} 条，未匹配 ${missingCount} 条，失败 ${failedCount} 条，跳过 ${skippedCount} 条`
   )
 }
 
@@ -2538,6 +2583,7 @@ function buildCreateBoards() {
       supplier: createForm.client.trim(),
       quantity: "1",
       consignor: createForm.applicant.trim(),
+      sfxyjcgy: createForm.sfxyjcgy,
       model,
       name: model,
       status: 0,

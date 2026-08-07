@@ -1,3 +1,5 @@
+export type InspectionResultType = 0 | 1
+
 export interface InspectionBaseInfoListRequest {
   device_name?: string
   device_sn?: string
@@ -26,6 +28,7 @@ export interface InspectionBaseInfoDetailItem {
   id: number
   sort_no: number
   content: string
+  result_type: InspectionResultType
   require_photo: boolean
   photo?: string | null
   created_at?: string | null
@@ -74,6 +77,7 @@ export interface InspectionBaseInfoSaveRequest {
   items: Array<{
     sort_no?: number
     content: string
+    result_type: InspectionResultType
     require_photo: boolean
     photo?: string | null
   }>
@@ -97,6 +101,7 @@ export interface InspectionBaseInfoSaveResponse {
           itemContent: string
           orderNum: string
           isPhoto: boolean
+          resultType: InspectionResultType
         }>
       }
       assistant?: unknown
@@ -114,6 +119,7 @@ export interface InspectionBaseItemSaveRequest {
   assistant_equipment_type?: string
   sort_no?: number
   content: string
+  result_type: InspectionResultType
   require_photo: boolean
   photo?: string | null
 }
@@ -137,6 +143,7 @@ export interface InspectionBaseItemSaveResponse {
           itemContent: string
           orderNum: string
           isPhoto: boolean
+          resultType: InspectionResultType
         }>
       }
       assistant?: unknown
@@ -172,6 +179,7 @@ export interface InspectionBaseAssistantSyncResponse {
         itemContent: string
         orderNum: string
         isPhoto: boolean
+        resultType: InspectionResultType
       }>
     }
     assistant?: unknown

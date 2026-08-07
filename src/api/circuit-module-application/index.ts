@@ -19,7 +19,14 @@ export interface DlbCircuitBoardItem {
   prod_board_id?: string | number
   tempBoardId?: string | number
   temp_board_id?: string | number
+  instrumentModelId?: string | number
+  instrument_model_id?: string | number
+  productModelId?: string | number
+  product_model_id?: string | number
+  instrumentModelName?: string
+  productModelName?: string
   sscp?: string
+  product?: string
   ypmc?: string
   wlh?: string
   ggxh?: string
@@ -109,6 +116,12 @@ export interface CircuitModuleBoardItem {
   prod_board_id?: string | number
   tempBoardId?: string | number
   temp_board_id?: string | number
+  instrumentModelId?: string | number
+  instrument_model_id?: string | number
+  productModelId?: string | number
+  product_model_id?: string | number
+  instrumentModelName?: string
+  productModelName?: string
   seria?: string
   sn?: string
   assistantSn?: string
@@ -138,6 +151,7 @@ export interface CircuitModuleBoardItem {
   consignor?: string
   wtr?: string
   product?: string
+  instrument?: string
   sscp?: string
   unit?: string
   ssdw?: string
@@ -257,6 +271,29 @@ export interface CircuitModuleApplicationSyncResponse {
         error?: string
       } | null
     }>
+  }
+}
+
+export interface EnsureCircuitModuleProductionBoardsRequest {
+  orderNo: string
+  boardSns: string[]
+}
+
+export interface EnsuredCircuitModuleProductionBoard {
+  id: string | number
+  sn: string
+  boardModelId: string | number
+  batchId: string | number
+  instrumentId: string | number | null
+}
+
+export interface EnsureCircuitModuleProductionBoardsResponse {
+  code: number
+  msg?: string
+  data: {
+    createdCount: number
+    existingCount: number
+    boards: EnsuredCircuitModuleProductionBoard[]
   }
 }
 
@@ -392,6 +429,15 @@ export function syncCircuitModuleApplicationList(items: CircuitModuleApplication
     data: {
       list: items
     }
+  })
+}
+
+export function ensureCircuitModuleProductionBoards(data: EnsureCircuitModuleProductionBoardsRequest) {
+  return request<EnsureCircuitModuleProductionBoardsResponse>({
+    url: "data/assistant/circuit-board-module-order/ensure-production-boards",
+    method: "post",
+    data,
+    silentError: true
   })
 }
 
