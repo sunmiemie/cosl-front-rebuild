@@ -80,9 +80,13 @@ describe("电路板申请单发布匹配", () => {
     expect(persistenceBlock).not.toContain("row.boards.map")
 
     const publishBlock = componentContent.match(
-      /async function publishApplication[\s\S]*?async function publishBoard/
+      /async function publishApplication[\s\S]*?function handlePrimaryAction/
     )?.[0]
+    expect(publishBlock).toBeTruthy()
     expect(publishBlock?.indexOf("await ensurePublishBoardsHaveSn")).toBeLessThan(
+      publishBlock?.indexOf("await collectBindingsForPublish") ?? -1
+    )
+    expect(publishBlock?.indexOf("await collectBindingsForPublish")).toBeLessThan(
       publishBlock?.indexOf("await generateOrdersForBoards") ?? -1
     )
   })
@@ -172,7 +176,10 @@ describe("电路板申请单发布匹配", () => {
     expect(componentContent).not.toContain("fallbackBoardId")
     expect(componentContent).toContain("getAssistantSchedulePushFeedback")
     expect(componentContent).toContain("response?.data?.autoScheduled")
-    expect(componentContent).toContain('return assistantPushFeedback.state === "failed" ? "push_failed" : "success"')
+    expect(componentContent).toContain(
+      'assistantPushFeedback.state === "failed" || bindingPushFeedback.state === "failed"'
+    )
+    expect(componentContent).toContain('? "push_failed"')
   })
 
   it("新生产板未配置检测工艺时仍允许生成待执行工单", () => {

@@ -92,12 +92,15 @@
             <span v-else class="badge unlinked">未关联</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="142" align="center" fixed="right">
+        <el-table-column label="操作" width="190" align="center" fixed="right">
           <template #default="{ row, $index }">
             <el-button v-if="row.status === 'unlinked'" link type="primary" @click="openLinkModal($index)">
               关联委托单
             </el-button>
             <el-button v-else link type="primary" @click="openLinkModal($index)">修改</el-button>
+            <el-button v-if="row.status === 'linked'" link type="danger" @click="unlinkRelation(row)"
+              >取消关联</el-button
+            >
             <el-button link type="info" @click="openHoursModal($index)">编辑工时</el-button>
           </template>
         </el-table-column>
@@ -232,7 +235,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from "vue"
-import { ElMessage } from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
 import { request } from "@/utils/service"
 
 const sampleDetailFields = [
@@ -290,26 +293,8 @@ const formatHours = (value: unknown) => {
   return Number.isInteger(numeric) ? String(numeric) : String(numeric)
 }
 
-const getAssistantSyncPayload = () => {
-  const searchText = filters.search.trim()
-  return /^CS[\w-]+$/i.test(searchText) ? { applicationNum: searchText } : {}
-}
-
-const syncAssistantCommissionBindings = async () => {
-  try {
-    await request({
-      url: "data/commission-board-relation/sync-assistant",
-      method: "post",
-      data: getAssistantSyncPayload()
-    })
-  } catch (error) {
-    ElMessage.warning("同步小助手关联失败，已显示本地数据")
-  }
-}
-
 const getList = async () => {
   loading.value = true
-  await syncAssistantCommissionBindings()
   try {
     const res: any = await request({
       url: "data/commission-board-relation/list",
@@ -484,8 +469,15 @@ const confirmLink = () => {
         sampleId: linkForm.sampleId
       }
     })
-      .then(() => {
-        ElMessage.success(row.status === "linked" ? "修改成功" : "关联成功")
+      .then((response: any) => {
+        const assistantSync = response?.data?.assistantSync
+        if (assistantSync?.success === false && !assistantSync?.skipped) {
+          ElMessage.warning(
+            `${row.status === "linked" ? "修改" : "关联"}已保存，但整单推送小助手失败：${assistantSync.message || "未知错误"}`
+          )
+        } else {
+          ElMessage.success(row.status === "linked" ? "修改成功，已整单同步" : "关联成功，已整单同步")
+        }
         linkModalVisible.value = false
         getList()
       })
@@ -495,6 +487,35 @@ const confirmLink = () => {
     return
   }
   linkModalVisible.value = false
+}
+
+const unlinkRelation = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(
+      `确认取消 ${row.sn} 与委托单 ${row.commNo} 的关联吗？保存后会按申请单整单同步。`,
+      "取消关联",
+      {
+        confirmButtonText: "确认取消",
+        cancelButtonText: "返回",
+        type: "warning"
+      }
+    )
+    const response: any = await request({
+      url: "data/commission-board-relation/link",
+      method: "post",
+      data: { sn: row.sn, commissionNo: "", sampleId: null }
+    })
+    const assistantSync = response?.data?.assistantSync
+    if (assistantSync?.success === false && !assistantSync?.skipped) {
+      ElMessage.warning(`关联已取消，但整单推送小助手失败：${assistantSync.message || "未知错误"}`)
+    } else {
+      ElMessage.success("关联已取消，整单关系已同步")
+    }
+    await getList()
+  } catch (error: any) {
+    if (error === "cancel" || error === "close") return
+    ElMessage.error(error?.response?.data?.message || error?.response?.data?.msg || "取消关联失败")
+  }
 }
 
 // 编辑工时逻辑

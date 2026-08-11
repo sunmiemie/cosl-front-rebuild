@@ -19,10 +19,6 @@
 
       <div class="list-actions">
         <el-button type="primary" :icon="Plus" @click="handleCreateApplication">新建</el-button>
-        <el-button :disabled="!canBatchPublish" @click="batchPublishApplications">批量发布</el-button>
-        <span v-if="selectedApplicationIds.length" class="selected-count"
-          >已选 {{ selectedApplicationIds.length }} 项</span
-        >
         <el-button class="refresh-action" :icon="RefreshRight" :loading="loading" @click="loadApplications"
           >刷新</el-button
         >
@@ -42,11 +38,6 @@
           @keydown.enter.prevent="openApplicationDetail(application)"
           @keydown.space.prevent="openApplicationDetail(application)"
         >
-          <el-checkbox
-            :model-value="selectedApplicationIds.includes(application.key)"
-            @click.stop
-            @change="toggleApplicationSelection(application.key)"
-          />
           <div class="application-main">
             <div class="application-no">{{ application.orderNo }}</div>
             <div class="application-name">{{ application.name }}</div>
@@ -63,7 +54,7 @@
             <el-button
               size="small"
               :type="application.primaryType"
-              :loading="isPublishing(application) || isAnyBoardPublishing(application)"
+              :loading="isPublishing(application)"
               :disabled="isApplicationPublishable(application) && !application.boards.length"
               @click.stop="handlePrimaryAction(application)"
             >
@@ -208,12 +199,8 @@
             <el-button
               v-if="isApplicationPublishable(selectedApplication)"
               type="success"
-              :loading="
-                selectedApplication
-                  ? isPublishing(selectedApplication) || isAnyBoardPublishing(selectedApplication)
-                  : false
-              "
-              :disabled="!getPublishableBoards(selectedApplication).length || isAnyBoardPublishing(selectedApplication)"
+              :loading="selectedApplication ? isPublishing(selectedApplication) : false"
+              :disabled="!getPublishableBoards(selectedApplication).length"
               @click="publishApplication(selectedApplication)"
             >
               {{ getApplicationPublishText(selectedApplication) }}
@@ -222,7 +209,7 @@
               v-if="canViewCommissionBindings(selectedApplication)"
               @click="openBindingDialog(selectedApplication)"
             >
-              查看关联
+              编辑委托单关联
             </el-button>
             <el-button
               v-if="selectedApplication.boards.length"
@@ -299,21 +286,11 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="158" fixed="right">
+            <el-table-column label="操作" width="130" fixed="right">
               <template #default="{ row }">
                 <div class="board-actions">
                   <el-button link type="primary" :icon="Printer" @click="handlePrintBoardQrcode(row)">二维码</el-button>
                   <el-button link type="primary" @click="openBoardDetail(row)">详情</el-button>
-                  <el-button
-                    v-if="isBoardPublishable(selectedApplication, row)"
-                    link
-                    type="success"
-                    :loading="isBoardPublishing(selectedApplication, row)"
-                    :disabled="isPublishing(selectedApplication)"
-                    @click="publishBoard(selectedApplication, row)"
-                  >
-                    {{ getBoardPublishText(selectedApplication, row) }}
-                  </el-button>
                   <el-button v-if="row.status === 'in_progress'" link @click="completeBoard(row)">完成</el-button>
                 </div>
               </template>
@@ -357,25 +334,14 @@
       </template>
     </el-dialog>
 
-    <el-dialog
+    <CircuitBoardBindingDialog
       v-model="bindingDialogVisible"
-      title="申请单关联结果"
-      width="min(980px, 96vw)"
-      :close-on-click-modal="false"
-    >
-      <div class="binding-dialog__header">申请单号：{{ bindingApplicationNo || "-" }}</div>
-      <el-table v-loading="bindingLoading" :data="bindingRows" border max-height="420" table-layout="fixed">
-        <el-table-column prop="applicationNum" label="申请单号" min-width="170" show-overflow-tooltip />
-        <el-table-column prop="applicationId" label="申请 ID" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="orderId" label="委托单 ID" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="sampleId" label="样品 ID" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="boardId" label="电路板 ID" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="fpNumber" label="分批号" min-width="140" show-overflow-tooltip />
-      </el-table>
-      <template #footer>
-        <el-button @click="bindingDialogVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
+      :application-no="bindingApplicationNo"
+      :mode="bindingDialogMode"
+      :confirming="bindingConfirming"
+      @confirm="handleBindingConfirm"
+      @cancel="handleBindingCancel"
+    />
 
     <el-dialog
       v-model="snFillDialogVisible"
@@ -400,7 +366,9 @@
       </el-table>
       <template #footer>
         <el-button :disabled="snFillSaving" @click="cancelSnFill">取消发布</el-button>
-        <el-button :disabled="snFillSaving" @click="autoFillMissingSn">自动生成 SN</el-button>
+        <el-button v-if="ENABLE_AUTO_SN_FILL" :disabled="snFillSaving" @click="autoFillMissingSn">
+          自动生成 SN
+        </el-button>
         <el-button type="primary" :loading="snFillSaving" @click="confirmSnFill">确认并继续发布</el-button>
       </template>
     </el-dialog>
@@ -411,18 +379,20 @@
 import { computed, onMounted, reactive, ref } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from "element-plus"
 import { Plus, Printer, Refresh, RefreshRight } from "@element-plus/icons-vue"
-import { getEngineerAssistantCommissionBindingsApi } from "@/api/engineer-assistant"
+import { useRouter } from "vue-router"
 import {
   ensureCircuitModuleProductionBoards,
+  saveCircuitModuleBindingSnapshot,
   getCircuitModuleApplicationList,
   getCircuitModulePublishMissingBoards,
   syncCircuitModuleApplicationList,
+  type CircuitModuleBindingBoard,
   type CircuitModuleApplicationRelation,
   type CircuitModuleApplicationSyncResponse
 } from "@/api/circuit-module-application"
-import type { EngineerAssistantCommissionBinding } from "@/api/engineer-assistant/types"
 import { getProdBoardDataBySn } from "@/api/board"
 import { getTempBoardDataApi } from "@/api/temp-board"
+import CircuitBoardBindingDialog from "@/components/CircuitBoardBindingDialog/index.vue"
 import {
   createDevTestUnitApi,
   createTestUnitApi,
@@ -487,17 +457,6 @@ interface ResolvedGeneratedTempBoardRow {
   row: any
   addProdBoard: boolean
   boardModelId: string | number
-}
-
-interface CommissionBindingRow {
-  key: string
-  applicationNum: string
-  applicationId: string
-  orderId: string
-  sampleId: string
-  boardId: string
-  fpNumber: string
-  raw: EngineerAssistantCommissionBinding
 }
 
 interface SnFillRow {
@@ -582,8 +541,8 @@ const statusMeta: Record<
     primaryType: CircuitApplication["primaryType"]
   }
 > = {
-  draft: { label: "未发布", tagType: "info", primaryText: "发布全部未发布", primaryType: "primary" },
-  partial: { label: "部分发布", tagType: "warning", primaryText: "发布全部未发布", primaryType: "primary" },
+  draft: { label: "未发布", tagType: "info", primaryText: "发布整个工单", primaryType: "primary" },
+  partial: { label: "部分发布", tagType: "warning", primaryText: "发布整个工单", primaryType: "primary" },
   published: { label: "已发布", tagType: "success", primaryText: "查看", primaryType: "" },
   scheduling: { label: "排期中", tagType: "warning", primaryText: "查看", primaryType: "" },
   in_progress: { label: "测试中", tagType: "success", primaryText: "查看", primaryType: "" },
@@ -600,29 +559,32 @@ const createSaving = ref(false)
 const createFormRef = ref<FormInstance>()
 const applications = ref<CircuitApplication[]>([])
 const publishingKeys = ref<string[]>([])
-const publishingBoardKeys = ref<string[]>([])
 const generatedOrderKeys = ref<string[]>([])
 const generatedBoardKeys = ref<string[]>([])
 const missingGeneratedBoardKeys = ref<string[]>([])
 const selectedApplicationKey = ref("")
-const selectedApplicationIds = ref<string[]>([])
 const selectedBoardRows = ref<CircuitApplicationBoard[]>([])
 const boardDetailVisible = ref(false)
 const selectedBoardDetail = ref<CircuitApplicationBoard | null>(null)
 const bindingDialogVisible = ref(false)
-const bindingLoading = ref(false)
-const bindingRows = ref<CommissionBindingRow[]>([])
 const bindingApplicationNo = ref("")
+const bindingDialogMode = ref<"publish" | "edit">("edit")
+const bindingConfirming = ref(false)
+const bindingApplication = ref<CircuitApplication | null>(null)
 const snFillDialogVisible = ref(false)
 const snFillApplicationTitle = ref("")
 const snFillRows = ref<SnFillRow[]>([])
 const snFillApplication = ref<CircuitApplication | null>(null)
 const snFillSaving = ref(false)
+// 暂按业务要求隐藏自动补充入口，保留实现以便后续恢复。
+const ENABLE_AUTO_SN_FILL = false
 const userStore = useUserStore()
+const router = useRouter()
 let testTypeListCache: any[] | null = null
 let tempTestTypeListCache: any[] | null = null
 let tempProdBoardTestTypeListCache: any[] | null = null
 let snFillResolver: ((confirmed: boolean) => void) | null = null
+let bindingResolver: ((rows: CircuitModuleBindingBoard[] | null) => void) | null = null
 const searchForm = reactive<{ keyword: string; status: StatusFilter; orderType: GeneratedOrderFilter }>({
   keyword: "",
   status: "all",
@@ -678,13 +640,6 @@ const filteredApplications = computed(() => {
     return matchesStatus && matchesOrderType && matchesKeyword
   })
 })
-
-const canBatchPublish = computed(() =>
-  selectedApplicationIds.value.some((key) => {
-    const application = applications.value.find((item) => item.key === key)
-    return application ? isApplicationPublishable(application) : false
-  })
-)
 
 function normalizeStatus(status: unknown): ApplicationStatus {
   const text = String(status ?? "")
@@ -1008,9 +963,6 @@ async function loadApplications() {
     selectedApplicationKey.value = applications.value.some((item) => item.key === selectedApplicationKey.value)
       ? selectedApplicationKey.value
       : ""
-    selectedApplicationIds.value = selectedApplicationIds.value.filter((key) =>
-      applications.value.some((item) => item.key === key)
-    )
     void refreshGeneratedStatusForApplications(applications.value)
   } catch (error) {
     applications.value = []
@@ -1024,12 +976,6 @@ function resetFilters() {
   searchForm.keyword = ""
   searchForm.status = "all"
   searchForm.orderType = "all"
-}
-
-function toggleApplicationSelection(key: string) {
-  selectedApplicationIds.value = selectedApplicationIds.value.includes(key)
-    ? selectedApplicationIds.value.filter((item) => item !== key)
-    : [...selectedApplicationIds.value, key]
 }
 
 function openApplicationDetail(application: CircuitApplication) {
@@ -1092,25 +1038,12 @@ function getApplicationPrimaryText(application: CircuitApplication) {
 }
 
 function getApplicationPublishText(application: CircuitApplication) {
-  if (application.boards.some((board) => hasMissingGeneratedBoard(application, board))) return "补发缺失工单"
-  return "发布全部未发布样品"
-}
-
-function getBoardPublishText(application: CircuitApplication, board: CircuitApplicationBoard) {
-  return hasMissingGeneratedBoard(application, board) ? "补发" : "发布"
+  if (application.boards.some((board) => hasMissingGeneratedBoard(application, board))) return "补发整个工单"
+  return "发布整个工单"
 }
 
 function getBoardPublishKey(application: CircuitApplication, board: CircuitApplicationBoard) {
   return `${application.key}:${getDisplayString(board.id, board.boardId, board.prodBoardId, board.tempBoardId, board.serial, board.sn, board.seria)}`
-}
-
-function isBoardPublishing(application: CircuitApplication, board: CircuitApplicationBoard) {
-  return publishingBoardKeys.value.includes(getBoardPublishKey(application, board))
-}
-
-function isAnyBoardPublishing(application: CircuitApplication) {
-  const prefix = `${application.key}:`
-  return publishingBoardKeys.value.some((key) => key.startsWith(prefix))
 }
 
 function markGeneratedBoardCreated(application: CircuitApplication, board: CircuitApplicationBoard) {
@@ -1140,12 +1073,12 @@ function shouldHaveGeneratedBoard(board: CircuitApplicationBoard) {
   return ["published", "scheduling", "in_progress", "done"].includes(normalizeStatus(board.status))
 }
 
-function isBoardPublishable(application: CircuitApplication, board: CircuitApplicationBoard) {
-  return board.status === "draft" || hasMissingGeneratedBoard(application, board)
-}
-
 function getPublishableBoards(application: CircuitApplication) {
-  return application.boards.filter((board) => isBoardPublishable(application, board))
+  return application.boards.filter(
+    (board) =>
+      !["published", "scheduling", "in_progress", "done"].includes(board.status) ||
+      hasMissingGeneratedBoard(application, board)
+  )
 }
 
 function getExpectedGeneratedCount(boardList: any[]) {
@@ -1260,65 +1193,82 @@ function getApplicationRelationRows(application: CircuitApplication): CircuitMod
   return Array.isArray(application.raw) ? application.raw : []
 }
 
-function normalizeCommissionBindingRow(item: EngineerAssistantCommissionBinding, index: number): CommissionBindingRow {
-  const applicationNum = getString(item.applicationNum)
-  const orderId = getString(item.orderId)
-  const sampleId = getString(item.sampleId)
-  const boardId = getString(item.boardId)
-  const applicationId = getString(item.applicationId)
-  const fpNumber = getString(item.fpNumber)
-  return {
-    key: `${applicationNum || "binding"}-${orderId || index}-${sampleId || boardId || index}`,
-    applicationNum,
-    applicationId,
-    orderId,
-    sampleId,
-    boardId,
-    fpNumber,
-    raw: item
-  }
-}
-
 function canViewCommissionBindings(application: CircuitApplication) {
-  if (!application.orderNo) return false
-  if (normalizeStatus(application.status) !== "draft") return true
-  return application.boards.some((board) => normalizeStatus(board.status) !== "draft")
-}
-
-async function loadCommissionBindings(application: CircuitApplication, options: { silent?: boolean } = {}) {
-  if (!application.orderNo) {
-    bindingRows.value = []
-    bindingApplicationNo.value = ""
-    return
-  }
-
-  bindingLoading.value = true
-  bindingApplicationNo.value = application.orderNo
-  try {
-    const result = await getEngineerAssistantCommissionBindingsApi({ applicationNum: application.orderNo })
-    const rows = Array.isArray(result?.data) ? result.data : []
-    bindingRows.value = rows.map((item, index) => normalizeCommissionBindingRow(item, index))
-    if (!bindingRows.value.length && !options.silent) {
-      ElMessage.info("当前申请单暂无关联结果")
-    }
-  } catch (error) {
-    if (!options.silent) {
-      ElMessage.error("获取申请单关联结果失败")
-    }
-  } finally {
-    bindingLoading.value = false
-  }
+  return Boolean(application.orderNo && application.boards.length)
 }
 
 function openBindingDialog(application: CircuitApplication) {
+  bindingDialogMode.value = "edit"
+  bindingApplication.value = application
+  bindingApplicationNo.value = application.orderNo
   bindingDialogVisible.value = true
-  bindingRows.value = []
-  void loadCommissionBindings(application)
 }
 
-function refreshBindingRowsIfOpen(application: CircuitApplication) {
-  if (!bindingDialogVisible.value || bindingApplicationNo.value !== application.orderNo) return
-  void loadCommissionBindings(application, { silent: true })
+function collectBindingsForPublish(application: CircuitApplication) {
+  if (bindingResolver) {
+    ElMessage.warning("请先完成当前申请单的关联确认")
+    return Promise.resolve<CircuitModuleBindingBoard[] | null>(null)
+  }
+  bindingDialogMode.value = "publish"
+  bindingApplication.value = application
+  bindingApplicationNo.value = application.orderNo
+  bindingDialogVisible.value = true
+  return new Promise<CircuitModuleBindingBoard[] | null>((resolve) => {
+    bindingResolver = resolve
+  })
+}
+
+function closeBindingDialog() {
+  bindingDialogVisible.value = false
+  bindingApplicationNo.value = ""
+  bindingApplication.value = null
+}
+
+function handleBindingCancel() {
+  if (bindingConfirming.value) return
+  bindingResolver?.(null)
+  bindingResolver = null
+  closeBindingDialog()
+}
+
+async function handleBindingConfirm(rows: CircuitModuleBindingBoard[]) {
+  const application = bindingApplication.value
+  if (!application) return
+
+  if (bindingDialogMode.value === "publish") {
+    const resolve = bindingResolver
+    bindingResolver = null
+    resolve?.(rows)
+    closeBindingDialog()
+    return
+  }
+
+  bindingConfirming.value = true
+  try {
+    const response = await saveCircuitModuleBindingSnapshot({
+      applicationNum: application.orderNo,
+      boardList: rows.map(({ boardId, orderId, commissionNo, sampleId, fpNumber }) => ({
+        boardId,
+        orderId,
+        commissionNo,
+        sampleId,
+        fpNumber
+      }))
+    })
+    const assistantSync = response.data?.assistantSync
+    if (assistantSync?.success === false && !assistantSync?.skipped) {
+      ElMessage.warning(`关联已保存，但推送小助手失败：${assistantSync.message || assistantSync.error || "未知错误"}`)
+    } else if (assistantSync?.skipped) {
+      ElMessage.success("关联已保存；当前为本地申请单，无需推送小助手")
+    } else {
+      ElMessage.success("整单关联已保存并同步小助手")
+    }
+    closeBindingDialog()
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.message || error?.response?.data?.msg || "保存整单关联失败")
+  } finally {
+    bindingConfirming.value = false
+  }
 }
 
 function getApplicationPrintableBoards(application: CircuitApplication): CircuitApplicationBoard[] {
@@ -2121,7 +2071,6 @@ async function ensureProductionBoardsBeforeGenerate(
 
 async function createGeneratedTestOrder(
   application: CircuitApplication,
-  silent = false,
   boards: CircuitApplicationBoard[] = getPublishableBoards(application)
 ) {
   if (!boards.length) return
@@ -2166,9 +2115,6 @@ async function createGeneratedTestOrder(
   }
   const response = await createDevTestUnitApi(payload)
   if (response?.status === "exists") {
-    if (silent) {
-      throw new Error(response.message || "测试工单已存在，未自动覆盖")
-    }
     await ElMessageBox.confirm(response.message || "测试工单已存在，是否继续生成？", "确认生成", {
       type: "warning",
       confirmButtonText: "继续",
@@ -2241,14 +2187,6 @@ function updateBoardListStatus(
   return { boards: nextBoards, matched }
 }
 
-async function persistBoardStatus(
-  application: CircuitApplication,
-  targetBoard: CircuitApplicationBoard,
-  status: string | number
-) {
-  return persistBoardsStatus(application, [targetBoard], status)
-}
-
 async function persistBoardsStatus(
   application: CircuitApplication,
   targetBoards: CircuitApplicationBoard[],
@@ -2311,68 +2249,122 @@ function getAssistantSchedulePushFeedback(response?: CircuitModuleApplicationSyn
 function markBoardsPublished(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
   boards.forEach((board) => {
     board.publishStatus = 1
-    if (board.status === "draft") board.status = "published"
+    if (!["scheduling", "in_progress", "done"].includes(board.status)) board.status = "published"
   })
-
-  if (application.boards.every((board) => board.status !== "draft")) {
-    applyApplicationStatus(application, "published")
-    selectedApplicationIds.value = selectedApplicationIds.value.filter((key) => key !== application.key)
-  } else {
-    applyApplicationStatus(application, "partial")
-  }
+  applyApplicationStatus(application, "published")
 }
 
-async function generateOrdersForBoards(
-  application: CircuitApplication,
-  boards: CircuitApplicationBoard[],
-  silent: boolean
-) {
+async function generateOrdersForBoards(application: CircuitApplication, boards: CircuitApplicationBoard[]) {
   await refreshGeneratedStatusForApplication(application).catch(() => undefined)
   const boardsToCreate = boards.filter((board) => !hasGeneratedBoardCreated(application, board))
 
   if (!boardsToCreate.length) {
-    if (!silent) ElMessage.warning("这些样品的测试工单已生成，本次仅同步发布状态")
+    ElMessage.warning("工单内待发布电路板的测试工单已生成，本次仅同步整单发布状态")
     return
   }
 
-  await createGeneratedTestOrder(application, silent, boardsToCreate)
+  await createGeneratedTestOrder(application, boardsToCreate)
   boardsToCreate.forEach((board) => markGeneratedBoardCreated(application, board))
   if (application.boards.every((board) => hasGeneratedBoardCreated(application, board) || board.status !== "draft")) {
     markGeneratedOrderCreated(application)
   }
 }
 
-async function publishApplication(application: CircuitApplication, silent = false) {
-  if (isPublishing(application) || isAnyBoardPublishing(application)) return "skipped"
+type BindingPushFeedback = { state: "success" | "failed" | "skipped"; detail: string }
+
+async function persistApplicationBindings(
+  application: CircuitApplication,
+  rows: CircuitModuleBindingBoard[]
+): Promise<BindingPushFeedback> {
+  const response = await saveCircuitModuleBindingSnapshot({
+    applicationNum: application.orderNo,
+    boardList: rows.map(({ boardId, orderId, commissionNo, sampleId, fpNumber }) => ({
+      boardId,
+      orderId,
+      commissionNo,
+      sampleId,
+      fpNumber
+    }))
+  })
+  const sync = response.data?.assistantSync
+  const detail = sync?.message || sync?.error || response.data?.syncError || ""
+  if (sync?.skipped || response.data?.syncStatus === "skipped") return { state: "skipped", detail }
+  if (sync?.success === false || response.data?.syncStatus === "failed") {
+    return { state: "failed", detail: detail || "外部工程师助手接口返回异常" }
+  }
+  return { state: "success", detail }
+}
+
+async function offerScheduleNavigation(applicationNos: string[]) {
+  if (!applicationNos.length) return
+  try {
+    await ElMessageBox.confirm(
+      applicationNos.length === 1
+        ? `${applicationNos[0]} 已发布。是否前往工单排程页面查看排程？`
+        : `已发布 ${applicationNos.length} 条申请单。是否前往工单排程页面查看排程？`,
+      "发布完成",
+      {
+        confirmButtonText: "前往排程",
+        cancelButtonText: "继续发布",
+        type: "success",
+        distinguishCancelAndClose: true
+      }
+    )
+    detailVisible.value = false
+    await router.push({
+      path: "/work-order-schedule",
+      query: {
+        tab: "circuit-board-module",
+        ...(applicationNos.length === 1 ? { keyword: applicationNos[0] } : {})
+      }
+    })
+  } catch {
+    // 用户选择继续留在当前页面发布其他申请单。
+  }
+}
+
+async function publishApplication(application: CircuitApplication) {
+  if (isPublishing(application)) return "skipped"
   if (!application.boards.length) {
-    if (!silent) ElMessage.warning("当前申请单没有电路板列表，不能发布生成测试工单")
+    ElMessage.warning("当前申请单没有电路板列表，不能发布生成测试工单")
     return "skipped"
   }
   const boardsToPublish = getPublishableBoards(application)
   if (!boardsToPublish.length) {
-    if (!silent) ElMessage.warning("当前申请单没有未发布的样品")
+    ElMessage.warning("当前工单没有需要发布的电路板")
     return "skipped"
   }
   const snReady = await ensurePublishBoardsHaveSn(application, boardsToPublish)
   if (!snReady) return "skipped"
+  const bindingRows = await collectBindingsForPublish(application)
+  if (!bindingRows) return "skipped"
 
   publishingKeys.value = [...publishingKeys.value, application.key]
   try {
+    let bindingPushFeedback: BindingPushFeedback
     try {
-      await generateOrdersForBoards(application, boardsToPublish, silent)
+      bindingPushFeedback = await persistApplicationBindings(application, bindingRows)
+    } catch (bindingError: any) {
+      ElMessage.error(
+        bindingError?.response?.data?.message || bindingError?.response?.data?.msg || "整单关联保存失败，未生成测试工单"
+      )
+      return "failed"
+    }
+
+    try {
+      await generateOrdersForBoards(application, boardsToPublish)
     } catch (createError) {
       const missingBoards = getCircuitModulePublishMissingBoards(createError)
       if (missingBoards.length) {
-        if (!silent) {
-          await ElMessageBox.alert(formatMissingBoards(missingBoards), "以下电路板未匹配，未生成工单", {
-            confirmButtonText: "知道了",
-            type: "warning"
-          })
-        }
+        await ElMessageBox.alert(formatMissingBoards(missingBoards), "关联已保存；以下电路板未匹配，未生成工单", {
+          confirmButtonText: "知道了",
+          type: "warning"
+        })
         return "missing_boards"
       }
 
-      if (!silent) ElMessage.error(createError instanceof Error ? createError.message : "发布失败，未生成测试工单")
+      const detail = createError instanceof Error ? createError.message : "发布失败"
+      ElMessage.error(`关联已保存，但测试工单未生成：${detail}`)
       return "failed"
     }
 
@@ -2380,7 +2372,7 @@ async function publishApplication(application: CircuitApplication, silent = fals
     try {
       syncResponse = await persistBoardsStatus(application, boardsToPublish, circuitPublishedSyncState.status)
     } catch (statusError) {
-      if (!silent) ElMessage.warning("测试工单已生成，但申请单状态同步失败，未标记已发布")
+      ElMessage.warning("测试工单已生成，但申请单状态同步失败，未标记已发布")
       return "failed"
     }
 
@@ -2389,82 +2381,28 @@ async function publishApplication(application: CircuitApplication, silent = fals
     markBoardsPublished(application, boardsToPublish)
     refreshSelectedApplication(application)
     await loadApplications()
-    refreshBindingRowsIfOpen(application)
     selectedBoardRows.value = []
-    if (!silent) {
-      const generatedMessage =
-        application.generatedOrderType === "production" ? "已生成生产测试工单" : "已生成临时测试工单"
-      if (assistantPushFeedback.state === "failed") {
-        ElMessage.warning(
-          `${application.orderNo} 已发布，${generatedMessage}；排程已保存在本地，但推送小助手失败：${assistantPushFeedback.detail}`
-        )
-      } else if (assistantPushFeedback.state === "success") {
-        ElMessage.success(`${application.orderNo} 已发布，${generatedMessage}，排程已推送小助手`)
-      } else {
-        ElMessage.success(`${application.orderNo} 已发布，${generatedMessage}`)
-      }
-    }
-    return assistantPushFeedback.state === "failed" ? "push_failed" : "success"
-  } finally {
-    publishingKeys.value = publishingKeys.value.filter((key) => key !== application.key)
-  }
-}
-
-async function publishBoard(application: CircuitApplication, board: CircuitApplicationBoard) {
-  if (!isBoardPublishable(application, board)) {
-    ElMessage.warning("当前样品没有可发布的测试工单")
-    return
-  }
-  if (isPublishing(application) || isBoardPublishing(application, board)) return
-  const snReady = await ensurePublishBoardsHaveSn(application, [board])
-  if (!snReady) return
-
-  const key = getBoardPublishKey(application, board)
-  publishingBoardKeys.value = [...publishingBoardKeys.value, key]
-  try {
-    try {
-      await generateOrdersForBoards(application, [board], false)
-    } catch (createError) {
-      const missingBoards = getCircuitModulePublishMissingBoards(createError)
-      if (missingBoards.length) {
-        await ElMessageBox.alert(formatMissingBoards(missingBoards), "以下电路板未匹配，未生成工单", {
-          confirmButtonText: "知道了",
-          type: "warning"
-        })
-        return
-      }
-
-      ElMessage.error(createError instanceof Error ? createError.message : "发布失败，未生成测试工单")
-      return
-    }
-
-    let syncResponse: CircuitModuleApplicationSyncResponse | undefined
-    try {
-      syncResponse = await persistBoardStatus(application, board, circuitPublishedSyncState.status)
-    } catch (statusError) {
-      ElMessage.warning("测试工单已生成，但样品状态同步失败，未标记已发布")
-      return
-    }
-
-    const assistantPushFeedback = getAssistantSchedulePushFeedback(syncResponse)
-
-    markBoardsPublished(application, [board])
-    refreshSelectedApplication(application)
-    refreshBindingRowsIfOpen(application)
-    selectedBoardRows.value = selectedBoardRows.value.filter((item) => item !== board)
     const generatedMessage =
       application.generatedOrderType === "production" ? "已生成生产测试工单" : "已生成临时测试工单"
-    if (assistantPushFeedback.state === "failed") {
+    if (bindingPushFeedback.state === "failed") {
       ElMessage.warning(
-        `${board.sn || board.seria} 已发布，${generatedMessage}；排程已保存在本地，但推送小助手失败：${assistantPushFeedback.detail}`
+        `${application.orderNo} 已整单发布，${generatedMessage}；关联已保存在本地，但推送小助手失败：${bindingPushFeedback.detail}`
+      )
+    } else if (assistantPushFeedback.state === "failed") {
+      ElMessage.warning(
+        `${application.orderNo} 已整单发布，${generatedMessage}；排程已保存在本地，但推送小助手失败：${assistantPushFeedback.detail}`
       )
     } else if (assistantPushFeedback.state === "success") {
-      ElMessage.success(`${board.sn || board.seria} 已发布，${generatedMessage}，排程已推送小助手`)
+      ElMessage.success(`${application.orderNo} 已整单发布，${generatedMessage}，排程已推送小助手`)
     } else {
-      ElMessage.success(`${board.sn || board.seria} 已发布，${generatedMessage}`)
+      ElMessage.success(`${application.orderNo} 已整单发布，${generatedMessage}`)
     }
+    await offerScheduleNavigation([application.orderNo])
+    return assistantPushFeedback.state === "failed" || bindingPushFeedback.state === "failed"
+      ? "push_failed"
+      : "success"
   } finally {
-    publishingBoardKeys.value = publishingBoardKeys.value.filter((item) => item !== key)
+    publishingKeys.value = publishingKeys.value.filter((key) => key !== application.key)
   }
 }
 
@@ -2474,35 +2412,6 @@ function handlePrimaryAction(application: CircuitApplication) {
     return
   }
   openApplicationDetail(application)
-}
-
-async function batchPublishApplications() {
-  const targets = applications.value.filter(
-    (application) => selectedApplicationIds.value.includes(application.key) && isApplicationPublishable(application)
-  )
-  const results: Array<"success" | "push_failed" | "failed" | "missing_boards" | "skipped" | undefined> = []
-  for (const application of targets) {
-    results.push(await publishApplication(application, true))
-  }
-  const successCount = results.filter((result) => result === "success").length
-  const pushFailedCount = results.filter((result) => result === "push_failed").length
-  const missingCount = results.filter((result) => result === "missing_boards").length
-  const failedCount = results.filter((result) => result === "failed").length
-  const skippedCount = results.filter((result) => result === "skipped").length
-
-  const succeededKeys = targets
-    .filter((_application, index) => results[index] === "success" || results[index] === "push_failed")
-    .map((application) => application.key)
-  selectedApplicationIds.value = selectedApplicationIds.value.filter((key) => !succeededKeys.includes(key))
-
-  if (successCount === targets.length) {
-    ElMessage.success(`已批量发布 ${successCount} 条申请单`)
-    return
-  }
-
-  ElMessage.warning(
-    `批量发布完成：成功并推送 ${successCount} 条，已发布但推送失败 ${pushFailedCount} 条，未匹配 ${missingCount} 条，失败 ${failedCount} 条，跳过 ${skippedCount} 条`
-  )
 }
 
 function getBoardStatus(status: ApplicationStatus) {
@@ -2696,11 +2605,6 @@ onMounted(() => {
 
 .refresh-action {
   margin-left: auto;
-}
-
-.selected-count {
-  color: var(--el-text-color-secondary);
-  font-size: 12px;
 }
 
 .application-list {

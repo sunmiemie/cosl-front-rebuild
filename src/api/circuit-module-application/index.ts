@@ -297,11 +297,6 @@ export interface EnsureCircuitModuleProductionBoardsResponse {
   }
 }
 
-export interface PublishCircuitModuleApplicationRequest {
-  applicationId: string | number
-  orderNo: string
-}
-
 export interface PublishCircuitModuleMissingBoard {
   sn: string
   pch: string
@@ -309,39 +304,53 @@ export interface PublishCircuitModuleMissingBoard {
   ggxh: string
 }
 
-export interface PublishCircuitModuleGeneratedOrder {
-  id: string | number
-  name: string
-  boardSn: string
-  boardBatchNo: string
-}
-
-export interface PublishCircuitModuleApplicationSuccessData {
-  status: string | number
-  orderType: CircuitModuleGeneratedOrderType
-  generatedCount: number
-  generatedOrders: PublishCircuitModuleGeneratedOrder[]
-  reason?: never
-  missingBoards?: never
-}
-
 export interface PublishCircuitModuleApplicationMissingBoardData {
   reason: "missing_board_match"
   missingBoards: PublishCircuitModuleMissingBoard[]
-  status?: string | number
-  orderType?: CircuitModuleGeneratedOrderType
-  generatedCount?: number
-  generatedOrders?: never
 }
 
-export type PublishCircuitModuleApplicationData =
-  | PublishCircuitModuleApplicationSuccessData
-  | PublishCircuitModuleApplicationMissingBoardData
+export interface CircuitModuleBindingBoard {
+  boardId: string
+  sampleName: string
+  specModel: string | null
+  batchNo: string | null
+  quantity: number
+  snList: string[]
+  orderId: string | null
+  commissionNo: string | null
+  sampleId: string | null
+  commissionSampleName: string | null
+  commissionSampleSpec: string | null
+  fpNumber: number
+}
 
-export interface PublishCircuitModuleApplicationResponse {
+export interface CircuitModuleBindingSnapshot {
+  applicationId: string | null
+  applicationNum: string
+  syncStatus: string
+  syncRequestId: string | null
+  syncError: string | null
+  syncedAt: string | null
+  boardList: CircuitModuleBindingBoard[]
+  assistantSync?: {
+    success?: boolean
+    skipped?: boolean
+    message?: string
+    error?: string
+    response?: unknown
+  }
+}
+
+export interface CircuitModuleBindingSnapshotResponse {
   code: number
   msg?: string
-  data?: PublishCircuitModuleApplicationData
+  message?: string
+  data: CircuitModuleBindingSnapshot
+}
+
+export interface SaveCircuitModuleBindingSnapshotRequest {
+  applicationNum: string
+  boardList: Array<Pick<CircuitModuleBindingBoard, "boardId" | "orderId" | "commissionNo" | "sampleId" | "fpNumber">>
 }
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
@@ -352,10 +361,6 @@ function isStringValue(value: unknown): value is string {
   return typeof value === "string"
 }
 
-function isStringOrNumberValue(value: unknown): value is string | number {
-  return typeof value === "string" || typeof value === "number"
-}
-
 function isPublishMissingBoard(value: unknown): value is PublishCircuitModuleMissingBoard {
   return (
     isObjectRecord(value) &&
@@ -363,27 +368,6 @@ function isPublishMissingBoard(value: unknown): value is PublishCircuitModuleMis
     isStringValue(value.pch) &&
     isStringValue(value.gysmc) &&
     isStringValue(value.ggxh)
-  )
-}
-
-function isPublishGeneratedOrder(value: unknown): value is PublishCircuitModuleGeneratedOrder {
-  return (
-    isObjectRecord(value) &&
-    isStringOrNumberValue(value.id) &&
-    isStringValue(value.name) &&
-    isStringValue(value.boardSn) &&
-    isStringValue(value.boardBatchNo)
-  )
-}
-
-export function isCircuitModulePublishSuccessData(data: unknown): data is PublishCircuitModuleApplicationSuccessData {
-  return (
-    isObjectRecord(data) &&
-    isStringOrNumberValue(data.status) &&
-    (data.orderType === "production" || data.orderType === "temporary") &&
-    typeof data.generatedCount === "number" &&
-    Array.isArray(data.generatedOrders) &&
-    data.generatedOrders.every(isPublishGeneratedOrder)
   )
 }
 
@@ -398,19 +382,10 @@ export function isCircuitModulePublishMissingBoardData(
   )
 }
 
-export function getCircuitModulePublishResponseData(
-  errorOrResponse: unknown
-): PublishCircuitModuleApplicationData | undefined {
+export function getCircuitModulePublishMissingBoards(errorOrResponse: unknown) {
   const value = errorOrResponse as any
   const candidates = [value, value?.data?.data, value?.data, value?.response?.data?.data, value?.response?.data]
-  return candidates.find((candidate) => {
-    if (isCircuitModulePublishMissingBoardData(candidate)) return true
-    return isCircuitModulePublishSuccessData(candidate)
-  }) as PublishCircuitModuleApplicationData | undefined
-}
-
-export function getCircuitModulePublishMissingBoards(errorOrResponse: unknown) {
-  const data = getCircuitModulePublishResponseData(errorOrResponse)
+  const data = candidates.find(isCircuitModulePublishMissingBoardData)
   return isCircuitModulePublishMissingBoardData(data) ? data.missingBoards : []
 }
 
@@ -441,10 +416,28 @@ export function ensureCircuitModuleProductionBoards(data: EnsureCircuitModulePro
   })
 }
 
-export function publishCircuitModuleApplicationAndGenerateOrders(data: PublishCircuitModuleApplicationRequest) {
-  return request<PublishCircuitModuleApplicationResponse>({
-    url: "data/assistant/circuit-board-module-order/publish-generate",
+export function getCircuitModuleBindingSnapshot(applicationNum: string) {
+  return request<CircuitModuleBindingSnapshotResponse>({
+    url: "data/commission-board-relation/snapshot",
+    method: "get",
+    params: { applicationNum }
+  })
+}
+
+export function saveCircuitModuleBindingSnapshot(data: SaveCircuitModuleBindingSnapshotRequest) {
+  return request<CircuitModuleBindingSnapshotResponse>({
+    url: "data/commission-board-relation/snapshot/save",
     method: "post",
-    data
+    data,
+    silentError: true
+  })
+}
+
+export function retryCircuitModuleBindingSnapshot(applicationNum: string) {
+  return request<CircuitModuleBindingSnapshotResponse>({
+    url: "data/commission-board-relation/snapshot/retry",
+    method: "post",
+    data: { applicationNum },
+    silentError: true
   })
 }
