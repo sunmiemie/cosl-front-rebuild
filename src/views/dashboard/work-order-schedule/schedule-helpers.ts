@@ -7,6 +7,14 @@ export interface ScheduleStateInput {
   scheduledEndAt?: string | null
   scheduleSegments?: Array<unknown> | null
   isSequenceScheduled?: boolean | null
+  raw?: {
+    device?: {
+      instrument_status?: number | string | null
+      instrumentStatus?: number | string | null
+      is_completed?: boolean | null
+      isCompleted?: boolean | null
+    } | null
+  } | null
 }
 
 export interface DeviceTabFilterInput {
@@ -138,6 +146,8 @@ const PENDING_TEXTS = new Set([
   "待排程",
   "待测试",
   "待领取",
+  "4",
+  "待重做",
   "待开始",
   "未开始",
   "待处理"
@@ -397,6 +407,10 @@ export function normalizeScheduleListState(order: ScheduleStateInput): ScheduleL
   const status = normalizeText(order.status)
   const statusText = normalizeText(order.statusText)
   if (isScheduleAssigned(order)) return "scheduled"
+  const device = order.raw?.device
+  const instrumentStatus = device?.instrument_status ?? device?.instrumentStatus
+  const isCompleted = Boolean(device?.is_completed ?? device?.isCompleted)
+  if (status === "2" && device && !isCompleted && Number(instrumentStatus ?? 0) === 0) return "pending"
   if (UNPUBLISHED_TEXTS.has(status) || UNPUBLISHED_TEXTS.has(statusText)) return "unpublished"
   if (COMPLETED_TEXTS.has(statusText)) return "other"
   if (REVIEW_TEXTS.has(statusText)) return "other"

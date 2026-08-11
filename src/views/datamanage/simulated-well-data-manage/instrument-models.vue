@@ -59,7 +59,14 @@
           <el-input v-model="formData.model_number" placeholder="请输入" />
         </el-form-item>
         <el-form-item label="温度" prop="temperature">
-          <el-input v-model="formData.temperature" placeholder="请输入，如 150℃" />
+          <el-input
+            v-model="formData.temperature"
+            inputmode="decimal"
+            placeholder="请输入，如 150"
+            @input="handleTemperatureInput"
+          >
+            <template #append>℃</template>
+          </el-input>
         </el-form-item>
         <el-form-item label="描述" prop="remark">
           <el-input v-model="formData.remark" placeholder="请输入" type="textarea" :rows="2" />
@@ -160,9 +167,36 @@ const formData = reactive({
   coefficient: 1
 })
 
+const temperaturePattern = /^-?\d+(?:\.\d+)?$/
+
+const normalizeTemperature = (value: unknown) => {
+  const raw = String(value ?? "").replace(/[^\d.-]/g, "")
+  const negative = raw.startsWith("-")
+  const unsigned = raw.replace(/-/g, "")
+  const [integerPart = "", ...decimalParts] = unsigned.split(".")
+  const hasDecimalPoint = unsigned.includes(".")
+  const decimalPart = decimalParts.join("")
+
+  return `${negative ? "-" : ""}${integerPart}${hasDecimalPoint ? `.${decimalPart}` : ""}`
+}
+
+const handleTemperatureInput = (value: string) => {
+  formData.temperature = normalizeTemperature(value)
+}
+
+const validateTemperature = (_rule: unknown, value: unknown, callback: (error?: string | Error) => void) => {
+  const temperature = String(value ?? "")
+  if (!temperature || temperaturePattern.test(temperature)) {
+    callback()
+    return
+  }
+  callback(new Error("请输入合法温度，例如 -20.5"))
+}
+
 const formRules: FormRules = reactive({
   model_name: [{ required: true, trigger: "blur", message: "请输入型号名称" }],
-  model_number: [{ required: true, trigger: "blur", message: "请输入型号代号" }]
+  model_number: [{ required: true, trigger: "blur", message: "请输入型号代号" }],
+  temperature: [{ validator: validateTemperature, trigger: "blur" }]
 })
 
 const closeDialog = () => {
@@ -189,7 +223,7 @@ const openEdit = (row: InstrumentModelItem) => {
   dialogVisible.value = true
   formData.model_name = row.model_name
   formData.model_number = row.model_number
-  formData.temperature = row.temperature || ""
+  formData.temperature = normalizeTemperature(row.temperature)
   formData.remark = (row.remark as string) || ""
   formData.normal_cycle = row.normal_cycle ?? 0
   formData.high_cycle = row.high_cycle ?? 0

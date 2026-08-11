@@ -16,19 +16,32 @@ import {
   parseSimulatedWellReportTemplateDocxApi,
   updateSimulatedWellReportTemplateApi
 } from "@/api/simulated-well-report-template"
+import { VueDraggable } from "vue-draggable-plus"
 
 type SectionKey = "test_products" | "match_instruments" | "test_items" | "evaluation_standards"
+
+type TemplateField = {
+  nameCN: string
+  nameEN: string
+  type?: FieldType
+  required?: boolean
+  defaultValue?: string
+  needsReview?: boolean
+  [key: string]: any
+}
 
 type TemplateItem = {
   id: number
   report_no: string
   report_name: string
+  report_name_en: string
   configured: boolean
   field_count: number
   updated_at: string
 }
 
 const loading = ref(false)
+const configSaving = ref(false)
 const keyword = ref("")
 const pageMode = ref<"list" | "config">("list")
 const activeSection = ref<SectionKey>("test_products")
@@ -36,11 +49,21 @@ const currentTemplateId = ref<number | null>(null)
 
 const templates = ref<TemplateItem[]>([])
 
-const configDraft = reactive<Record<SectionKey, string[]>>({
+const configDraft = reactive<Record<SectionKey, TemplateField[]>>({
   test_products: [],
   match_instruments: [],
   test_items: [],
   evaluation_standards: []
+})
+const configMetaDraft = reactive({
+  report_no: "",
+  report_name: "",
+  report_name_en: ""
+})
+const titleEditDialogVisible = ref(false)
+const titleEditDraft = reactive({
+  report_name: "",
+  report_name_en: ""
 })
 const sectionTabs = [
   { key: "test_products" as SectionKey, label: "测试产品" },
@@ -52,27 +75,35 @@ const sectionTabs = [
 const filteredTemplates = computed(() => {
   const k = keyword.value.trim().toLowerCase()
   if (!k) return templates.value
-  return templates.value.filter((t) => `${t.report_no} ${t.report_name}`.toLowerCase().includes(k))
+  return templates.value.filter((t) =>
+    `${t.report_no} ${t.report_name} ${t.report_name_en || ""}`.toLowerCase().includes(k)
+  )
 })
 
 const currentTemplate = computed(() => templates.value.find((t) => t.id === currentTemplateId.value) || null)
 
-const currentFieldList = computed(() => configDraft[activeSection.value])
+const currentFieldList = computed<TemplateField[]>({
+  get: () => configDraft[activeSection.value],
+  set: (fields) => {
+    configDraft[activeSection.value] = fields
+  }
+})
 const currentSectionLabel = computed(() => sectionTabs.find((s) => s.key === activeSection.value)?.label || "字段")
 
 const createDialogVisible = ref(false)
 const createFormRef = ref<FormInstance>()
 const createForm = reactive({
   report_no: "",
-  report_name: ""
+  report_name: "",
+  report_name_en: ""
 })
 const createDocxFileList = ref<UploadUserFile[]>([])
 const createDocxLoading = ref(false)
-const createParsedText = reactive<Record<SectionKey, string>>({
-  test_products: "",
-  match_instruments: "",
-  test_items: "",
-  evaluation_standards: ""
+const createParsedFields = reactive<Record<SectionKey, TemplateField[]>>({
+  test_products: [],
+  match_instruments: [],
+  test_items: [],
+  evaluation_standards: []
 })
 const createRules = {
   report_no: [{ required: true, message: "请输入报告编号", trigger: "blur" }],
@@ -120,6 +151,16 @@ const fieldTypeOptions = [
 
 const compoundTypes: FieldType[] = ["depth-group", "range-radio", "multi-input-row", "sampling-group", "card-group"]
 const addFieldDialogVisible = ref(false)
+const editFieldDialogVisible = ref(false)
+const editFieldForm = reactive({
+  nameCN: "",
+  nameEN: ""
+})
+const editingField = ref<{
+  section: SectionKey
+  index: number
+  originalValue: TemplateField
+} | null>(null)
 const addFieldForm = reactive({
   type: "text" as FieldType,
   nameCN: "",
@@ -136,32 +177,46 @@ const addFieldForm = reactive({
 
 const isCompoundType = computed(() => compoundTypes.includes(addFieldForm.type))
 
-const uniqueNonempty = (items: string[]) => {
-  const set = new Set<string>()
-  const out: string[] = []
-  items.forEach((x) => {
-    const v = (x || "").trim()
-    if (!v) return
-    if (set.has(v)) return
-    set.add(v)
-    out.push(v)
-  })
-  return out
+const normalizeField = (item: any): TemplateField => {
+  if (typeof item === "string") {
+    return { nameCN: item.trim(), nameEN: "" }
+  }
+  return {
+    ...(item || {}),
+    nameCN: String(item?.nameCN ?? item?.zh ?? item?.name ?? item?.label ?? "").trim(),
+    nameEN: String(item?.nameEN ?? item?.en ?? item?.english ?? "").trim()
+  }
 }
 
-const textToList = (text: string) => {
-  const parts = (text || "").split(/[\n\r]+/).flatMap((line) => line.split(/[、,，;；|]+/))
-  return uniqueNonempty(parts)
+const normalizeFields = (items: any[] | undefined) => (Array.isArray(items) ? items.map(normalizeField) : [])
+
+const cleanFields = (items: TemplateField[]) =>
+  items
+    .map((item) => ({ ...item, nameCN: item.nameCN.trim(), nameEN: item.nameEN.trim() }))
+    .filter((item) => item.nameCN || item.nameEN)
+
+const fieldName = (item: TemplateField) => item.nameCN || item.nameEN || "未命名字段"
+const fieldTypeName = (item: TemplateField) =>
+  fieldTypeOptions.flatMap((group) => [...group.options]).find((option) => option.value === item.type)?.label ||
+  "文本输入"
+
+const addParsedField = (section: SectionKey) => {
+  createParsedFields[section].push({ nameCN: "", nameEN: "" })
+}
+
+const removeParsedField = (section: SectionKey, index: number) => {
+  createParsedFields[section].splice(index, 1)
 }
 
 const openCreate = () => {
   createForm.report_no = ""
   createForm.report_name = ""
+  createForm.report_name_en = ""
   createDocxFileList.value = []
-  createParsedText.test_products = ""
-  createParsedText.match_instruments = ""
-  createParsedText.test_items = ""
-  createParsedText.evaluation_standards = ""
+  createParsedFields.test_products = []
+  createParsedFields.match_instruments = []
+  createParsedFields.test_items = []
+  createParsedFields.evaluation_standards = []
   createDialogVisible.value = true
 }
 
@@ -172,10 +227,11 @@ const handleCreate = async () => {
     const res = await createSimulatedWellReportTemplateApi({
       report_no: createForm.report_no.trim(),
       report_name: createForm.report_name.trim(),
-      test_products: textToList(createParsedText.test_products),
-      match_instruments: textToList(createParsedText.match_instruments),
-      test_items: textToList(createParsedText.test_items),
-      evaluation_standards: textToList(createParsedText.evaluation_standards)
+      report_name_en: createForm.report_name_en.trim(),
+      test_products: cleanFields(createParsedFields.test_products),
+      match_instruments: cleanFields(createParsedFields.match_instruments),
+      test_items: cleanFields(createParsedFields.test_items),
+      evaluation_standards: cleanFields(createParsedFields.evaluation_standards)
     })
     if (res.code !== 0) {
       ElMessage.error(res.msg || "创建失败")
@@ -208,10 +264,11 @@ const handleCreateDocxChange: UploadProps["onChange"] = async (file: UploadFile)
     }
     createForm.report_no = res.data.report_no || createForm.report_no
     createForm.report_name = res.data.report_name || createForm.report_name
-    createParsedText.test_products = (res.data.test_products || []).join("\n")
-    createParsedText.match_instruments = (res.data.match_instruments || []).join("\n")
-    createParsedText.test_items = (res.data.test_items || []).join("\n")
-    createParsedText.evaluation_standards = (res.data.evaluation_standards || []).join("\n")
+    createForm.report_name_en = res.data.report_name_en || createForm.report_name_en
+    createParsedFields.test_products = normalizeFields(res.data.test_products)
+    createParsedFields.match_instruments = normalizeFields(res.data.match_instruments)
+    createParsedFields.test_items = normalizeFields(res.data.test_items)
+    createParsedFields.evaluation_standards = normalizeFields(res.data.evaluation_standards)
     createDocxFileList.value = [{ name: raw.name, status: "success" }]
     ElMessage.success("文档解析成功，已自动回填")
   } finally {
@@ -233,40 +290,99 @@ const handleDelete = async (row: TemplateItem) => {
 const openConfig = (row: TemplateItem) => {
   currentTemplateId.value = row.id
   activeSection.value = "test_products"
+  configMetaDraft.report_no = row.report_no
+  configMetaDraft.report_name = row.report_name
+  configMetaDraft.report_name_en = row.report_name_en || ""
   pageMode.value = "config"
   fetchDetail(row.id)
 }
 
-const saveConfig = () => {
+const saveConfig = async () => {
   const t = currentTemplate.value
-  if (!t) return
-  updateSimulatedWellReportTemplateApi(t.id, {
-    test_products: [...configDraft.test_products],
-    match_instruments: [...configDraft.match_instruments],
-    test_items: [...configDraft.test_items],
-    evaluation_standards: [...configDraft.evaluation_standards]
-  }).then(async (res) => {
+  if (!t || configSaving.value) return
+  const reportName = configMetaDraft.report_name.trim()
+  const reportNameEn = configMetaDraft.report_name_en.trim()
+  if (!reportName) {
+    ElMessage.warning("模板名称（中文）不能为空")
+    return
+  }
+  configSaving.value = true
+  try {
+    const res = await updateSimulatedWellReportTemplateApi(t.id, {
+      report_name: reportName,
+      report_name_en: reportNameEn,
+      test_products: cleanFields(configDraft.test_products),
+      match_instruments: cleanFields(configDraft.match_instruments),
+      test_items: cleanFields(configDraft.test_items),
+      evaluation_standards: cleanFields(configDraft.evaluation_standards)
+    })
     if (res.code === 0) {
+      configMetaDraft.report_name = reportName
+      configMetaDraft.report_name_en = reportNameEn
       ElMessage.success("配置已保存")
       await fetchList()
       return
     }
     ElMessage.error(res.msg || "保存失败")
-  })
+  } finally {
+    configSaving.value = false
+  }
 }
 
 const backToList = () => {
   pageMode.value = "list"
 }
 
+const openTitleEditDialog = () => {
+  titleEditDraft.report_name = configMetaDraft.report_name
+  titleEditDraft.report_name_en = configMetaDraft.report_name_en
+  titleEditDialogVisible.value = true
+}
+
+const resetTitleEditDialog = () => {
+  titleEditDraft.report_name = ""
+  titleEditDraft.report_name_en = ""
+}
+
+const applyTitleEdit = () => {
+  const reportName = titleEditDraft.report_name.trim()
+  const reportNameEn = titleEditDraft.report_name_en.trim()
+  if (!reportName) {
+    ElMessage.warning("模板名称（中文）不能为空")
+    return
+  }
+  configMetaDraft.report_name = reportName
+  configMetaDraft.report_name_en = reportNameEn
+  titleEditDialogVisible.value = false
+}
+
 const addField = () => {
-  const text = addFieldForm.nameCN.trim()
-  if (!text) return
-  if (currentFieldList.value.includes(text)) {
+  const nameCN = addFieldForm.nameCN.trim()
+  const nameEN = addFieldForm.nameEN.trim()
+  if (!nameCN) return
+  if (currentFieldList.value.some((item) => item.nameCN === nameCN)) {
     ElMessage.warning("字段已存在")
     return
   }
-  currentFieldList.value.push(text)
+  const field: TemplateField = {
+    nameCN,
+    nameEN,
+    type: addFieldForm.type,
+    required: addFieldForm.required
+  }
+  if (addFieldForm.defaultValue.trim()) field.defaultValue = addFieldForm.defaultValue.trim()
+  if (addFieldForm.type === "depth-group") {
+    field.pointCount = addFieldForm.depthPointCount
+    field.unit = addFieldForm.depthUnit
+    field.withJudgment = addFieldForm.depthWithJudgment
+  } else if (addFieldForm.type === "range-radio") {
+    field.unit = addFieldForm.rangeUnit
+  } else if (addFieldForm.type === "multi-input-row") {
+    field.rowCount = addFieldForm.multiRowCount
+  } else if (addFieldForm.type === "sampling-group") {
+    field.pointCount = addFieldForm.samplingPointCount
+  }
+  currentFieldList.value.push(field)
   addFieldDialogVisible.value = false
 }
 
@@ -287,6 +403,48 @@ const openAddFieldDialog = () => {
 
 const removeField = (idx: number) => {
   currentFieldList.value.splice(idx, 1)
+}
+
+const openEditFieldDialog = (idx: number) => {
+  const section = activeSection.value
+  const originalValue = configDraft[section][idx]
+  if (originalValue === undefined) return
+  editingField.value = { section, index: idx, originalValue: { ...originalValue } }
+  editFieldForm.nameCN = originalValue.nameCN
+  editFieldForm.nameEN = originalValue.nameEN
+  editFieldDialogVisible.value = true
+}
+
+const closeEditFieldDialog = () => {
+  editFieldDialogVisible.value = false
+  editingField.value = null
+  editFieldForm.nameCN = ""
+  editFieldForm.nameEN = ""
+}
+
+const confirmEditField = () => {
+  const editing = editingField.value
+  if (!editing) return
+
+  const nameCN = editFieldForm.nameCN.trim()
+  const nameEN = editFieldForm.nameEN.trim()
+  if (!nameCN) {
+    ElMessage.warning("字段名称不能为空")
+    return
+  }
+  if (nameCN === editing.originalValue.nameCN && nameEN === editing.originalValue.nameEN) {
+    closeEditFieldDialog()
+    return
+  }
+
+  const fields = configDraft[editing.section]
+  if (fields.some((item, index) => index !== editing.index && item.nameCN === nameCN)) {
+    ElMessage.warning("字段已存在")
+    return
+  }
+
+  fields[editing.index] = { ...editing.originalValue, nameCN, nameEN }
+  closeEditFieldDialog()
 }
 
 const handleSync = async () => {
@@ -316,10 +474,13 @@ const fetchDetail = async (id: number) => {
   try {
     const res = await getSimulatedWellReportTemplateDetailApi(id)
     if (res.code === 0) {
-      configDraft.test_products = res.data.test_products || []
-      configDraft.match_instruments = res.data.match_instruments || []
-      configDraft.test_items = res.data.test_items || []
-      configDraft.evaluation_standards = res.data.evaluation_standards || []
+      configMetaDraft.report_no = res.data.report_no
+      configMetaDraft.report_name = res.data.report_name
+      configMetaDraft.report_name_en = res.data.report_name_en || ""
+      configDraft.test_products = normalizeFields(res.data.test_products)
+      configDraft.match_instruments = normalizeFields(res.data.match_instruments)
+      configDraft.test_items = normalizeFields(res.data.test_items)
+      configDraft.evaluation_standards = normalizeFields(res.data.evaluation_standards)
       return
     }
     ElMessage.error(res.msg || "获取详情失败")
@@ -338,8 +499,24 @@ onMounted(() => {
     <div class="header">
       <div>
         <h1 class="header-title">
-          {{ pageMode === "list" ? "模板配置" : `配置：${currentTemplate?.report_name || "-"}` }}
+          <template v-if="pageMode === 'list'">模板配置</template>
+          <template v-else>
+            <span>配置：{{ configMetaDraft.report_name || "-" }}</span>
+            <el-button
+              class="title-edit-button"
+              link
+              type="primary"
+              circle
+              icon="EditPen"
+              title="编辑模板标题"
+              aria-label="编辑模板标题"
+              @click="openTitleEditDialog"
+            />
+          </template>
         </h1>
+        <div v-if="pageMode === 'config' && configMetaDraft.report_name_en" class="header-subtitle">
+          {{ configMetaDraft.report_name_en }}
+        </div>
       </div>
       <div class="header-actions">
         <template v-if="pageMode === 'list'">
@@ -348,7 +525,7 @@ onMounted(() => {
         </template>
         <template v-else>
           <el-button @click="backToList">返回列表</el-button>
-          <el-button type="primary" @click="saveConfig">保存配置</el-button>
+          <el-button type="primary" :loading="configSaving" @click="saveConfig">保存配置</el-button>
         </template>
       </div>
     </div>
@@ -371,6 +548,7 @@ onMounted(() => {
               </el-tag>
             </div>
             <div class="template-card-title">{{ item.report_name }}</div>
+            <div v-if="item.report_name_en" class="template-card-name-en">{{ item.report_name_en }}</div>
             <div class="muted">配置字段：{{ item.field_count }} 个</div>
             <div class="template-card-footer">
               <div class="muted">更新：{{ item.updated_at }}</div>
@@ -409,29 +587,89 @@ onMounted(() => {
           </div>
         </template>
 
-        <div class="field-list">
-          <div v-for="(item, idx) in currentFieldList" :key="`${activeSection}-${idx}`" class="field-item">
+        <VueDraggable
+          v-model="currentFieldList"
+          tag="div"
+          class="field-list"
+          handle=".field-drag-handle"
+          :animation="150"
+          ghost-class="field-drag-ghost"
+          chosen-class="field-drag-chosen"
+        >
+          <div
+            v-for="(item, idx) in currentFieldList"
+            :key="[activeSection, idx, item.nameCN].join('-')"
+            class="field-item"
+          >
+            <button type="button" class="field-drag-handle" title="拖动排序" aria-label="拖动排序">⠿</button>
             <div class="field-card-main">
               <div class="field-card-title">
-                {{ item }}
+                {{ fieldName(item) }}
               </div>
+              <div v-if="item.nameEN" class="field-card-english">{{ item.nameEN }}</div>
               <div class="field-card-meta">
-                类型：<span class="field-type-badge">文本输入</span>
+                类型：<span class="field-type-badge">{{ fieldTypeName(item) }}</span>
                 <span class="field-card-separator">|</span>
                 来源：{{ currentSectionLabel }}
               </div>
             </div>
-            <el-button class="field-delete-btn" link type="danger" @click="removeField(idx)">删除</el-button>
+            <div class="field-actions">
+              <el-button link type="primary" @click="openEditFieldDialog(idx)">编辑</el-button>
+              <el-button link type="danger" @click="removeField(idx)">删除</el-button>
+            </div>
           </div>
-          <el-empty v-if="currentFieldList.length === 0" description="暂无字段，请点击上方“添加字段”" />
-        </div>
+        </VueDraggable>
+        <el-empty v-if="currentFieldList.length === 0" description="暂无字段，请点击上方“添加字段”" />
       </el-card>
     </div>
 
     <el-dialog
+      v-model="titleEditDialogVisible"
+      title="编辑模板标题"
+      width="480px"
+      class="simwell-admin-dialog"
+      :close-on-click-modal="false"
+      @closed="resetTitleEditDialog"
+    >
+      <el-form label-position="top" @submit.prevent="applyTitleEdit">
+        <el-form-item label="模板名称（中文）">
+          <el-input v-model="titleEditDraft.report_name" autofocus @keyup.enter="applyTitleEdit" />
+        </el-form-item>
+        <el-form-item label="模板名称（英文，可选）">
+          <el-input v-model="titleEditDraft.report_name_en" @keyup.enter="applyTitleEdit" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="titleEditDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="applyTitleEdit">应用修改</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="editFieldDialogVisible"
+      title="编辑字段"
+      width="480px"
+      class="simwell-admin-dialog"
+      @closed="closeEditFieldDialog"
+    >
+      <el-form label-position="top" @submit.prevent="confirmEditField">
+        <el-form-item label="字段名称（中文）">
+          <el-input v-model="editFieldForm.nameCN" autofocus @keyup.enter="confirmEditField" />
+        </el-form-item>
+        <el-form-item label="字段名称（英文，可选）">
+          <el-input v-model="editFieldForm.nameEN" @keyup.enter="confirmEditField" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="closeEditFieldDialog">取消</el-button>
+        <el-button type="primary" @click="confirmEditField">确定</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
       v-model="createDialogVisible"
       title="新增配置模板"
-      width="620px"
+      width="820px"
       class="simwell-admin-dialog"
       :close-on-click-modal="false"
     >
@@ -459,45 +697,35 @@ onMounted(() => {
           <el-form-item label="模板编号 *" prop="report_no">
             <el-input v-model="createForm.report_no" placeholder="例如：WT3-TCZZ-02-R35" />
           </el-form-item>
-          <el-form-item label="模板名称 *" prop="report_name">
+          <el-form-item label="模板名称（中文）*" prop="report_name">
             <el-input v-model="createForm.report_name" placeholder="例如：CBMT61XA南区水泥胶结测井仪" />
           </el-form-item>
         </div>
+        <el-form-item label="模板名称（英文）">
+          <el-input v-model="createForm.report_name_en" placeholder="例如：RIH Test Report of CBMT61XA" />
+        </el-form-item>
 
         <div class="parsed-field-panel">
           <div class="compound-panel-title">解析字段预览与调整</div>
-          <el-form-item label="测试产品">
-            <el-input
-              v-model="createParsedText.test_products"
-              type="textarea"
-              :rows="3"
-              placeholder="每行一条，支持用 、 , ; | 分隔"
-            />
-          </el-form-item>
-          <el-form-item label="配接仪器">
-            <el-input
-              v-model="createParsedText.match_instruments"
-              type="textarea"
-              :rows="3"
-              placeholder="每行一条，支持用 、 , ; | 分隔"
-            />
-          </el-form-item>
-          <el-form-item label="测试项目">
-            <el-input
-              v-model="createParsedText.test_items"
-              type="textarea"
-              :rows="3"
-              placeholder="每行一条，支持用 、 , ; | 分隔"
-            />
-          </el-form-item>
-          <el-form-item label="评价标准">
-            <el-input
-              v-model="createParsedText.evaluation_standards"
-              type="textarea"
-              :rows="4"
-              placeholder="每行一条，支持用 、 , ; | 分隔"
-            />
-          </el-form-item>
+          <div v-for="section in sectionTabs" :key="section.key" class="parsed-section">
+            <div class="parsed-section-header">
+              <span>{{ section.label }}</span>
+              <el-button link type="primary" @click="addParsedField(section.key)">添加</el-button>
+            </div>
+            <div
+              v-for="(field, index) in createParsedFields[section.key]"
+              :key="[section.key, index].join('-')"
+              class="parsed-field-row"
+            >
+              <el-input v-model="field.nameCN" placeholder="中文名称" />
+              <el-input v-model="field.nameEN" placeholder="English name" />
+              <div class="parsed-field-actions">
+                <el-tag v-if="field.needsReview" type="warning" size="small">需确认</el-tag>
+                <el-button link type="danger" @click="removeParsedField(section.key, index)">删除</el-button>
+              </div>
+            </div>
+            <div v-if="createParsedFields[section.key].length === 0" class="parsed-section-empty">暂无字段</div>
+          </div>
         </div>
       </el-form>
       <template #footer>
@@ -632,10 +860,17 @@ onMounted(() => {
 }
 
 .header-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 18px;
   font-weight: 600;
   color: var(--el-text-color-primary);
   margin: 0;
+}
+
+.title-edit-button {
+  margin-left: 2px;
 }
 
 .header-actions {
@@ -701,6 +936,17 @@ onMounted(() => {
   margin: 10px 0 8px;
 }
 
+.template-card-name-en,
+.header-subtitle {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.template-card-name-en {
+  margin: -4px 0 8px;
+}
+
 .template-card-footer {
   margin-top: 10px;
   padding-top: 8px;
@@ -758,8 +1004,42 @@ onMounted(() => {
   }
 }
 
+.field-drag-handle {
+  flex-shrink: 0;
+  width: 28px;
+  height: 32px;
+  margin-right: 10px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--el-text-color-secondary);
+  cursor: grab;
+  font-size: 20px;
+  line-height: 1;
+
+  &:hover {
+    background: var(--el-fill-color-light);
+    color: #1a5490;
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.field-drag-ghost {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+.field-drag-chosen {
+  border-color: #4a9eff;
+  cursor: grabbing;
+}
+
 .field-card-main {
   min-width: 0;
+  flex: 1;
 }
 
 .field-card-title {
@@ -789,7 +1069,10 @@ onMounted(() => {
   color: #1a5490;
 }
 
-.field-delete-btn {
+.field-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   flex-shrink: 0;
   margin-left: 16px;
 }
@@ -899,6 +1182,47 @@ onMounted(() => {
 
 .parsed-field-panel {
   margin-top: 4px;
+}
+
+.parsed-section + .parsed-section {
+  margin-top: 14px;
+}
+
+.parsed-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.parsed-field-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.parsed-section-empty {
+  padding: 2px 0;
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.parsed-field-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.field-card-english {
+  margin-top: 2px;
+  color: #5a6c7d;
+  font-size: 13px;
 }
 
 .compound-panel-title {

@@ -73,19 +73,19 @@
 
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="560px" @close="closeDialog">
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="120px">
+        <el-form-item label="型号" prop="model_id">
+          <el-select v-model="formData.model_id" placeholder="请选择" style="width: 100%">
+            <el-option v-for="m in modelOptions" :key="m.id" :label="formatModelLabel(m)" :value="m.id" />
+          </el-select>
+        </el-form-item>
         <el-form-item label="SN号" prop="sn">
           <el-input v-model="formData.sn" placeholder="请输入" />
         </el-form-item>
-        <el-form-item label="仪器名称" prop="name">
+        <el-form-item label="仪器名称" prop="name" v-show="false">
           <el-input v-model="formData.name" placeholder="请输入" />
         </el-form-item>
         <el-form-item label="制造商" prop="manufacturer">
           <el-input v-model="formData.manufacturer" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="型号" prop="model_id">
-          <el-select v-model="formData.model_id" placeholder="请选择" style="width: 100%">
-            <el-option v-for="m in modelOptions" :key="m.id" :label="m.model_number" :value="m.id" />
-          </el-select>
         </el-form-item>
         <el-form-item label="状态" prop="status">
           <el-select v-model="formData.status" placeholder="请选择" style="width: 100%">
@@ -115,7 +115,9 @@
           <div class="detail-summary">
             <div class="summary-main">
               <div class="summary-title">{{ currentInstrument.name }}</div>
-              <div class="summary-subtitle">SN：{{ currentInstrument.sn }} / 型号：{{ currentInstrument.model_number || "-" }}</div>
+              <div class="summary-subtitle">
+                SN：{{ currentInstrument.sn }} / 型号：{{ currentInstrument.model_number || "-" }}
+              </div>
             </div>
             <div class="summary-stats">
               <div class="summary-stat">
@@ -224,7 +226,12 @@
       </div>
     </el-drawer>
 
-    <el-dialog v-model="maintenanceDialogVisible" :title="maintenanceDialogTitle" width="560px" @close="resetMaintenanceForm">
+    <el-dialog
+      v-model="maintenanceDialogVisible"
+      :title="maintenanceDialogTitle"
+      width="560px"
+      @close="resetMaintenanceForm"
+    >
       <el-form :model="maintenanceForm" label-width="110px">
         <el-form-item label="维保类型">
           <el-select v-model="maintenanceForm.maintenance_type" style="width: 100%">
@@ -235,7 +242,12 @@
           </el-select>
         </el-form-item>
         <el-form-item label="维保日期">
-          <el-date-picker v-model="maintenanceForm.maintenance_date" type="date" value-format="YYYY-MM-DD" style="width: 100%" />
+          <el-date-picker
+            v-model="maintenanceForm.maintenance_date"
+            type="date"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+          />
         </el-form-item>
         <el-form-item label="维保人员">
           <el-input v-model="maintenanceForm.maintainer" placeholder="请输入维保人员" />
@@ -387,6 +399,20 @@ const formRules: FormRules = reactive({
   status: [{ required: true, trigger: "change", message: "请选择状态" }]
 })
 
+// 型号下拉框显示格式：型号编码（型号名称）
+const formatModelLabel = (m: InstrumentModelItem) => `${m.model_number} (${m.model_name})`
+
+// 选择型号后自动填充仪器名称（新增/编辑均生效）
+watch(
+  () => formData.model_id,
+  (newModelId) => {
+    if (!newModelId) return
+    const model = modelOptions.value.find((m) => m.id === newModelId)
+    if (!model) return
+    formData.name = `${model.model_number}${model.model_name}`
+  }
+)
+
 const closeDialog = () => {
   dialogVisible.value = false
   currentUpdateId.value = null
@@ -432,7 +458,9 @@ const handleSubmit = () => {
       used_count: formData.used_count,
       remain_count: formData.remain_count
     }
-    const req = currentUpdateId.value ? updateSimInstrumentApi(currentUpdateId.value, payload) : createSimInstrumentApi(payload)
+    const req = currentUpdateId.value
+      ? updateSimInstrumentApi(currentUpdateId.value, payload)
+      : createSimInstrumentApi(payload)
     const updatingId = currentUpdateId.value
     req
       .then(() => {

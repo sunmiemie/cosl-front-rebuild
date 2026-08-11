@@ -12,6 +12,8 @@ export interface SimulatedWellReportListItem {
   audit_time: string
   remark: string
   reviewer_id?: number | null
+  operator_user_id?: number | null
+  operator_signature_url?: string | null
   report_json?: Record<string, any>
   attachments?: Array<Record<string, any>>
   order_ids?: number[]
@@ -90,5 +92,21 @@ export function deleteSimulatedWellReportApi(pk: number) {
   return request<SimulatedWellReportMutationResponse>({
     url: `test/simulated-well/report/detail/${pk}/`,
     method: "delete"
+  })
+}
+
+export function getSimulatedWellReportPdfApi(pk: number) {
+  return request<Blob>({
+    url: `test/simulated-well/report/download/${pk}/`,
+    method: "get",
+    responseType: "blob"
+  })
+}
+
+export function getSimulatedWellReportCurveZipApi(pk: number) {
+  return request<Blob>({
+    url: `test/simulated-well/report/curve-download/${pk}/`,
+    method: "get",
+    responseType: "blob"
   })
 }

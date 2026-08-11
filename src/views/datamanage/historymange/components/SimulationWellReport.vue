@@ -2,13 +2,15 @@
 import { computed, onMounted, reactive, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
-import { Upload } from "@element-plus/icons-vue"
+import { Download, Upload } from "@element-plus/icons-vue"
 import { syncEngineerAssistantLocalReportApi } from "@/api/engineer-assistant"
 import { useUserStoreHook } from "@/store/modules/user"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
   getSimulatedWellReportDetailApi,
+  getSimulatedWellReportCurveZipApi,
   getSimulatedWellReportListApi,
+  getSimulatedWellReportPdfApi,
   updateSimulatedWellReportApi,
   type SimulatedWellReportListItem
 } from "@/api/simulated-well-report"
@@ -17,6 +19,7 @@ import { displayReportValue, resolveReportFileUrl } from "@/utils/high-temp-pres
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 type ReportJson = Record<string, any>
 type AttachmentItem = Record<string, any>
+type ReadonlyReportRow = { label: string; value: string }
 
 type AuditRow = SimulatedWellReportListItem & {
   meta: ReportJson
@@ -33,9 +36,14 @@ const reviewerName = computed(() => userStore.nickName || userStore.username || 
 
 const loading = ref(false)
 const assistantPushingId = ref<number | null>(null)
+const downloadingId = ref<number | null>(null)
+const curveDownloadingId = ref<number | null>(null)
 const rows = ref<AuditRow[]>([])
 const detailDialogVisible = ref(false)
 const currentReport = ref<AuditRow | null>(null)
+const approveDialogVisible = ref(false)
+const approveReason = ref("")
+const approvingRow = ref<AuditRow | null>(null)
 const rejectDialogVisible = ref(false)
 const rejectReason = ref("")
 const rejectingRow = ref<AuditRow | null>(null)
@@ -80,20 +88,8 @@ const reviewedTableData = computed(() => {
   return reviewedAllRows.value.slice(start, start + reviewedPagination.pageSize)
 })
 
-const safeParseRemark = (remark?: string): ReportJson => {
-  if (!remark) return {}
-  try {
-    const parsed = JSON.parse(remark)
-    return parsed && typeof parsed === "object" ? parsed : {}
-  } catch {
-    return {}
-  }
-}
-
-const getMeta = (report: SimulatedWellReportListItem): ReportJson => ({
-  ...safeParseRemark(report.remark),
-  ...(report.report_json && typeof report.report_json === "object" ? report.report_json : {})
-})
+const getMeta = (report: SimulatedWellReportListItem): ReportJson =>
+  report.report_json && typeof report.report_json === "object" ? { ...report.report_json } : {}
 
 const firstText = (...values: unknown[]) => {
   for (const value of values) {
@@ -102,6 +98,165 @@ const firstText = (...values: unknown[]) => {
   }
   return "-"
 }
+
+const formatUnitValue = (value: unknown, unit: "m" | "℃" | "MPa") => {
+  const text = String(value ?? "").trim()
+  if (!text || text === "-") return text || "-"
+  const suffixPattern = {
+    m: /\s*m$/i,
+    "℃": /\s*(?:℃|°\s*C)$/i,
+    MPa: /\s*MPa$/i
+  }[unit]
+  const normalized = text.replace(suffixPattern, "").trim()
+  return normalized ? `${normalized}${unit}` : text
+}
+
+const namedValues = (text: string, labels: string[]) => {
+  const pattern = labels.join("|")
+  const expression = new RegExp(
+    `(${pattern})\\s*[:：]?\\s*(.*?)(?=\\s*(?:/|\\n)?\\s*(?:${pattern})\\s*[:：]?|\\s*$)`,
+    "g"
+  )
+  const values: Record<string, string> = {}
+  for (const match of text.matchAll(expression)) {
+    values[match[1]] = match[2].replace(/[\\s/]+$/, "").trim()
+  }
+  return values
+}
+
+const formatEnvironmentWithUnits = (value: unknown) => {
+  const text = firstText(value)
+  if (text === "-") return text
+  const values = namedValues(text, ["井深", "井温", "井压"])
+  const parts = [
+    values["井深"] ? `井深: ${formatUnitValue(values["井深"], "m")}` : "",
+    values["井温"] ? `井温: ${formatUnitValue(values["井温"], "℃")}` : "",
+    values["井压"] ? `井压: ${formatUnitValue(values["井压"], "MPa")}` : ""
+  ].filter(Boolean)
+  return parts.length ? parts.join(" / ") : text
+}
+
+const formatIntervalRange = (value: unknown) => {
+  const [from, to] = String(value ?? "").trim().split("~")
+  return to === undefined
+    ? formatUnitValue(from, "m")
+    : `${formatUnitValue(from, "m")}~${formatUnitValue(to, "m")}`
+}
+
+const formatIntervalWithUnits = (value: unknown) => {
+  const text = firstText(value)
+  if (text === "-") return text
+  const values = namedValues(text, ["主测井段", "复测井段", "主段", "重复段"])
+  const main = values["主测井段"] ?? values["主段"]
+  const repeat = values["复测井段"] ?? values["重复段"]
+  const parts = [
+    main ? `主测井段: ${formatIntervalRange(main)}` : "",
+    repeat ? `复测井段: ${formatIntervalRange(repeat)}` : ""
+  ].filter(Boolean)
+  return parts.length ? parts.join(" / ") : text
+}
+
+const normalizeTemplateField = (field: unknown) => {
+  if (typeof field !== "string") return field
+  const text = field.trim()
+  if (!text.startsWith("{")) return text
+  try {
+    return JSON.parse(text)
+  } catch {
+    try {
+      return JSON.parse(text.replace(/\bNone\b/g, "null").replace(/\bTrue\b/g, "true").replace(/\bFalse\b/g, "false").replace(/'/g, '"'))
+    } catch {
+      return text
+    }
+  }
+}
+
+const fieldLabel = (field: unknown, fallback: string) => {
+  const normalized = normalizeTemplateField(field)
+  const value = typeof normalized === "string" ? normalized : normalized && typeof normalized === "object" ? normalized as Record<string, any> : {}
+  return typeof value === "string" ? value || fallback : value.nameCN || value.name || value.label || value.zh || value.title || value.code || fallback
+}
+
+const fieldType = (field: unknown) => {
+  const normalized = normalizeTemplateField(field)
+  if (!normalized || typeof normalized !== "object") return "radio"
+  return String((normalized as Record<string, any>).type || "radio")
+}
+
+const fieldKey = (prefix: string, index: number, suffix = "") => `${prefix}_${index}${suffix ? `_${suffix}` : ""}`
+
+const displayReadonlyValue = (value: unknown, empty = "未填写") => {
+  if (value === undefined || value === null || value === "") return empty
+  const statusText: Record<string, string> = { normal: "正常", abnormal: "异常", qualified: "符合", unqualified: "不符合" }
+  if (typeof value === "string") return statusText[value] || value
+  if (typeof value === "boolean") return value ? "是" : "否"
+  return String(value)
+}
+
+const positiveFieldCount = (value: unknown, fallback: number) => {
+  const count = Number(value)
+  return Number.isFinite(count) && count > 0 ? Math.floor(count) : fallback
+}
+
+const buildReadonlyReportRows = (fields: unknown, values: unknown, prefix: string, sectionName: string): ReadonlyReportRow[] => {
+  if (!Array.isArray(fields)) return []
+  const valueMap = values && typeof values === "object" ? values as Record<string, unknown> : {}
+  return fields.map((rawField, index) => {
+    const normalizedField = normalizeTemplateField(rawField)
+    const definition = normalizedField && typeof normalizedField === "object" ? normalizedField as Record<string, any> : {}
+    const key = fieldKey(prefix, index)
+    const label = fieldLabel(rawField, `${sectionName}${index + 1}`)
+    const type = fieldType(rawField)
+    if (!["depth-group", "range-radio", "multi-input-row", "sampling-group", "card-group"].includes(type)) {
+      return { label, value: displayReadonlyValue(valueMap[key]) }
+    }
+    if (type === "depth-group") {
+      const unit = displayReadonlyValue(definition.unit, "m")
+      const points = Array.from({ length: positiveFieldCount(definition.pointCount, 4) }, (_, pointIndex) => {
+        const point = pointIndex + 1
+        const depth = displayReadonlyValue(valueMap[fieldKey(prefix, index, `p${point}`)])
+        const result = valueMap[fieldKey(prefix, index, `p${point}_result`)]
+        return `第${point}点：${depth}${unit}${result === undefined || result === null || result === "" ? "" : `，${displayReadonlyValue(result)}`}`
+      })
+      return { label, value: points.join("；") }
+    }
+    if (type === "range-radio") {
+      return { label, value: `${displayReadonlyValue(valueMap[fieldKey(prefix, index, "from")])} ~ ${displayReadonlyValue(valueMap[fieldKey(prefix, index, "to")])}；${displayReadonlyValue(valueMap[fieldKey(prefix, index, "result")])}` }
+    }
+    if (type === "multi-input-row") {
+      const columns = Array.isArray(definition.columns) ? definition.columns : []
+      const rows = Array.from({ length: positiveFieldCount(definition.rowCount, 2) }, (_, rowIndex) => {
+        const row = columns.map((column: unknown, columnIndex: number) => `${fieldLabel(column, `输入${columnIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `r${rowIndex + 1}c${columnIndex}`)])}`)
+        return `第${rowIndex + 1}点：${row.join("，") || "未填写"}`
+      })
+      return { label, value: rows.join("；") }
+    }
+    if (type === "sampling-group") {
+      const items = Array.isArray(definition.items) ? definition.items : []
+      const points = Array.from({ length: positiveFieldCount(definition.pointCount, 2) }, (_, pointIndex) => {
+        const point = pointIndex + 1
+        const values = items.map((item: unknown, itemIndex: number) => `${fieldLabel(item, `项目${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `p${point}i${itemIndex}`)])}`)
+        return `第${point}点：${values.join("，") || "未填写"}`
+      })
+      return { label, value: points.join("；") }
+    }
+    const cards = Array.isArray(definition.cards) ? definition.cards : []
+    const cardValues = cards.map((card: unknown, cardIndex: number) => {
+      const cardDefinition = card && typeof card === "object" ? card as Record<string, any> : {}
+      const fields = Array.isArray(cardDefinition.fields) ? cardDefinition.fields : []
+      const values = fields.map((item: unknown, itemIndex: number) => `${fieldLabel(item, `字段${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `c${cardIndex}f${itemIndex}`)])}`)
+      return `${displayReadonlyValue(cardDefinition.title, `卡片${cardIndex + 1}`)}：${values.join("，") || "未填写"}`
+    })
+    return { label, value: cardValues.join("；") || "未填写" }
+  })
+}
+
+const currentTemplateSnapshot = computed<ReportJson | null>(() => {
+  const snapshot = currentReport.value?.meta.template_snapshot
+  return snapshot && typeof snapshot === "object" ? snapshot as ReportJson : null
+})
+const currentTestItemRows = computed(() => buildReadonlyReportRows(currentTemplateSnapshot.value?.test_items, currentReport.value?.meta.test_items, "test", "测试项目"))
+const currentEvaluationRows = computed(() => buildReadonlyReportRows(currentTemplateSnapshot.value?.evaluation_standards, currentReport.value?.meta.evaluation_standards, "eval", "评价标准"))
 
 const getDeviceText = (meta: ReportJson) => {
   const device = meta.selected_device || meta.device || {}
@@ -137,12 +292,24 @@ const statusType = (status: number): TagType => {
 const reportAttachments = (report?: AuditRow | null): AttachmentItem[] =>
   Array.isArray(report?.attachments) ? (report!.attachments as AttachmentItem[]) : []
 
+const isCurveAttachment = (attachment: AttachmentItem) => {
+  const type = String(attachment.type || "").toLowerCase()
+  const field = String(attachment.field || "").toLowerCase()
+  return type.startsWith("curve") || field.startsWith("curve")
+}
+
+const curveAttachments = (report?: AuditRow | null) => reportAttachments(report).filter(isCurveAttachment)
+
+const otherAttachments = (report?: AuditRow | null) => reportAttachments(report).filter((attachment) => !isCurveAttachment(attachment))
+
+const operatorSignatureUrl = (report?: AuditRow | null) => resolveReportFileUrl(report?.operator_signature_url)
+
 const attachmentTitle = (attachment: AttachmentItem) =>
   firstText(attachment.name, attachment.file_name, attachment.type, attachment.field, "附件")
 
 const attachmentType = (attachment: AttachmentItem) => {
   const raw = String(attachment.type || attachment.field || "")
-  if (raw.includes("curve")) return "曲线图"
+  if (raw.includes("curve")) return "原始文件"
   if (raw.includes("report")) return "报告文件"
   return "附件"
 }
@@ -168,14 +335,9 @@ const openAttachment = (attachment: AttachmentItem) => {
   window.open(url, "_blank", "noopener,noreferrer")
 }
 
-const compactJson = (value?: ReportJson) => {
-  if (!value || !Object.keys(value).length) return "-"
-  return JSON.stringify(value, null, 2)
-}
-
-const reviewPayload = (row: AuditRow, status: number, remark?: string) => ({
+const reviewPayload = (status: number, remark?: string) => ({
   status,
-  remark: remark ?? row.remark ?? ""
+  remark: remark?.trim() || ""
 })
 
 const getList = async () => {
@@ -224,11 +386,18 @@ const handleDetail = async (row: AuditRow) => {
   detailDialogVisible.value = true
 }
 
-const handleApprove = async (row: AuditRow) => {
-  await ElMessageBox.confirm("确认通过该模拟井报告审核吗？", "审核通过", { type: "success" })
-  const res = await updateSimulatedWellReportApi(row.id, reviewPayload(row, 1))
+const showApproveDialog = (row: AuditRow) => {
+  approvingRow.value = row
+  approveReason.value = ""
+  approveDialogVisible.value = true
+}
+
+const handleApprove = async () => {
+  if (!approvingRow.value) return
+  const res = await updateSimulatedWellReportApi(approvingRow.value.id, reviewPayload(1, approveReason.value))
   if (res.code === 0) {
     ElMessage.success("审核通过成功")
+    approveDialogVisible.value = false
     detailDialogVisible.value = false
     void taskCenterStore.refresh(true)
     await getList()
@@ -249,10 +418,7 @@ const handleReject = async () => {
     ElMessage.warning("请填写驳回原因")
     return
   }
-  const res = await updateSimulatedWellReportApi(
-    rejectingRow.value.id,
-    reviewPayload(rejectingRow.value, 2, rejectReason.value)
-  )
+  const res = await updateSimulatedWellReportApi(rejectingRow.value.id, reviewPayload(2, rejectReason.value))
   if (res.code === 0) {
     ElMessage.success("已驳回")
     rejectDialogVisible.value = false
@@ -264,17 +430,50 @@ const handleReject = async () => {
   }
 }
 
-const handleDownload = (row: AuditRow) => {
-  const payload = { ...row, exportedAt: new Date().toISOString() }
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement("a")
-  a.href = url
-  a.download = `${row.report_no}.json`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+const handleDownload = async (row: AuditRow) => {
+  downloadingId.value = row.id
+  try {
+    const blob = await getSimulatedWellReportPdfApi(row.id)
+    const pdfBlob = blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" })
+    const url = URL.createObjectURL(pdfBlob)
+    const filename = `${(row.report_no || "模拟井测试报告").replace(/[\\/:*?"<>|]/g, "-")}.pdf`
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    ElMessage.success("PDF 下载开始")
+  } catch (error) {
+    console.error("下载模拟井报告 PDF 失败", error)
+    ElMessage.error("PDF 下载失败")
+  } finally {
+    downloadingId.value = null
+  }
+}
+
+const handleCurveDownload = async (row: AuditRow) => {
+  curveDownloadingId.value = row.id
+  try {
+    const blob = await getSimulatedWellReportCurveZipApi(row.id)
+    const zipBlob = blob.type === "application/zip" ? blob : new Blob([blob], { type: "application/zip" })
+    const url = URL.createObjectURL(zipBlob)
+    const filename = `${(row.report_no || "模拟井测试报告").replace(/[\\/:*?"<>|]/g, "-")}-曲线图.zip`
+    const a = document.createElement("a")
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+    ElMessage.success("原始文件下载已开始")
+  } catch (error) {
+    console.error("下载模拟井报告曲线图失败", error)
+    ElMessage.error("原始文件下载失败")
+  } finally {
+    curveDownloadingId.value = null
+  }
 }
 
 const handlePushAssistant = async (row: AuditRow) => {
@@ -363,7 +562,7 @@ defineExpose({ resetSearch: getList })
         <el-table-column label="操作" width="210" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleDetail(row)">查看</el-button>
-            <el-button link type="success" @click="handleApprove(row)">通过</el-button>
+            <el-button link type="success" @click="showApproveDialog(row)">通过</el-button>
             <el-button link type="danger" @click="showRejectDialog(row)">驳回</el-button>
           </template>
         </el-table-column>
@@ -386,7 +585,7 @@ defineExpose({ resetSearch: getList })
       <div class="toolbar-wrapper">
         <div>
           <div class="section-title">已审核报告</div>
-          <div class="section-sub">已通过或已驳回的报告记录，可继续查看附件和下载归档。</div>
+          <div class="section-sub">已通过的报告可下载正式 PDF；驳回报告可继续查看附件。</div>
         </div>
         <el-button type="primary" icon="RefreshRight" circle @click="getList" />
       </div>
@@ -407,7 +606,15 @@ defineExpose({ resetSearch: getList })
         <el-table-column label="操作" width="230" fixed="right" align="center">
           <template #default="{ row }">
             <el-button link type="primary" @click="handleDetail(row)">查看</el-button>
-            <el-button link type="success" @click="handleDownload(row)">下载</el-button>
+            <el-button
+              v-if="row.status === 1"
+              :loading="downloadingId === row.id"
+              link
+              type="success"
+              @click="handleDownload(row)"
+            >
+              下载 PDF
+            </el-button>
             <el-button
               v-if="row.status === 1"
               :icon="Upload"
@@ -444,9 +651,25 @@ defineExpose({ resetSearch: getList })
             <el-descriptions-item label="任务编号">{{ currentReport.task_number }}</el-descriptions-item>
             <el-descriptions-item label="测试日期">{{ currentReport.test_date }}</el-descriptions-item>
             <el-descriptions-item label="测试人员">{{ currentReport.tester }}</el-descriptions-item>
+            <el-descriptions-item label="电子签名" :span="2">
+              <el-image
+                v-if="operatorSignatureUrl(currentReport)"
+                class="operator-signature-image"
+                :src="operatorSignatureUrl(currentReport)"
+                :preview-src-list="[operatorSignatureUrl(currentReport)]"
+                fit="contain"
+              />
+              <span v-else class="signature-empty">未记录电子签名</span>
+            </el-descriptions-item>
             <el-descriptions-item label="模板编号">{{ currentReport.template_no }}</el-descriptions-item>
             <el-descriptions-item label="关联工单">
               {{ currentReport.order_numbers?.join(" / ") || currentReport.task_number }}
+            </el-descriptions-item>
+            <el-descriptions-item label="测试环境">
+              {{ formatEnvironmentWithUnits(currentReport.meta.env_text) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="测试井段">
+              {{ formatIntervalWithUnits(currentReport.meta.interval_text) }}
             </el-descriptions-item>
             <el-descriptions-item label="提交时间">{{ formatTime(currentReport.submit_time) }}</el-descriptions-item>
             <el-descriptions-item label="审核时间">{{ formatTime(currentReport.audit_time) }}</el-descriptions-item>
@@ -476,23 +699,63 @@ defineExpose({ resetSearch: getList })
               <strong>{{ currentReport.meta.conclusion === "unqualified" ? "不合格" : "合格" }}</strong>
             </div>
           </div>
-          <el-collapse class="report-json-collapse">
-            <el-collapse-item title="查看完整结构化报告数据" name="json">
-              <pre>{{ compactJson(currentReport.meta) }}</pre>
-            </el-collapse-item>
-          </el-collapse>
-        </div>
-
-        <div v-if="currentReport.remark && currentReport.status !== 0" class="detail-card">
-          <div class="detail-card-title">审核意见</div>
-          <div class="review-comment">{{ currentReport.remark }}</div>
         </div>
 
         <div class="detail-card">
-          <div class="detail-card-title">曲线图与上传文件</div>
+          <div class="detail-card-title">测试项目</div>
+          <el-empty v-if="!currentTemplateSnapshot" description="暂无可用项目定义" :image-size="56" />
+          <el-empty v-else-if="!currentTestItemRows.length" description="当前模板未配置测试项目" :image-size="56" />
+          <div v-else class="readonly-report-list">
+            <div v-for="row in currentTestItemRows" :key="row.label" class="readonly-report-row">
+              <div class="readonly-report-label">{{ row.label }}</div>
+              <div class="readonly-report-value">{{ row.value }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <div class="detail-card-title">资料评价标准值</div>
+          <el-empty v-if="!currentTemplateSnapshot" description="暂无可用项目定义" :image-size="56" />
+          <el-empty v-else-if="!currentEvaluationRows.length" description="当前模板未配置评价标准" :image-size="56" />
+          <div v-else class="readonly-report-list">
+            <div v-for="row in currentEvaluationRows" :key="row.label" class="readonly-report-row">
+              <div class="readonly-report-label">{{ row.label }}</div>
+              <div class="readonly-report-value">{{ row.value }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="currentReport.status !== 0" class="detail-card">
+          <div class="detail-card-title">审核意见</div>
+          <div class="review-comment">{{ currentReport.remark || "-" }}</div>
+        </div>
+
+        <div class="detail-card">
+          <div class="detail-card-heading">
+            <div class="detail-card-title">原始文件与上传文件</div>
+          </div>
           <el-empty v-if="!reportAttachments(currentReport).length" description="暂无附件" :image-size="72" />
           <div v-else class="attachment-list">
-            <div v-for="(item, index) in reportAttachments(currentReport)" :key="index" class="attachment-row">
+            <div v-if="curveAttachments(currentReport).length" class="attachment-row">
+              <div class="attachment-main">
+                <el-tag type="info" effect="plain">原始文件</el-tag>
+                <div class="attachment-file-list">
+                  <div v-for="(item, index) in curveAttachments(currentReport)" :key="index" class="attachment-file-item">
+                    <div class="attachment-title">{{ attachmentTitle(item) }}</div>
+                    <div class="attachment-path">{{ displayReportValue(item.file_url || item.local_path) }}</div>
+                  </div>
+                </div>
+              </div>
+              <el-button
+                type="primary"
+                :icon="Download"
+                :loading="curveDownloadingId === currentReport.id"
+                @click="handleCurveDownload(currentReport)"
+              >
+                下载原始文件
+              </el-button>
+            </div>
+            <div v-for="(item, index) in otherAttachments(currentReport)" :key="index" class="attachment-row">
               <div class="attachment-main">
                 <el-tag :type="isImageAttachment(item) ? 'success' : 'info'" effect="plain">
                   {{ attachmentType(item) }}
@@ -514,7 +777,7 @@ defineExpose({ resetSearch: getList })
         <el-button
           v-if="currentReport && currentReport.status === 0"
           type="success"
-          @click="handleApprove(currentReport)"
+          @click="showApproveDialog(currentReport)"
         >
           审核通过
         </el-button>
@@ -525,6 +788,14 @@ defineExpose({ resetSearch: getList })
         >
           审核驳回
         </el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="approveDialogVisible" title="审核通过" width="520px" append-to-body>
+      <el-input v-model="approveReason" type="textarea" :rows="5" placeholder="请输入审核意见（可选）" />
+      <template #footer>
+        <el-button @click="approveDialogVisible = false">取消</el-button>
+        <el-button type="success" @click="handleApprove">确认通过</el-button>
       </template>
     </el-dialog>
 
@@ -632,10 +903,66 @@ defineExpose({ resetSearch: getList })
   font-weight: 800;
 }
 
+.detail-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.detail-card-heading .detail-card-title {
+  margin-bottom: 0;
+}
+
+.operator-signature-image {
+  width: min(280px, 100%);
+  height: 96px;
+  border: 1px solid #dce6ee;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.signature-empty {
+  color: #909399;
+}
+
 .report-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+}
+
+.readonly-report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.readonly-report-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 32%) 1fr;
+  overflow: hidden;
+  border: 1px solid #e1eaf2;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.readonly-report-label,
+.readonly-report-value {
+  padding: 10px 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.readonly-report-label {
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+}
+
+.readonly-report-value {
+  color: #475569;
 }
 
 .info-tile {
@@ -655,20 +982,6 @@ defineExpose({ resetSearch: getList })
 .info-tile strong {
   color: #111827;
   font-size: 16px;
-}
-
-.report-json-collapse {
-  margin-top: 12px;
-}
-
-.report-json-collapse pre {
-  max-height: 280px;
-  overflow: auto;
-  padding: 12px;
-  border-radius: 10px;
-  background: #0f172a;
-  color: #dbeafe;
-  font-size: 12px;
 }
 
 .review-comment {
@@ -701,8 +1014,18 @@ defineExpose({ resetSearch: getList })
 .attachment-main {
   min-width: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
+}
+
+.attachment-file-list {
+  min-width: 0;
+}
+
+.attachment-file-item + .attachment-file-item {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e1eaf2;
 }
 
 .attachment-title {

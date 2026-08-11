@@ -10,6 +10,7 @@ export interface SimulatedWellOrderListItem {
   research_no?: string
   project_budget_no?: string
   project_name?: string
+  well_name?: string
   tested_instrument?: string
   instrument_sn_numbers?: string
   quantity?: number
@@ -39,7 +40,17 @@ export interface SimulatedWellOrderListItem {
   admin_signature_url?: string | null
   created_at: string
   updated_at: string
-  devices?: { device_name: string; device_number: string }[]
+  devices?: Array<{
+    id: number
+    device_name: string
+    device_number: string
+    scheduled_start_at?: string | null
+    scheduled_end_at?: string | null
+    schedule_segments?: Array<Record<string, unknown>>
+    instrument_status?: number
+    is_completed?: boolean
+    completed_at?: string | null
+  }>
 }
 
 export interface SimulatedWellOrderListRequest {
@@ -71,6 +82,7 @@ export interface CreateSimulatedWellOrderRequest {
   research_no?: string
   project_budget_no?: string
   project_name?: string
+  well_name: string
   tested_instrument?: string
   instrument_sn_numbers?: string
   quantity?: number

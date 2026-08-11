@@ -66,6 +66,25 @@ describe("work order schedule status", () => {
     expect(getWorkOrderScheduleTagType(order)).toBe("warning")
   })
 
+  it("keeps an unstarted product schedulable while another product keeps its order running", () => {
+    const order = {
+      status: 2,
+      statusText: "测试中",
+      scheduledStartAt: null,
+      scheduledEndAt: null,
+      scheduleSegments: [],
+      raw: {
+        device: {
+          instrument_status: 0,
+          is_completed: false,
+        },
+      },
+    }
+
+    expect(normalizeScheduleListState(order)).toBe("pending")
+    expect(filteredOrdersByScheduleState([order], "pending")).toEqual([order])
+  })
+
   it("keeps completed instrument rows out of the pending schedule list even when the parent order is pending", () => {
     const order = {
       status: 1,

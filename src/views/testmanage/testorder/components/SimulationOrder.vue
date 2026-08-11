@@ -34,6 +34,18 @@ const statusOptions = [
   { value: "8", label: "疑问" }
 ]
 
+const wellNameOptions = [
+  { value: "cosl1", label: "科索1井" },
+  { value: "yanjiao1", label: "燕郊1井" },
+  { value: "yanjiao2", label: "燕郊2井" },
+  { value: "ren91", label: "任91井" },
+  { value: "gugu8", label: "孤古8井" },
+  { value: "other", label: "其他" }
+]
+
+const getWellNameLabel = (value?: string | null) =>
+  wellNameOptions.find((item) => item.value === value)?.label || "-"
+
 const searchForm = reactive({
   taskNumber: "",
   status: ""
@@ -69,6 +81,7 @@ const createDefaultForm = () => ({
   research_no: "",
   project_budget_no: "",
   project_name: "",
+  well_name: "",
   tested_instrument: "",
   instrument_sn_numbers: "",
   quantity: 1,
@@ -92,6 +105,7 @@ const createRules = {
   applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }],
   test_unit: [{ required: true, message: "请输入测试申请单位", trigger: "blur" }],
   project_name: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
+  well_name: [{ required: true, message: "请选择实验井", trigger: "change" }],
   tested_instrument: [{ required: true, message: "请输入待测仪器", trigger: "blur" }],
   instrument_sn_numbers: [{ required: true, message: "请输入仪器SN号", trigger: "blur" }],
   quantity: [{ required: true, message: "请输入数量", trigger: "change" }],
@@ -619,6 +633,13 @@ onMounted(() => {
             </el-form-item>
           </el-col>
           <el-col :span="12">
+            <el-form-item label="实验井" prop="well_name">
+              <el-select v-model="createForm.well_name" placeholder="请选择实验井" style="width: 100%">
+                <el-option v-for="item in wellNameOptions" :key="item.value" :label="item.label" :value="item.value" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="待测仪器" prop="tested_instrument">
               <el-input v-model="createForm.tested_instrument" />
             </el-form-item>
@@ -700,6 +721,7 @@ onMounted(() => {
           <el-descriptions-item label="项目名称">{{
             currentOrder.project_name || currentOrder.task_desc || "-"
           }}</el-descriptions-item>
+          <el-descriptions-item label="实验井">{{ getWellNameLabel(currentOrder.well_name) }}</el-descriptions-item>
           <el-descriptions-item label="待测仪器">{{ currentOrder.tested_instrument || "-" }}</el-descriptions-item>
           <el-descriptions-item label="仪器SN号（资产号，多个）">{{
             currentOrder.instrument_sn_numbers || "-"

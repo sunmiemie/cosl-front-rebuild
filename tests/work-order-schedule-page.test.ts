@@ -223,7 +223,9 @@ describe("工单排程页面", () => {
     expect(content).toContain('const equipmentId = activeDeviceTab.value || secondaryDeviceTabs.value[0]?.key || ""')
     expect(content).toContain("const useDevice = targetDevice.label")
     expect(content).toContain("equipment_id: equipmentId")
-    expect(content).toMatch(/const events = activeOrders\.value\.flatMap<BaseCalendarEvent>/)
+    expect(content).toMatch(
+      /const events = activeOrders\.value\s*\.filter\(\(order\) => \{[\s\S]*\!\[1, 2, 4\]\.includes\(Number\(order\.status\)\)[\s\S]*instrument_status/
+    )
     expect(content).toContain("isScheduleSegmentVisibleInActiveDevice(order, segment)")
   })
 })

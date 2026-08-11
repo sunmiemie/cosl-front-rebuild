@@ -802,7 +802,13 @@ const weekLabel = computed(() => {
 })
 
 const calendarEvents = computed<CalendarEvent[]>(() => {
-  const events = activeOrders.value.flatMap<BaseCalendarEvent>((order) => {
+  const events = activeOrders.value
+    .filter((order) => {
+      if (![1, 2, 4].includes(Number(order.status))) return false
+      const device = order.raw?.device
+      return !device?.is_completed && Number(device?.instrument_status || 0) !== 2
+    })
+    .flatMap<BaseCalendarEvent>((order) => {
     const segments = getOrderScheduleSegments(order)
 
     return segments
