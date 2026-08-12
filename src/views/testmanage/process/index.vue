@@ -3,7 +3,7 @@
 <script lang="ts" setup>
 import { reactive, ref, watch, type Ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
-import { ElMessage, ElMessageBox, ElTree, type FormInstance, type TabsPaneContext } from "element-plus"
+import { ElMessage, ElMessageBox, ElTable, ElTree, type FormInstance, type TabsPaneContext } from "element-plus"
 import { ElButton, ElDrawer } from "element-plus"
 import { CirclePlus, Refresh, RefreshRight, Search, View, Delete, Download } from "@element-plus/icons-vue"
 import { useDetailPagination, usePagination } from "@/hooks/usePagination"
@@ -19,10 +19,20 @@ import {
   submitCheck,
   deleteTestProcessApi
 } from "@/api/addprocess"
-import { getHaltHassProcessList, deleteHaltHassProcess, submitHaltHassToCheck } from "@/api/halt-hass"
+import {
+  getHaltHassProcessList,
+  getHaltHassProcessDetail,
+  deleteHaltHassProcess,
+  submitHaltHassToCheck
+} from "@/api/halt-hass"
 import type { HaltHassProcessListItem } from "@/api/halt-hass/types"
 import { pushEngineerAssistantProcessesApi } from "@/api/engineer-assistant"
 import type { EngineerAssistantTestType } from "@/api/engineer-assistant/types"
+import {
+  HALT_HASS_ASSISTANT_PROCESS_GROUP,
+  buildHaltHassAssistantProcessItem,
+  canPushHaltHassProcess
+} from "./halt-hass-assistant-push"
 
 const testStore = useTestStore()
 
@@ -480,6 +490,9 @@ watch([() => paginationDetailData.currentPage, () => paginationDetailData.pageSi
 // HALT-HASS 工艺数据
 const haltHassLoading = ref(false)
 const haltHassTableData = ref<HaltHassProcessListItem[]>([])
+const haltHassTableRef = ref<InstanceType<typeof ElTable>>()
+const selectedHaltHassProcesses = ref<HaltHassProcessListItem[]>([])
+const haltHassPushLoading = ref(false)
 const haltHassPagination = reactive({
   currentPage: 1,
   pageSize: 10,
@@ -513,6 +526,65 @@ const getHaltHassStatusType = (status: number): StatusTagType => {
 const getHaltHassStatusText = (status: number) => {
   const map: Record<number, string> = { 0: "草稿", 1: "待审核", 2: "待修改", 3: "已通过" }
   return map[status] || "未知"
+}
+
+const handleHaltHassSelectionChange = (rows: HaltHassProcessListItem[]) => {
+  selectedHaltHassProcesses.value = rows
+}
+
+const pushSelectedHaltHassProcesses = async () => {
+  if (selectedHaltHassProcesses.value.length === 0) {
+    ElMessage.warning("请先选择已通过审核的 HALT-HASS 工艺")
+    return
+  }
+  if (selectedHaltHassProcesses.value.some((row) => !canPushHaltHassProcess(row))) {
+    ElMessage.warning("所选工艺中存在未通过审核的数据，请刷新列表后重新选择")
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确认将已选择的 ${selectedHaltHassProcesses.value.length} 项 HALT-HASS 工艺推送给小助手？`,
+      "推送工艺文件到小助手",
+      {
+        confirmButtonText: "确认推送",
+        cancelButtonText: "取消",
+        type: "warning"
+      }
+    )
+  } catch {
+    return
+  }
+
+  haltHassPushLoading.value = true
+  try {
+    const selectedRows = [...selectedHaltHassProcesses.value]
+    const detailResponses = await Promise.all(selectedRows.map((row) => getHaltHassProcessDetail(row.id)))
+    if (detailResponses.some((response) => !canPushHaltHassProcess(response.data))) {
+      ElMessage.warning("所选工艺状态已发生变化，仅已通过审核的工艺可以推送")
+      getHaltHassTableData()
+      return
+    }
+    const processList = detailResponses.map((response, index) =>
+      buildHaltHassAssistantProcessItem(selectedRows[index], response.data)
+    )
+
+    await pushEngineerAssistantProcessesApi({
+      processDtoList: [
+        {
+          ...HALT_HASS_ASSISTANT_PROCESS_GROUP,
+          list: processList
+        }
+      ]
+    })
+
+    haltHassTableRef.value?.clearSelection()
+    ElMessage.success(`已向小助手推送 ${processList.length} 项 HALT-HASS 工艺文件`)
+  } catch {
+    // 请求层已统一展示后端返回的错误信息。
+  } finally {
+    haltHassPushLoading.value = false
+  }
 }
 
 // 获取 HALT-HASS 工艺列表
@@ -764,6 +836,14 @@ onMounted(() => {
                 <el-tooltip content="HALT-HASS 工艺需在客户端创建和编辑">
                   <el-button :icon="CirclePlus" type="primary" disabled>新增工艺</el-button>
                 </el-tooltip>
+                <el-button
+                  type="primary"
+                  :disabled="selectedHaltHassProcesses.length === 0"
+                  :loading="haltHassPushLoading"
+                  @click="pushSelectedHaltHassProcesses"
+                >
+                  推送小助手
+                </el-button>
               </div>
               <div>
                 <el-tooltip content="刷新当前页">
@@ -774,7 +854,15 @@ onMounted(() => {
 
             <!-- 表格 -->
             <div class="table-wrapper">
-              <el-table :data="haltHassTableData" stripe border>
+              <el-table
+                ref="haltHassTableRef"
+                :data="haltHassTableData"
+                row-key="id"
+                stripe
+                border
+                @selection-change="handleHaltHassSelectionChange"
+              >
+                <el-table-column type="selection" width="55" align="center" :selectable="canPushHaltHassProcess" />
                 <el-table-column prop="id" label="工艺ID" align="center" width="80" />
                 <el-table-column prop="name" label="工艺名称" align="center" min-width="120" />
                 <el-table-column prop="version" label="版本" align="center" width="100" />
