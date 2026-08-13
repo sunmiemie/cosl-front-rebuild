@@ -1,7 +1,7 @@
 /** 统一处理 localStorage */
 
 import CacheKey from "@/constants/cache-key"
-import { type SidebarOpened, type SidebarClosed } from "@/constants/app-key"
+import { LayoutModeEnum, type SidebarOpened, type SidebarClosed } from "@/constants/app-key"
 import { type ThemeName } from "@/hooks/useTheme"
 import { type TagView } from "@/store/modules/tags-view"
 import { type LayoutSettings } from "@/config/layouts"
@@ -19,7 +19,31 @@ const readJsonCache = (key: string): unknown => {
 //#region 系统布局配置
 export const getConfigLayout = () => {
   const value = readJsonCache(CacheKey.CONFIG_LAYOUT)
-  return value !== null && typeof value === "object" && !Array.isArray(value) ? (value as LayoutSettings) : null
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null
+  const cached = value as Record<string, unknown>
+  const result: Partial<LayoutSettings> = {}
+  const booleanKeys = [
+    "showSettings",
+    "showTagsView",
+    "showLogo",
+    "fixedHeader",
+    "showFooter",
+    "showNotify",
+    "showThemeSwitch",
+    "showScreenfull",
+    "showSearchMenu",
+    "cacheTagsView",
+    "showWatermark",
+    "showGreyMode",
+    "showColorWeakness"
+  ] as const
+  booleanKeys.forEach((key) => {
+    const value = cached[key]
+    if (typeof value === "boolean") result[key] = value
+  })
+  if (Object.values(LayoutModeEnum).includes(cached.layoutMode as LayoutModeEnum))
+    result.layoutMode = cached.layoutMode as LayoutModeEnum
+  return result
 }
 export const setConfigLayout = (settings: LayoutSettings) => {
   localStorage.setItem(CacheKey.CONFIG_LAYOUT, JSON.stringify(settings))
@@ -40,7 +64,8 @@ export const setSidebarStatus = (sidebarStatus: SidebarOpened | SidebarClosed) =
 
 //#region 正在应用的主题名称
 export const getActiveThemeName = () => {
-  return localStorage.getItem(CacheKey.ACTIVE_THEME_NAME) as ThemeName | null
+  const value = localStorage.getItem(CacheKey.ACTIVE_THEME_NAME)
+  return value === "normal" || value === "dark" || value === "dark-blue" ? value : null
 }
 export const setActiveThemeName = (themeName: ThemeName) => {
   localStorage.setItem(CacheKey.ACTIVE_THEME_NAME, themeName)
