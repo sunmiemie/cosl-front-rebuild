@@ -291,28 +291,40 @@ export const constantRoutes: RouteRecordRaw[] = [
   {
     path: "/inspectionmanage",
     component: Layouts,
-    redirect: "/inspectionmanage/view",
+    redirect: "/inspectionmanage/config",
     meta: {
       title: "巡检管理",
       elIcon: "Tickets"
     },
     children: [
       {
-        path: "view",
-        component: () => import("@/views/inspectionmanage/info-view/index.vue"),
-        name: "InspectionInfoView",
+        path: "config",
+        component: () => import("@/views/inspectionmanage/config-list/index.vue"),
+        name: "InspectionConfigList",
         meta: {
-          title: "巡检信息查看",
+          title: "巡检配置",
           keepAlive: true
         }
       },
       {
-        path: "base-info",
-        component: () => import("@/views/inspectionmanage/base-info/index.vue"),
-        name: "InspectionBaseInfo",
+        path: "records",
+        alias: "/inspectionmanage/view",
+        component: () => import("@/views/inspectionmanage/info-view/index.vue"),
+        name: "InspectionRecords",
         meta: {
-          title: "巡检信息添加",
+          title: "巡检记录",
           keepAlive: true
+        }
+      },
+      {
+        path: "config/editor",
+        alias: "/inspectionmanage/base-info",
+        component: () => import("@/views/inspectionmanage/base-info/index.vue"),
+        name: "InspectionConfigEditor",
+        meta: {
+          title: "巡检配置编辑",
+          hidden: true,
+          activeMenu: "/inspectionmanage/config"
         }
       }
     ]

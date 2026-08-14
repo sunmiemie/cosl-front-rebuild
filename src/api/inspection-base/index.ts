@@ -8,6 +8,14 @@ export function getInspectionUserOptionsApi() {
   })
 }
 
+export function getInspectionDeviceConfigOverviewApi(params: InspectionBase.InspectionDeviceConfigOverviewRequest) {
+  return request<InspectionBase.InspectionDeviceConfigOverviewResponse>({
+    url: "data/inspection-base/device-overview",
+    method: "get",
+    params
+  })
+}
+
 export function getInspectionBaseInfoListApi(params: InspectionBase.InspectionBaseInfoListRequest) {
   return request<InspectionBase.InspectionBaseInfoListResponse>({
     url: "data/inspection-base/list",

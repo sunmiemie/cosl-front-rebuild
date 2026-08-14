@@ -14,7 +14,56 @@ export interface InspectionUserOptionsResponse {
   data: InspectionUserOption[]
 }
 
+export interface InspectionBaseInspector {
+  id: string
+  name: string
+  department: string
+}
+
+export interface InspectionDeviceConfigOverviewRequest {
+  keyword?: string
+  device_type?: string
+  inspector?: string
+  configured?: "true" | "false"
+  currentPage: number
+  pageSize: number
+}
+
+export interface InspectionDeviceConfigOverviewItem {
+  device_id: number
+  device_type: string
+  device_name: string
+  device_sn: string
+  model_name: string
+  configured: boolean
+  config_id: number | null
+  inspection_no: string
+  inspector: string
+  inspectors: InspectionBaseInspector[]
+  item_count: number
+  status: "正常" | "维保中" | "维修中" | ""
+  updated_at: string | null
+}
+
+export interface InspectionDeviceConfigOverviewResponse {
+  code: number
+  msg: string
+  message?: string
+  data: {
+    list: InspectionDeviceConfigOverviewItem[]
+    total: number
+    currentPage: number
+    pageSize: number
+    stats: {
+      total: number
+      configured: number
+      unconfigured: number
+    }
+  }
+}
+
 export interface InspectionBaseInfoListRequest {
+  device_id?: number
   device_name?: string
   device_sn?: string
   status?: string
@@ -28,9 +77,15 @@ export interface InspectionBaseInfoListRequest {
 export interface InspectionBaseInfoListItem {
   id: number
   inspection_no: string
+  device_id?: number | null
+  device_type?: string
   device_name: string
   device_sn: string
   inspector: string
+  assistant_inspector_user_id?: string | null
+  inspector_name?: string
+  inspector_department?: string
+  inspectors?: InspectionBaseInspector[]
   status: "正常" | "维保中" | "维修中"
   item_count: number
   inspection_date?: string | null
@@ -56,9 +111,15 @@ export interface InspectionBaseInfoDetailItem {
 export interface InspectionBaseInfoDetail {
   id: number
   inspection_no: string
+  device_id: number | null
+  device_type: string
   device_name: string
   device_sn: string
   inspector: string
+  assistant_inspector_user_id: string | null
+  inspector_name: string
+  inspector_department: string
+  inspectors: InspectionBaseInspector[]
   status: "正常" | "维保中" | "维修中"
   inspection_date?: string | null
   created_at?: string | null
@@ -87,18 +148,19 @@ export interface InspectionBaseInfoDetailResponse {
 
 export interface InspectionBaseInfoSaveRequest {
   id?: number
+  device_id: number
+  device_type: string
   device_name: string
   device_sn: string
   inspector: string
+  inspectors: InspectionBaseInspector[]
   status: "正常" | "维保中" | "维修中"
   assistant_equipment_type?: string
   items: Array<{
+    item_id?: number
     sort_no?: number
     content: string
     result_type: InspectionResultType
-    assistant_inspector_user_id: string
-    inspector_name: string
-    inspector_department: string
     require_photo: boolean
     photo?: string | null
   }>
@@ -111,24 +173,29 @@ export interface InspectionBaseInfoSaveResponse {
   data: {
     id: number
     inspection_no: string
+    device_id: number
+    device_type: string
+    device_name: string
+    device_sn: string
     inspector: string
+    assistant_inspector_user_id: string
+    inspector_name: string
+    inspector_department: string
+    inspectors: InspectionBaseInspector[]
+    items: Array<{
+      id: number
+      sort_no: number
+      content: string
+      result_type: InspectionResultType
+      require_photo: boolean
+      photo?: string | null
+    }>
     assistantSync?: {
       success: boolean
       synced: number
+      failed?: number
       message?: string
-      payload?: {
-        equipmentType: string
-        inspectionItems: Array<{
-          itemId: string
-          itemContent: string
-          orderNum: string
-          isPhoto: boolean
-          resultType: InspectionResultType
-          inspectionPersonId: string
-          inspectionPersonName: string
-          inspectionPersonDept: string
-        }>
-      }
+      payload?: InspectionAssistantPushPayload
       assistant?: unknown
     }
   }
@@ -140,6 +207,7 @@ export interface InspectionBaseItemSaveRequest {
   device_name: string
   device_sn: string
   inspector: string
+  inspectors?: InspectionBaseInspector[]
   status: "正常" | "维保中" | "维修中"
   assistant_equipment_type?: string
   sort_no?: number
@@ -160,24 +228,13 @@ export interface InspectionBaseItemSaveResponse {
     id: number
     inspection_no: string
     inspector: string
+    inspectors?: InspectionBaseInspector[]
     item: InspectionBaseInfoDetailItem
     assistantSync?: {
       success: boolean
       synced: number
       message?: string
-      payload?: {
-        equipmentType: string
-        inspectionItems: Array<{
-          itemId: string
-          itemContent: string
-          orderNum: string
-          isPhoto: boolean
-          resultType: InspectionResultType
-          inspectionPersonId: string
-          inspectionPersonName: string
-          inspectionPersonDept: string
-        }>
-      }
+      payload?: InspectionAssistantPushPayload
       assistant?: unknown
     }
   }
@@ -199,25 +256,32 @@ export interface InspectionBaseAssistantSyncRequest {
   dryRun?: boolean
 }
 
+export interface InspectionAssistantPushPayload {
+  equipmentId: string
+  equipmentName: string
+  sn: string
+  equipmentType: string
+  inspectionPersons: Array<{
+    inspectionPersonId: string
+    inspectionPersonName: string
+    inspectionPersonDept: string
+  }>
+  inspectionItems: Array<{
+    itemId: string
+    itemContent: string
+    orderNum: string
+    isPhoto: boolean
+    resultType: InspectionResultType
+  }>
+}
+
 export interface InspectionBaseAssistantSyncResponse {
   code: number
   msg: string
   message?: string
   data: {
     synced: number
-    payload?: {
-      equipmentType: string
-      inspectionItems: Array<{
-        itemId: string
-        itemContent: string
-        orderNum: string
-        isPhoto: boolean
-        resultType: InspectionResultType
-        inspectionPersonId: string
-        inspectionPersonName: string
-        inspectionPersonDept: string
-      }>
-    }
+    payload?: InspectionAssistantPushPayload
     assistant?: unknown
   }
 }

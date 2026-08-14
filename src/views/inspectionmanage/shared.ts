@@ -2,11 +2,10 @@ export type InspectionResultType = 0 | 1
 
 export interface InspectionItem {
   id: string
+  clientKey: string
+  sortNo: number
   content: string
   resultType: InspectionResultType
-  inspectorUserId: string | null
-  inspectorName: string
-  inspectorDepartment: string
   requirePhoto: boolean
 }
 
@@ -49,20 +48,18 @@ export function createDefaultInspectionRecord(): InspectionRecord {
     items: [
       {
         id: buildId("item"),
+        clientKey: buildId("draft"),
+        sortNo: 1,
         content: "巡检内容1",
         resultType: 0,
-        inspectorUserId: null,
-        inspectorName: "常宏",
-        inspectorDepartment: "",
         requirePhoto: true
       },
       {
         id: buildId("item"),
+        clientKey: buildId("draft"),
+        sortNo: 2,
         content: "巡检内容2",
         resultType: 0,
-        inspectorUserId: null,
-        inspectorName: "马晓涵",
-        inspectorDepartment: "",
         requirePhoto: false
       }
     ],
@@ -90,11 +87,10 @@ export function loadInspectionRecords(): InspectionRecord[] {
         items: Array.isArray(item.items)
           ? item.items.map((subItem: any) => ({
               id: subItem.id || buildId("item"),
+              clientKey: subItem.clientKey || buildId("draft"),
+              sortNo: Number(subItem.sortNo) || 1,
               content: subItem.content || "",
               resultType: subItem.resultType === 1 ? 1 : 0,
-              inspectorUserId: subItem.inspectorUserId ? String(subItem.inspectorUserId) : null,
-              inspectorName: subItem.inspectorName || "",
-              inspectorDepartment: subItem.inspectorDepartment || "",
               requirePhoto: Boolean(subItem.requirePhoto)
             }))
           : [],

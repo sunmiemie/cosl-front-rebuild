@@ -22,9 +22,15 @@ describe("巡检记录查看页面", () => {
   it("支持导出当前设备类型和月份的巡检记录表格", () => {
     expect(content).toContain("导出表格")
     expect(content).toContain("buildInspectionRecordExportRows(")
-    expect(content).toContain("filteredMonthRecords.value")
+    expect(content).toContain("buildInspectionRecordExportRows([], currentMonthAssistantResults.value)")
     expect(content).toContain("currentMonthAssistantResults.value")
     expect(content).toContain("downloadInspectionRecordExcel(")
-    expect(content).toContain(':disabled="loading || assistantResultLoading || currentMonthRecordCount === 0"')
+    expect(content).toContain(':disabled="assistantResultLoading || currentMonthRecordCount === 0"')
+  })
+
+  it("只展示实际巡检结果，不再把巡检配置当作巡检记录", () => {
+    expect(content).toContain("buildInspectionRecordRows([], selectedAssistantResults.value)")
+    expect(content).not.toContain("getInspectionBaseInfoListApi")
+    expect(content).not.toContain("currentRecord")
   })
 })
