@@ -54,6 +54,7 @@
               {{ row.resultType === 1 ? "文本填写" : "选项选择" }}
             </template>
           </el-table-column>
+          <el-table-column prop="inspectorName" label="巡检人" width="140" align="center" />
           <el-table-column label="是否需要拍照" width="140" align="center">
             <template #default="{ row }">
               {{ row.requirePhoto ? "是" : "否" }}
@@ -94,6 +95,21 @@
         <el-form-item label="结果填写方式" required>
           <el-segmented v-model="editingItem.resultType" :options="resultTypeOptions" />
         </el-form-item>
+        <el-form-item label="巡检人" required>
+          <el-select
+            v-model="editingItem.inspectorUserId"
+            placeholder="请选择小助手巡检人"
+            filterable
+            :loading="inspectionUsersLoading"
+          >
+            <el-option
+              v-for="user in inspectionUserOptions"
+              :key="user.id"
+              :label="getInspectionUserLabel(user)"
+              :value="user.id"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="需要拍照">
           <el-switch v-model="editingItem.requirePhoto" />
         </el-form-item>
@@ -118,15 +134,13 @@ import {
   deleteInspectionBaseItemApi,
   getInspectionBaseInfoDetailApi,
   getInspectionBaseInfoListApi,
+  getInspectionUserOptionsApi,
   saveInspectionBaseItemApi
 } from "@/api/inspection-base"
-import type { InspectionBaseInfoDetail } from "@/api/inspection-base/types"
-import { useUserStore } from "@/store/modules/user"
-import { getInspectionInspector } from "./inspection-save"
+import type { InspectionBaseInfoDetail, InspectionUserOption } from "@/api/inspection-base/types"
 
 const router = useRouter()
 const route = useRoute()
-const userStore = useUserStore()
 
 type InspectionHostDeviceOption = {
   sn: string
@@ -144,8 +158,11 @@ const snLoading = ref(false)
 const itemSaving = ref(false)
 const deletingItemId = ref("")
 const contentLoading = ref(false)
+const inspectionUserOptions = ref<InspectionUserOption[]>([])
+const inspectionUsersLoading = ref(false)
 let snRequestId = 0
 let hostDeviceCache: InspectionHostDeviceOption[] | null = null
+let inspectionUsersLoaded = false
 
 const formData = reactive({
   id: "",
@@ -287,6 +304,9 @@ function applyDetail(detail: InspectionBaseInfoDetail) {
     id: String(it.id),
     content: it.content,
     resultType: normalizeResultType(it.result_type),
+    inspectorUserId: it.assistant_inspector_user_id || null,
+    inspectorName: it.inspector_name || "",
+    inspectorDepartment: it.inspector_department || "",
     requirePhoto: Boolean(it.require_photo)
   }))
   formData.created_at = detail.created_at || ""
@@ -376,10 +396,32 @@ const editingItem = reactive<InspectionItem>({
   id: "",
   content: "",
   resultType: 0,
+  inspectorUserId: null,
+  inspectorName: "",
+  inspectorDepartment: "",
   requirePhoto: false
 })
 
-function openCreateDialog() {
+function getInspectionUserLabel(user: InspectionUserOption) {
+  return user.department_name ? `${user.name}（${user.department_name}）` : user.name
+}
+
+async function loadInspectionUserOptions() {
+  if (inspectionUsersLoaded) return
+  inspectionUsersLoading.value = true
+  try {
+    const res = await getInspectionUserOptionsApi()
+    inspectionUserOptions.value = Array.isArray(res.data) ? res.data : []
+    inspectionUsersLoaded = true
+  } catch {
+    ElMessage.error("加载小助手巡检人员名单失败")
+    throw new Error("load inspection users failed")
+  } finally {
+    inspectionUsersLoading.value = false
+  }
+}
+
+async function openCreateDialog() {
   if (!formData.device_name || !formData.device_sn) {
     ElMessage.warning("请先选择巡检设备名称和SN号")
     return
@@ -388,17 +430,39 @@ function openCreateDialog() {
   editingItem.id = ""
   editingItem.content = ""
   editingItem.resultType = 0
+  editingItem.inspectorUserId = null
+  editingItem.inspectorName = ""
+  editingItem.inspectorDepartment = ""
   editingItem.requirePhoto = false
   dialogVisible.value = true
+  try {
+    await loadInspectionUserOptions()
+  } catch {
+    // 错误消息已在加载方法中提示，保留弹窗便于用户重试。
+  }
 }
 
-function openEditDialog(item: InspectionItem) {
+async function openEditDialog(item: InspectionItem) {
   dialogTitle.value = "编辑巡检内容"
   editingItem.id = item.id
   editingItem.content = item.content
   editingItem.resultType = item.resultType
+  editingItem.inspectorUserId = item.inspectorUserId
+  editingItem.inspectorName = item.inspectorName
+  editingItem.inspectorDepartment = item.inspectorDepartment
   editingItem.requirePhoto = item.requirePhoto
   dialogVisible.value = true
+  try {
+    await loadInspectionUserOptions()
+    if (item.inspectorUserId && !inspectionUserOptions.value.some((user) => user.id === item.inspectorUserId)) {
+      editingItem.inspectorUserId = null
+      ElMessage.warning("原巡检人已不在小助手用户列表中，请重新选择")
+    } else if (!item.inspectorUserId && item.inspectorName) {
+      ElMessage.warning(`历史巡检人“${item.inspectorName}”尚未关联小助手用户，请重新选择`)
+    }
+  } catch {
+    // 错误消息已在加载方法中提示。
+  }
 }
 
 async function handleConfirmItem() {
@@ -412,15 +476,19 @@ async function handleConfirmItem() {
     ElMessage.warning("请输入巡检内容")
     return
   }
+  if (editingItem.inspectorUserId === null) {
+    ElMessage.warning("请选择巡检人")
+    return
+  }
+  const selectedInspector = inspectionUserOptions.value.find((user) => user.id === editingItem.inspectorUserId)
+  if (!selectedInspector) {
+    ElMessage.warning("所选巡检人已不在小助手用户列表中，请重新选择")
+    return
+  }
 
   const isEditing = Boolean(editingItem.id)
   const itemIndex = isEditing ? formData.items.findIndex((item) => item.id === editingItem.id) : -1
   const itemId = Number(editingItem.id)
-  const inspector = getInspectionInspector({
-    inspector: formData.inspector,
-    nickName: userStore.nickName,
-    username: userStore.username
-  })
   itemSaving.value = true
   try {
     const res = await saveInspectionBaseItemApi({
@@ -428,12 +496,15 @@ async function handleConfirmItem() {
       item_id: isEditing && Number.isFinite(itemId) ? itemId : undefined,
       device_name: formData.device_name,
       device_sn: formData.device_sn,
-      inspector,
+      inspector: selectedInspector.name,
       status: formData.status,
       assistant_equipment_type: getAssistantEquipmentType(formData.device_name),
       sort_no: itemIndex >= 0 ? itemIndex + 1 : undefined,
       content,
       result_type: editingItem.resultType,
+      assistant_inspector_user_id: selectedInspector.id,
+      inspector_name: selectedInspector.name,
+      inspector_department: selectedInspector.department_name,
       require_photo: Boolean(editingItem.requirePhoto)
     })
 
@@ -441,7 +512,7 @@ async function handleConfirmItem() {
     if (Number.isFinite(savedBaseId)) {
       formData.id = String(savedBaseId)
       formData.inspection_no = res.data.inspection_no || formData.inspection_no
-      formData.inspector = inspector
+      formData.inspector = res.data.inspector || selectedInspector.name
       if (String(route.query.id || "") !== String(savedBaseId)) {
         await replaceRouteInspectionId(savedBaseId)
       }
@@ -452,6 +523,9 @@ async function handleConfirmItem() {
       id: String(savedItem.id),
       content: savedItem.content,
       resultType: normalizeResultType(savedItem.result_type),
+      inspectorUserId: savedItem.assistant_inspector_user_id || null,
+      inspectorName: savedItem.inspector_name,
+      inspectorDepartment: savedItem.inspector_department || "",
       requirePhoto: Boolean(savedItem.require_photo)
     }
     if (itemIndex >= 0) {
@@ -493,8 +567,9 @@ async function handleDeleteItem(id: string) {
   }
   deletingItemId.value = id
   try {
-    await deleteInspectionBaseItemApi(itemId)
+    const res = await deleteInspectionBaseItemApi(itemId)
     formData.items = formData.items.filter((item) => item.id !== id)
+    formData.inspector = res.data.inspector || ""
     ElMessage.success("删除成功")
   } catch (error: any) {
     ElMessage.error(error?.response?.data?.message || error?.response?.data?.msg || "删除巡检项失败")

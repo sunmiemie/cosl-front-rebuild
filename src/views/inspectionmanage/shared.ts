@@ -4,6 +4,9 @@ export interface InspectionItem {
   id: string
   content: string
   resultType: InspectionResultType
+  inspectorUserId: string | null
+  inspectorName: string
+  inspectorDepartment: string
   requirePhoto: boolean
 }
 
@@ -44,8 +47,24 @@ export function createDefaultInspectionRecord(): InspectionRecord {
     inspector: "常宏,马晓涵",
     status: "正常",
     items: [
-      { id: buildId("item"), content: "巡检内容1", resultType: 0, requirePhoto: true },
-      { id: buildId("item"), content: "巡检内容2", resultType: 0, requirePhoto: false }
+      {
+        id: buildId("item"),
+        content: "巡检内容1",
+        resultType: 0,
+        inspectorUserId: null,
+        inspectorName: "常宏",
+        inspectorDepartment: "",
+        requirePhoto: true
+      },
+      {
+        id: buildId("item"),
+        content: "巡检内容2",
+        resultType: 0,
+        inspectorUserId: null,
+        inspectorName: "马晓涵",
+        inspectorDepartment: "",
+        requirePhoto: false
+      }
     ],
     createdAt: time,
     updatedAt: time
@@ -73,6 +92,9 @@ export function loadInspectionRecords(): InspectionRecord[] {
               id: subItem.id || buildId("item"),
               content: subItem.content || "",
               resultType: subItem.resultType === 1 ? 1 : 0,
+              inspectorUserId: subItem.inspectorUserId ? String(subItem.inspectorUserId) : null,
+              inspectorName: subItem.inspectorName || "",
+              inspectorDepartment: subItem.inspectorDepartment || "",
               requirePhoto: Boolean(subItem.requirePhoto)
             }))
           : [],

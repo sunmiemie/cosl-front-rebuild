@@ -1,6 +1,13 @@
 import { request } from "@/utils/service"
 import type * as InspectionBase from "./types"
 
+export function getInspectionUserOptionsApi() {
+  return request<InspectionBase.InspectionUserOptionsResponse>({
+    url: "data/inspection-base/user-options",
+    method: "get"
+  })
+}
+
 export function getInspectionBaseInfoListApi(params: InspectionBase.InspectionBaseInfoListRequest) {
   return request<InspectionBase.InspectionBaseInfoListResponse>({
     url: "data/inspection-base/list",

@@ -1,5 +1,19 @@
 export type InspectionResultType = 0 | 1
 
+export interface InspectionUserOption {
+  id: string
+  name: string
+  department_id: string
+  department_name: string
+}
+
+export interface InspectionUserOptionsResponse {
+  code: number
+  msg: string
+  message?: string
+  data: InspectionUserOption[]
+}
+
 export interface InspectionBaseInfoListRequest {
   device_name?: string
   device_sn?: string
@@ -29,6 +43,10 @@ export interface InspectionBaseInfoDetailItem {
   sort_no: number
   content: string
   result_type: InspectionResultType
+  inspector_user_id: number | null
+  assistant_inspector_user_id: string | null
+  inspector_name: string
+  inspector_department: string
   require_photo: boolean
   photo?: string | null
   created_at?: string | null
@@ -78,6 +96,9 @@ export interface InspectionBaseInfoSaveRequest {
     sort_no?: number
     content: string
     result_type: InspectionResultType
+    assistant_inspector_user_id: string
+    inspector_name: string
+    inspector_department: string
     require_photo: boolean
     photo?: string | null
   }>
@@ -90,6 +111,7 @@ export interface InspectionBaseInfoSaveResponse {
   data: {
     id: number
     inspection_no: string
+    inspector: string
     assistantSync?: {
       success: boolean
       synced: number
@@ -102,6 +124,9 @@ export interface InspectionBaseInfoSaveResponse {
           orderNum: string
           isPhoto: boolean
           resultType: InspectionResultType
+          inspectionPersonId: string
+          inspectionPersonName: string
+          inspectionPersonDept: string
         }>
       }
       assistant?: unknown
@@ -120,6 +145,9 @@ export interface InspectionBaseItemSaveRequest {
   sort_no?: number
   content: string
   result_type: InspectionResultType
+  assistant_inspector_user_id: string
+  inspector_name: string
+  inspector_department: string
   require_photo: boolean
   photo?: string | null
 }
@@ -131,6 +159,7 @@ export interface InspectionBaseItemSaveResponse {
   data: {
     id: number
     inspection_no: string
+    inspector: string
     item: InspectionBaseInfoDetailItem
     assistantSync?: {
       success: boolean
@@ -144,6 +173,9 @@ export interface InspectionBaseItemSaveResponse {
           orderNum: string
           isPhoto: boolean
           resultType: InspectionResultType
+          inspectionPersonId: string
+          inspectionPersonName: string
+          inspectionPersonDept: string
         }>
       }
       assistant?: unknown
@@ -158,6 +190,7 @@ export interface InspectionBaseItemDeleteResponse {
   data: {
     base_id: number
     item_id: number
+    inspector: string
   }
 }
 
@@ -180,6 +213,9 @@ export interface InspectionBaseAssistantSyncResponse {
         orderNum: string
         isPhoto: boolean
         resultType: InspectionResultType
+        inspectionPersonId: string
+        inspectionPersonName: string
+        inspectionPersonDept: string
       }>
     }
     assistant?: unknown
