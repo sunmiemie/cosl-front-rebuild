@@ -11,6 +11,7 @@ import { useUserStore } from "@/store/modules/user"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import TempReportPreview from "@/components/Check/TempReportPreview.vue"
 import { ElMessageBox } from "element-plus"
+import { appendJsonFile, buildFeedbackFile, buildQuestionFile, jsonToFile } from "@/utils/report-feedback"
 
 const userStore = useUserStore()
 const taskCenterStore = useTaskCenterStoreHook()
@@ -303,11 +304,6 @@ const warnError = (obj) => {
   })
 }
 
-const jsonToFile = (data) => {
-  const jsonString = JSON.stringify(data)
-  return new Blob([jsonString], { type: "application/json" })
-}
-
 const checkPass = () => {
   loading.value = true
   const jsonString = JSON.stringify(reportJson.value)
@@ -321,11 +317,7 @@ const checkPass = () => {
   for (const key in data) {
     formData.append(key, data[key])
   }
-  if (reportFixed.value === true) {
-    formData.append("file", blob, "data.json")
-  } else {
-    formData.append("file", undefined)
-  }
+  appendJsonFile(formData, "file", reportFixed.value ? blob : null, "data.json")
   checkTempReportPassApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false
@@ -336,8 +328,8 @@ const checkPass = () => {
 }
 const checkFeedback = () => {
   loading.value = true
-  const blob_report = jsonToFile(reportJson.value)
-  const blob_feedback = jsonToFile(feedbackList.value)
+  const blob_report = reportFixed.value ? jsonToFile(reportJson.value) : null
+  const blob_feedback = buildFeedbackFile(feedbackList.value)
   const data = {
     id: anyObj.id,
     status: 1,
@@ -347,24 +339,24 @@ const checkFeedback = () => {
   for (const key in data) {
     formData.append(key, data[key])
   }
-  if (reportFixed.value === true) {
-    formData.append("file_report", blob_report, "data_report.json")
-  } else {
-    formData.append("file_report", undefined)
-  }
-  formData.append("file_feedback", blob_feedback, "data_feedback.json")
-  checkTempReportFeedbackApi(formData).then((res) => {
-    if (res.msg === "success") {
+  appendJsonFile(formData, "file_report", blob_report, "data_report.json")
+  appendJsonFile(formData, "file_feedback", blob_feedback, "data_feedback.json")
+  checkTempReportFeedbackApi(formData)
+    .then((res) => {
+      if (res.msg === "success") {
+        loading.value = false
+        void taskCenterStore.refresh(true)
+        router.push({ name: "reportCheckList" })
+      }
+    })
+    .finally(() => {
       loading.value = false
-      void taskCenterStore.refresh(true)
-      router.push({ name: "reportCheckList" })
-    }
-  })
+    })
 }
 const generateQuestionUnit = () => {
   loading.value = true
-  const blob_report = jsonToFile(reportJson.value)
-  const blob_question = jsonToFile(questionList.value)
+  const blob_report = reportFixed.value ? jsonToFile(reportJson.value) : null
+  const blob_question = buildQuestionFile(questionList.value)
   const data = {
     id: anyObj.id,
     userId: userStore.userid,
@@ -374,12 +366,8 @@ const generateQuestionUnit = () => {
   for (const key in data) {
     formData.append(key, data[key])
   }
-  if (reportFixed.value === true) {
-    formData.append("file_report", blob_report, "data_report.json")
-  } else {
-    formData.append("file_report", undefined)
-  }
-  formData.append("file_question", blob_question, "data_question.json")
+  appendJsonFile(formData, "file_report", blob_report, "data_report.json")
+  appendJsonFile(formData, "file_question", blob_question, "data_question.json")
   generateDevQuestionUnitApi(formData).then((res) => {
     if (res.msg === "success") {
       loading.value = false

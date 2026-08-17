@@ -12,6 +12,7 @@ export interface HighTempPressurePaperReportView {
   testingCurveAttachment: ReportRecord
   otherAttachment: ReportRecord
   flowCurveAttachment: ReportRecord | null
+  flowCurveAttachments: ReportRecord[]
 }
 
 const isRecord = (value: unknown): value is ReportRecord => {
@@ -99,6 +100,7 @@ export const getHighTempPressurePaperReportView = (
   const testingResult = readRecord(paperReport, "testing_result")
   const paperAttachments = readRecord(paperReport, "attachments")
   const attachmentList = Array.isArray(attachments) ? attachments : []
+  const flowCurveAttachments = attachmentList.filter(isTestingCurveAttachment)
 
   return {
     hasPaperReport: Object.keys(paperReport).length > 0,
@@ -112,9 +114,8 @@ export const getHighTempPressurePaperReportView = (
     testingCurveAttachment: readRecord(paperAttachments, "testing_curve"),
     otherAttachment: readRecord(paperAttachments, "others"),
     flowCurveAttachment:
-      attachmentList.find((item) => isTestingCurveAttachment(item) && Boolean(item.file_url)) ||
-      attachmentList.find(isTestingCurveAttachment) ||
-      null
+      flowCurveAttachments.find((item) => Boolean(item.file_url)) || flowCurveAttachments[0] || null,
+    flowCurveAttachments
   }
 }
 
@@ -336,11 +337,12 @@ export const buildHighTempPressureReportDoc = (
           { label: "其他附件份数", value: paperReportView.otherAttachment.copies },
           {
             label: "测试曲线路径",
-            value:
-              paperReportView.flowCurveAttachment?.file_url ||
-              paperReportView.flowCurveAttachment?.local_path ||
-              paperReportView.testingCurveAttachment.file_url ||
-              paperReportView.testingCurveAttachment.local_path
+            value: paperReportView.flowCurveAttachments.length
+              ? paperReportView.flowCurveAttachments.map(
+                  (item) => item.file_url || item.local_path
+                )
+              : paperReportView.testingCurveAttachment.file_url ||
+                paperReportView.testingCurveAttachment.local_path
           }
         ])
       )

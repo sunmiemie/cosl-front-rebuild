@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed, reactive, ref, onMounted, watch } from "vue"
+import { computed, reactive, ref, onBeforeUnmount, onMounted, watch } from "vue"
 import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { Search, Refresh, View, Check, Close } from "@element-plus/icons-vue"
@@ -38,9 +38,16 @@ import {
   isTestingCurveAttachment
 } from "@/utils/high-temp-pressure-paper-report"
 import VibrationDocReportView from "./VibrationDocReportView.vue"
+import { getMySignatureApi, getSignatureImageApi } from "@/api/signature"
+import type { SignatureInfo } from "@/api/signature/types"
 
 type ReportType = "water-cycle" | "high-temp-box" | "vibration-table" | "high-temp-high-pressure"
-type ReportReviewPayload = { status: number; audit_time: string; remark: string }
+type ReportReviewPayload = {
+  status: number
+  audit_time: string
+  remark: string
+  reviewer_signature_id?: number
+}
 
 interface ReportRow {
   id: number
@@ -54,6 +61,14 @@ interface ReportRow {
   order_ids?: number[]
   order_numbers?: string[]
   instrument_results?: InstrumentResult[]
+  batch_submit_id?: string
+  order?: number | null
+  instrument?: number | null
+  instrument_name?: string
+  instrument_sn?: string
+  equipment_id?: string
+  attempt_no?: number
+  is_current?: boolean
   report_json?: Record<string, unknown>
   attachments?: Array<Record<string, unknown>>
   client_submit_id?: string
@@ -123,10 +138,20 @@ const currentReport = ref<ReportRow | null>(null)
 const rejectDialogVisible = ref(false)
 const rejectReason = ref("")
 const rejectingReport = ref<ReportRow | null>(null)
+const reviewerSignatureInfo = ref<SignatureInfo | null>(null)
+const selectedReviewerSignatureId = ref<number | null>(null)
+const reviewerSignaturePreviewUrl = ref("")
+const reviewerSignatureLoading = ref(false)
+const reviewerSignatureError = ref("")
 const currentPaperReportView = computed(() =>
   getHighTempPressurePaperReportView(currentReport.value?.report_json, currentReport.value?.attachments)
 )
-const currentCurveImageUrl = computed(() => getAttachmentFileUrl(currentPaperReportView.value.flowCurveAttachment))
+const currentCurveImages = computed(() =>
+  currentPaperReportView.value.flowCurveAttachments
+    .map((attachment, index) => ({ attachment, index, url: getAttachmentFileUrl(attachment) }))
+    .filter((item) => Boolean(item.url))
+)
+const isHighTempPressure = computed(() => props.reportType === "high-temp-high-pressure")
 
 const initSearchFromRoute = () => {
   const { taskNumber, tester } = route.query
@@ -220,6 +245,7 @@ const handleDetail = async (row: ReportRow) => {
     currentReport.value = row
   }
   detailVisible.value = true
+  if (isHighTempPressure.value) void loadReviewerSignature()
 }
 
 const openRouteReportDetail = async () => {
@@ -231,18 +257,65 @@ const openRouteReportDetail = async () => {
     if (res.code === 0) {
       currentReport.value = res.data as ReportRow
       detailVisible.value = true
+      if (isHighTempPressure.value) void loadReviewerSignature()
     }
   } catch {
     return
   }
 }
 
+const releaseReviewerSignaturePreview = () => {
+  if (reviewerSignaturePreviewUrl.value) URL.revokeObjectURL(reviewerSignaturePreviewUrl.value)
+  reviewerSignaturePreviewUrl.value = ""
+}
+
+const loadReviewerSignature = async (showError = false) => {
+  reviewerSignatureLoading.value = true
+  reviewerSignatureError.value = ""
+  try {
+    const response = await getMySignatureApi()
+    const info = response.data
+    reviewerSignatureInfo.value = info
+    selectedReviewerSignatureId.value = info?.hasSignature && info.signatureId ? info.signatureId : null
+    releaseReviewerSignaturePreview()
+    if (!info?.hasSignature || !info.signatureId) {
+      throw new Error("当前复核人未配置电子签名，请先在个人电子签名页面维护")
+    }
+    const imageBlob = await getSignatureImageApi(info.userId)
+    reviewerSignaturePreviewUrl.value = URL.createObjectURL(imageBlob)
+    return info
+  } catch (error) {
+    reviewerSignatureInfo.value = null
+    selectedReviewerSignatureId.value = null
+    reviewerSignatureError.value = error instanceof Error ? error.message : "读取复核人电子签名失败"
+    if (showError) ElMessage.error(reviewerSignatureError.value)
+    return null
+  } finally {
+    reviewerSignatureLoading.value = false
+  }
+}
+
+const requireReviewerSignature = async () => {
+  const currentId = reviewerSignatureInfo.value?.signatureId
+  if (
+    !currentId ||
+    !selectedReviewerSignatureId.value ||
+    currentId !== selectedReviewerSignatureId.value
+  ) {
+    return loadReviewerSignature(true)
+  }
+  return reviewerSignatureInfo.value
+}
+
 const handleApprove = async (report: ReportRow) => {
+  const signature = isHighTempPressure.value ? await requireReviewerSignature() : null
+  if (isHighTempPressure.value && !signature) return
   await ElMessageBox.confirm("确定要通过该报告的审核吗？", "确认通过", { type: "success" })
   await config.value.update(report.id, {
     status: 1,
     audit_time: nowText(),
-    remark: report.remark || ""
+    remark: report.remark || "",
+    reviewer_signature_id: signature?.signatureId || undefined
   })
   ElMessage.success("审核通过成功")
   detailVisible.value = false
@@ -254,6 +327,7 @@ const showRejectDialog = (report: ReportRow) => {
   rejectingReport.value = report
   rejectReason.value = ""
   rejectDialogVisible.value = true
+  if (isHighTempPressure.value) void loadReviewerSignature()
 }
 
 const handleReject = async () => {
@@ -262,10 +336,13 @@ const handleReject = async () => {
     ElMessage.warning("请填写打回原因")
     return
   }
+  const signature = isHighTempPressure.value ? await requireReviewerSignature() : null
+  if (isHighTempPressure.value && !signature) return
   await config.value.update(rejectingReport.value.id, {
     status: 2,
     audit_time: nowText(),
-    remark: rejectReason.value
+    remark: rejectReason.value,
+    reviewer_signature_id: signature?.signatureId || undefined
   })
   ElMessage.success("已打回")
   rejectDialogVisible.value = false
@@ -279,6 +356,8 @@ onMounted(() => {
   getTableData()
   void openRouteReportDetail()
 })
+
+onBeforeUnmount(releaseReviewerSignaturePreview)
 
 watch(
   () => route.fullPath,
@@ -323,6 +402,25 @@ defineExpose({ resetSearch })
       <el-table-column prop="id" label="报告ID" width="90" align="center" />
       <el-table-column prop="report_no" label="报告编号" min-width="160" />
       <el-table-column prop="task_number" label="任务单号" min-width="160" />
+      <el-table-column
+        v-if="props.reportType === 'high-temp-high-pressure'"
+        prop="instrument_name"
+        label="待测设备"
+        min-width="140"
+      />
+      <el-table-column
+        v-if="props.reportType === 'high-temp-high-pressure'"
+        prop="instrument_sn"
+        label="设备SN"
+        min-width="140"
+      />
+      <el-table-column
+        v-if="props.reportType === 'high-temp-high-pressure'"
+        prop="attempt_no"
+        label="测试轮次"
+        width="90"
+        align="center"
+      />
       <el-table-column prop="tester" label="测试人员" width="120" align="center" />
       <el-table-column prop="test_date" label="测试日期" width="130" align="center" />
       <el-table-column prop="submit_time" label="提交时间" width="180" align="center">
@@ -359,6 +457,18 @@ defineExpose({ resetSearch })
       <el-descriptions v-if="currentReport" :column="2" border>
         <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
         <el-descriptions-item label="任务单号">{{ currentReport.task_number }}</el-descriptions-item>
+        <el-descriptions-item v-if="props.reportType === 'high-temp-high-pressure'" label="待测设备">{{
+          currentReport.instrument_name || '-'
+        }}</el-descriptions-item>
+        <el-descriptions-item v-if="props.reportType === 'high-temp-high-pressure'" label="设备SN">{{
+          currentReport.instrument_sn || '-'
+        }}</el-descriptions-item>
+        <el-descriptions-item v-if="props.reportType === 'high-temp-high-pressure'" label="测试台 psi_id">{{
+          currentReport.equipment_id || '-'
+        }}</el-descriptions-item>
+        <el-descriptions-item v-if="props.reportType === 'high-temp-high-pressure'" label="测试轮次">{{
+          currentReport.attempt_no || 1
+        }}</el-descriptions-item>
         <el-descriptions-item label="测试人员">{{ currentReport.tester }}</el-descriptions-item>
         <el-descriptions-item label="测试日期">{{ currentReport.test_date }}</el-descriptions-item>
         <el-descriptions-item label="总体结论">
@@ -373,6 +483,41 @@ defineExpose({ resetSearch })
         <el-descriptions-item label="审核时间">{{ formatTime(currentReport.audit_time) }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ currentReport.remark || "-" }}</el-descriptions-item>
       </el-descriptions>
+      <div v-if="currentReport && isHighTempPressure" class="detail-block reviewer-signature-card">
+        <div class="reviewer-signature-head">
+          <div>
+            <h4>复核人电子签名</h4>
+            <p>审核提交时由服务端校验并固化当前复核人的电子签名，客户端不填写复核人。</p>
+          </div>
+          <el-button :loading="reviewerSignatureLoading" @click="loadReviewerSignature(true)">刷新签名</el-button>
+        </div>
+        <el-alert
+          v-if="reviewerSignatureError"
+          :title="reviewerSignatureError"
+          type="warning"
+          :closable="false"
+          show-icon
+        />
+        <div v-else class="reviewer-signature-selector">
+          <el-select
+            v-model="selectedReviewerSignatureId"
+            placeholder="请选择复核人电子签名"
+            :loading="reviewerSignatureLoading"
+            style="width: 360px"
+          >
+            <el-option
+              v-if="reviewerSignatureInfo?.signatureId"
+              :value="reviewerSignatureInfo.signatureId"
+              :label="`${reviewerSignatureInfo.nickname || reviewerSignatureInfo.username} · ${reviewerSignatureInfo.originalFilename || '电子签名'}`"
+            />
+          </el-select>
+          <img
+            v-if="reviewerSignaturePreviewUrl"
+            :src="reviewerSignaturePreviewUrl"
+            alt="当前复核人电子签名"
+          />
+        </div>
+      </div>
       <div v-if="currentReport" class="detail-block">
         <h4>逐台仪器结论</h4>
         <el-table :data="currentReport.instrument_results || []" border size="small">
@@ -468,22 +613,19 @@ defineExpose({ resetSearch })
           }}</el-descriptions-item>
           <el-descriptions-item label="测试曲线路径" :span="2">{{
             displayReportValue(
-              currentPaperReportView.flowCurveAttachment?.file_url ||
-                currentPaperReportView.flowCurveAttachment?.local_path ||
-                currentPaperReportView.testingCurveAttachment.file_url ||
-                currentPaperReportView.testingCurveAttachment.local_path
+              currentPaperReportView.flowCurveAttachments.map(item => item.file_url || item.local_path)
             )
           }}</el-descriptions-item>
         </el-descriptions>
-        <div v-if="currentCurveImageUrl" class="curve-preview-card">
+        <div v-for="item in currentCurveImages" :key="item.url" class="curve-preview-card">
           <div class="curve-preview-head">
-            <span>测试曲线预览</span>
-            <el-link :href="currentCurveImageUrl" target="_blank" type="primary">下载/打开原图</el-link>
+            <span>图{{ item.index + 1 }} · {{ item.attachment.curve_title || `测试曲线${item.index + 1}` }}</span>
+            <el-link :href="item.url" target="_blank" type="primary">下载/打开原图</el-link>
           </div>
           <el-image
-            :src="currentCurveImageUrl"
+            :src="item.url"
             fit="contain"
-            :preview-src-list="[currentCurveImageUrl]"
+            :preview-src-list="currentCurveImages.map(image => image.url)"
             class="curve-preview-image"
           />
         </div>
@@ -585,6 +727,36 @@ defineExpose({ resetSearch })
     margin: 0 0 10px;
     color: #24323a;
     font-size: 14px;
+  }
+
+  .reviewer-signature-card {
+    padding: 14px;
+    border: 1px solid #bfdbfe;
+    border-radius: 12px;
+    background: #eff6ff;
+  }
+
+  .reviewer-signature-head,
+  .reviewer-signature-selector {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .reviewer-signature-head p {
+    margin: 0 0 10px;
+    color: #64748b;
+    font-size: 12px;
+  }
+
+  .reviewer-signature-selector img {
+    width: 190px;
+    height: 60px;
+    object-fit: contain;
+    border: 1px solid #dbeafe;
+    border-radius: 8px;
+    background: #fff;
   }
 
   .detail-grid {

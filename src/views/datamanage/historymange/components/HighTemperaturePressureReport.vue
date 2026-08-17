@@ -31,11 +31,15 @@
         <el-table :data="tableData" stripe border style="width: 100%">
           <el-table-column prop="report_no" label="报告编号" width="180" align="center" />
           <el-table-column prop="task_number" label="任务单号" width="180" align="center" />
+          <el-table-column prop="instrument_name" label="待测设备" min-width="140" align="center" />
+          <el-table-column prop="instrument_sn" label="设备SN" min-width="140" align="center" />
+          <el-table-column prop="attempt_no" label="轮次" width="75" align="center" />
           <el-table-column prop="test_date" label="测试日期" width="170" align="center" />
           <el-table-column prop="tester" label="测试人员" min-width="120" align="center" />
           <el-table-column prop="status_text" label="审核状态" width="100" align="center">
             <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)">{{ row.status_text }}</el-tag>
+              <el-tag v-if="row.is_current === false" type="info">重测历史</el-tag>
+              <el-tag v-else :type="getStatusType(row.status)">{{ row.status_text }}</el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="submit_time" label="提交时间" width="170" align="center">
@@ -54,7 +58,7 @@
               <el-link type="warning" @click="handleEdit(row)">编辑</el-link>
               <el-link type="success" @click="handleDownload(row)">下载</el-link>
               <el-button
-                v-if="row.status === 1"
+                v-if="row.status === 1 && row.is_current !== false"
                 :icon="Upload"
                 :loading="assistantPushingId === row.id"
                 link
@@ -125,6 +129,10 @@
       <el-descriptions :column="2" border v-if="currentReport">
         <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
         <el-descriptions-item label="任务单号">{{ currentReport.task_number }}</el-descriptions-item>
+        <el-descriptions-item label="待测设备">{{ currentReport.instrument_name || "-" }}</el-descriptions-item>
+        <el-descriptions-item label="设备SN">{{ currentReport.instrument_sn || "-" }}</el-descriptions-item>
+        <el-descriptions-item label="测试台 psi_id">{{ currentReport.equipment_id || "-" }}</el-descriptions-item>
+        <el-descriptions-item label="测试轮次">{{ currentReport.attempt_no || 1 }}</el-descriptions-item>
         <el-descriptions-item label="测试日期">{{ currentReport.test_date }}</el-descriptions-item>
         <el-descriptions-item label="测试人员">{{ currentReport.tester }}</el-descriptions-item>
         <el-descriptions-item label="总体结论">
@@ -234,22 +242,19 @@
           }}</el-descriptions-item>
           <el-descriptions-item label="测试曲线路径" :span="2">{{
             displayReportValue(
-              currentPaperReportView.flowCurveAttachment?.file_url ||
-                currentPaperReportView.flowCurveAttachment?.local_path ||
-                currentPaperReportView.testingCurveAttachment.file_url ||
-                currentPaperReportView.testingCurveAttachment.local_path
+              currentPaperReportView.flowCurveAttachments.map(item => item.file_url || item.local_path)
             )
           }}</el-descriptions-item>
         </el-descriptions>
-        <div v-if="currentCurveImageUrl" class="curve-preview-card">
+        <div v-for="item in currentCurveImages" :key="item.url" class="curve-preview-card">
           <div class="curve-preview-head">
-            <span>测试曲线预览</span>
-            <el-link :href="currentCurveImageUrl" target="_blank" type="primary">下载/打开原图</el-link>
+            <span>图{{ item.index + 1 }} · {{ item.attachment.curve_title || `测试曲线${item.index + 1}` }}</span>
+            <el-link :href="item.url" target="_blank" type="primary">下载/打开原图</el-link>
           </div>
           <el-image
-            :src="currentCurveImageUrl"
+            :src="item.url"
             fit="contain"
-            :preview-src-list="[currentCurveImageUrl]"
+            :preview-src-list="currentCurveImages.map(image => image.url)"
             class="curve-preview-image"
           />
         </div>
@@ -338,7 +343,11 @@ const currentReport = ref<HighTempPressureReportListItem | null>(null)
 const currentPaperReportView = computed(() =>
   getHighTempPressurePaperReportView(currentReport.value?.report_json, currentReport.value?.attachments)
 )
-const currentCurveImageUrl = computed(() => getAttachmentFileUrl(currentPaperReportView.value.flowCurveAttachment))
+const currentCurveImages = computed(() =>
+  currentPaperReportView.value.flowCurveAttachments
+    .map((attachment, index) => ({ attachment, index, url: getAttachmentFileUrl(attachment) }))
+    .filter((item) => Boolean(item.url))
+)
 
 // 新增/编辑 相关
 const dialogVisible = ref(false)

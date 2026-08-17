@@ -186,9 +186,20 @@ onMounted(() => {
             <el-empty v-else description="暂无安装指引内容" />
           </el-tab-pane>
 
-          <el-tab-pane label="测试流程图" name="flowchart">
-            <FlowchartPreview v-if="detail.processJson?.flowchart" :flowchart="detail.processJson.flowchart" />
-            <el-empty v-else description="暂无流程图内容" />
+          <el-tab-pane label="测试流" name="testFlow">
+            <FlowchartPreview
+              v-if="detail.processJson?.testFlow"
+              :flowchart="detail.processJson.testFlow"
+            />
+            <el-empty v-else description="暂无测试流内容" />
+          </el-tab-pane>
+
+          <el-tab-pane label="循环流" name="cycleFlow">
+            <FlowchartPreview
+              v-if="detail.processJson?.cycleFlow"
+              :flowchart="detail.processJson.cycleFlow"
+            />
+            <el-empty v-else description="暂无循环流内容" />
           </el-tab-pane>
 
           <el-tab-pane v-if="canAudit" label="审核操作" name="audit">

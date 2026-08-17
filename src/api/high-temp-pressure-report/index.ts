@@ -27,6 +27,14 @@ export interface HighTempPressureReportListItem {
   order_ids?: number[]
   order_numbers?: string[]
   instrument_results?: HighTempPressureInstrumentResult[]
+  batch_submit_id?: string
+  order?: number | null
+  instrument?: number | null
+  instrument_name?: string
+  instrument_sn?: string
+  equipment_id?: string
+  attempt_no?: number
+  is_current?: boolean
   report_json?: Record<string, any>
   attachments?: Array<Record<string, any>>
   client_submit_id?: string
@@ -46,6 +54,14 @@ export interface HighTempPressureReportPayload {
   order_ids?: number[]
   order_numbers?: string[]
   instrument_results?: HighTempPressureInstrumentResult[]
+  batch_submit_id?: string
+  order?: number | null
+  instrument?: number | null
+  instrument_name?: string
+  instrument_sn?: string
+  equipment_id?: string
+  attempt_no?: number
+  is_current?: boolean
   report_json?: Record<string, any>
   attachments?: Array<Record<string, any>>
   client_submit_id?: string

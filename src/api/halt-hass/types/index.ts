@@ -63,18 +63,20 @@ export interface RunSettings {
 export interface FlowchartData {
   nodes: FlowchartNode[]
   edges: FlowchartEdge[]
-  observeBlocks?: string[]
-  runSettings?: RunSettings
+  observeBlocks: string[]
+  runSettings: RunSettings
 }
 
 export interface ProcessJson {
-  metadata?: {
+  schemaVersion: 2
+  metadata: {
     name?: string
     version?: string
     description?: string
   }
-  installGuide?: InstallGuide
-  flowchart?: FlowchartData
+  installGuide: InstallGuide
+  testFlow: FlowchartData
+  cycleFlow: FlowchartData
 }
 
 export interface HaltHassProcessDetail {

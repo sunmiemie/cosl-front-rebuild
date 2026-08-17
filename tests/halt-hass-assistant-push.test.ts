@@ -20,12 +20,27 @@ const listItem: HaltHassProcessListItem = {
   active: 1
 }
 
+const emptyFlow = {
+  nodes: [],
+  edges: [],
+  observeBlocks: [],
+  runSettings: {
+    nodeDelay: 0,
+    maximumRuntime: 0,
+    maximumConcurrentWorkers: 1
+  }
+}
+
 const detail: HaltHassProcessDetail = {
   ...listItem,
   processJson: {
+    schemaVersion: 2,
     metadata: {
       description: "HALT 高低温振动筛选"
-    }
+    },
+    installGuide: { steps: [] },
+    testFlow: emptyFlow,
+    cycleFlow: emptyFlow
   },
   feedback: []
 }
