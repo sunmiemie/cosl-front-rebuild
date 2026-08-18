@@ -131,16 +131,104 @@ export type PushEngineerAssistantSchedulesBody = {
 }
 
 export type SyncEngineerAssistantLocalScheduleBody = {
-  orderType: "high-temp-pressure" | "vibration-table" | "simulated-well"
+  orderType: "high-temp-box" | "high-temp-pressure" | "water-cycle" | "vibration-table" | "simulated-well"
   targetId: number
   equipmentId?: string
   dryRun?: boolean
 }
 
-export type SyncEngineerAssistantLocalReportBody = {
-  reportType: "high-temp-pressure" | "vibration-table" | "simulated-well"
+export type EngineerAssistantReportAction = "preview" | "push"
+
+export type EngineerAssistantLocalReportType =
+  | "circuit-board"
+  | "high-temp-box"
+  | "high-temp-pressure"
+  | "water-cycle"
+  | "vibration-table"
+  | "simulated-well"
+
+export type EngineerAssistantReportFile = {
+  filename: string
+  equipmentId?: string
+  equipmentName?: string
+  boardId?: string
+  fileContent: string
+  description: string
+  status: string
+}
+
+export type EngineerAssistantReportPayload = {
+  id: string
+  testType: string
+  status: string
+  data: EngineerAssistantReportFile[]
+}
+
+type SyncEngineerAssistantReportsLocalBase = {
+  source: "local"
+  action: EngineerAssistantReportAction
+  reportType: EngineerAssistantLocalReportType
+}
+
+export type SyncEngineerAssistantReportsLocalBody = SyncEngineerAssistantReportsLocalBase & {
   reportId: number
+  /** 人工重新推送时强制覆盖小助手端当前申请单报告快照 */
+  force?: boolean
+}
+
+export type SyncEngineerAssistantReportsPayloadBody = {
+  source: "payload"
+  action: EngineerAssistantReportAction
+  verifyStatus?: boolean
+  testReportList: EngineerAssistantReportPayload[]
+}
+
+export type SyncEngineerAssistantReportsBody =
+  | SyncEngineerAssistantReportsLocalBody
+  | SyncEngineerAssistantReportsPayloadBody
+
+export type EngineerAssistantReportSyncItem = {
+  success?: boolean
+  skipped?: boolean
+  reason?: string
+  error?: string
+  reportId?: number
+  testId?: string
+  testType?: string
+  equipmentId?: string
+  wouldPush?: boolean
+}
+
+export type EngineerAssistantReportSyncResult = {
+  success?: boolean
   dryRun?: boolean
+  total?: number
+  eligible?: number
+  wouldPush?: boolean
+  wouldPushCount?: number
+  attempted?: number
+  synced?: number
+  failed?: number
+  skipped?: number
+  error?: string
+  list?: EngineerAssistantReportSyncItem[]
+  result?: EngineerAssistantReportSyncResult
+  summary?: Partial<EngineerAssistantReportSyncResult>
+  [key: string]: unknown
+}
+
+export type AssistantReportSyncFeedback = {
+  attempted?: boolean
+  success?: boolean
+  skipped?: boolean
+  retryable?: boolean
+  reason?: string
+  message?: string
+  error?: string
+  total?: number
+  synced?: number
+  failed?: number
+  list?: EngineerAssistantReportSyncItem[]
 }
 
 export type ChangeEngineerAssistantStatusBody = {
@@ -148,21 +236,6 @@ export type ChangeEngineerAssistantStatusBody = {
   id: string
   status: string
   description: string
-}
-
-export type PushEngineerAssistantReportsBody = {
-  testReportList: Array<{
-    id: string
-    testType: string
-    status: string
-    data: Array<{
-      filename: string
-      equipmentId: string
-      fileContent: string
-      description: string
-      status: string
-    }>
-  }>
 }
 
 export type EngineerAssistantCommissionOrderSample = {
@@ -212,6 +285,7 @@ export type GetEngineerAssistantCommissionBindingsParams = {
 
 export type PushEngineerAssistantCommissionOrdersResponse = EngineerAssistantBaseResponse<unknown>
 export type SyncEngineerAssistantLocalResponse = EngineerAssistantBaseResponse<Record<string, unknown>>
+export type SyncEngineerAssistantReportsResponse = EngineerAssistantBaseResponse<EngineerAssistantReportSyncResult>
 export type GetEngineerAssistantCommissionBindingsResponse = EngineerAssistantBaseResponse<
   EngineerAssistantCommissionBinding[]
 >

@@ -31,6 +31,9 @@
         <el-table :data="tableData" stripe border style="width: 100%">
           <el-table-column prop="report_no" label="报告编号" width="180" align="center" />
           <el-table-column prop="task_number" label="任务单号" width="180" align="center" />
+          <el-table-column prop="instrument_sn" label="被测 SN" width="170" align="center">
+            <template #default="{ row }">{{ row.instrument_sn || "-" }}</template>
+          </el-table-column>
           <el-table-column prop="test_date" label="测试日期" width="170" align="center" />
           <el-table-column prop="tester" label="测试人员" min-width="120" align="center" />
           <el-table-column prop="status_text" label="审核状态" width="100" align="center">
@@ -48,12 +51,36 @@
               {{ formatTime(row.audit_time) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="160" align="center" fixed="right">
+          <el-table-column label="小助手同步" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getAssistantReportSyncTagType(row.assistant_sync_status)">
+                {{ getAssistantReportSyncStatusText(row.assistant_sync_status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="同步时间" width="170" align="center">
+            <template #default="{ row }">{{ formatTime(row.assistant_synced_at) }}</template>
+          </el-table-column>
+          <el-table-column label="同步尝试次数" width="110" align="center">
+            <template #default="{ row }">{{ row.assistant_sync_retry_count || 0 }}</template>
+          </el-table-column>
+          <el-table-column label="同步失败原因" min-width="220" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.assistant_sync_error || "-" }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="360" align="center" fixed="right">
             <template #default="{ row }">
               <el-link type="primary" @click="handleDetail(row)">详情</el-link>
-              <el-link type="warning" @click="handleEdit(row)">编辑</el-link>
+              <el-link v-if="row.status === 0" type="warning" @click="handleEdit(row)">编辑</el-link>
               <el-link type="success" @click="handleDownload(row)">下载</el-link>
-              <el-link type="danger" @click="handleDelete(row)">删除</el-link>
+              <el-link
+                v-if="row.status === 1"
+                type="primary"
+                :disabled="assistantPushingId !== null || row.assistant_sync_status === 'syncing'"
+                @click="handlePushAssistant(row)"
+              >
+                {{ assistantPushingId === row.id ? "推送中" : "重新推送本申请单报告" }}
+              </el-link>
+              <el-link v-if="row.status === 0" type="danger" @click="handleDelete(row)">删除</el-link>
             </template>
           </el-table-column>
         </el-table>
@@ -79,7 +106,42 @@
           <el-input v-model="formData.report_no" placeholder="请输入报告编号" :disabled="!!formData.id" />
         </el-form-item>
         <el-form-item label="任务单号" prop="task_number">
-          <el-input v-model="formData.task_number" placeholder="请输入任务单号" />
+          <el-select
+            v-model="formData.task_number"
+            filterable
+            remote
+            reserve-keyword
+            :remote-method="loadOrderOptions"
+            :loading="orderOptionsLoading"
+            placeholder="搜索并选择高温箱任务单"
+            style="width: 100%"
+            @change="handleOrderChange"
+            @visible-change="handleOrderSelectVisible"
+          >
+            <el-option
+              v-for="order in orderOptions"
+              :key="order.id"
+              :label="order.taskNumber"
+              :value="order.taskNumber"
+              :disabled="!orderHasInstrumentSn(order)"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="被测 SN" prop="instrument_sn">
+          <el-select
+            v-model="formData.instrument_sn"
+            filterable
+            :disabled="!formData.task_number"
+            :placeholder="instrumentSnOptions.length ? '请选择该任务单下的一个被测 SN' : '该任务单暂无可选 SN'"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="option in instrumentSnOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="测试日期" prop="test_date">
           <el-date-picker
@@ -115,6 +177,7 @@
       <el-descriptions :column="2" border v-if="currentReport">
         <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
         <el-descriptions-item label="任务单号">{{ currentReport.task_number }}</el-descriptions-item>
+        <el-descriptions-item label="被测 SN">{{ currentReport.instrument_sn || "-" }}</el-descriptions-item>
         <el-descriptions-item label="测试日期">{{ currentReport.test_date }}</el-descriptions-item>
         <el-descriptions-item label="测试人员">{{ currentReport.tester }}</el-descriptions-item>
         <el-descriptions-item label="审核状态">
@@ -122,6 +185,20 @@
         </el-descriptions-item>
         <el-descriptions-item label="提交时间">{{ formatTime(currentReport.submit_time) }}</el-descriptions-item>
         <el-descriptions-item label="审核时间">{{ formatTime(currentReport.audit_time) }}</el-descriptions-item>
+        <el-descriptions-item label="小助手同步状态">
+          <el-tag :type="getAssistantReportSyncTagType(currentReport.assistant_sync_status)">
+            {{ getAssistantReportSyncStatusText(currentReport.assistant_sync_status) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="小助手同步时间">{{
+          formatTime(currentReport.assistant_synced_at || undefined)
+        }}</el-descriptions-item>
+        <el-descriptions-item label="同步尝试次数">{{
+          currentReport.assistant_sync_retry_count || 0
+        }}</el-descriptions-item>
+        <el-descriptions-item label="同步失败原因">{{
+          currentReport.assistant_sync_error || "-"
+        }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ currentReport.remark || "-" }}</el-descriptions-item>
       </el-descriptions>
     </el-dialog>
@@ -131,15 +208,27 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, defineExpose, computed } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
-import { Search, Refresh, CirclePlus, RefreshRight } from "@element-plus/icons-vue"
 import {
   getHighTempBoxReportListApi,
   createHighTempBoxReportApi,
   getHighTempBoxReportDetailApi,
   updateHighTempBoxReportApi,
   deleteHighTempBoxReportApi,
+  getHighTempBoxReportPdfApi,
   type HighTempBoxReportListItem
 } from "@/api/high-temp-box-report"
+import { getHighTemperatureOrderList } from "@/api/high-temperature"
+import type { HighTemperatureOrderListItem } from "@/api/high-temperature/types"
+import { syncEngineerAssistantReportsApi } from "@/api/engineer-assistant"
+import {
+  downloadPdfBlob,
+  getAssistantReportSyncStatusText,
+  getAssistantReportSyncTagType,
+  getAssistantSyncError,
+  getAssistantSyncFeedback,
+  normalizeAssistantReportPushOutcome
+} from "@/utils/assistant-report-sync"
+import { buildReportInstrumentSnOptions } from "@/utils/report-instrument-sn"
 
 const searchForm = reactive({
   taskNumber: "",
@@ -154,6 +243,9 @@ const pagination = reactive({
 
 const loading = ref(false)
 const tableData = ref<HighTempBoxReportListItem[]>([])
+const assistantPushingId = ref<number | null>(null)
+const orderOptionsLoading = ref(false)
+const orderOptions = ref<HighTemperatureOrderListItem[]>([])
 
 const detailDialogVisible = ref(false)
 const currentReport = ref<HighTempBoxReportListItem | null>(null)
@@ -167,6 +259,7 @@ const formData = reactive({
   id: undefined as number | undefined,
   report_no: "",
   task_number: "",
+  instrument_sn: "",
   test_date: "",
   tester: "",
   status: 0,
@@ -175,9 +268,53 @@ const formData = reactive({
 
 const formRules = {
   report_no: [{ required: true, message: "请输入报告编号", trigger: "blur" }],
-  task_number: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
+  task_number: [{ required: true, message: "请选择任务单号", trigger: "change" }],
+  instrument_sn: [
+    { required: true, message: "请选择该任务单下的一个被测 SN", trigger: "change" },
+    {
+      validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+        if (!value || instrumentSnOptions.value.some((option) => option.value === value)) callback()
+        else callback(new Error("所选 SN 不属于当前任务单，请重新选择"))
+      },
+      trigger: "change"
+    }
+  ],
   test_date: [{ required: true, message: "请选择测试日期", trigger: "change" }],
   tester: [{ required: true, message: "请输入测试人员", trigger: "blur" }]
+}
+
+const selectedOrder = computed(() => orderOptions.value.find((order) => order.taskNumber === formData.task_number))
+const instrumentSnOptions = computed(() => buildReportInstrumentSnOptions(selectedOrder.value?.instruments || []))
+
+const orderHasInstrumentSn = (order: HighTemperatureOrderListItem) => {
+  return buildReportInstrumentSnOptions(order.instruments || []).length > 0
+}
+
+const loadOrderOptions = async (keyword = "") => {
+  orderOptionsLoading.value = true
+  try {
+    const res = await getHighTemperatureOrderList({
+      page: 1,
+      pageSize: 50,
+      taskNumber: keyword.trim() || undefined
+    })
+    if (res?.code !== 0) throw new Error(res?.msg || "获取高温箱任务单失败")
+    orderOptions.value = res.data?.list || []
+  } catch (error: any) {
+    orderOptions.value = []
+    ElMessage.error(error?.message || "获取高温箱任务单失败")
+  } finally {
+    orderOptionsLoading.value = false
+  }
+}
+
+const handleOrderChange = () => {
+  formData.instrument_sn = ""
+  formRef.value?.clearValidate("instrument_sn")
+}
+
+const handleOrderSelectVisible = (visible: boolean) => {
+  if (visible && orderOptions.value.length === 0) void loadOrderOptions(formData.task_number)
 }
 
 const getList = async () => {
@@ -228,41 +365,80 @@ const handleAdd = () => {
   formData.id = undefined
   formData.report_no = ""
   formData.task_number = ""
+  formData.instrument_sn = ""
   formData.test_date = ""
   formData.tester = ""
   formData.status = 0
   formData.remark = ""
   dialogVisible.value = true
+  void loadOrderOptions()
 }
 
-const handleEdit = (row: HighTempBoxReportListItem) => {
+const handleEdit = async (row: HighTempBoxReportListItem) => {
+  if (row.status !== 0) {
+    ElMessage.warning("已审核报告不可编辑；如需覆盖小助手快照，请使用重新推送")
+    return
+  }
   formData.id = row.id
   formData.report_no = row.report_no
   formData.task_number = row.task_number
+  formData.instrument_sn = row.instrument_sn || ""
   formData.test_date = row.test_date
   formData.tester = row.tester
   formData.status = row.status
   formData.remark = row.remark || ""
   dialogVisible.value = true
+  await loadOrderOptions(row.task_number)
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
     if (!valid) return
+    if (!instrumentSnOptions.value.some((option) => option.value === formData.instrument_sn)) {
+      ElMessage.error("请选择当前任务单下的一个有效被测 SN")
+      return
+    }
     submitLoading.value = true
     try {
       const payload = { ...formData }
       delete payload.id
+      let failedAssistantSyncMessage = ""
+      let updatedReportId: number | undefined
       if (formData.id !== undefined) {
-        await updateHighTempBoxReportApi(formData.id, payload)
-        ElMessage.success("修改成功")
+        updatedReportId = formData.id
+        const response = await updateHighTempBoxReportApi(formData.id, payload)
+        const assistantSync = getAssistantSyncFeedback(response)
+        if (assistantSync?.success === true) {
+          ElMessage.success("修改成功，报告已同步小助手")
+        } else if (assistantSync) {
+          failedAssistantSyncMessage = getAssistantSyncError(assistantSync)
+          ElMessage.warning(`修改及本地审核已保存，但推送小助手失败：${failedAssistantSyncMessage}`)
+        } else {
+          ElMessage.success("修改成功")
+        }
       } else {
         await createHighTempBoxReportApi(payload)
         ElMessage.success("新增成功")
       }
       dialogVisible.value = false
-      getList()
+      await getList()
+      if (updatedReportId && failedAssistantSyncMessage) {
+        try {
+          await ElMessageBox.confirm(
+            `本地修改及审核已经保存，不会回滚。推送小助手失败：${failedAssistantSyncMessage}。是否立即重新推送？`,
+            "本地保存成功，但小助手同步失败",
+            {
+              type: "warning",
+              confirmButtonText: "立即重试",
+              cancelButtonText: "稍后处理"
+            }
+          )
+          await retryAssistantReport(updatedReportId)
+        } catch (error) {
+          if (error !== "cancel" && error !== "close") throw error
+        }
+      }
     } catch (e: any) {
       console.error("提交报告失败:", e)
       const errorData = e.response?.data
@@ -294,26 +470,55 @@ const handleDetail = async (row: HighTempBoxReportListItem) => {
   }
 }
 
-const handleDownload = (row: HighTempBoxReportListItem) => {
-  const payload = {
-    ...row,
-    exportedAt: new Date().toISOString()
+const handleDownload = async (row: HighTempBoxReportListItem) => {
+  try {
+    const blob = await getHighTempBoxReportPdfApi(row.id)
+    await downloadPdfBlob(blob, row.report_no || "高温箱测试报告")
+    ElMessage.success("正式 PDF 下载开始")
+  } catch (error: any) {
+    console.error("下载高温箱正式报告失败", error)
+    ElMessage.error(error?.message || "正式 PDF 下载失败")
   }
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" })
-  const url = URL.createObjectURL(blob)
+}
 
-  const a = document.createElement("a")
-  a.href = url
-  a.download = `${row.report_no}.json`
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
+const retryAssistantReport = async (reportId: number) => {
+  assistantPushingId.value = reportId
+  try {
+    const response = await syncEngineerAssistantReportsApi({
+      source: "local",
+      action: "push",
+      reportType: "high-temp-box",
+      reportId,
+      force: true
+    })
+    const outcome = normalizeAssistantReportPushOutcome(response)
+    if (outcome.success) {
+      ElMessage.success("本申请单当前报告快照已推送小助手")
+    } else {
+      ElMessage.error(`本申请单当前报告快照推送失败：${outcome.error}`)
+    }
+    await getList()
+  } catch (error: any) {
+    const message = error?.response?.data?.msg || error?.message || "未知错误"
+    ElMessage.error(`本申请单当前报告快照推送失败：${message}`)
+    await getList()
+  } finally {
+    assistantPushingId.value = null
+  }
+}
 
-  URL.revokeObjectURL(url)
-  ElMessage.success("下载开始")
+const handlePushAssistant = async (row: HighTempBoxReportListItem) => {
+  await ElMessageBox.confirm("确定重新推送本申请单当前报告到小助手吗？", "重新推送本申请单报告", {
+    type: "warning"
+  })
+  await retryAssistantReport(row.id)
 }
 
 const handleDelete = async (row: HighTempBoxReportListItem) => {
+  if (row.status !== 0) {
+    ElMessage.warning("已审核报告不可删除")
+    return
+  }
   await ElMessageBox.confirm("确定要删除该报告吗？", "确认删除", { type: "warning" })
   try {
     const res = await deleteHighTempBoxReportApi(row.id)

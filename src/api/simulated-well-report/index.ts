@@ -1,4 +1,5 @@
 import { request } from "@/utils/service"
+import type { AssistantReportSyncFeedback } from "@/api/engineer-assistant/types"
 
 export interface SimulatedWellReportListItem {
   id: number
@@ -19,6 +20,12 @@ export interface SimulatedWellReportListItem {
   order_ids?: number[]
   order_numbers?: string[]
   client_submit_id?: string | null
+  instrument_sn?: string
+  equipmentId?: string
+  assistant_sync_status?: "pending" | "syncing" | "success" | "failed" | "skipped" | ""
+  assistant_synced_at?: string | null
+  assistant_sync_error?: string
+  assistant_sync_retry_count?: number
 }
 
 export interface SimulatedWellReportPayload {
@@ -38,6 +45,9 @@ export interface SimulatedWellReportPayload {
 interface SimulatedWellReportMutationResponse {
   code: number
   msg?: string
+  data?: SimulatedWellReportListItem & {
+    assistantSync?: AssistantReportSyncFeedback
+  }
 }
 
 export function getSimulatedWellReportListApi(params: {

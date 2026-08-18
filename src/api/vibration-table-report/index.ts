@@ -1,4 +1,5 @@
 import { request } from "@/utils/service"
+import type { AssistantReportSyncFeedback } from "@/api/engineer-assistant/types"
 
 export type VibrationTableReportResult = "pass" | "fail" | "pending"
 
@@ -19,6 +20,8 @@ export interface VibrationTableReportListItem {
   id: number
   report_no: string
   task_number: string
+  instrument_sn?: string
+  equipmentId?: string
   test_date: string
   tester: string
   status: number
@@ -34,11 +37,16 @@ export interface VibrationTableReportListItem {
   submit_time: string
   audit_time: string
   remark: string
+  assistant_sync_status?: "pending" | "syncing" | "success" | "failed" | "skipped" | ""
+  assistant_synced_at?: string | null
+  assistant_sync_error?: string
+  assistant_sync_retry_count?: number
 }
 
 export interface VibrationTableReportPayload {
   report_no?: string
   task_number?: string
+  instrument_sn?: string
   test_date?: string
   tester?: string
   status?: number
@@ -57,7 +65,9 @@ export interface VibrationTableReportPayload {
 interface VibrationTableReportMutationResponse {
   code: number
   msg?: string
-  data?: VibrationTableReportListItem
+  data?: VibrationTableReportListItem & {
+    assistantSync?: AssistantReportSyncFeedback
+  }
 }
 
 export function getVibrationTableReportListApi(params: {
@@ -112,5 +122,13 @@ export function deleteVibrationTableReportApi(pk: number) {
   return request<VibrationTableReportMutationResponse>({
     url: `test/vibration-table/report/detail/${pk}/`,
     method: "delete"
+  })
+}
+
+export function getVibrationTableReportPdfApi(pk: number) {
+  return request<Blob>({
+    url: `test/vibration-table/report/pdf/${pk}/`,
+    method: "get",
+    responseType: "blob"
   })
 }

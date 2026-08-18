@@ -1,9 +1,13 @@
 import { request } from "@/utils/service"
+import type { AssistantReportSyncFeedback } from "@/api/engineer-assistant/types"
+
+export type AssistantReportSyncStatus = "pending" | "syncing" | "success" | "failed" | "skipped" | ""
 
 export interface HighTempBoxReportListItem {
   id: number
   report_no: string
   task_number: string
+  instrument_sn: string
   test_date: string
   tester: string
   status: number
@@ -11,11 +15,16 @@ export interface HighTempBoxReportListItem {
   submit_time: string
   audit_time: string
   remark: string
+  assistant_sync_status?: AssistantReportSyncStatus
+  assistant_synced_at?: string | null
+  assistant_sync_error?: string
+  assistant_sync_retry_count?: number
 }
 
 export interface HighTempBoxReportPayload {
   report_no: string
   task_number: string
+  instrument_sn: string
   test_date: string
   tester: string
   status: number
@@ -29,6 +38,9 @@ export type HighTempBoxReportUpdatePayload = Partial<HighTempBoxReportPayload> &
 interface HighTempBoxReportMutationResponse {
   code: number
   msg?: string
+  data?: HighTempBoxReportListItem & {
+    assistantSync?: AssistantReportSyncFeedback
+  }
 }
 
 export function getHighTempBoxReportListApi(params: {
@@ -36,6 +48,7 @@ export function getHighTempBoxReportListApi(params: {
   pageSize: number
   taskNumber?: string
   tester?: string
+  status?: number | string
 }) {
   return request<{
     code: number
@@ -82,5 +95,13 @@ export function deleteHighTempBoxReportApi(pk: number) {
   return request<HighTempBoxReportMutationResponse>({
     url: `test/high-temp-box/report/detail/${pk}/`,
     method: "delete"
+  })
+}
+
+export function getHighTempBoxReportPdfApi(pk: number) {
+  return request<Blob>({
+    url: `test/high-temp-box/report/pdf/${pk}/`,
+    method: "get",
+    responseType: "blob"
   })
 }

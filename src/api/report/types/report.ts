@@ -65,4 +65,21 @@ export interface ReportActionResponseData {
   message: string
   success?: boolean
   msg?: string
+  data?: {
+    assistantSync?: {
+      attempted: boolean
+      success: boolean
+      skipped?: boolean
+      retryable?: boolean
+      reason?: string
+      message?: string
+      error?: string
+      applicationNo?: string
+      assistantTestId?: string
+      synced?: number
+      total?: number
+      payloadHash?: string
+      reportIds?: number[]
+    }
+  }
 }

@@ -1,9 +1,13 @@
 import { request } from "@/utils/service"
+import type { AssistantReportSyncFeedback } from "@/api/engineer-assistant/types"
+
+export type AssistantReportSyncStatus = "pending" | "syncing" | "success" | "failed" | "skipped" | ""
 
 export interface WaterCycleReportListItem {
   id: number
   report_no: string
   task_number: string
+  instrument_sn: string
   test_date: string
   tester: string
   status: number
@@ -11,11 +15,16 @@ export interface WaterCycleReportListItem {
   submit_time: string
   audit_time: string
   remark: string
+  assistant_sync_status?: AssistantReportSyncStatus
+  assistant_synced_at?: string | null
+  assistant_sync_error?: string
+  assistant_sync_retry_count?: number
 }
 
 export interface WaterCycleReportPayload {
   report_no: string
   task_number: string
+  instrument_sn: string
   test_date: string
   tester: string
   status: number
@@ -29,6 +38,9 @@ export type WaterCycleReportUpdatePayload = Partial<WaterCycleReportPayload> & {
 interface WaterCycleReportMutationResponse {
   code: number
   msg?: string
+  data?: WaterCycleReportListItem & {
+    assistantSync?: AssistantReportSyncFeedback
+  }
 }
 
 export function getWaterCycleReportListApi(params: {
@@ -36,6 +48,7 @@ export function getWaterCycleReportListApi(params: {
   pageSize: number
   taskNumber?: string
   tester?: string
+  status?: number | string
 }) {
   return request<{
     code: number
@@ -82,5 +95,13 @@ export function deleteWaterCycleReportApi(pk: number) {
   return request<WaterCycleReportMutationResponse>({
     url: `test/water-cycle/report/detail/${pk}/`,
     method: "delete"
+  })
+}
+
+export function getWaterCycleReportPdfApi(pk: number) {
+  return request<Blob>({
+    url: `test/water-cycle/report/pdf/${pk}/`,
+    method: "get",
+    responseType: "blob"
   })
 }
