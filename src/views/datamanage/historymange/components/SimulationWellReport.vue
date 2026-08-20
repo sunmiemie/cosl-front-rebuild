@@ -8,7 +8,7 @@ import { useUserStoreHook } from "@/store/modules/user"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
   getSimulatedWellReportDetailApi,
-  getSimulatedWellReportCurveZipApi,
+  getSimulatedWellReportCurveDownloadTicketApi,
   getSimulatedWellReportListApi,
   getSimulatedWellReportPdfApi,
   updateSimulatedWellReportApi,
@@ -31,6 +31,7 @@ type ReadonlyReportRow = { label: string; value: string }
 
 type AuditRow = SimulatedWellReportListItem & {
   meta: ReportJson
+  report_name: string
   template_no: string
   job_no: string
   test_product: string
@@ -206,7 +207,7 @@ const fieldType = (field: unknown) => {
 
 const fieldKey = (prefix: string, index: number, suffix = "") => `${prefix}_${index}${suffix ? `_${suffix}` : ""}`
 
-const displayReadonlyValue = (value: unknown, empty = "未填写") => {
+const displayReadonlyValue = (value: unknown, empty = "") => {
   if (value === undefined || value === null || value === "") return empty
   const statusText: Record<string, string> = {
     normal: "正常",
@@ -217,6 +218,45 @@ const displayReadonlyValue = (value: unknown, empty = "未填写") => {
   if (typeof value === "string") return statusText[value] || value
   if (typeof value === "boolean") return value ? "是" : "否"
   return String(value)
+}
+
+const displayRangeRadioResult = (value: unknown) => {
+  if (value === "abnormal" || value === "异常" || value === "不正常") return "不正常"
+  return displayReadonlyValue(value)
+}
+
+const displayNumberWithUnit = (value: unknown, unit: unknown) => {
+  const numberValue = displayReadonlyValue(value)
+  if (value === undefined || value === null || value === "") return numberValue
+  return `${numberValue}${String(unit || "").trim()}`
+}
+
+const displayValueWithUnit = (value: unknown, unit: unknown) => {
+  const text = displayReadonlyValue(value)
+  if (text === "") return ""
+  return `${text}${String(unit || "").trim()}`
+}
+
+const transferColumns = (field: unknown): Record<string, any>[] => {
+  const normalized = normalizeTemplateField(field)
+  if (!normalized || typeof normalized !== "object") return []
+  const columns = (normalized as Record<string, any>).columns
+  return Array.isArray(columns) ? columns as Record<string, any>[] : []
+}
+
+const buildReadonlyTransferDataRows = (fields: unknown, values: unknown): ReadonlyReportRow[] => {
+  if (!Array.isArray(fields)) return []
+  const valueMap = values && typeof values === "object" ? values as Record<string, unknown> : {}
+  return fields.flatMap((field, fieldIndex) => {
+    if (fieldType(field) !== "single-row-multi-column") return []
+    return transferColumns(field).map((column, columnIndex) => {
+      const label = `${fieldLabel(field, "")}${fieldLabel(column, "")}` || `转样数据${fieldIndex + 1}子字段${columnIndex + 1}`
+      return {
+        label,
+        value: displayValueWithUnit(valueMap[fieldKey("transfer", fieldIndex, `c${columnIndex}`)], column.unit)
+      }
+    })
+  })
 }
 
 const positiveFieldCount = (value: unknown, fallback: number) => {
@@ -239,16 +279,26 @@ const buildReadonlyReportRows = (
     const key = fieldKey(prefix, index)
     const label = fieldLabel(rawField, `${sectionName}${index + 1}`)
     const type = fieldType(rawField)
-    if (!["depth-group", "range-radio", "multi-input-row", "sampling-group", "card-group"].includes(type)) {
+    if (!["depth-group", "range-radio", "multi-input-row", "sampling-group", "card-group", "single-input"].includes(type)) {
+      if (type === "number") return { label, value: displayNumberWithUnit(valueMap[key], definition.unit) }
       return { label, value: displayReadonlyValue(valueMap[key]) }
+    }
+    if (type === "single-input") {
+      const inputValue = displayReadonlyValue(valueMap[key])
+      const unit = String(definition.unit || "").trim()
+      const valueWithUnit = inputValue ? `${inputValue}${unit}` : ""
+      return {
+        label: `${label}：${valueWithUnit}`,
+        value: displayReadonlyValue(valueMap[fieldKey(prefix, index, "result")]),
+      }
     }
     if (type === "depth-group") {
       const unit = displayReadonlyValue(definition.unit, "m")
       const points = Array.from({ length: positiveFieldCount(definition.pointCount, 4) }, (_, pointIndex) => {
         const point = pointIndex + 1
-        const depth = displayReadonlyValue(valueMap[fieldKey(prefix, index, `p${point}`)])
+        const depth = displayValueWithUnit(valueMap[fieldKey(prefix, index, `p${point}`)], unit)
         const result = valueMap[fieldKey(prefix, index, `p${point}_result`)]
-        return `第${point}点：${depth}${unit}${result === undefined || result === null || result === "" ? "" : `，${displayReadonlyValue(result)}`}`
+        return `第${point}点：${depth}${result === undefined || result === null || result === "" ? "" : `，${displayReadonlyValue(result)}`}`
       })
       return { label, value: points.join("；") }
     }
@@ -257,15 +307,19 @@ const buildReadonlyReportRows = (
         label,
         value: `${displayReadonlyValue(valueMap[fieldKey(prefix, index, "from")])} ~ ${displayReadonlyValue(valueMap[fieldKey(prefix, index, "to")])}；${displayReadonlyValue(valueMap[fieldKey(prefix, index, "result")])}`
       }
+      const start = displayReadonlyValue(valueMap[fieldKey(prefix, index, "from")])
+      const end = displayReadonlyValue(valueMap[fieldKey(prefix, index, "to")])
+      const unit = String(definition.unit || "").trim()
+      return {
+        label: `${label}：${start || end ? `${start} ~ ${end}${unit}` : ""}`,
+        value: displayRangeRadioResult(valueMap[fieldKey(prefix, index, "result")]),
+      }
     }
     if (type === "multi-input-row") {
       const columns = Array.isArray(definition.columns) ? definition.columns : []
       const rows = Array.from({ length: positiveFieldCount(definition.rowCount, 2) }, (_, rowIndex) => {
-        const row = columns.map(
-          (column: unknown, columnIndex: number) =>
-            `${fieldLabel(column, `输入${columnIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `r${rowIndex + 1}c${columnIndex}`)])}`
-        )
-        return `第${rowIndex + 1}点：${row.join("，") || "未填写"}`
+        const row = columns.map((column: unknown, columnIndex: number) => `${fieldLabel(column, `输入${columnIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `r${rowIndex + 1}c${columnIndex}`)])}`)
+        return `第${rowIndex + 1}点：${row.join("，")}`
       })
       return { label, value: rows.join("；") }
     }
@@ -273,11 +327,8 @@ const buildReadonlyReportRows = (
       const items = Array.isArray(definition.items) ? definition.items : []
       const points = Array.from({ length: positiveFieldCount(definition.pointCount, 2) }, (_, pointIndex) => {
         const point = pointIndex + 1
-        const values = items.map(
-          (item: unknown, itemIndex: number) =>
-            `${fieldLabel(item, `项目${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `p${point}i${itemIndex}`)])}`
-        )
-        return `第${point}点：${values.join("，") || "未填写"}`
+        const values = items.map((item: unknown, itemIndex: number) => `${fieldLabel(item, `项目${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `p${point}i${itemIndex}`)])}`)
+        return `第${point}点：${values.join("，")}`
       })
       return { label, value: points.join("；") }
     }
@@ -285,13 +336,10 @@ const buildReadonlyReportRows = (
     const cardValues = cards.map((card: unknown, cardIndex: number) => {
       const cardDefinition = card && typeof card === "object" ? (card as Record<string, any>) : {}
       const fields = Array.isArray(cardDefinition.fields) ? cardDefinition.fields : []
-      const values = fields.map(
-        (item: unknown, itemIndex: number) =>
-          `${fieldLabel(item, `字段${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `c${cardIndex}f${itemIndex}`)])}`
-      )
-      return `${displayReadonlyValue(cardDefinition.title, `卡片${cardIndex + 1}`)}：${values.join("，") || "未填写"}`
+      const values = fields.map((item: unknown, itemIndex: number) => `${fieldLabel(item, `字段${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `c${cardIndex}f${itemIndex}`)])}`)
+      return `${displayReadonlyValue(cardDefinition.title, `卡片${cardIndex + 1}`)}：${values.join("，")}`
     })
-    return { label, value: cardValues.join("；") || "未填写" }
+    return { label, value: cardValues.join("；") }
   })
 }
 
@@ -299,22 +347,14 @@ const currentTemplateSnapshot = computed<ReportJson | null>(() => {
   const snapshot = currentReport.value?.meta.template_snapshot
   return snapshot && typeof snapshot === "object" ? (snapshot as ReportJson) : null
 })
-const currentTestItemRows = computed(() =>
-  buildReadonlyReportRows(
-    currentTemplateSnapshot.value?.test_items,
-    currentReport.value?.meta.test_items,
-    "test",
-    "测试项目"
-  )
-)
-const currentEvaluationRows = computed(() =>
-  buildReadonlyReportRows(
-    currentTemplateSnapshot.value?.evaluation_standards,
-    currentReport.value?.meta.evaluation_standards,
-    "eval",
-    "评价标准"
-  )
-)
+
+const currentTestItemRows = computed(() => buildReadonlyReportRows(currentTemplateSnapshot.value?.test_items, currentReport.value?.meta.test_items, "test", "测试项目"))
+const currentEvaluationRows = computed(() => buildReadonlyReportRows(currentTemplateSnapshot.value?.evaluation_standards, currentReport.value?.meta.evaluation_standards, "eval", "评价标准"))
+const currentTransferDataRows = computed(() => buildReadonlyTransferDataRows(currentTemplateSnapshot.value?.transfer_data_records, currentReport.value?.meta.transfer_data_records))
+
+const isResearchReport = (report?: AuditRow | null) => Number(report?.meta?.order_type) === 1
+const usesTemplateReport = (report?: AuditRow | null) =>
+  !isResearchReport(report) || Boolean(report?.meta?.template_snapshot?.report_no)
 
 const getDeviceText = (meta: ReportJson) => {
   const device = meta.selected_device || meta.device || {}
@@ -326,6 +366,7 @@ const normalizeRow = (report: SimulatedWellReportListItem): AuditRow => {
   return {
     ...report,
     meta,
+    report_name: String(meta.report_name || ""),
     template_no: firstText(meta.template_code, meta.selected_template?.report_no),
     job_no: firstText(meta.operation_no, report.task_number),
     test_product: getDeviceText(meta),
@@ -507,17 +548,13 @@ const handleDownload = async (row: AuditRow) => {
 const handleCurveDownload = async (row: AuditRow) => {
   curveDownloadingId.value = row.id
   try {
-    const blob = await getSimulatedWellReportCurveZipApi(row.id)
-    const zipBlob = blob.type === "application/zip" ? blob : new Blob([blob], { type: "application/zip" })
-    const url = URL.createObjectURL(zipBlob)
-    const filename = `${(row.report_no || "模拟井测试报告").replace(/[\\/:*?"<>|]/g, "-")}-曲线图.zip`
+    const ticket = await getSimulatedWellReportCurveDownloadTicketApi(row.id)
+    const base = String(import.meta.env.VITE_BASE_API || "/").replace(/\/+$/, "")
+    const path = ticket.data.url.replace(/^\/+/, "")
+    const url = /^https?:\/\//i.test(ticket.data.url) ? ticket.data.url : `${base}/${path}`
     const a = document.createElement("a")
     a.href = url
-    a.download = filename
-    document.body.appendChild(a)
     a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
     ElMessage.success("原始文件下载已开始")
   } catch (error) {
     console.error("下载模拟井报告曲线图失败", error)
@@ -633,13 +670,13 @@ defineExpose({ resetSearch: getList })
       <div class="toolbar-wrapper">
         <div>
           <div class="section-title">待审核报告</div>
-          <div class="section-sub">测试端提交的模拟井报告会进入这里，由管理端完成审核。</div>
         </div>
         <el-button type="primary" icon="RefreshRight" circle @click="getList" />
       </div>
 
       <el-table :data="pendingTableData" stripe border>
         <el-table-column prop="report_no" label="报告编号" min-width="160" />
+        <el-table-column prop="report_name" label="报告名称" min-width="180" show-overflow-tooltip />
         <el-table-column prop="job_no" label="作业编号" min-width="150" />
         <el-table-column prop="instrument_sn" label="被测 SN" min-width="150">
           <template #default="{ row }">{{ row.instrument_sn || row.equipmentId || "-" }}</template>
@@ -687,13 +724,13 @@ defineExpose({ resetSearch: getList })
       <div class="toolbar-wrapper">
         <div>
           <div class="section-title">已审核报告</div>
-          <div class="section-sub">已通过的报告可下载正式 PDF；驳回报告可继续查看附件。</div>
         </div>
         <el-button type="primary" icon="RefreshRight" circle @click="getList" />
       </div>
 
       <el-table :data="reviewedTableData" stripe border>
         <el-table-column prop="report_no" label="报告编号" min-width="160" />
+        <el-table-column prop="report_name" label="报告名称" min-width="180" show-overflow-tooltip />
         <el-table-column prop="job_no" label="作业编号" min-width="150" />
         <el-table-column prop="instrument_sn" label="被测 SN" min-width="150">
           <template #default="{ row }">{{ row.instrument_sn || row.equipmentId || "-" }}</template>
@@ -728,13 +765,13 @@ defineExpose({ resetSearch: getList })
           <template #default="{ row }">
             <el-button link type="primary" @click="handleDetail(row)">查看</el-button>
             <el-button
-              v-if="row.status === 1"
+              v-if="row.status === 1 && usesTemplateReport(row)"
               :loading="downloadingId === row.id"
               link
               type="success"
               @click="handleDownload(row)"
             >
-              下载 PDF
+              下载
             </el-button>
             <el-button
               v-if="row.status === 1"
@@ -821,7 +858,7 @@ defineExpose({ resetSearch: getList })
           <div class="report-grid">
             <div class="info-tile">
               <span>报告名称</span>
-              <strong>{{ firstText(currentReport.meta.report_name, currentReport.report_no) }}</strong>
+              <strong>{{ currentReport.report_name }}</strong>
             </div>
             <div class="info-tile">
               <span>测试产品</span>
@@ -838,7 +875,7 @@ defineExpose({ resetSearch: getList })
           </div>
         </div>
 
-        <div class="detail-card">
+        <div v-if="usesTemplateReport(currentReport)" class="detail-card">
           <div class="detail-card-title">测试项目</div>
           <el-empty v-if="!currentTemplateSnapshot" description="暂无可用项目定义" :image-size="56" />
           <el-empty v-else-if="!currentTestItemRows.length" description="当前模板未配置测试项目" :image-size="56" />
@@ -850,12 +887,22 @@ defineExpose({ resetSearch: getList })
           </div>
         </div>
 
-        <div class="detail-card">
+        <div v-if="usesTemplateReport(currentReport)" class="detail-card">
           <div class="detail-card-title">资料评价标准值</div>
           <el-empty v-if="!currentTemplateSnapshot" description="暂无可用项目定义" :image-size="56" />
           <el-empty v-else-if="!currentEvaluationRows.length" description="当前模板未配置评价标准" :image-size="56" />
           <div v-else class="readonly-report-list">
             <div v-for="row in currentEvaluationRows" :key="row.label" class="readonly-report-row">
+              <div class="readonly-report-label">{{ row.label }}</div>
+              <div class="readonly-report-value">{{ row.value }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="usesTemplateReport(currentReport) && currentTransferDataRows.length" class="detail-card">
+          <div class="detail-card-title">测试完成转样数据记录</div>
+          <div class="readonly-report-list">
+            <div v-for="row in currentTransferDataRows" :key="row.label" class="readonly-report-row">
               <div class="readonly-report-label">{{ row.label }}</div>
               <div class="readonly-report-value">{{ row.value }}</div>
             </div>

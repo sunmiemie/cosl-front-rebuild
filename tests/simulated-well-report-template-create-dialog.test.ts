@@ -21,4 +21,11 @@ describe("simulated well report template create dialog", () => {
     expect(content).toContain('v-for="section in sectionTabs"')
     expect(content).toContain('@click="addParsedField(section.key)"')
   })
+
+  it("previews the transfer data section and its dynamic columns", () => {
+    expect(content).toContain('{ key: "transfer_data_records" as SectionKey, label: "转样数据" }')
+    expect(content).toContain("createParsedFields.transfer_data_records")
+    expect(content).toContain('class="parsed-field-columns"')
+    expect(content).toContain('v-for="(column, columnIndex) in field.columns"')
+  })
 })

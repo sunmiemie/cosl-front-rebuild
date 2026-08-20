@@ -2,7 +2,17 @@ export type SimulatedWellReportTemplateFieldObject = {
   nameCN: string
   nameEN: string
   type?: string
+  defaultValue?: string
+  unit?: string
+  required?: boolean
   needsReview?: boolean
+  rowCount?: number
+  columns?: Array<{
+    nameCN: string
+    nameEN: string
+    unit?: string
+    needsReview?: boolean
+  }>
   [key: string]: unknown
 }
 
@@ -13,6 +23,7 @@ export type SimulatedWellReportTemplateFields = {
   match_instruments: SimulatedWellReportTemplateField[]
   test_items: SimulatedWellReportTemplateField[]
   evaluation_standards: SimulatedWellReportTemplateField[]
+  transfer_data_records: SimulatedWellReportTemplateField[]
 }
 
 export type SimulatedWellReportTemplateListRequest = {

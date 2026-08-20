@@ -10,6 +10,7 @@ export interface SimulatedWellOrderListItem {
   research_no?: string
   project_budget_no?: string
   project_name?: string
+  order_type: 0 | 1
   well_name?: string
   tested_instrument?: string
   instrument_sn_numbers?: string
@@ -58,6 +59,7 @@ export interface SimulatedWellOrderListRequest {
   pageSize: number
   taskNumber?: string
   status?: string
+  orderType?: "0" | "1"
 }
 
 export interface SimulatedWellOrderListResponse {
@@ -82,6 +84,7 @@ export interface CreateSimulatedWellOrderRequest {
   research_no?: string
   project_budget_no?: string
   project_name?: string
+  order_type?: 0 | 1
   well_name: string
   tested_instrument?: string
   instrument_sn_numbers?: string

@@ -120,3 +120,13 @@ export function getSimulatedWellReportCurveZipApi(pk: number) {
     responseType: "blob"
   })
 }
+
+export function getSimulatedWellReportCurveDownloadTicketApi(pk: number) {
+  return request<{
+    code: number
+    data: { url: string; expires_in: number }
+  }>({
+    url: `test/simulated-well/report/curve-download-ticket/${pk}/`,
+    method: "post"
+  })
+}
