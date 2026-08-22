@@ -33,8 +33,10 @@ const scroll = ({ scrollLeft }: { scrollLeft: number }) => {
 }
 
 /** 鼠标滚轮滚动时触发 */
-const wheelScroll = ({ deltaY }: WheelEvent) => {
-  if (/^-/.test(deltaY.toString())) {
+const wheelScroll = ({ deltaX, deltaY }: WheelEvent) => {
+  const delta = deltaX || deltaY
+  if (!delta) return
+  if (delta < 0) {
     scrollTo("left")
   } else {
     scrollTo("right")
@@ -44,9 +46,9 @@ const wheelScroll = ({ deltaY }: WheelEvent) => {
 /** 获取可能需要的宽度 */
 const getWidth = () => {
   /** 可滚动内容的长度 */
-  const scrollbarContentRefWidth = scrollbarContentRef.value!.clientWidth
+  const scrollbarContentRefWidth = scrollbarContentRef.value?.clientWidth || 0
   /** 滚动可视区宽度 */
-  const scrollbarRefWidth = scrollbarRef.value!.wrapRef!.clientWidth
+  const scrollbarRefWidth = scrollbarRef.value?.wrapRef?.clientWidth || 0
   /** 最后剩余可滚动的宽度 */
   const lastDistance = scrollbarContentRefWidth - scrollbarRefWidth - currentScrollLeft
 
@@ -55,10 +57,11 @@ const getWidth = () => {
 
 /** 左右滚动 */
 const scrollTo = (direction: "left" | "right", distance: number = translateDistance) => {
+  if (!scrollbarRef.value?.wrapRef || !scrollbarContentRef.value) return
   let scrollLeft = 0
   const { scrollbarContentRefWidth, scrollbarRefWidth, lastDistance } = getWidth()
   // 没有横向滚动条，直接结束
-  if (scrollbarRefWidth > scrollbarContentRefWidth) return
+  if (scrollbarRefWidth >= scrollbarContentRefWidth) return
   if (direction === "left") {
     scrollLeft = Math.max(0, currentScrollLeft - distance)
   } else {
@@ -69,6 +72,7 @@ const scrollTo = (direction: "left" | "right", distance: number = translateDista
 
 /** 移动到目标位置 */
 const moveTo = () => {
+  if (!scrollbarRef.value?.wrapRef || !scrollbarContentRef.value) return
   const tagRefs = props.tagRefs
   for (let i = 0; i < tagRefs.length; i++) {
     // @ts-ignore
