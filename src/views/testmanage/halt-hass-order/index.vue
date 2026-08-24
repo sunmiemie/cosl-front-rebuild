@@ -1,5 +1,7 @@
 <template>
-  <HaltHassOrder />
+  <div class="app-container management-list-page">
+    <HaltHassOrder />
+  </div>
 </template>
 
 <script setup lang="ts">

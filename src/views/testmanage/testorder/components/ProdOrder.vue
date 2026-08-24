@@ -73,7 +73,7 @@ const headers = checkPermission(["11"])
       { prop: "testunit_endtime", label: "结束时间", align: "center" },
       { prop: "process_type", label: "测试类型", align: "center" },
       { prop: "testunit_status", label: "测试状态", type: "tag", align: "center" },
-      { prop: "link", label: "操作", type: "link", width: "150", minWidth: 150, align: "center" }
+      { prop: "link", label: "操作", type: "link", width: "260", minWidth: 260, align: "center" }
     ])
   : ref([
       { prop: "testunit_id", label: "工单号", align: "center" },
@@ -103,23 +103,13 @@ const TableData = ref<Array<TableDataType>>([])
 const searchFormRef = ref<FormInstance | null>(null)
 
 const searchData = reactive({
-  number: "",
-  orderNo: "",
-  batchId: "",
-  serial: "",
-  supplier: "",
-  TestName: "",
+  keyword: "",
   TestType: "",
   TestStatus: "",
   Daterange: [] as string[]
 })
 const clearSearchData = () => {
-  searchData.number = ""
-  searchData.orderNo = ""
-  searchData.batchId = ""
-  searchData.serial = ""
-  searchData.supplier = ""
-  searchData.TestName = ""
+  searchData.keyword = ""
   searchData.TestType = ""
   searchData.TestStatus = ""
   searchData.Daterange = []
@@ -127,8 +117,14 @@ const clearSearchData = () => {
 
 const initSearchFromRoute = () => {
   const { id, orderNo, status, taskNumber } = route.query
-  searchData.number = typeof id === "string" ? id : ""
-  searchData.orderNo = typeof orderNo === "string" ? orderNo : typeof taskNumber === "string" ? taskNumber : ""
+  searchData.keyword =
+    typeof id === "string"
+      ? id
+      : typeof orderNo === "string"
+        ? orderNo
+        : typeof taskNumber === "string"
+          ? taskNumber
+          : ""
   searchData.TestStatus = typeof status === "string" ? status : ""
 }
 
@@ -555,7 +551,19 @@ const getTableLinkData = () => {
 
 const resetSearch = () => {
   clearSearchData()
-  getTestunits()
+  if (paginationData.currentPage === 1) {
+    getTestunits()
+  } else {
+    paginationData.currentPage = 1
+  }
+}
+const handleSearch = () => {
+  searchData.keyword = searchData.keyword.trim()
+  if (paginationData.currentPage === 1) {
+    getTestunits()
+  } else {
+    paginationData.currentPage = 1
+  }
 }
 async function getTestunits() {
   gettingTestunits.value = true
@@ -631,27 +639,17 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
 </script>
 
 <template>
-  <div class="affix-container">
-    <el-affix target=".affix-container" :offset="120">
-      <el-card class="search-wrapper" shadow="never">
-        <el-form ref="searchFormRef" :inline="true" :model="searchData">
-          <el-form-item label="工单号">
-            <el-input v-model="searchData.number" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="申请单号">
-            <el-input v-model="searchData.orderNo" placeholder="请输入委托单号/申请单号" />
-          </el-form-item>
-          <el-form-item label="批次号">
-            <el-input v-model="searchData.batchId" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="电路板序列号">
-            <el-input v-model="searchData.serial" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="供应商">
-            <el-input v-model="searchData.supplier" placeholder="请输入" />
-          </el-form-item>
-          <el-form-item label="测试名称">
-            <el-input v-model="searchData.TestName" placeholder="请输入" />
+  <div class="affix-container management-list-shell">
+    <el-card v-loading="gettingTestunits" class="management-list-card" shadow="never">
+      <div class="management-list-toolbar">
+        <el-form ref="searchFormRef" :inline="true" :model="searchData" class="management-filter-form">
+          <el-form-item class="management-filter-keyword" label="关键字">
+            <el-input
+              v-model="searchData.keyword"
+              clearable
+              placeholder="工单号 / 申请单号 / 批次号 / 序列号 / 供应商 / 测试名称"
+              @keyup.enter="handleSearch"
+            />
           </el-form-item>
           <el-form-item label="测试类型">
             <el-select
@@ -668,7 +666,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
               <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
             </el-select>
           </el-form-item>
-          <el-form-item label="创建时间范围">
+          <el-form-item class="management-filter-date" label="创建时间范围">
             <el-date-picker
               v-model="searchData.Daterange"
               end-placeholder="结束日期"
@@ -678,46 +676,31 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
               value-format="YYYY/MM/DD"
             />
           </el-form-item>
-          <el-form-item>
-            <el-button icon="Search" type="primary" @click="getTestunits">查询</el-button>
-            <el-button icon="Refresh" @click="resetSearch">重置</el-button>
-          </el-form-item>
         </el-form>
-      </el-card>
-    </el-affix>
-
-    <el-card v-loading="gettingTestunits" shadow="never">
-      <div class="toolbar-wrapper">
-        <div style="display: flex; align-items: center; gap: 10px">
-          <div>
-            <!-- 11 代表“添加测试工单”权限 -->
-            <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTest"
-              >新增生产测试工单</el-button
-            >
-          </div>
-          <div>
-            <el-text class="mx-1">{{ batchData.batchName }}</el-text>
-          </div>
-          <div v-show="selectedUnitRowCount > 0">
+        <div class="management-toolbar-actions">
+          <el-button icon="Search" type="primary" @click="handleSearch">查询</el-button>
+          <!-- 11 代表“添加测试工单”权限 -->
+          <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="addTest">新增</el-button>
+          <el-button icon="Refresh" @click="resetSearch">重置</el-button>
+          <el-text class="mx-1">{{ batchData.batchName }}</el-text>
+          <div v-show="selectedUnitRowCount > 0" class="management-selection-actions">
             <el-text style="display: inline-block; margin-right: 10px">已选择 {{ selectedUnitRowCount }} 项</el-text>
             <el-button type="warning" @click="postSelectedUnits">批量发布</el-button>
           </div>
-        </div>
-        <div>
           <el-tooltip content="刷新当前页">
             <el-button circle icon="RefreshRight" type="primary" @click="getTestunits" />
           </el-tooltip>
         </div>
       </div>
       <div class="table-wrapper">
-        <!--          max-height="450"-->
         <TableComponent
           :column-data="headers"
           :tableData="TableData"
+          border
+          height="100%"
           selection
           @selection-change="handleUnitSelectionChange"
           stripe
-          max-height="620"
         >
           <template #testunit_status="{ row }">
             <el-tag v-if="row['testunit_status'] === '0'" type="success"> 已创建</el-tag>
@@ -1165,7 +1148,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTest
 
 .operation-links {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
   gap: 4px 8px;
   line-height: 1.4;

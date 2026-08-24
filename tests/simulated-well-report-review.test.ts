@@ -9,6 +9,24 @@ const content = readFileSync(resolve(root, pagePath), "utf8")
 const apiContent = readFileSync(resolve(root, apiPath), "utf8")
 
 describe("simulated well report review remarks", () => {
+  it("uses the shared report-list layout and supports conditional queries", () => {
+    expect(content).toContain('class="simulation-well-audit report-list-shell"')
+    expect(content).toContain('class="report-list-toolbar"')
+    expect(content).toContain('class="report-filter-form report-filter-form--wide"')
+    expect(content).toContain('v-model="searchForm.reportNo"')
+    expect(content).toContain('v-model="searchForm.taskNumber"')
+    expect(content).toContain('v-model="searchForm.testProduct"')
+    expect(content).toContain('v-model="searchForm.tester"')
+    expect(content).toContain('v-model="searchForm.status"')
+    expect(content).toContain('v-model="searchForm.testDateRange"')
+    expect(content).toContain(':data="tableData"')
+    expect(content).not.toContain('v-model="activeListTab"')
+    expect(content).not.toContain("待审核报告（")
+    expect(content).not.toContain("已审核报告（")
+    expect(content).toContain('const handleSearch = () =>')
+    expect(content).toContain('const handleReset = () =>')
+  })
+
   it("uses report_json as the only structured report source", () => {
     expect(content).toContain("const getMeta = (report: SimulatedWellReportListItem): ReportJson =>")
     expect(content).toContain("report.report_json")

@@ -67,7 +67,7 @@ const headers = checkPermission(["11"])
       { prop: "user_name", label: "创建人", align: "center" },
       { prop: "process_type", label: "测试类型", align: "center" },
       { prop: "dev_testunit_status", label: "测试状态", type: "tag", align: "center" },
-      { prop: "link", label: "操作", type: "link", width: "150", minWidth: 150, align: "center" }
+      { prop: "link", label: "操作", type: "link", width: "260", minWidth: 260, align: "center" }
     ])
   : ref([
       { prop: "dev_testunit_id", label: "工单号", align: "center" },
@@ -89,36 +89,28 @@ const TableData = ref<Array<TableDataType>>([])
 const searchFormRef = ref<FormInstance | null>(null)
 
 const searchData = reactive({
-  number: "", // 工单号
-  orderNo: "",
-  TestName: "",
+  keyword: "",
   TestType: "",
   TestStatus: "",
-  Daterange: [] as string[],
-  boardName: "",
-  boardModel: "",
-  batchId: "",
-  serial: "",
-  supplier: ""
+  Daterange: [] as string[]
 })
 const clearSearchData = () => {
-  searchData.number = ""
-  searchData.orderNo = ""
-  searchData.TestName = ""
+  searchData.keyword = ""
   searchData.TestType = ""
   searchData.TestStatus = ""
   searchData.Daterange = []
-  searchData.boardName = ""
-  searchData.boardModel = ""
-  searchData.batchId = ""
-  searchData.serial = ""
-  searchData.supplier = ""
 }
 
 const initSearchFromRoute = () => {
   const { id, orderNo, status, taskNumber } = route.query
-  searchData.number = typeof id === "string" ? id : ""
-  searchData.orderNo = typeof orderNo === "string" ? orderNo : typeof taskNumber === "string" ? taskNumber : ""
+  searchData.keyword =
+    typeof id === "string"
+      ? id
+      : typeof orderNo === "string"
+        ? orderNo
+        : typeof taskNumber === "string"
+          ? taskNumber
+          : ""
   searchData.TestStatus = typeof status === "string" ? status : ""
 }
 
@@ -370,28 +362,21 @@ const handleLink = (data: any, i: string) => {
   }
 }
 
-const handleSearch = async () => {
-  // 深拷贝
-  const params = JSON.parse(JSON.stringify(searchData))
-  // 拼接时间参数
-  if (params.Daterange.length > 0) {
-    params.Daterange = params.Daterange.join("-")
+const handleSearch = () => {
+  searchData.keyword = searchData.keyword.trim()
+  if (paginationData.currentPage === 1) {
+    getMangeData()
   } else {
-    params.Daterange = ""
+    paginationData.currentPage = 1
   }
-  params.currentPage = paginationData.currentPage
-  params.pageSize = paginationData.pageSize
-  // 调用接口
-  const tableResult = await getTempTestMangeTable(params)
-  // 赋值
-  TableData.value = tableResult.TableData
-  // console.log(TableData.value);
-  paginationData.total = tableResult.total
-  getTableLinkData()
 }
 const resetSearch = () => {
   clearSearchData()
-  getMangeData()
+  if (paginationData.currentPage === 1) {
+    getMangeData()
+  } else {
+    paginationData.currentPage = 1
+  }
 }
 
 const detailform = reactive({
@@ -603,77 +588,54 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 </script>
 
 <template>
-  <div class="affix-container">
-    <el-card class="search-wrapper" shadow="never">
-      <el-form ref="searchFormRef" :inline="true" :model="searchData">
-        <el-form-item label="工单号">
-          <el-input v-model="searchData.number" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="申请单号">
-          <el-input v-model="searchData.orderNo" placeholder="请输入委托单号/申请单号" />
-        </el-form-item>
-        <el-form-item label="批次号">
-          <el-input v-model="searchData.batchId" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="电路板序列号">
-          <el-input v-model="searchData.serial" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="供应商">
-          <el-input v-model="searchData.supplier" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="电路板型号">
-          <el-input v-model="searchData.boardModel" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="电路板名称">
-          <el-input v-model="searchData.boardName" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="测试名称">
-          <el-input v-model="searchData.TestName" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="测试类型">
-          <el-select
-            v-model="searchData.TestType"
-            placeholder="请选择"
-            style="width: 150px"
-            @visible-change="getTestTypeData"
-          >
-            <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="测试状态">
-          <el-select v-model="searchData.TestStatus" placeholder="请选择" style="width: 150px">
-            <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="创建时间范围">
-          <el-date-picker
-            v-model="searchData.Daterange"
-            end-placeholder="结束日期"
-            range-separator="至"
-            start-placeholder="开始日期"
-            type="daterange"
-            value-format="YYYY/MM/DD"
-          />
-        </el-form-item>
-        <el-form-item>
+  <div class="affix-container management-list-shell">
+    <el-card v-loading="loading" class="management-list-card" shadow="never">
+      <div class="management-list-toolbar">
+        <el-form ref="searchFormRef" :inline="true" :model="searchData" class="management-filter-form">
+          <el-form-item class="management-filter-keyword" label="关键字">
+            <el-input
+              v-model="searchData.keyword"
+              clearable
+              placeholder="工单号 / 申请单号 / 批次号 / 序列号 / 供应商 / 电路板型号或名称 / 测试名称"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+          <el-form-item label="测试类型">
+            <el-select
+              v-model="searchData.TestType"
+              placeholder="请选择"
+              style="width: 150px"
+              @visible-change="getTestTypeData"
+            >
+              <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="测试状态">
+            <el-select v-model="searchData.TestStatus" placeholder="请选择" style="width: 150px">
+              <el-option v-for="item in TestStatus" :label="item.mes" :value="item.status" :key="item.status" />
+            </el-select>
+          </el-form-item>
+          <el-form-item class="management-filter-date" label="创建时间范围">
+            <el-date-picker
+              v-model="searchData.Daterange"
+              end-placeholder="结束日期"
+              range-separator="至"
+              start-placeholder="开始日期"
+              type="daterange"
+              value-format="YYYY/MM/DD"
+            />
+          </el-form-item>
+        </el-form>
+        <div class="management-toolbar-actions">
           <el-button icon="Search" type="primary" @click="handleSearch">查询</el-button>
+          <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="tempDialogVisible = true"
+            >新增</el-button
+          >
           <el-button icon="Refresh" @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-
-    <el-card v-loading="loading" shadow="never">
-      <div class="toolbar-wrapper">
-        <div style="display: flex; align-items: center; gap: 10px">
-          <el-button v-permission="['11']" icon="CirclePlus" type="primary" @click="tempDialogVisible = true">
-            新增临时测试工单
-          </el-button>
-          <div v-show="selectedRowCount > 0">
+          <div v-show="selectedRowCount > 0" class="management-selection-actions">
             <el-text style="display: inline-block; margin-right: 10px">已选择 {{ selectedRowCount }} 项</el-text>
             <el-button type="warning" @click="postSelectedUnits">批量发布</el-button>
           </div>
-        </div>
-        <div>
           <el-tooltip content="刷新当前页">
             <el-button circle icon="RefreshRight" type="primary" @click="getMangeData" />
           </el-tooltip>
@@ -683,14 +645,17 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
         <TableComponent
           :column-data="headers"
           :tableData="TableData"
+          border
+          height="100%"
           selection
           @selection-change="handleSelectionChange"
           stripe
-          max-height="620"
         >
           <template #dev_testunit_status="{ row }">
             <el-tag v-if="row['dev_testunit_status'] === '0'" type="success"> 已创建</el-tag>
-            <el-tag v-else-if="row['dev_testunit_status'] === '1' && row['is_scheduled']" type="primary"> 已排程</el-tag>
+            <el-tag v-else-if="row['dev_testunit_status'] === '1' && row['is_scheduled']" type="primary">
+              已排程</el-tag
+            >
             <el-tag v-else-if="row['dev_testunit_status'] === '1'" type="warning"> 待领取</el-tag>
             <el-tag v-else-if="row['dev_testunit_status'] === '2'"> 测试中</el-tag>
             <el-tag v-else-if="row['dev_testunit_status'] === '3'" type="warning"> 测试待审核</el-tag>
@@ -1027,7 +992,7 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getMang
 
 .operation-links {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: center;
   gap: 4px 8px;
   line-height: 1.4;

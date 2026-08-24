@@ -2,9 +2,8 @@
 import { computed, onMounted, reactive, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
-import { Download, Upload } from "@element-plus/icons-vue"
+import { Download, Refresh, Search, Upload } from "@element-plus/icons-vue"
 import { syncEngineerAssistantLocalReportApi } from "@/api/engineer-assistant"
-import { useUserStoreHook } from "@/store/modules/user"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
   getSimulatedWellReportDetailApi,
@@ -20,6 +19,14 @@ type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 type ReportJson = Record<string, any>
 type AttachmentItem = Record<string, any>
 type ReadonlyReportRow = { label: string; value: string }
+type ReportSearchState = {
+  reportNo: string
+  taskNumber: string
+  testProduct: string
+  tester: string
+  status: "" | number
+  testDateRange: string[]
+}
 
 type AuditRow = SimulatedWellReportListItem & {
   meta: ReportJson
@@ -29,10 +36,8 @@ type AuditRow = SimulatedWellReportListItem & {
   operator_engineer: string
 }
 
-const userStore = useUserStoreHook()
 const route = useRoute()
 const taskCenterStore = useTaskCenterStoreHook()
-const reviewerName = computed(() => userStore.nickName || userStore.username || "-")
 
 const loading = ref(false)
 const assistantPushingId = ref<number | null>(null)
@@ -55,8 +60,19 @@ const previewImageVisible = computed({
   }
 })
 
-const pendingPagination = reactive({ page: 1, pageSize: 10 })
-const reviewedPagination = reactive({ page: 1, pageSize: 10 })
+const pagination = reactive({ page: 1, pageSize: 10 })
+
+const createSearchState = (): ReportSearchState => ({
+  reportNo: "",
+  taskNumber: "",
+  testProduct: "",
+  tester: "",
+  status: "",
+  testDateRange: []
+})
+
+const searchForm = reactive<ReportSearchState>(createSearchState())
+const appliedSearch = reactive<ReportSearchState>(createSearchState())
 
 const shouldSyncRouteTask = () => {
   const { tab } = route.query
@@ -69,23 +85,34 @@ const taskNumberFilter = computed(() => {
   return typeof value === "string" ? value.trim().toLowerCase() : ""
 })
 
-const pendingAllRows = computed(() =>
-  rows.value.filter(
-    (row) =>
-      row.status === 0 && (!taskNumberFilter.value || row.task_number.toLowerCase().includes(taskNumberFilter.value))
-  )
-)
-const reviewedAllRows = computed(() => rows.value.filter((row) => row.status !== 0))
-const pendingTotal = computed(() => pendingAllRows.value.length)
-const reviewedTotal = computed(() => reviewedAllRows.value.length)
+const includesKeyword = (value: unknown, keyword: string) =>
+  !keyword || String(value ?? "").trim().toLowerCase().includes(keyword.trim().toLowerCase())
 
-const pendingTableData = computed(() => {
-  const start = (pendingPagination.page - 1) * pendingPagination.pageSize
-  return pendingAllRows.value.slice(start, start + pendingPagination.pageSize)
-})
-const reviewedTableData = computed(() => {
-  const start = (reviewedPagination.page - 1) * reviewedPagination.pageSize
-  return reviewedAllRows.value.slice(start, start + reviewedPagination.pageSize)
+const filteredRows = computed(() =>
+  rows.value.filter((row) => {
+    const routeTaskNumber = taskNumberFilter.value
+    const taskText = `${row.task_number || ""} ${row.job_no || ""}`
+    const testerText = `${row.tester || ""} ${row.operator_engineer || ""}`
+    const testDate = String(row.test_date || "").slice(0, 10)
+    const [startDate, endDate] = appliedSearch.testDateRange
+
+    return (
+      (!routeTaskNumber || taskText.toLowerCase().includes(routeTaskNumber)) &&
+      includesKeyword(row.report_no, appliedSearch.reportNo) &&
+      includesKeyword(taskText, appliedSearch.taskNumber) &&
+      includesKeyword(row.test_product, appliedSearch.testProduct) &&
+      includesKeyword(testerText, appliedSearch.tester) &&
+      (appliedSearch.status === "" || row.status === appliedSearch.status) &&
+      (!startDate || testDate >= startDate) &&
+      (!endDate || testDate <= endDate)
+    )
+  })
+)
+
+const total = computed(() => filteredRows.value.length)
+const tableData = computed(() => {
+  const start = (pagination.page - 1) * pagination.pageSize
+  return filteredRows.value.slice(start, start + pagination.pageSize)
 })
 
 const getMeta = (report: SimulatedWellReportListItem): ReportJson =>
@@ -137,10 +164,10 @@ const formatEnvironmentWithUnits = (value: unknown) => {
 }
 
 const formatIntervalRange = (value: unknown) => {
-  const [from, to] = String(value ?? "").trim().split("~")
-  return to === undefined
-    ? formatUnitValue(from, "m")
-    : `${formatUnitValue(from, "m")}~${formatUnitValue(to, "m")}`
+  const [from, to] = String(value ?? "")
+    .trim()
+    .split("~")
+  return to === undefined ? formatUnitValue(from, "m") : `${formatUnitValue(from, "m")}~${formatUnitValue(to, "m")}`
 }
 
 const formatIntervalWithUnits = (value: unknown) => {
@@ -164,7 +191,13 @@ const normalizeTemplateField = (field: unknown) => {
     return JSON.parse(text)
   } catch {
     try {
-      return JSON.parse(text.replace(/\bNone\b/g, "null").replace(/\bTrue\b/g, "true").replace(/\bFalse\b/g, "false").replace(/'/g, '"'))
+      return JSON.parse(
+        text
+          .replace(/\bNone\b/g, "null")
+          .replace(/\bTrue\b/g, "true")
+          .replace(/\bFalse\b/g, "false")
+          .replace(/'/g, '"')
+      )
     } catch {
       return text
     }
@@ -173,8 +206,15 @@ const normalizeTemplateField = (field: unknown) => {
 
 const fieldLabel = (field: unknown, fallback: string) => {
   const normalized = normalizeTemplateField(field)
-  const value = typeof normalized === "string" ? normalized : normalized && typeof normalized === "object" ? normalized as Record<string, any> : {}
-  return typeof value === "string" ? value || fallback : value.nameCN || value.name || value.label || value.zh || value.title || value.code || fallback
+  const value =
+    typeof normalized === "string"
+      ? normalized
+      : normalized && typeof normalized === "object"
+        ? (normalized as Record<string, any>)
+        : {}
+  return typeof value === "string"
+    ? value || fallback
+    : value.nameCN || value.name || value.label || value.zh || value.title || value.code || fallback
 }
 
 const fieldType = (field: unknown) => {
@@ -187,7 +227,12 @@ const fieldKey = (prefix: string, index: number, suffix = "") => `${prefix}_${in
 
 const displayReadonlyValue = (value: unknown, empty = "未填写") => {
   if (value === undefined || value === null || value === "") return empty
-  const statusText: Record<string, string> = { normal: "正常", abnormal: "异常", qualified: "符合", unqualified: "不符合" }
+  const statusText: Record<string, string> = {
+    normal: "正常",
+    abnormal: "异常",
+    qualified: "符合",
+    unqualified: "不符合"
+  }
   if (typeof value === "string") return statusText[value] || value
   if (typeof value === "boolean") return value ? "是" : "否"
   return String(value)
@@ -198,12 +243,18 @@ const positiveFieldCount = (value: unknown, fallback: number) => {
   return Number.isFinite(count) && count > 0 ? Math.floor(count) : fallback
 }
 
-const buildReadonlyReportRows = (fields: unknown, values: unknown, prefix: string, sectionName: string): ReadonlyReportRow[] => {
+const buildReadonlyReportRows = (
+  fields: unknown,
+  values: unknown,
+  prefix: string,
+  sectionName: string
+): ReadonlyReportRow[] => {
   if (!Array.isArray(fields)) return []
-  const valueMap = values && typeof values === "object" ? values as Record<string, unknown> : {}
+  const valueMap = values && typeof values === "object" ? (values as Record<string, unknown>) : {}
   return fields.map((rawField, index) => {
     const normalizedField = normalizeTemplateField(rawField)
-    const definition = normalizedField && typeof normalizedField === "object" ? normalizedField as Record<string, any> : {}
+    const definition =
+      normalizedField && typeof normalizedField === "object" ? (normalizedField as Record<string, any>) : {}
     const key = fieldKey(prefix, index)
     const label = fieldLabel(rawField, `${sectionName}${index + 1}`)
     const type = fieldType(rawField)
@@ -221,12 +272,18 @@ const buildReadonlyReportRows = (fields: unknown, values: unknown, prefix: strin
       return { label, value: points.join("；") }
     }
     if (type === "range-radio") {
-      return { label, value: `${displayReadonlyValue(valueMap[fieldKey(prefix, index, "from")])} ~ ${displayReadonlyValue(valueMap[fieldKey(prefix, index, "to")])}；${displayReadonlyValue(valueMap[fieldKey(prefix, index, "result")])}` }
+      return {
+        label,
+        value: `${displayReadonlyValue(valueMap[fieldKey(prefix, index, "from")])} ~ ${displayReadonlyValue(valueMap[fieldKey(prefix, index, "to")])}；${displayReadonlyValue(valueMap[fieldKey(prefix, index, "result")])}`
+      }
     }
     if (type === "multi-input-row") {
       const columns = Array.isArray(definition.columns) ? definition.columns : []
       const rows = Array.from({ length: positiveFieldCount(definition.rowCount, 2) }, (_, rowIndex) => {
-        const row = columns.map((column: unknown, columnIndex: number) => `${fieldLabel(column, `输入${columnIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `r${rowIndex + 1}c${columnIndex}`)])}`)
+        const row = columns.map(
+          (column: unknown, columnIndex: number) =>
+            `${fieldLabel(column, `输入${columnIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `r${rowIndex + 1}c${columnIndex}`)])}`
+        )
         return `第${rowIndex + 1}点：${row.join("，") || "未填写"}`
       })
       return { label, value: rows.join("；") }
@@ -235,16 +292,22 @@ const buildReadonlyReportRows = (fields: unknown, values: unknown, prefix: strin
       const items = Array.isArray(definition.items) ? definition.items : []
       const points = Array.from({ length: positiveFieldCount(definition.pointCount, 2) }, (_, pointIndex) => {
         const point = pointIndex + 1
-        const values = items.map((item: unknown, itemIndex: number) => `${fieldLabel(item, `项目${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `p${point}i${itemIndex}`)])}`)
+        const values = items.map(
+          (item: unknown, itemIndex: number) =>
+            `${fieldLabel(item, `项目${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `p${point}i${itemIndex}`)])}`
+        )
         return `第${point}点：${values.join("，") || "未填写"}`
       })
       return { label, value: points.join("；") }
     }
     const cards = Array.isArray(definition.cards) ? definition.cards : []
     const cardValues = cards.map((card: unknown, cardIndex: number) => {
-      const cardDefinition = card && typeof card === "object" ? card as Record<string, any> : {}
+      const cardDefinition = card && typeof card === "object" ? (card as Record<string, any>) : {}
       const fields = Array.isArray(cardDefinition.fields) ? cardDefinition.fields : []
-      const values = fields.map((item: unknown, itemIndex: number) => `${fieldLabel(item, `字段${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `c${cardIndex}f${itemIndex}`)])}`)
+      const values = fields.map(
+        (item: unknown, itemIndex: number) =>
+          `${fieldLabel(item, `字段${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `c${cardIndex}f${itemIndex}`)])}`
+      )
       return `${displayReadonlyValue(cardDefinition.title, `卡片${cardIndex + 1}`)}：${values.join("，") || "未填写"}`
     })
     return { label, value: cardValues.join("；") || "未填写" }
@@ -253,10 +316,24 @@ const buildReadonlyReportRows = (fields: unknown, values: unknown, prefix: strin
 
 const currentTemplateSnapshot = computed<ReportJson | null>(() => {
   const snapshot = currentReport.value?.meta.template_snapshot
-  return snapshot && typeof snapshot === "object" ? snapshot as ReportJson : null
+  return snapshot && typeof snapshot === "object" ? (snapshot as ReportJson) : null
 })
-const currentTestItemRows = computed(() => buildReadonlyReportRows(currentTemplateSnapshot.value?.test_items, currentReport.value?.meta.test_items, "test", "测试项目"))
-const currentEvaluationRows = computed(() => buildReadonlyReportRows(currentTemplateSnapshot.value?.evaluation_standards, currentReport.value?.meta.evaluation_standards, "eval", "评价标准"))
+const currentTestItemRows = computed(() =>
+  buildReadonlyReportRows(
+    currentTemplateSnapshot.value?.test_items,
+    currentReport.value?.meta.test_items,
+    "test",
+    "测试项目"
+  )
+)
+const currentEvaluationRows = computed(() =>
+  buildReadonlyReportRows(
+    currentTemplateSnapshot.value?.evaluation_standards,
+    currentReport.value?.meta.evaluation_standards,
+    "eval",
+    "评价标准"
+  )
+)
 
 const getDeviceText = (meta: ReportJson) => {
   const device = meta.selected_device || meta.device || {}
@@ -300,7 +377,8 @@ const isCurveAttachment = (attachment: AttachmentItem) => {
 
 const curveAttachments = (report?: AuditRow | null) => reportAttachments(report).filter(isCurveAttachment)
 
-const otherAttachments = (report?: AuditRow | null) => reportAttachments(report).filter((attachment) => !isCurveAttachment(attachment))
+const otherAttachments = (report?: AuditRow | null) =>
+  reportAttachments(report).filter((attachment) => !isCurveAttachment(attachment))
 
 const operatorSignatureUrl = (report?: AuditRow | null) => resolveReportFileUrl(report?.operator_signature_url)
 
@@ -345,8 +423,7 @@ const getList = async () => {
   try {
     const res = await getSimulatedWellReportListApi({ page: 1, pageSize: 1000 })
     rows.value = res.code === 0 ? res.data.list.map(normalizeRow) : []
-    if ((pendingPagination.page - 1) * pendingPagination.pageSize >= pendingTotal.value) pendingPagination.page = 1
-    if ((reviewedPagination.page - 1) * reviewedPagination.pageSize >= reviewedTotal.value) reviewedPagination.page = 1
+    if ((pagination.page - 1) * pagination.pageSize >= total.value) pagination.page = 1
   } catch (error) {
     console.error(error)
     rows.value = []
@@ -356,22 +433,32 @@ const getList = async () => {
   }
 }
 
-const handlePendingSizeChange = (size: number) => {
-  pendingPagination.pageSize = size
-  pendingPagination.page = 1
+const resetPagination = () => {
+  pagination.page = 1
 }
 
-const handlePendingCurrentChange = (page: number) => {
-  pendingPagination.page = page
+const handleSearch = () => {
+  Object.assign(appliedSearch, {
+    ...searchForm,
+    testDateRange: [...searchForm.testDateRange]
+  })
+  resetPagination()
 }
 
-const handleReviewedSizeChange = (size: number) => {
-  reviewedPagination.pageSize = size
-  reviewedPagination.page = 1
+const handleReset = () => {
+  Object.assign(searchForm, createSearchState())
+  Object.assign(appliedSearch, createSearchState())
+  resetPagination()
+  void getList()
 }
 
-const handleReviewedCurrentChange = (page: number) => {
-  reviewedPagination.page = page
+const handleSizeChange = (size: number) => {
+  pagination.pageSize = size
+  pagination.page = 1
+}
+
+const handleCurrentChange = (page: number) => {
+  pagination.page = page
 }
 
 const handleDetail = async (row: AuditRow) => {
@@ -517,127 +604,114 @@ watch(
   () => route.fullPath,
   () => {
     if (!shouldSyncRouteTask()) return
-    pendingPagination.page = 1
+    pagination.page = 1
     void openRouteReportDetail()
   }
 )
 
-defineExpose({ resetSearch: getList })
+defineExpose({ resetSearch: handleReset })
 </script>
 
 <template>
-  <div class="simulation-well-audit">
-    <el-card class="reviewer-card" shadow="never">
-      <div class="reviewer-strip">
-        <div>
-          <div class="eyebrow">SIMULATION WELL REPORT</div>
-          <div class="reviewer-title">模拟井测试报告审核</div>
+  <div class="simulation-well-audit report-list-shell">
+    <el-card class="report-list-card" shadow="never" v-loading="loading">
+      <div class="report-list-toolbar">
+        <el-form :inline="true" :model="searchForm" class="report-filter-form report-filter-form--wide">
+          <el-form-item label="报告编号">
+            <el-input v-model="searchForm.reportNo" placeholder="请输入报告编号" clearable />
+          </el-form-item>
+          <el-form-item label="任务/作业编号">
+            <el-input v-model="searchForm.taskNumber" placeholder="请输入任务或作业编号" clearable />
+          </el-form-item>
+          <el-form-item label="测试产品">
+            <el-input v-model="searchForm.testProduct" placeholder="请输入测试产品" clearable />
+          </el-form-item>
+          <el-form-item label="测试人员">
+            <el-input v-model="searchForm.tester" placeholder="请输入测试人员" clearable />
+          </el-form-item>
+          <el-form-item label="审核状态">
+            <el-select v-model="searchForm.status" placeholder="全部状态" clearable>
+              <el-option label="待审核" :value="0" />
+              <el-option label="审核通过" :value="1" />
+              <el-option label="审核未通过" :value="2" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="测试日期">
+            <el-date-picker
+              v-model="searchForm.testDateRange"
+              type="daterange"
+              start-placeholder="开始日期"
+              end-placeholder="结束日期"
+              range-separator="至"
+              value-format="YYYY-MM-DD"
+            />
+          </el-form-item>
+        </el-form>
+        <div class="report-toolbar-actions">
+          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+          <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+          <el-tooltip content="刷新当前页">
+            <el-button type="primary" icon="RefreshRight" circle @click="getList" />
+          </el-tooltip>
         </div>
-        <div class="reviewer-pill">当前审核人：{{ reviewerName }}</div>
-      </div>
-    </el-card>
-
-    <el-card class="audit-card" shadow="never" v-loading="loading">
-      <div class="toolbar-wrapper">
-        <div>
-          <div class="section-title">待审核报告</div>
-          <div class="section-sub">测试端提交的模拟井报告会进入这里，由管理端完成审核。</div>
-        </div>
-        <el-button type="primary" icon="RefreshRight" circle @click="getList" />
       </div>
 
-      <el-table :data="pendingTableData" stripe border>
-        <el-table-column prop="report_no" label="报告编号" min-width="160" />
-        <el-table-column prop="job_no" label="作业编号" min-width="150" />
-        <el-table-column prop="test_product" label="测试产品" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="operator_engineer" label="操作工程师" width="120" />
-        <el-table-column prop="submit_time" label="提交时间" width="170">
-          <template #default="{ row }">{{ formatTime(row.submit_time) }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="210" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleDetail(row)">查看</el-button>
-            <el-button link type="success" @click="showApproveDialog(row)">通过</el-button>
-            <el-button link type="danger" @click="showRejectDialog(row)">驳回</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-wrapper">
+        <el-table :data="tableData" stripe border height="100%">
+          <el-table-column prop="report_no" label="报告编号" min-width="160" />
+          <el-table-column prop="job_no" label="作业编号" min-width="150" />
+          <el-table-column prop="test_product" label="测试产品" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="operator_engineer" label="测试人员" width="120" />
+          <el-table-column prop="test_date" label="测试日期" width="130" />
+          <el-table-column prop="submit_time" label="提交时间" width="170">
+            <template #default="{ row }">{{ formatTime(row.submit_time) }}</template>
+          </el-table-column>
+          <el-table-column prop="audit_time" label="审核时间" width="170">
+            <template #default="{ row }">{{ formatTime(row.audit_time) }}</template>
+          </el-table-column>
+          <el-table-column label="审核状态" width="110" align="center">
+            <template #default="{ row }">
+              <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="270" fixed="right" align="center">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="handleDetail(row)">查看</el-button>
+              <el-button v-if="row.status === 0" link type="success" @click="showApproveDialog(row)">通过</el-button>
+              <el-button v-if="row.status === 0" link type="danger" @click="showRejectDialog(row)">驳回</el-button>
+              <el-button
+                v-if="row.status === 1"
+                :loading="downloadingId === row.id"
+                link
+                type="success"
+                @click="handleDownload(row)"
+              >
+                下载 PDF
+              </el-button>
+              <el-button
+                v-if="row.status === 1"
+                :icon="Upload"
+                :loading="assistantPushingId === row.id"
+                link
+                type="primary"
+                @click="handlePushAssistant(row)"
+              >
+                推送
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
       <div class="pager-wrapper">
         <el-pagination
-          v-model:current-page="pendingPagination.page"
-          v-model:page-size="pendingPagination.pageSize"
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
           :page-sizes="[10, 20, 50, 100]"
-          :total="pendingTotal"
+          :total="total"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handlePendingSizeChange"
-          @current-change="handlePendingCurrentChange"
-        />
-      </div>
-    </el-card>
-
-    <el-card class="audit-card" shadow="never" v-loading="loading">
-      <div class="toolbar-wrapper">
-        <div>
-          <div class="section-title">已审核报告</div>
-          <div class="section-sub">已通过的报告可下载正式 PDF；驳回报告可继续查看附件。</div>
-        </div>
-        <el-button type="primary" icon="RefreshRight" circle @click="getList" />
-      </div>
-
-      <el-table :data="reviewedTableData" stripe border>
-        <el-table-column prop="report_no" label="报告编号" min-width="160" />
-        <el-table-column prop="job_no" label="作业编号" min-width="150" />
-        <el-table-column prop="test_product" label="测试产品" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="operator_engineer" label="操作工程师" width="120" />
-        <el-table-column prop="audit_time" label="审核时间" width="170">
-          <template #default="{ row }">{{ formatTime(row.audit_time) }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="110" align="center">
-          <template #default="{ row }">
-            <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="230" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleDetail(row)">查看</el-button>
-            <el-button
-              v-if="row.status === 1"
-              :loading="downloadingId === row.id"
-              link
-              type="success"
-              @click="handleDownload(row)"
-            >
-              下载 PDF
-            </el-button>
-            <el-button
-              v-if="row.status === 1"
-              :icon="Upload"
-              :loading="assistantPushingId === row.id"
-              link
-              type="primary"
-              @click="handlePushAssistant(row)"
-            >
-              推送
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div class="pager-wrapper">
-        <el-pagination
-          v-model:current-page="reviewedPagination.page"
-          v-model:page-size="reviewedPagination.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="reviewedTotal"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleReviewedSizeChange"
-          @current-change="handleReviewedCurrentChange"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
         />
       </div>
     </el-card>
@@ -740,7 +814,11 @@ defineExpose({ resetSearch: getList })
               <div class="attachment-main">
                 <el-tag type="info" effect="plain">原始文件</el-tag>
                 <div class="attachment-file-list">
-                  <div v-for="(item, index) in curveAttachments(currentReport)" :key="index" class="attachment-file-item">
+                  <div
+                    v-for="(item, index) in curveAttachments(currentReport)"
+                    :key="index"
+                    class="attachment-file-item"
+                  >
                     <div class="attachment-title">{{ attachmentTitle(item) }}</div>
                     <div class="attachment-path">{{ displayReportValue(item.file_url || item.local_path) }}</div>
                   </div>
@@ -821,64 +899,8 @@ defineExpose({ resetSearch: getList })
 
 <style lang="scss" scoped>
 .simulation-well-audit {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.reviewer-card,
-.audit-card {
-  border-radius: 14px;
-}
-
-.reviewer-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 4px 2px;
-}
-
-.eyebrow {
-  color: #0b78d0;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-}
-
-.reviewer-title,
-.section-title {
-  color: #1f2937;
-  font-size: 18px;
-  font-weight: 800;
-}
-
-.reviewer-pill {
-  padding: 8px 14px;
-  border-radius: 999px;
-  background: #edf5ff;
-  color: #0b78d0;
-  font-weight: 700;
-}
-
-.section-sub {
-  margin-top: 4px;
-  color: #6b7280;
-  font-size: 13px;
-}
-
-.toolbar-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.pager-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
+  height: 100%;
+  min-height: 0;
 }
 
 .detail-shell {
@@ -1051,8 +1073,6 @@ defineExpose({ resetSearch: getList })
 }
 
 @media (max-width: 900px) {
-  .reviewer-strip,
-  .toolbar-wrapper,
   .attachment-row {
     align-items: stretch;
     flex-direction: column;

@@ -36,6 +36,7 @@ export function getHighTempBoxReportListApi(params: {
   pageSize: number
   taskNumber?: string
   tester?: string
+  status?: number | string
 }) {
   return request<{
     code: number

@@ -1,26 +1,26 @@
 <template>
-  <div class="vibration-table-report">
-    <el-card class="search-wrapper" shadow="never">
-      <el-form :inline="true" :model="searchForm">
-        <el-form-item label="任务单号">
-          <el-input v-model="searchForm.taskNumber" placeholder="请输入任务单号" clearable />
-        </el-form-item>
-        <el-form-item label="测试人员">
-          <el-input v-model="searchForm.tester" placeholder="全部人员" clearable />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" icon="Search" @click="handleSearch">搜索</el-button>
+  <div class="vibration-table-report report-list-shell">
+    <el-card v-loading="loading" class="report-list-card" shadow="never">
+      <div class="report-list-toolbar">
+        <el-form :inline="true" :model="searchForm" class="report-filter-form">
+          <el-form-item label="任务单号">
+            <el-input v-model="searchForm.taskNumber" placeholder="请输入任务单号" clearable />
+          </el-form-item>
+          <el-form-item label="测试人员">
+            <el-input v-model="searchForm.tester" placeholder="全部人员" clearable />
+          </el-form-item>
+          <el-form-item label="审核状态">
+            <el-select v-model="searchForm.status" placeholder="全部状态" clearable>
+              <el-option label="待审核" :value="0" />
+              <el-option label="已通过" :value="1" />
+              <el-option label="已驳回" :value="2" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <div class="report-toolbar-actions">
+          <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
+          <el-button type="primary" icon="CirclePlus" @click="handleAdd">新增</el-button>
           <el-button icon="Refresh" @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-
-    <el-card v-loading="loading" shadow="never">
-      <div class="toolbar-wrapper">
-        <div>
-          <el-button type="primary" icon="CirclePlus" @click="handleAdd">新增报告</el-button>
-        </div>
-        <div>
           <el-tooltip content="刷新当前页">
             <el-button type="primary" icon="RefreshRight" circle @click="getList" />
           </el-tooltip>
@@ -28,7 +28,7 @@
       </div>
 
       <div class="table-wrapper">
-        <el-table :data="tableData" stripe border style="width: 100%">
+        <el-table :data="tableData" stripe border height="100%" style="width: 100%">
           <el-table-column prop="report_no" label="报告编号" width="180" align="center" />
           <el-table-column prop="task_number" label="任务单号" width="180" align="center" />
           <el-table-column prop="test_date" label="测试日期" width="170" align="center" />
@@ -202,7 +202,8 @@ import VibrationDocReportView from "../../report/components/VibrationDocReportVi
 
 const searchForm = reactive({
   taskNumber: "",
-  tester: ""
+  tester: "",
+  status: "" as "" | number
 })
 
 const pagination = reactive({
@@ -247,7 +248,8 @@ const getList = async () => {
       page: pagination.page,
       pageSize: pagination.pageSize,
       taskNumber: searchForm.taskNumber,
-      tester: searchForm.tester
+      tester: searchForm.tester,
+      status: searchForm.status
     })
     if (res.code === 0) {
       tableData.value = res.data.list
@@ -269,6 +271,7 @@ const handleSearch = () => {
 const handleReset = () => {
   searchForm.taskNumber = ""
   searchForm.tester = ""
+  searchForm.status = ""
   pagination.page = 1
   getList()
 }

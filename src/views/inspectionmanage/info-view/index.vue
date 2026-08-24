@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue"
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue"
 import dayjs from "dayjs"
 import { ElMessage, type CalendarDateType, type CalendarInstance } from "element-plus"
 import { ArrowLeft, ArrowRight, Download, Refresh } from "@element-plus/icons-vue"
 import { getAssistantInspectionResultsApi } from "@/api/inspection-base"
-import type { AssistantInspectionResult } from "@/api/inspection-base/types"
+import type { AssistantInspectionResult, AssistantInspectionResultItem } from "@/api/inspection-base/types"
 import {
   ASSISTANT_RESULT_REFRESH_INTERVAL_MS,
   buildInspectionRecordRows,
@@ -12,6 +12,7 @@ import {
   getAssistantCalendarCount,
   getAssistantPhotoUrl,
   getAssistantResultsByDate,
+  getInspectionItemContent,
   getParticipantText
 } from "./assistant-results"
 import { buildInspectionRecordExportRows, downloadInspectionRecordExcel } from "./inspection-record-export"
@@ -20,15 +21,16 @@ interface InspectionGroup {
   label: string
   value: string
   subtitle: string
+  equipmentType: string
 }
 
 const inspectionGroups: InspectionGroup[] = [
-  { label: "HALT-HASS", value: "halt_hass", subtitle: "HALT/HASS 巡检记录" },
-  { label: "水循环", value: "water_cycle", subtitle: "水循环巡检记录" },
-  { label: "高温高压井", value: "high_pressure_well", subtitle: "高温高压井巡检记录" },
-  { label: "高温箱", value: "high_temperature", subtitle: "高温箱巡检记录" },
-  { label: "振动台", value: "vibration_table", subtitle: "振动台巡检记录" },
-  { label: "模拟井", value: "simulation_well", subtitle: "模拟井巡检记录" }
+  { label: "HALT-HASS", value: "halt_hass", subtitle: "HALT/HASS 巡检记录", equipmentType: "1" },
+  { label: "水循环", value: "water_cycle", subtitle: "水循环巡检记录", equipmentType: "4" },
+  { label: "高温高压井", value: "high_pressure_well", subtitle: "高温高压井巡检记录", equipmentType: "3" },
+  { label: "高温箱", value: "high_temperature", subtitle: "高温箱巡检记录", equipmentType: "2" },
+  { label: "振动台", value: "vibration_table", subtitle: "振动台巡检记录", equipmentType: "5" },
+  { label: "模拟井", value: "simulation_well", subtitle: "模拟井巡检记录", equipmentType: "7" }
 ]
 
 const calendar = ref<CalendarInstance>()
@@ -41,6 +43,7 @@ const assistantResultLoading = ref(false)
 const exportLoading = ref(false)
 const assistantResults = ref<AssistantInspectionResult[]>([])
 let assistantRefreshTimer: ReturnType<typeof setInterval> | undefined
+let assistantRequestSequence = 0
 
 const activeGroupInfo = computed(
   () => inspectionGroups.find((item) => item.value === activeGroup.value) || inspectionGroups[0]
@@ -64,24 +67,45 @@ function getDateCount(day: string) {
 }
 
 async function loadAssistantResults(showEmptyMessage = false, forceRefresh = false) {
+  const requestSequence = ++assistantRequestSequence
   assistantResultLoading.value = true
   try {
-    const res = await getAssistantInspectionResultsApi(forceRefresh ? { refresh: "1" } : undefined)
+    const month = dayjs(`${currentMonth.value}-01`)
+    const params: Record<string, string> = {
+      equipmentType: activeGroupInfo.value.equipmentType,
+      startDate: month.startOf("month").format("YYYY-MM-DD"),
+      endDate: month.endOf("month").format("YYYY-MM-DD")
+    }
+    if (forceRefresh) {
+      params.refresh = "1"
+    }
+    const res = await getAssistantInspectionResultsApi(params)
+    if (requestSequence !== assistantRequestSequence) return
     const nextResults = Array.isArray(res.data) ? res.data : []
-    const shouldReplaceResults = nextResults.length > 0 || assistantResults.value.length === 0
+    const shouldReplaceResults = forceRefresh || nextResults.length > 0 || assistantResults.value.length === 0
     if (shouldReplaceResults) {
       assistantResults.value = nextResults
+      if (currentAssistantRecord.value) {
+        const refreshedRecord = nextResults.find((item) => String(item.id) === String(currentAssistantRecord.value?.id))
+        currentAssistantRecord.value = refreshedRecord || null
+        if (!refreshedRecord) {
+          drawerVisible.value = false
+        }
+      }
     }
     if (showEmptyMessage && !nextResults.length && !assistantResults.value.length) {
       ElMessage.info("小助手暂无巡检结果")
     }
   } catch (error: any) {
+    if (requestSequence !== assistantRequestSequence) return
     if (!assistantResults.value.length) {
       assistantResults.value = []
     }
     ElMessage.error(error?.message || "获取小助手巡检结果失败")
   } finally {
-    assistantResultLoading.value = false
+    if (requestSequence === assistantRequestSequence) {
+      assistantResultLoading.value = false
+    }
   }
 }
 
@@ -135,14 +159,22 @@ function getAssistantPreviewPhotos(row: AssistantInspectionResult) {
     .filter(Boolean)
 }
 
+function getRenderableItemPhotos(row: AssistantInspectionResultItem) {
+  return (row.photos || []).filter((photo) => Boolean(getAssistantPhotoUrl(photo)))
+}
+
 onMounted(() => {
-  void loadAssistantResults()
+  void loadAssistantResults(false, true)
   assistantRefreshTimer = setInterval(loadAssistantResults, ASSISTANT_RESULT_REFRESH_INTERVAL_MS)
 })
 onBeforeUnmount(() => {
   if (assistantRefreshTimer) {
     clearInterval(assistantRefreshTimer)
   }
+})
+
+watch([activeGroup, currentMonth], () => {
+  void loadAssistantResults(false, true)
 })
 </script>
 
@@ -273,16 +305,16 @@ onBeforeUnmount(() => {
 
         <div class="drawer-title">巡检内容</div>
         <el-table :data="currentAssistantRecord.items || []" border stripe class="detail-table">
-          <el-table-column prop="itemId" label="项目ID" width="82" />
-          <el-table-column prop="planDate" label="计划日期" width="104" />
-          <el-table-column prop="actualDate" label="实际日期" width="104" />
+          <el-table-column label="项目内容" min-width="220" show-overflow-tooltip>
+            <template #default="{ row }">{{ getInspectionItemContent(row) }}</template>
+          </el-table-column>
           <el-table-column prop="explains" label="说明" min-width="104" show-overflow-tooltip />
           <el-table-column prop="bz" label="备注" min-width="126" show-overflow-tooltip />
           <el-table-column label="照片" width="124" align="center">
             <template #default="{ row }">
               <div class="assistant-photo-list is-compact">
                 <el-image
-                  v-for="photo in row.photos || []"
+                  v-for="photo in getRenderableItemPhotos(row)"
                   :key="photo.itemPhotoName"
                   class="assistant-photo"
                   :src="getAssistantPhotoUrl(photo)"
@@ -290,7 +322,7 @@ onBeforeUnmount(() => {
                   preview-teleported
                   fit="cover"
                 />
-                <span v-if="!(row.photos || []).length" class="empty-photo">暂无图片</span>
+                <span v-if="!getRenderableItemPhotos(row).length" class="empty-photo">暂无图片数据</span>
               </div>
             </template>
           </el-table-column>

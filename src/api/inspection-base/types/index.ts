@@ -292,9 +292,10 @@ export interface AssistantInspectionPhoto {
 }
 
 export interface AssistantInspectionResultItem {
-  itemId: string
-  planDate?: string
-  actualDate?: string
+  itemId: string | number
+  itemContent?: string
+  itemName?: string
+  content?: string
   explains?: string
   bz?: string
   photos?: AssistantInspectionPhoto[]

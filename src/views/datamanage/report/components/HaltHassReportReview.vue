@@ -247,9 +247,9 @@ defineExpose({ resetSearch })
 </script>
 
 <template>
-  <el-card v-loading="loading" shadow="never">
-    <div class="search-wrapper">
-      <el-form :inline="true" :model="searchData">
+  <el-card v-loading="loading" shadow="never" class="report-list-card">
+    <div class="report-list-toolbar">
+      <el-form :inline="true" :model="searchData" class="report-filter-form">
         <el-form-item label="&#x5DE5;&#x5355;&#x53F7;">
           <el-input
             v-model="searchData.orderNo"
@@ -258,16 +258,10 @@ defineExpose({ resetSearch })
             style="width: 200px"
           />
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="handleSearch">&#x67E5;&#x8BE2;</el-button>
-          <el-button :icon="Refresh" @click="resetSearch">&#x91CD;&#x7F6E;</el-button>
-        </el-form-item>
       </el-form>
-    </div>
-
-    <div class="toolbar-wrapper">
-      <div />
-      <div>
+      <div class="report-toolbar-actions">
+        <el-button :icon="Search" type="primary" @click="handleSearch">&#x67E5;&#x8BE2;</el-button>
+        <el-button :icon="Refresh" @click="resetSearch">&#x91CD;&#x7F6E;</el-button>
         <el-tooltip content="&#x5237;&#x65B0;&#x5F53;&#x524D;&#x9875;">
           <el-button type="primary" icon="RefreshRight" circle @click="getTableData" />
         </el-tooltip>

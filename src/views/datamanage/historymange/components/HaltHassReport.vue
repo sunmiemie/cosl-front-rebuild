@@ -121,77 +121,86 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="halt-hass-report">
-    <el-form :inline="true" :model="searchForm" class="search-form">
-      <el-form-item label="工单号">
-        <el-input v-model="searchForm.orderNo" placeholder="请输入工单号" clearable />
-      </el-form-item>
-      <el-form-item label="测试结果">
-        <el-select v-model="searchForm.result" placeholder="全部结果" clearable style="width: 120px">
-          <el-option label="正常" value="1" />
-          <el-option label="异常" value="2" />
-          <el-option label="疑问" value="3" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="审核状态">
-        <el-select v-model="searchForm.reviewStatus" placeholder="全部状态" clearable style="width: 120px">
-          <el-option label="待审核" value="0" />
-          <el-option label="已通过" value="1" />
-          <el-option label="已驳回" value="2" />
-        </el-select>
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" @click="handleSearch">搜索</el-button>
-        <el-button @click="handleReset">重置</el-button>
-      </el-form-item>
-    </el-form>
+  <div class="halt-hass-report report-list-shell">
+    <el-card v-loading="loading" class="report-list-card" shadow="never">
+      <div class="report-list-toolbar">
+        <el-form :inline="true" :model="searchForm" class="report-filter-form">
+          <el-form-item label="工单号">
+            <el-input v-model="searchForm.orderNo" placeholder="请输入工单号" clearable />
+          </el-form-item>
+          <el-form-item label="测试结果">
+            <el-select v-model="searchForm.result" placeholder="全部结果" clearable style="width: 120px">
+              <el-option label="正常" value="1" />
+              <el-option label="异常" value="2" />
+              <el-option label="疑问" value="3" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="审核状态">
+            <el-select v-model="searchForm.reviewStatus" placeholder="全部状态" clearable style="width: 120px">
+              <el-option label="待审核" value="0" />
+              <el-option label="已通过" value="1" />
+              <el-option label="已驳回" value="2" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <div class="report-toolbar-actions">
+          <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
+          <el-button icon="Refresh" @click="handleReset">重置</el-button>
+          <el-tooltip content="刷新当前页">
+            <el-button type="primary" icon="RefreshRight" circle @click="getList" />
+          </el-tooltip>
+        </div>
+      </div>
 
-    <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
-      <el-table-column prop="id" label="报告 ID" width="90" align="center" />
-      <el-table-column label="工单号" width="180" align="center">
-        <template #default="{ row }">
-          {{ row.order?.orderNo || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="板组" min-width="120" align="center">
-        <template #default="{ row }">
-          {{ row.order?.boardGroup?.name || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="测试结果" width="100" align="center">
-        <template #default="{ row }">
-          <el-tag :type="getResultType(row.result)">{{ row.resultText }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="审核状态" width="100" align="center">
-        <template #default="{ row }">
-          <el-tag :type="getReviewStatusType(row.reviewStatus)">{{ row.reviewStatusText }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="createdAt" label="提交时间" width="170" align="center" />
-      <el-table-column label="审核时间" width="170" align="center">
-        <template #default="{ row }">
-          {{ row.reviewTime || "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="100" align="center" fixed="right">
-        <template #default="{ row }">
-          <el-button link type="primary" @click="handleDetail(row)">详情</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+      <div class="table-wrapper">
+        <el-table :data="tableData" stripe border height="100%" style="width: 100%">
+          <el-table-column prop="id" label="报告 ID" width="90" align="center" />
+          <el-table-column label="工单号" width="180" align="center">
+            <template #default="{ row }">
+              {{ row.order?.orderNo || "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column label="板组" min-width="120" align="center">
+            <template #default="{ row }">
+              {{ row.order?.boardGroup?.name || "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column label="测试结果" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getResultType(row.result)">{{ row.resultText }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="审核状态" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getReviewStatusType(row.reviewStatus)">{{ row.reviewStatusText }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createdAt" label="提交时间" width="170" align="center" />
+          <el-table-column label="审核时间" width="170" align="center">
+            <template #default="{ row }">
+              {{ row.reviewTime || "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="100" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="handleDetail(row)">详情</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
-    <div class="pagination-container">
-      <el-pagination
-        v-model:current-page="pagination.page"
-        v-model:page-size="pagination.pageSize"
-        :page-sizes="[10, 20, 50, 100]"
-        :total="pagination.total"
-        layout="total, sizes, prev, pager, next, jumper"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
-    </div>
+      <div class="pagination-container pager-wrapper">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="pagination.total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
 
     <el-dialog v-model="detailDialogVisible" title="报告详情" width="900px">
       <el-tabs v-if="currentReport" v-model="activeTab">

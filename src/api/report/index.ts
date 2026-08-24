@@ -13,6 +13,7 @@ export function getReportDataApi(params: {
   user: string | undefined
   dateTimeRange: string | undefined
   instrument: string | undefined
+  status?: string | number
 }) {
   return request<TestType.GetReportResponseData>({
     url: "data/report/list",
@@ -109,6 +110,7 @@ export function getTempReportDataApi(params: {
   user: string | undefined
   dateTimeRange: string | undefined
   instrument: string | undefined
+  status?: string | number
 }) {
   return request<TestType.GetReportResponseData>({
     url: "data/devreport/list",

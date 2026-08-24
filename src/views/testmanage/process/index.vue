@@ -701,13 +701,13 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="app-container">
-    <el-card shadow="never">
-      <el-tabs v-model="activeTab" @tab-click="handleTabClick">
+  <div class="app-container management-list-page">
+    <el-card class="management-tabs-card" shadow="never">
+      <el-tabs v-model="activeTab" class="management-tabs" tab-position="top" @tab-click="handleTabClick">
         <!-- 普通工艺 Tab -->
         <el-tab-pane label="普通测试工艺" name="normal">
-          <el-row :gutter="20">
-            <el-col :span="5">
+          <el-row :gutter="20" class="process-layout">
+            <el-col :span="5" class="process-column">
               <el-card v-loading="treeLoading || processFilterLoading" shadow="never" style="height: 100%">
                 <template #header>
                   <el-space direction="vertical" alignment="stretch" style="width: 100%">
@@ -738,12 +738,12 @@ onMounted(() => {
                 />
               </el-card>
             </el-col>
-            <el-col :span="19">
-              <el-card v-if="searchData.boardModel === ''">
+            <el-col :span="19" class="process-column">
+              <el-card v-if="searchData.boardModel === ''" class="process-empty-card" shadow="never">
                 <el-empty description="请选择电路板型号" />
               </el-card>
-              <el-card v-else v-loading="loading" shadow="never">
-                <div class="toolbar-wrapper">
+              <el-card v-else v-loading="loading" class="management-list-card" shadow="never">
+                <div class="toolbar-wrapper management-list-toolbar">
                   <div>
                     <el-button v-permission="['12']" :icon="CirclePlus" type="primary" @click="addTest"
                       >新增流程</el-button
@@ -765,6 +765,7 @@ onMounted(() => {
                     :tableData="TableData"
                     :row-key="processRowKey"
                     selection
+                    height="100%"
                     stripe
                     @selection-change="handleProcessSelectionChange"
                   >
@@ -796,10 +797,9 @@ onMounted(() => {
 
         <!-- HALT-HASS 工艺 Tab -->
         <el-tab-pane label="HALT-HASS 工艺" name="halt-hass">
-          <el-card v-loading="haltHassLoading" shadow="never">
-            <!-- 搜索区域 -->
-            <div class="search-wrapper">
-              <el-form :inline="true" :model="haltHassSearchData">
+          <el-card v-loading="haltHassLoading" class="management-list-card" shadow="never">
+            <div class="management-list-toolbar">
+              <el-form :inline="true" :model="haltHassSearchData" class="management-filter-form">
                 <el-form-item label="工艺名称">
                   <el-input
                     v-model="haltHassSearchData.name"
@@ -823,19 +823,13 @@ onMounted(() => {
                     />
                   </el-select>
                 </el-form-item>
-                <el-form-item>
-                  <el-button :icon="Search" type="primary" @click="handleHaltHassSearch">查询</el-button>
-                  <el-button :icon="Refresh" @click="resetHaltHassSearch">重置</el-button>
-                </el-form-item>
               </el-form>
-            </div>
-
-            <!-- 工具栏 -->
-            <div class="toolbar-wrapper">
-              <div>
+              <div class="management-toolbar-actions">
+                <el-button :icon="Search" type="primary" @click="handleHaltHassSearch">查询</el-button>
                 <el-tooltip content="HALT-HASS 工艺需在客户端创建和编辑">
-                  <el-button :icon="CirclePlus" type="primary" disabled>新增工艺</el-button>
+                  <el-button :icon="CirclePlus" type="primary" disabled>新增</el-button>
                 </el-tooltip>
+                <el-button :icon="Refresh" @click="resetHaltHassSearch">重置</el-button>
                 <el-button
                   type="primary"
                   :disabled="selectedHaltHassProcesses.length === 0"
@@ -844,8 +838,6 @@ onMounted(() => {
                 >
                   推送小助手
                 </el-button>
-              </div>
-              <div>
                 <el-tooltip content="刷新当前页">
                   <el-button :icon="RefreshRight" circle type="primary" @click="getHaltHassTableData" />
                 </el-tooltip>
@@ -860,6 +852,7 @@ onMounted(() => {
                 row-key="id"
                 stripe
                 border
+                height="100%"
                 @selection-change="handleHaltHassSelectionChange"
               >
                 <el-table-column type="selection" width="55" align="center" :selectable="canPushHaltHassProcess" />
@@ -1115,5 +1108,26 @@ header {
 
 :deep(.el-button + .el-button) {
   margin: 0;
+}
+
+.process-layout {
+  height: 100%;
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+.process-column {
+  height: 100%;
+  min-height: 0;
+}
+
+.process-empty-card {
+  height: 100%;
+}
+
+:deep(.process-empty-card > .el-card__body) {
+  display: grid;
+  height: 100%;
+  place-items: center;
 }
 </style>

@@ -112,6 +112,9 @@
                           </el-button>
                           <el-button size="small" @click.stop="handleClearSchedule(order)">清除</el-button>
                         </template>
+                        <template v-else-if="activeScheduleState === 'history'">
+                          <el-tag type="info" effect="plain">只读历史</el-tag>
+                        </template>
                         <template v-else>
                           <el-button size="small" type="primary" @click.stop="showDragScheduleHint(order)">
                             拖入日历
@@ -184,7 +187,10 @@
             <section
               v-else
               class="calendar-panel"
-              :class="{ 'is-calendar-dragging': Boolean(calendarDraggingOrderId) }"
+              :class="{
+                'is-calendar-dragging': Boolean(calendarDraggingOrderId),
+                'is-history-mode': activeScheduleState === 'history'
+              }"
             >
               <div class="calendar-toolbar">
                 <div class="week-switcher">
@@ -200,12 +206,13 @@
                   <el-button @click="moveWeek(1)">下一周</el-button>
                 </div>
                 <div class="calendar-toolbar__right">
+                  <el-tag v-if="activeScheduleState === 'history'" type="info" effect="plain">历史排程 · 只读</el-tag>
                   <div class="sync-status">
                     <span class="sync-status__dot" />
-                    与测试端日历使用同一后端排程数据
+                    {{ activeScheduleState === "history" ? "显示已执行排程归档" : "与测试端日历使用同一后端排程数据" }}
                   </div>
                   <el-button class="toolbar-refresh" type="success" plain @click="handleLoadCurrentWeekClick">
-                    读取本周排程
+                    {{ activeScheduleState === "history" ? "读取本周历史" : "读取本周排程" }}
                   </el-button>
                 </div>
               </div>
@@ -284,20 +291,31 @@
                       </template>
                       <button
                         class="calendar-event"
-                        :class="{ 'is-resizing': isCalendarEventResizing(event) }"
+                        :class="{
+                          'is-resizing': isCalendarEventResizing(event),
+                          'is-history': activeScheduleState === 'history'
+                        }"
                         :style="getEventStyle(event)"
                         type="button"
+                        :aria-label="`工单 ${event.taskNumber}，${event.timeRange}，${getEventStatusText(event)}`"
                         @click="selectEvent(event)"
                       >
                         <span
+                          v-if="activeScheduleState !== 'history'"
                           class="calendar-event__resize calendar-event__resize--top"
                           aria-hidden="true"
                           @click.stop
                           @mousedown.stop.prevent="startCalendarEventResize(event, 'top', $event)"
                         />
-                        <strong>{{ event.title }}</strong>
+                        <span class="calendar-event__header">
+                          <strong class="calendar-event__number">{{ event.title }}</strong>
+                          <span v-if="activeScheduleState === 'history'" class="calendar-event__history-label"
+                            >历史</span
+                          >
+                        </span>
                         <span class="calendar-event__time">{{ event.timeRange }}</span>
                         <span
+                          v-if="activeScheduleState !== 'history'"
                           class="calendar-event__resize calendar-event__resize--bottom"
                           aria-hidden="true"
                           @click.stop
@@ -410,12 +428,14 @@ import { getHostModelDisplayName } from "@/views/devicemanage/device/psi/model-o
 import { syncEngineerAssistantLocalScheduleApi } from "@/api/engineer-assistant"
 import {
   clearWorkOrderSchedule,
+  getWorkOrderScheduleHistory,
   saveCircuitBoardSequenceBatch,
   saveWorkOrderSchedule,
   type CircuitBoardSequenceBatchResponse,
   type WorkOrderScheduleEquipment,
   type WorkOrderSchedulePayload,
-  type WorkOrderScheduleSegment
+  type WorkOrderScheduleSegment,
+  type WorkOrderScheduleHistoryItem
 } from "@/api/work-order-schedule"
 import {
   getCompletedScheduleInstrumentGroupStatusText,
@@ -496,6 +516,7 @@ type ScheduleOrder = {
   scheduleSegments: ScheduleSegment[]
   isSequenceScheduled?: boolean
   sequenceOrder?: number | null
+  isHistory?: boolean
   raw: any
   relationRows?: CircuitModuleApplicationRelation[]
 }
@@ -602,6 +623,13 @@ const scheduleStateTabs: Array<{
     panelTitle: "待发布工单",
     panelSubtitle: "发布后进入待排程（待领取）",
     emptyText: "暂无待发布工单"
+  },
+  {
+    key: "history",
+    label: "历史排程",
+    panelTitle: "历史排程",
+    panelSubtitle: "已执行的排程快照，仅支持查看",
+    emptyText: "本周暂无历史排程"
   }
 ]
 
@@ -646,6 +674,8 @@ const orderMap = reactive<Record<EquipmentKey, ScheduleOrder[]>>({
   "high-temp-box": [],
   "circuit-board-module": []
 })
+const historyOrders = ref<ScheduleOrder[]>([])
+let historyRequestSequence = 0
 
 const removedPriorityOrderIds = reactive<Record<EquipmentKey, string[]>>({
   "high-temp-pressure": [],
@@ -704,10 +734,15 @@ const stateCounts = computed<Record<ScheduleListState, number>>(() => ({
   pending: filteredOrdersByScheduleState(activeOrders.value, "pending").length,
   scheduled: filteredOrdersByScheduleState(activeOrders.value, "scheduled").length,
   unpublished: filteredOrdersByScheduleState(activeOrders.value, "unpublished").length,
+  history: historyOrders.value.length,
   other: filteredOrdersByScheduleState(activeOrders.value, "other").length
 }))
 
-const stateOrders = computed(() => filteredOrdersByScheduleState(activeOrders.value, activeScheduleState.value))
+const stateOrders = computed(() =>
+  activeScheduleState.value === "history"
+    ? historyOrders.value
+    : filteredOrdersByScheduleState(activeOrders.value, activeScheduleState.value)
+)
 
 const circuitBoardScheduledOrders = computed(() =>
   activeOrders.value
@@ -802,52 +837,56 @@ const weekLabel = computed(() => {
 })
 
 const calendarEvents = computed<CalendarEvent[]>(() => {
-  const events = activeOrders.value
+  const sourceOrders = activeScheduleState.value === "history" ? historyOrders.value : activeOrders.value
+  const events = sourceOrders
     .filter((order) => {
+      if (activeScheduleState.value === "history") return true
       if (![1, 2, 4].includes(Number(order.status))) return false
       const device = order.raw?.device
       return !device?.is_completed && Number(device?.instrument_status || 0) !== 2
     })
     .flatMap<BaseCalendarEvent>((order) => {
-    const segments = getOrderScheduleSegments(order)
+      const segments = getOrderScheduleSegments(order)
 
-    return segments
-      .map((segment, index) => {
-        if (!isScheduleSegmentVisibleInActiveDevice(order, segment)) return null
-        const segmentDevice = getSegmentScheduleDevice(order, segment)
-        const start = parseDateTime(segment.scheduledStartAt)
-        const end = parseDateTime(segment.scheduledEndAt)
-        if (!start || !end) return null
-        const dateStr = formatDate(start)
-        if (!weekDays.value.some((day) => day.dateStr === dateStr)) return null
-        const startMinutes = start.getHours() * 60 + start.getMinutes()
-        const endMinutes = end.getHours() * 60 + end.getMinutes()
-        return {
-          id: `${order.id}-${index}`,
-          orderId: order.id,
-          segmentIndex: index,
-          title: order.taskNumber,
-          taskNumber: order.taskNumber,
-          orderTitle: order.title,
-          targetName: segmentDevice || order.targetName,
-          applicant: order.applicant,
-          hostDeviceName: segmentDevice || order.hostDeviceName,
-          status: order.status,
-          statusText: order.statusText,
-          dateStr,
-          startMinutes,
-          endMinutes,
-          timeRange: `${formatHourMinute(start)}-${formatHourMinute(end)}`
-        }
-      })
-      .filter((event): event is BaseCalendarEvent => event !== null)
-  })
+      return segments
+        .map((segment, index) => {
+          if (!isScheduleSegmentVisibleInActiveDevice(order, segment)) return null
+          const segmentDevice = getSegmentScheduleDevice(order, segment)
+          const start = parseDateTime(segment.scheduledStartAt)
+          const end = parseDateTime(segment.scheduledEndAt)
+          if (!start || !end) return null
+          const dateStr = formatDate(start)
+          if (!weekDays.value.some((day) => day.dateStr === dateStr)) return null
+          const startMinutes = start.getHours() * 60 + start.getMinutes()
+          const endMinutes = end.getHours() * 60 + end.getMinutes()
+          return {
+            id: `${order.id}-${index}`,
+            orderId: order.id,
+            segmentIndex: index,
+            title: order.taskNumber,
+            taskNumber: order.taskNumber,
+            orderTitle: order.title,
+            targetName: segmentDevice || order.targetName,
+            applicant: order.applicant,
+            hostDeviceName: segmentDevice || order.hostDeviceName,
+            status: order.status,
+            statusText: order.statusText,
+            dateStr,
+            startMinutes,
+            endMinutes,
+            timeRange: `${formatHourMinute(start)}-${formatHourMinute(end)}`
+          }
+        })
+        .filter((event): event is BaseCalendarEvent => event !== null)
+    })
 
   return layoutCalendarEvents(events)
 })
 
 watch(activeScheduleState, () => {
   selectedOrderId.value = ""
+  clearCalendarDragState()
+  if (activeScheduleState.value === "history") void loadHistoryOrders()
 })
 
 watch(activeDeviceTab, () => {
@@ -873,7 +912,7 @@ function isEquipmentKey(value: unknown): value is EquipmentKey {
 }
 
 function isScheduleState(value: unknown): value is ScheduleListState {
-  return value === "pending" || value === "scheduled" || value === "unpublished"
+  return value === "pending" || value === "scheduled" || value === "unpublished" || value === "history"
 }
 
 function applyRouteQuery(query: typeof route.query) {
@@ -1291,6 +1330,10 @@ type LoadOrdersOptions = {
 }
 
 async function loadOrders(options: LoadOrdersOptions = {}) {
+  if (activeScheduleState.value === "history" && !isCircuitBoardModule.value) {
+    await loadHistoryOrders(options)
+    return
+  }
   const equipment = activeEquipment.value
   if (!options.silent) loading.value = true
   try {
@@ -1304,6 +1347,64 @@ async function loadOrders(options: LoadOrdersOptions = {}) {
     }
   } finally {
     if (!options.silent) loading.value = false
+  }
+}
+
+function normalizeHistoryOrder(equipment: EquipmentKey, item: WorkOrderScheduleHistoryItem): ScheduleOrder {
+  const start = parseDateTime(item.scheduledStartAt)
+  const end = parseDateTime(item.scheduledEndAt)
+  const durationHours = start && end ? Math.max(0.5, (end.getTime() - start.getTime()) / 3_600_000) : 1
+  return {
+    id: `history-${item.id}`,
+    dbId: item.id,
+    targetId: item.targetId,
+    equipment,
+    scheduleEquipment: activeConfig.value.scheduleEquipment,
+    taskNumber: item.taskNumber,
+    title: item.orderTitle || item.taskNumber,
+    applicant: item.applicant || "",
+    targetName: item.targetName || "",
+    durationHours,
+    status: item.status,
+    statusText: item.statusText || "已完成",
+    hostDeviceName: item.targetName || "",
+    useDevice: item.targetName || "",
+    scheduledStartAt: item.scheduledStartAt,
+    scheduledEndAt: item.scheduledEndAt,
+    scheduleSegments: normalizeSnakeSegments(item.scheduleSegments || []),
+    isHistory: true,
+    raw: { history: item }
+  }
+}
+
+async function loadHistoryOrders(options: LoadOrdersOptions = {}) {
+  if (isCircuitBoardModule.value) {
+    historyOrders.value = []
+    return
+  }
+  const equipment = activeEquipment.value
+  if (equipment === "circuit-board-module") {
+    historyOrders.value = []
+    return
+  }
+  const requestSequence = ++historyRequestSequence
+  const firstDay = weekDays.value[0]?.dateStr
+  const lastDay = weekDays.value[6]?.dateStr
+  if (!firstDay || !lastDay) return
+  if (!options.silent) loading.value = true
+  try {
+    const res = await getWorkOrderScheduleHistory({
+      equipmentType: equipment,
+      startDate: firstDay,
+      endDate: lastDay
+    })
+    if (requestSequence !== historyRequestSequence || equipment !== activeEquipment.value) return
+    historyOrders.value = (res.data?.list || []).map((item) => normalizeHistoryOrder(equipment, item))
+    selectedOrderId.value = historyOrders.value.some((order) => order.id === selectedOrderId.value)
+      ? selectedOrderId.value
+      : historyOrders.value[0]?.id || ""
+  } finally {
+    if (!options.silent && requestSequence === historyRequestSequence) loading.value = false
   }
 }
 
@@ -1736,18 +1837,19 @@ function handleEquipmentChange() {
   clearCalendarDragState()
   handleCircuitBoardDragEnd()
   activeDeviceTab.value = ""
+  historyOrders.value = []
   void loadOrders()
 }
 
 function handleRefreshClick() {
-  void loadOrders()
+  void (activeScheduleState.value === "history" ? loadHistoryOrders() : loadOrders())
 }
 
 function handleLoadCurrentWeekClick() {
   const today = new Date()
   weekStart.value = getWeekStart(today)
   pickedDate.value = formatDate(today)
-  void loadOrders()
+  void (activeScheduleState.value === "history" ? loadHistoryOrders() : loadOrders())
 }
 
 function startScheduleAutoRefresh() {
@@ -1777,11 +1879,13 @@ function moveWeek(offset: number) {
   date.setDate(date.getDate() + offset * 7)
   weekStart.value = formatDate(date)
   pickedDate.value = weekStart.value
+  if (activeScheduleState.value === "history") void loadHistoryOrders()
 }
 
 function handlePickedDateChange(value: string) {
   if (!value) return
   weekStart.value = getWeekStart(parseDate(value))
+  if (activeScheduleState.value === "history") void loadHistoryOrders()
 }
 
 function syncCalendarToSchedule(date: Date) {
@@ -1889,6 +1993,7 @@ function removeCalendarEventResizeListeners() {
 }
 
 function startCalendarEventResize(event: CalendarEvent, edge: CalendarResizeEdge, mouseEvent: MouseEvent) {
+  if (activeScheduleState.value === "history") return
   if (calendarScheduleSavingId.value) return
   const order = activeOrders.value.find((item) => item.id === event.orderId)
   if (!order || !hasSplitTargetId(order)) return
@@ -2833,6 +2938,20 @@ onUnmounted(() => {
   }
 }
 
+.calendar-panel.is-history-mode {
+  .sync-status {
+    color: var(--el-text-color-secondary);
+  }
+
+  .sync-status__dot {
+    background: var(--el-color-info);
+  }
+
+  .time-cell {
+    cursor: default;
+  }
+}
+
 .calendar-event {
   position: absolute;
   right: 6px;
@@ -2840,28 +2959,62 @@ onUnmounted(() => {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
   min-height: 28px;
-  padding: 6px 8px;
+  padding: 3px 7px;
   overflow: hidden;
   color: #fff;
   text-align: left;
   cursor: pointer;
   background: linear-gradient(135deg, var(--el-color-primary), #67b5ff);
-  border: 0;
+  border: 1px solid transparent;
+  border-left: 3px solid rgb(255 255 255 / 72%);
   border-radius: 6px;
   box-shadow: 0 4px 12px rgb(64 158 255 / 20%);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 
-  strong,
+  .calendar-event__number,
   .calendar-event__time {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
+  .calendar-event__header {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .calendar-event__number {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    line-height: 14px;
+  }
+
   .calendar-event__time {
+    display: block;
+    font-variant-numeric: tabular-nums;
     font-size: 11px;
+    line-height: 11px;
     opacity: 0.92;
+  }
+
+  &:hover,
+  &:focus-visible {
+    box-shadow: 0 5px 14px rgb(64 158 255 / 28%);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary-light-3);
+    outline-offset: 2px;
   }
 
   &.is-resizing {
@@ -2869,6 +3022,38 @@ onUnmounted(() => {
       0 0 0 2px rgb(255 255 255 / 70%),
       0 4px 12px rgb(64 158 255 / 24%);
   }
+
+  &.is-history {
+    cursor: default;
+    color: var(--el-color-success-dark-2);
+    background: linear-gradient(135deg, var(--el-color-success-light-8), var(--el-color-success-light-9));
+    border-color: var(--el-color-success-light-5);
+    border-left-color: var(--el-color-success);
+    box-shadow: 0 2px 8px rgb(103 194 58 / 14%);
+
+    .calendar-event__time {
+      color: var(--el-color-success-dark-2);
+      opacity: 1;
+    }
+
+    &:hover,
+    &:focus-visible {
+      border-color: var(--el-color-success-light-3);
+      box-shadow: 0 3px 10px rgb(103 194 58 / 22%);
+    }
+  }
+}
+
+.calendar-event__history-label {
+  flex: none;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 14px;
+  color: var(--el-color-success-dark-2);
+  background: var(--el-color-success-light-7);
+  border: 1px solid var(--el-color-success-light-5);
+  border-radius: 999px;
 }
 
 .calendar-event__resize {

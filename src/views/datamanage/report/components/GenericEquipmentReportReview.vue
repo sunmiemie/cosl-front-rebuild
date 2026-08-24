@@ -374,7 +374,7 @@ defineExpose({ resetSearch })
 </script>
 
 <template>
-  <el-card v-loading="loading" shadow="never" class="real-report-review">
+  <el-card v-loading="loading" shadow="never" class="real-report-review report-list-card">
     <div class="review-head">
       <div>
         <p>REAL REVIEW</p>
@@ -383,22 +383,26 @@ defineExpose({ resetSearch })
       <el-tag type="success" effect="plain">后端实时数据</el-tag>
     </div>
 
-    <div class="search-wrapper">
-      <el-form :inline="true" :model="searchData">
+    <div class="report-list-toolbar">
+      <el-form :inline="true" :model="searchData" class="report-filter-form">
         <el-form-item :label="config.taskLabel">
           <el-input v-model="searchData.taskNumber" placeholder="请输入任务单号" clearable style="width: 220px" />
         </el-form-item>
         <el-form-item label="测试人员">
           <el-input v-model="searchData.tester" placeholder="请输入测试人员" clearable style="width: 180px" />
         </el-form-item>
-        <el-form-item>
-          <el-button :icon="Search" type="primary" @click="handleSearch">查询</el-button>
-          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
-        </el-form-item>
       </el-form>
+      <div class="report-toolbar-actions">
+        <el-button :icon="Search" type="primary" @click="handleSearch">查询</el-button>
+        <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+        <el-tooltip content="刷新当前页">
+          <el-button icon="RefreshRight" circle type="primary" @click="getTableData" />
+        </el-tooltip>
+      </div>
     </div>
 
-    <el-table :data="tableData" stripe border>
+    <div class="table-wrapper">
+      <el-table :data="tableData" stripe border height="100%">
       <el-table-column prop="id" label="报告ID" width="90" align="center" />
       <el-table-column prop="report_no" label="报告编号" min-width="160" />
       <el-table-column prop="task_number" label="任务单号" min-width="160" />
@@ -438,7 +442,8 @@ defineExpose({ resetSearch })
           <el-button :icon="Close" link type="danger" @click="showRejectDialog(row)">打回</el-button>
         </template>
       </el-table-column>
-    </el-table>
+      </el-table>
+    </div>
 
     <div class="pager-wrapper">
       <el-pagination

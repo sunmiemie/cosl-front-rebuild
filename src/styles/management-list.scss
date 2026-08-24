@@ -1,0 +1,331 @@
+.app-container.management-list-page {
+  display: flex;
+  min-height: 620px;
+  padding: 12px 16px 0;
+  overflow: hidden;
+  flex: 1 1 0;
+}
+
+.management-tabs-card,
+.management-list-shell,
+.management-list-card {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+.management-tabs-card {
+  width: 100%;
+}
+
+.management-tabs-card > .el-card__body {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  padding: 0 16px 16px;
+}
+
+.management-tabs {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.management-tabs > .el-tabs__header {
+  order: 0;
+  flex: none;
+  margin: 0 0 12px;
+}
+
+.management-tabs > .el-tabs__content {
+  order: 1;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.management-tabs > .el-tabs__content > .el-tab-pane {
+  height: 100%;
+  min-height: 0;
+}
+
+.management-list-shell {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.management-list-card {
+  width: 100%;
+  height: 100%;
+}
+
+.management-list-card > .el-card__body {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  padding: 16px;
+  flex-direction: column;
+}
+
+.management-list-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.management-filter-form {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px 12px;
+}
+
+.management-filter-form--wide {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(190px, 1fr));
+}
+
+.management-filter-form .el-form-item {
+  min-width: 0;
+  margin: 0;
+}
+
+.management-filter-form .el-form-item__content {
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.management-filter-form .el-input,
+.management-filter-form .el-select {
+  width: 168px;
+}
+
+.management-filter-form .management-filter-keyword {
+  flex: 1 1 360px;
+  min-width: 300px;
+  max-width: 480px;
+}
+
+.management-filter-form .management-filter-keyword .el-input {
+  width: 100%;
+}
+
+.management-filter-form .management-filter-date {
+  flex: 0 0 auto;
+}
+
+.management-filter-form .management-filter-date .el-date-editor {
+  width: clamp(260px, 18vw, 300px) !important;
+}
+
+.management-filter-form--wide .el-input,
+.management-filter-form--wide .el-select,
+.management-filter-form--wide .el-date-editor {
+  width: 100% !important;
+  min-width: 0;
+}
+
+.management-filter-actions,
+.management-toolbar-actions,
+.management-selection-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.management-filter-actions .el-button + .el-button,
+.management-toolbar-actions .el-button + .el-button,
+.management-selection-actions .el-button + .el-button {
+  margin-left: 0;
+}
+
+.management-list-table,
+.management-list-card .table-wrapper {
+  flex: 1 1 0;
+  min-height: 0;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.management-list-table > .el-table,
+.management-list-table > .el-table--fit,
+.management-list-card .table-wrapper > .el-table,
+.management-list-card .table-wrapper > .el-table--fit {
+  width: 100%;
+  height: 100% !important;
+}
+
+.management-list-card .el-table .cell,
+.report-list-card .el-table .cell {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.management-list-card .el-table-fixed-column--right .cell,
+.report-list-card .el-table-fixed-column--right .cell,
+.management-list-card .table-operation-column .cell,
+.report-list-card .table-operation-column .cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.management-list-card .el-table-fixed-column--right .el-link + .el-link,
+.report-list-card .el-table-fixed-column--right .el-link + .el-link,
+.management-list-card .table-operation-column .el-link + .el-link,
+.report-list-card .table-operation-column .el-link + .el-link {
+  margin-left: 0;
+}
+
+.management-list-pagination,
+.management-list-card .pager-wrapper {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  margin-top: 0;
+}
+
+.report-list-shell,
+.report-list-card {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+.report-list-shell {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+.report-list-card {
+  width: 100%;
+  height: 100%;
+}
+
+.report-list-card > .el-card__body {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  padding: 16px;
+  flex-direction: column;
+}
+
+.report-list-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.report-filter-form {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px 12px;
+}
+
+.report-filter-form--wide {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(190px, 1fr));
+}
+
+.report-filter-form .el-form-item {
+  min-width: 0;
+  margin: 0;
+}
+
+.report-filter-form .el-form-item__content {
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.report-filter-form .el-input,
+.report-filter-form .el-select {
+  width: 168px;
+}
+
+.report-filter-form--wide .el-input,
+.report-filter-form--wide .el-select,
+.report-filter-form--wide .el-date-editor {
+  width: 100% !important;
+  min-width: 0;
+}
+
+.report-toolbar-actions,
+.report-selection-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.report-toolbar-actions .el-button + .el-button,
+.report-selection-actions .el-button + .el-button {
+  margin-left: 0;
+}
+
+.report-list-card .table-wrapper {
+  flex: 1 1 0;
+  min-height: 0;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.report-list-card .table-wrapper > .el-table,
+.report-list-card .table-wrapper > .el-table--fit {
+  width: 100%;
+  height: 100% !important;
+}
+
+.report-list-card .pager-wrapper,
+.report-list-card .pagination-container {
+  display: flex;
+  flex: none;
+  justify-content: flex-end;
+  margin-top: 0;
+}
+
+@media (max-width: 1440px) {
+  .management-filter-form--wide,
+  .report-filter-form--wide {
+    grid-template-columns: repeat(2, minmax(210px, 1fr));
+  }
+
+  .management-filter-form:not(.management-filter-form--wide),
+  .report-filter-form:not(.report-filter-form--wide) {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 1080px) {
+  .app-container.management-list-page {
+    overflow: auto;
+  }
+
+  .management-list-toolbar,
+  .report-list-toolbar {
+    min-width: 820px;
+  }
+}

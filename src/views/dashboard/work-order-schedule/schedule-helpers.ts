@@ -1,4 +1,4 @@
-export type ScheduleListState = "pending" | "scheduled" | "unpublished" | "other"
+export type ScheduleListState = "pending" | "scheduled" | "unpublished" | "history" | "other"
 
 export interface ScheduleStateInput {
   status?: number | string | null

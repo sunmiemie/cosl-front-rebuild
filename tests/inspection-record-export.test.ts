@@ -4,6 +4,7 @@ import {
   buildInspectionRecordExcelHtml,
   buildInspectionRecordExportRows
 } from "@/views/inspectionmanage/info-view/inspection-record-export"
+import { getAssistantPhotoUrl } from "@/views/inspectionmanage/info-view/assistant-results"
 
 const localRecord: InspectionBaseInfoListItem = {
   id: 1,
@@ -45,6 +46,21 @@ const assistantRecord: AssistantInspectionResult = {
 }
 
 describe("巡检记录表格导出", () => {
+  it("按 GIF 文件名生成正确的图片 Data URL", () => {
+    expect(
+      getAssistantPhotoUrl({
+        itemPhotoName: "inspection.gif",
+        itemPhotoBase64: "R0lGODlh"
+      })
+    ).toBe("data:image/gif;base64,R0lGODlh")
+    expect(
+      getAssistantPhotoUrl({
+        itemPhotoName: "empty.gif",
+        itemPhotoBase64: ""
+      })
+    ).toBe("")
+  })
+
   it("合并本地巡检和小助手结果并按日期倒序导出", () => {
     const rows = buildInspectionRecordExportRows([localRecord], [assistantRecord])
 

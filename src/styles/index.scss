@@ -10,6 +10,8 @@
 @import "./theme/register.scss";
 // mixin
 @import "./mixins.scss";
+// 统一管理类列表页布局
+@import "./management-list.scss";
 
 // 业务页面几乎都应该在根元素上挂载 class="app-container"，以保持页面美观
 .app-container {

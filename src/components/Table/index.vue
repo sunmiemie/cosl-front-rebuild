@@ -46,6 +46,11 @@ export default defineComponent({
       if (this.$refs.table) {
         this.$refs.table.clearSelection()
       }
+    },
+    getColumnMinWidth(item, fallback) {
+      if (item.minWidth) return item.minWidth
+      if (item.width) return undefined
+      return fallback
     }
   }
 })
@@ -70,9 +75,11 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
-        :min-width="item.minWidth"
+        :min-width="getColumnMinWidth(item, 220)"
         :align="item.align"
-        :fixed="'right'"
+        :fixed="item.fixed === false ? false : 'right'"
+        class-name="table-operation-column"
+        label-class-name="table-operation-column"
         :sortable="item.sort"
         :formatter="item.formatter"
         :show-overflow-tooltip="item.showOverflowTooltip !== false"
@@ -86,7 +93,7 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
-        :min-width="item.minWidth"
+        :min-width="getColumnMinWidth(item, 110)"
         :align="item.align"
         :fixed="item.fixed"
         :sortable="item.sort"
@@ -103,7 +110,7 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
-        :min-width="item.minWidth"
+        :min-width="getColumnMinWidth(item, 160)"
         :align="item.align"
         :fixed="item.fixed"
         :sortable="item.sort"
@@ -120,7 +127,7 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
-        :min-width="item.minWidth"
+        :min-width="getColumnMinWidth(item, 140)"
         :align="item.align"
         :fixed="item.fixed"
         :sortable="item.sort"
@@ -137,7 +144,7 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
-        :min-width="item.minWidth"
+        :min-width="getColumnMinWidth(item, 140)"
         :align="item.align"
         :fixed="item.fixed"
         :sortable="item.sort"
@@ -154,7 +161,7 @@ export default defineComponent({
         :label="item.label"
         :prop="item.prop"
         :width="item.width"
-        :min-width="item.minWidth"
+        :min-width="getColumnMinWidth(item, 140)"
         :align="item.align"
         :fixed="item.fixed"
         :sortable="item.sort"
@@ -164,3 +171,21 @@ export default defineComponent({
     </template>
   </el-table>
 </template>
+
+<style scoped>
+:deep(.el-table .cell) {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+:deep(.table-operation-column .cell),
+:deep(.table-operation-column .operation-links) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap !important;
+  gap: 8px;
+  white-space: nowrap;
+}
+</style>

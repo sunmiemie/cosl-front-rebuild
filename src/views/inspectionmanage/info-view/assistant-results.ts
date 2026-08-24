@@ -1,6 +1,7 @@
 import type {
   AssistantInspectionPhoto,
   AssistantInspectionResult,
+  AssistantInspectionResultItem,
   InspectionBaseInfoListItem
 } from "@/api/inspection-base/types"
 
@@ -37,17 +38,11 @@ function matchesDeviceGroup(type: string | undefined, text: string, deviceGroup:
   return rule.keywords.some((keyword) => textIncludesKeyword(text, keyword))
 }
 
-export function filterLocalRecordsByDeviceGroup(
-  records: InspectionBaseInfoListItem[],
-  deviceGroup: string
-) {
+export function filterLocalRecordsByDeviceGroup(records: InspectionBaseInfoListItem[], deviceGroup: string) {
   return records.filter((record) => matchesDeviceGroup(undefined, record.device_name || "", deviceGroup))
 }
 
-export function filterAssistantResultsByDeviceGroup(
-  results: AssistantInspectionResult[],
-  deviceGroup: string
-) {
+export function filterAssistantResultsByDeviceGroup(results: AssistantInspectionResult[], deviceGroup: string) {
   return results.filter((result) => {
     const searchableText = [result.equipmentTypeName, result.equipmentId, result.sn].filter(Boolean).join(" ")
     return matchesDeviceGroup(result.equipmentType, searchableText, deviceGroup)
@@ -60,8 +55,22 @@ export function getAssistantPhotoUrl(photo?: AssistantInspectionPhoto) {
   if (value.startsWith("data:")) return value
 
   const name = (photo?.itemPhotoName || "").toLowerCase()
-  const mime = name.endsWith(".jpg") || name.endsWith(".jpeg") ? "image/jpeg" : "image/png"
+  const mime =
+    name.endsWith(".jpg") || name.endsWith(".jpeg")
+      ? "image/jpeg"
+      : name.endsWith(".gif")
+        ? "image/gif"
+        : name.endsWith(".webp")
+          ? "image/webp"
+          : "image/png"
   return `data:${mime};base64,${value}`
+}
+
+export function getInspectionItemContent(item: AssistantInspectionResultItem) {
+  return (
+    [item.itemContent, item.itemName, item.content].map((value) => String(value || "").trim()).find(Boolean) ||
+    "未返回项目内容"
+  )
 }
 
 export function getParticipantText(row: AssistantInspectionResult) {

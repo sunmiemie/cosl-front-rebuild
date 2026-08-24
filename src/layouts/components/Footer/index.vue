@@ -9,7 +9,7 @@ const VITE_APP_TITLE = import.meta.env.VITE_APP_TITLE
 <style lang="scss" scoped>
 .layout-footer {
   width: 100%;
-  min-height: 50px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;

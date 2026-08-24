@@ -122,9 +122,10 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 </script>
 
 <template>
-  <div class="app-container">
-    <el-card v-loading="loading" shadow="never" class="search-wrapper">
-      <el-form ref="searchFormRef" :inline="true" :model="searchData">
+  <div class="app-container management-list-page">
+    <el-card v-loading="loading" class="management-list-card" shadow="never">
+      <div class="management-list-toolbar">
+        <el-form ref="searchFormRef" :inline="true" :model="searchData" class="management-filter-form">
         <el-form-item label="工艺ID">
           <el-input v-model="searchData.number" placeholder="请输入" />
         </el-form-item>
@@ -141,23 +142,17 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
             <el-option v-for="item in testTypeList" :value="item.number" :label="item.name" :key="item.number" />
           </el-select>
         </el-form-item>
-        <el-form-item>
+        </el-form>
+        <div class="management-toolbar-actions">
           <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
           <el-button icon="Refresh" @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-    <el-card v-loading="loading" shadow="never">
-      <div class="toolbar-wrapper">
-        <div />
-        <div>
           <el-tooltip content="刷新当前页">
             <el-button type="primary" icon="RefreshRight" circle @click="getTableData" />
           </el-tooltip>
         </div>
       </div>
       <div class="table-wrapper">
-        <TableComponent :tableData="TableData" :column-data="headers" stripe>
+        <TableComponent :tableData="TableData" :column-data="headers" border height="100%" stripe>
           <template #status="{ row }">
             <el-tag v-if="row['status'] === '1'" type="warning"> 待审核 </el-tag>
           </template>

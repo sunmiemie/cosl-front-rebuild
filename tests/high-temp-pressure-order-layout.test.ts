@@ -15,17 +15,20 @@ describe("高温高压井工单列表布局", () => {
     expect(listTable).not.toContain('label="项目名称"')
   })
 
-  it("列表表格不产生横向拖动条", () => {
+  it("列表数据过宽时由表格横向滚动且操作列固定在右侧", () => {
     expect(listTable).toContain('class="high-pressure-order-table"')
-    expect(listTable).not.toContain('fixed="right"')
-    expect(content).toContain("overflow-x: hidden")
+    expect(listTable).toContain('label="操作" width="176" align="center" fixed="right"')
+    expect(listTable).toContain('height="100%"')
   })
 
-  it("列表列宽使用弹性最小宽度铺满表格", () => {
+  it("数据列使用最小宽度保持单行，操作列使用固定宽度", () => {
     const columnTags = listTable.match(/<el-table-column[^>]*>/g) ?? []
+    const dataColumns = columnTags.filter((tag) => !tag.includes('label="操作"'))
+    const operationColumn = columnTags.find((tag) => tag.includes('label="操作"')) ?? ""
 
     expect(columnTags.length).toBeGreaterThan(0)
-    expect(columnTags.every((tag) => !/\swidth="/.test(tag))).toBe(true)
-    expect(columnTags.every((tag) => /\smin-width="/.test(tag))).toBe(true)
+    expect(dataColumns.every((tag) => /\smin-width="/.test(tag))).toBe(true)
+    expect(operationColumn).toContain('width="176"')
+    expect(operationColumn).toContain('fixed="right"')
   })
 })

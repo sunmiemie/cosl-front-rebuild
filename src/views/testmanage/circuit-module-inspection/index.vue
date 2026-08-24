@@ -1,7 +1,7 @@
 <template>
-  <div class="app-container">
-    <el-card>
-      <el-tabs v-model="activeName" @tab-click="handleTabClick">
+  <div class="app-container management-list-page">
+    <el-card class="management-tabs-card" shadow="never">
+      <el-tabs v-model="activeName" class="management-tabs" tab-position="top" @tab-click="handleTabClick">
         <el-tab-pane v-if="canUse(PermissionCode.TestOrderCreateHaltHass)" label="HALT-HASS 工单" name="halt-hass">
           <HaltHassOrder ref="haltHassOrderComponent" />
         </el-tab-pane>

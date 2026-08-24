@@ -8,12 +8,13 @@ const content = readFileSync(resolve(root, "src/views/inspectionmanage/info-view
 describe("巡检记录查看页面", () => {
   it("手动刷新小助手巡检记录时强制刷新并触发后端落库", () => {
     expect(content).toContain("loadAssistantResults(true, true)")
-    expect(content).toContain('forceRefresh ? { refresh: "1" } : undefined')
+    expect(content).toContain('params.refresh = "1"')
+    expect(content).toContain("getAssistantInspectionResultsApi(params)")
   })
 
-  it("小助手刷新返回空时不清空页面已有巡检记录", () => {
+  it("定时刷新返回空时不清空页面已有巡检记录", () => {
     expect(content).toContain(
-      "const shouldReplaceResults = nextResults.length > 0 || assistantResults.value.length === 0"
+      "const shouldReplaceResults = forceRefresh || nextResults.length > 0 || assistantResults.value.length === 0"
     )
     expect(content).toContain("if (shouldReplaceResults) {")
     expect(content).toContain("if (!assistantResults.value.length) {")
@@ -32,5 +33,11 @@ describe("巡检记录查看页面", () => {
     expect(content).toContain("buildInspectionRecordRows([], selectedAssistantResults.value)")
     expect(content).not.toContain("getInspectionBaseInfoListApi")
     expect(content).not.toContain("currentRecord")
+  })
+
+  it("巡检详情显示项目内容而不是内部项目ID", () => {
+    expect(content).toContain('label="项目内容"')
+    expect(content).toContain("getInspectionItemContent(row)")
+    expect(content).not.toContain('label="项目ID"')
   })
 })

@@ -66,6 +66,30 @@ describe("工单排程页面", () => {
     expect(content).toContain("与测试端日历使用同一后端排程数据")
   })
 
+  it("提供只读历史排程并按当前周读取归档数据", () => {
+    expect(content).toContain('key: "history"')
+    expect(content).toContain("历史排程 · 只读")
+    expect(content).toContain("getWorkOrderScheduleHistory")
+    expect(content).toContain("function loadHistoryOrders")
+    expect(content).toContain('activeScheduleState.value === "history"')
+    expect(content).toContain("v-if=\"activeScheduleState !== 'history'\"")
+    expect(content).toContain("calendar-event__history-label")
+    expect(content).toContain('statusText: item.statusText || "已完成"')
+  })
+
+  it("日历内工单卡片使用紧凑信息层级，历史标签不再遮挡工单号", () => {
+    expect(content).toContain("calendar-event__header")
+    expect(content).toContain("calendar-event__number")
+    expect(content).toContain(
+      ':aria-label="`工单 ${event.taskNumber}，${event.timeRange}，${getEventStatusText(event)}`"'
+    )
+    expect(content).toMatch(/\.calendar-event__header\s*{[^}]*display:\s*flex/s)
+    expect(content).toMatch(/\.calendar-event__number\s*{[^}]*font-variant-numeric:\s*tabular-nums/s)
+    expect(content).not.toMatch(/\.calendar-event__history-label\s*{[^}]*position:\s*absolute/s)
+    expect(content).toMatch(/&\.is-history\s*{[^}]*background:[^;]*--el-color-success-light-8/s)
+    expect(content).toMatch(/\.calendar-event__history-label\s*{[^}]*--el-color-success-dark-2/s)
+  })
+
   it("排程列表只请求并保留待领取状态工单", () => {
     expect(content).toContain("const PENDING_CLAIM_STATUS = 1")
     expect(content).toContain("status: PENDING_CLAIM_STATUS")
@@ -224,7 +248,7 @@ describe("工单排程页面", () => {
     expect(content).toContain("const useDevice = targetDevice.label")
     expect(content).toContain("equipment_id: equipmentId")
     expect(content).toMatch(
-      /const events = activeOrders\.value\s*\.filter\(\(order\) => \{[\s\S]*\!\[1, 2, 4\]\.includes\(Number\(order\.status\)\)[\s\S]*instrument_status/
+      /const sourceOrders = activeScheduleState\.value === "history" \? historyOrders\.value : activeOrders\.value[\s\S]*!\[1, 2, 4\]\.includes\(Number\(order\.status\)\)[\s\S]*instrument_status/
     )
     expect(content).toContain("isScheduleSegmentVisibleInActiveDevice(order, segment)")
   })

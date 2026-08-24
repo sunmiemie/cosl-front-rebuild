@@ -1,10 +1,10 @@
 <!-- HALT-HASS 测试工单 -->
 
 <template>
-  <div class="affix-container">
-    <!-- 搜索区域 -->
-    <el-card class="search-wrapper" shadow="never">
-      <el-form :inline="true" :model="searchForm">
+  <div class="affix-container management-list-shell">
+    <el-card v-loading="loading" class="management-list-card" shadow="never">
+      <div class="management-list-toolbar">
+        <el-form :inline="true" :model="searchForm" class="management-filter-form">
         <el-form-item label="工单号">
           <el-input v-model="searchForm.orderNo" placeholder="请输入工单号" clearable />
         </el-form-item>
@@ -13,20 +13,11 @@
             <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
-        <el-form-item>
+        </el-form>
+        <div class="management-toolbar-actions">
           <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
+          <el-button type="primary" icon="CirclePlus" @click="showCreateDialog">新增</el-button>
           <el-button icon="Refresh" @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-
-    <!-- 表格区域 -->
-    <el-card v-loading="loading" shadow="never">
-      <div class="toolbar-wrapper">
-        <div>
-          <el-button type="primary" icon="CirclePlus" @click="showCreateDialog"> 新增 HALT-HASS 工单 </el-button>
-        </div>
-        <div>
           <el-tooltip content="刷新当前页">
             <el-button type="primary" icon="RefreshRight" circle @click="getList" />
           </el-tooltip>
@@ -34,7 +25,15 @@
       </div>
 
       <div class="table-wrapper">
-        <el-table class="halt-hass-table" :data="tableData" stripe border style="width: 100%" table-layout="fixed">
+        <el-table
+          class="halt-hass-table"
+          :data="tableData"
+          stripe
+          border
+          height="100%"
+          style="width: 100%"
+          table-layout="fixed"
+        >
           <el-table-column prop="orderNo" label="工单号" min-width="118" align="center" show-overflow-tooltip />
           <el-table-column label="委托单位" min-width="112" align="center">
             <template #default="{ row }">
@@ -87,7 +86,7 @@
               {{ row.completedAt || "-" }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="128" align="center">
+          <el-table-column label="操作" width="128" align="center" fixed="right">
             <template #default="{ row }">
               <div class="table-actions">
                 <el-link type="primary" @click="handleDetail(row)">详情</el-link>

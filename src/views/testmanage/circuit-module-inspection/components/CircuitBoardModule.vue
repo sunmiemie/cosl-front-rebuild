@@ -1,27 +1,26 @@
 ﻿<template>
-  <div class="circuit-task-page">
+  <div class="circuit-task-page management-list-shell">
     <section class="application-panel">
-      <div class="filter-bar">
-        <el-input v-model="searchForm.keyword" clearable placeholder="搜索申请单名称 / 编号" />
-        <div class="filter-row">
-          <el-select v-model="searchForm.status" class="filter-select" placeholder="全部状态">
-            <el-option label="全部状态" value="all" />
-            <el-option v-for="item in statusOptions" :key="item.key" :label="item.label" :value="item.key" />
-          </el-select>
-          <el-select v-model="searchForm.orderType" class="filter-select" placeholder="全部性质">
-            <el-option label="全部性质" value="all" />
-            <el-option label="生产测试工单" value="production" />
-            <el-option label="临时测试工单" value="temporary" />
-          </el-select>
-          <el-button :icon="Refresh" @click="resetFilters">重置</el-button>
+      <div class="application-toolbar">
+        <div class="filter-bar">
+          <el-input v-model="searchForm.keyword" clearable placeholder="搜索申请单名称 / 编号" />
+          <div class="filter-row">
+            <el-select v-model="searchForm.status" class="filter-select" placeholder="全部状态">
+              <el-option label="全部状态" value="all" />
+              <el-option v-for="item in statusOptions" :key="item.key" :label="item.label" :value="item.key" />
+            </el-select>
+            <el-select v-model="searchForm.orderType" class="filter-select" placeholder="全部性质">
+              <el-option label="全部性质" value="all" />
+              <el-option label="生产测试工单" value="production" />
+              <el-option label="临时测试工单" value="temporary" />
+            </el-select>
+          </div>
         </div>
-      </div>
-
-      <div class="list-actions">
-        <el-button type="primary" :icon="Plus" @click="handleCreateApplication">新建</el-button>
-        <el-button class="refresh-action" :icon="RefreshRight" :loading="loading" @click="loadApplications"
-          >刷新</el-button
-        >
+        <div class="list-actions">
+          <el-button type="primary" :icon="Plus" @click="handleCreateApplication">新增</el-button>
+          <el-button :icon="Refresh" @click="resetFilters">重置</el-button>
+          <el-button :icon="RefreshRight" :loading="loading" @click="loadApplications">刷新</el-button>
+        </div>
       </div>
 
       <el-scrollbar v-loading="loading" class="application-list">
@@ -2568,21 +2567,42 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .circuit-task-page {
-  min-height: 620px;
+  height: 100%;
+  min-height: 0;
 }
 
 .application-panel {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--el-border-color-light);
   border-radius: 4px;
   background: var(--el-bg-color);
 }
 
-.filter-bar {
-  display: grid;
-  gap: 8px;
-  padding: 10px 14px;
+.application-toolbar {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
   border-bottom: 1px solid var(--el-border-color-light);
+}
+
+.filter-bar {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+
+  > .el-input {
+    width: 260px;
+  }
 }
 
 .filter-row,
@@ -2590,7 +2610,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .filter-select {
@@ -2598,18 +2618,13 @@ onMounted(() => {
 }
 
 .list-actions {
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--el-border-color-light);
-  background: var(--el-fill-color-lighter);
-}
-
-.refresh-action {
-  margin-left: auto;
+  flex: none;
+  white-space: nowrap;
 }
 
 .application-list {
-  height: calc(100vh - 270px);
-  min-height: 360px;
+  flex: 1;
+  min-height: 0;
   padding: 8px 10px;
 
   :deep(.el-scrollbar__view) {

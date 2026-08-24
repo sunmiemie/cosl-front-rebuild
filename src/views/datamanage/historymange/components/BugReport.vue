@@ -198,78 +198,70 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 </script>
 
 <template>
-  <el-row>
-    <el-col class="affix-container" :span="24">
-      <el-affix target=".affix-container" :offset="120">
-        <el-card shadow="never" class="search-wrapper">
-          <el-form ref="searchFormRef" :inline="true" :model="searchData">
-            <el-form-item label="报告编号">
-              <el-input v-model="searchData.id" placeholder="请输入" />
-            </el-form-item>
-            <el-form-item label="测试人">
-              <el-input v-model="searchData.user" placeholder="请输入" />
-            </el-form-item>
-            <el-form-item label="批次号">
-              <el-input v-model="searchData.batchId" placeholder="请输入" />
-            </el-form-item>
-            <el-form-item label="电路板序列号">
-              <el-input v-model="searchData.serial" placeholder="请输入" />
-            </el-form-item>
-            <el-form-item>
-              <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
-              <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
-            </el-form-item>
-          </el-form>
-        </el-card>
-      </el-affix>
-
-      <el-card v-loading="loading" shadow="never">
-        <div class="toolbar-wrapper">
-          <el-button type="primary" icon="CirclePlus" @click="newBugReports">新增缺陷报告</el-button>
-          <div v-show="selectedRowCount > 0" style="display: flex; gap: 10px">
+  <div class="report-list-shell">
+    <el-card v-loading="loading" shadow="never" class="report-list-card">
+      <div class="report-list-toolbar">
+        <el-form ref="searchFormRef" :inline="true" :model="searchData" class="report-filter-form">
+          <el-form-item label="报告编号">
+            <el-input v-model="searchData.id" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="测试人">
+            <el-input v-model="searchData.user" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="批次号">
+            <el-input v-model="searchData.batchId" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="电路板序列号">
+            <el-input v-model="searchData.serial" placeholder="请输入" />
+          </el-form-item>
+        </el-form>
+        <div class="report-toolbar-actions">
+          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+          <el-button type="primary" icon="CirclePlus" @click="newBugReports">新增</el-button>
+          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+          <div v-show="selectedRowCount > 0" class="report-selection-actions">
             <el-text class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
             <el-button type="primary" @click="downloadReports">批量下载</el-button>
           </div>
-          <div>
-            <el-tooltip content="刷新当前页">
-              <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
-            </el-tooltip>
-          </div>
+          <el-tooltip content="刷新当前页">
+            <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
+          </el-tooltip>
         </div>
-        <div class="table-wrapper">
-          <TableComponent
-            :tableData="TableData"
-            :column-data="headers"
-            selection
-            @selection-change="handleSelectionChange"
-            stripe
-          >
-            <template #link="{ row }">
-              <el-link
-                :type="row['report_downloaded'] ? 'success' : 'primary'"
-                class="el-link"
-                @click="downloadReport(row)"
-                >下载
-              </el-link>
-            </template>
-          </TableComponent>
-        </div>
+      </div>
+      <div class="table-wrapper">
+        <TableComponent
+          :tableData="TableData"
+          :column-data="headers"
+          height="100%"
+          selection
+          @selection-change="handleSelectionChange"
+          stripe
+        >
+          <template #link="{ row }">
+            <el-link
+              :type="row['report_downloaded'] ? 'success' : 'primary'"
+              class="el-link"
+              @click="downloadReport(row)"
+              >下载
+            </el-link>
+          </template>
+        </TableComponent>
+      </div>
 
-        <div class="pager-wrapper">
-          <el-pagination
-            background
-            :layout="paginationData.layout"
-            :page-sizes="paginationData.pageSizes"
-            :total="paginationData.total"
-            :page-size="paginationData.pageSize"
-            :currentPage="paginationData.currentPage"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
-        </div>
-      </el-card>
-    </el-col>
-  </el-row>
+      <div class="pager-wrapper">
+        <el-pagination
+          background
+          :layout="paginationData.layout"
+          :page-sizes="paginationData.pageSizes"
+          :total="paginationData.total"
+          :page-size="paginationData.pageSize"
+          :currentPage="paginationData.currentPage"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </el-card>
+  </div>
 
   <!-- 新增缺陷报告 -->
   <el-dialog v-model="dialogVisible" width="85%" @close="handleCloseDialog" align-center :close-on-click-modal="false">

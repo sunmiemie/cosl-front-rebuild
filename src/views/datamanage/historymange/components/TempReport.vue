@@ -79,7 +79,8 @@ const searchData = reactive({
   batchId: "",
   serial: "",
   dateTimeRange: [] as string[],
-  instrument: ""
+  instrument: "",
+  status: ""
 })
 const clearSearchData = () => {
   searchData.id = ""
@@ -89,6 +90,7 @@ const clearSearchData = () => {
   searchData.serial = ""
   searchData.dateTimeRange = []
   searchData.instrument = ""
+  searchData.status = ""
 }
 const defineLink = (status: string, reportGenerated: number) => {
   switch (status) {
@@ -115,7 +117,8 @@ const getTableData = () => {
     batchId: searchData.batchId || undefined,
     serial: searchData.serial || undefined,
     dateTimeRange: dateTimeRange || undefined,
-    instrument: searchData.instrument || undefined
+    instrument: searchData.instrument || undefined,
+    status: searchData.status || undefined
   })
     .then((res) => {
       tableData.value = res.data.list
@@ -341,117 +344,129 @@ watch([() => paginationData.currentPage, () => paginationData.pageSize], getTabl
 </script>
 
 <template>
-  <el-card shadow="never" class="search-wrapper">
-    <el-form ref="searchFormRef" :inline="true" :model="searchData">
-      <el-form-item label="报告编号">
-        <el-input v-model="searchData.id" placeholder="请输入" />
-      </el-form-item>
-      <el-form-item label="测试人">
-        <el-input v-model="searchData.user" placeholder="请输入" />
-      </el-form-item>
-      <el-form-item label="批次号">
-        <el-input v-model="searchData.batchId" placeholder="请输入" />
-      </el-form-item>
-      <el-form-item label="电路板序列号">
-        <el-input v-model="searchData.serial" placeholder="请输入" />
-      </el-form-item>
-      <el-form-item label="报告类型">
-        <el-select
-          v-model="searchData.type"
-          placeholder="请选择"
-          style="width: 200px"
-          @visible-change="getTestTypeData"
+  <div class="report-list-shell">
+    <el-card v-loading="loading" shadow="never" class="report-list-card">
+      <div class="report-list-toolbar">
+        <el-form
+          ref="searchFormRef"
+          :inline="true"
+          :model="searchData"
+          class="report-filter-form report-filter-form--wide"
         >
-          <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="仪器名称">
-        <el-select
-          v-model="searchData.instrument"
-          filterable
-          clearable
-          placeholder="请选择"
-          style="width: 200px"
-          @visible-change="getInstrumentsData"
+          <el-form-item label="报告编号">
+            <el-input v-model="searchData.id" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="测试人">
+            <el-input v-model="searchData.user" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="批次号">
+            <el-input v-model="searchData.batchId" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="电路板序列号">
+            <el-input v-model="searchData.serial" placeholder="请输入" />
+          </el-form-item>
+          <el-form-item label="报告类型">
+            <el-select
+              v-model="searchData.type"
+              placeholder="请选择"
+              style="width: 200px"
+              @visible-change="getTestTypeData"
+            >
+              <el-option v-for="item in testTypeList" :label="item.name" :value="item.number" :key="item.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="仪器名称">
+            <el-select
+              v-model="searchData.instrument"
+              filterable
+              clearable
+              placeholder="请选择"
+              style="width: 200px"
+              @visible-change="getInstrumentsData"
+            >
+              <el-option value="general" label="通用" />
+              <el-option v-for="item in instrumentList" :key="item.id" :label="item.label" :value="item.id" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="报告状态">
+            <el-select v-model="searchData.status" placeholder="全部状态" clearable>
+              <el-option label="测试待审核" value="0" />
+              <el-option label="已打回" value="1" />
+              <el-option label="测试正常" value="2" />
+              <el-option label="测试异常" value="3" />
+              <el-option label="疑问待处理" value="4" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="生成时间">
+            <el-date-picker
+              v-model="searchData['dateTimeRange'] as any"
+              type="datetimerange"
+              :shortcuts="shortcuts"
+              range-separator="到"
+              start-placeholder="开始时间"
+              end-placeholder="结束时间"
+              value-format="YYYY/MM/DD HH:mm:ss"
+            />
+          </el-form-item>
+        </el-form>
+        <div class="report-toolbar-actions">
+          <el-button type="primary" :icon="Search" @click="handleSearch">查询</el-button>
+          <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+          <div v-show="selectedRowCount > 0" class="report-selection-actions">
+            <el-text class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
+            <el-button type="warning" @click="generateReports">批量生成</el-button>
+            <el-button type="primary" @click="downloadReports">批量下载</el-button>
+          </div>
+          <el-tooltip content="刷新当前页">
+            <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
+          </el-tooltip>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <TableComponent
+          :tableData="tableData"
+          :column-data="headers"
+          height="100%"
+          selection
+          @selection-change="handleSelectionChange"
+          stripe
         >
-          <el-option value="general" label="通用" />
-          <el-option v-for="item in instrumentList" :key="item.id" :label="item.label" :value="item.id" />
-        </el-select>
-      </el-form-item>
-      <el-form-item label="生成时间">
-        <el-date-picker
-          v-model="searchData['dateTimeRange'] as any"
-          type="datetimerange"
-          :shortcuts="shortcuts"
-          range-separator="到"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
-          value-format="YYYY/MM/DD HH:mm:ss"
+          <template #status="{ row }">
+            <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
+            <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>
+            <el-tag v-if="row['status'] === '2'" type="success"> 测试正常 </el-tag>
+            <el-tag v-if="row['status'] === '3'" type="danger"> 测试异常 </el-tag>
+            <el-tag v-if="row['status'] === '4'" type="warning"> 疑问待处理 </el-tag>
+          </template>
+
+          <template #link="{ row }">
+            <el-link
+              v-for="i in row['link']"
+              :type="i === '下载' && row['report_downloaded'] ? 'success' : 'primary'"
+              class="el-link"
+              @click="handleLink(row, i)"
+              :key="i"
+            >
+              {{ i }}
+            </el-link>
+          </template>
+        </TableComponent>
+      </div>
+
+      <div class="pager-wrapper">
+        <el-pagination
+          background
+          :layout="paginationData.layout"
+          :page-sizes="paginationData.pageSizes"
+          :total="paginationData.total"
+          :page-size="paginationData.pageSize"
+          :currentPage="paginationData.currentPage"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
         />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" :icon="Search" @click="handleSearch" style="margin-right: 10px">查询</el-button>
-        <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
-      </el-form-item>
-    </el-form>
-  </el-card>
-  <el-card v-loading="loading" shadow="never">
-    <div class="toolbar-wrapper">
-      <div v-show="selectedRowCount > 0" style="display: flex; gap: 10px">
-        <el-text class="mx-1">已选择 {{ selectedRowCount }} 项</el-text>
-        <el-button type="warning" @click="generateReports">批量生成</el-button>
-        <el-button type="primary" @click="downloadReports">批量下载</el-button>
       </div>
-      <div>
-        <el-tooltip content="刷新当前页">
-          <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
-        </el-tooltip>
-      </div>
-    </div>
-    <div class="table-wrapper">
-      <TableComponent
-        :tableData="tableData"
-        :column-data="headers"
-        selection
-        @selection-change="handleSelectionChange"
-        stripe
-        max-height="450"
-      >
-        <template #status="{ row }">
-          <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核 </el-tag>
-          <el-tag v-if="row['status'] === '1'" type="danger"> 已打回 </el-tag>
-          <el-tag v-if="row['status'] === '2'" type="success"> 测试正常 </el-tag>
-          <el-tag v-if="row['status'] === '3'" type="danger"> 测试异常 </el-tag>
-          <el-tag v-if="row['status'] === '4'" type="warning"> 疑问待处理 </el-tag>
-        </template>
-
-        <template #link="{ row }">
-          <el-link
-            v-for="i in row['link']"
-            :type="i === '下载' && row['report_downloaded'] ? 'success' : 'primary'"
-            class="el-link"
-            @click="handleLink(row, i)"
-            :key="i"
-          >
-            {{ i }}
-          </el-link>
-        </template>
-      </TableComponent>
-    </div>
-
-    <div class="pager-wrapper">
-      <el-pagination
-        background
-        :layout="paginationData.layout"
-        :page-sizes="paginationData.pageSizes"
-        :total="paginationData.total"
-        :page-size="paginationData.pageSize"
-        :currentPage="paginationData.currentPage"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
-    </div>
-  </el-card>
+    </el-card>
+  </div>
 
   <el-dialog v-model="DialogCheck" :title="'提交测试工艺审核'" style="height: 45vh; width: 40vw">
     <template #header>

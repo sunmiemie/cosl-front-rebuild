@@ -1296,75 +1296,80 @@ watch(
 </script>
 
 <template>
-  <div class="app-container">
-    <el-card shadow="never">
-      <el-tabs v-model="activeTab" @tab-click="handleTabClick">
+  <div class="app-container management-list-page">
+    <el-card class="management-tabs-card" shadow="never">
+      <el-tabs v-model="activeTab" class="management-tabs" tab-position="top" @tab-click="handleTabClick">
         <!-- 普通报告审核 Tab -->
         <el-tab-pane v-if="canReview(PermissionCode.ReportReviewBasic)" label="普通报告审核" name="normal">
-          <el-card v-loading="loading" class="search-wrapper" shadow="never">
-            <el-form ref="searchFormRef" :inline="true" :model="searchData">
-              <el-form-item label="测试人">
-                <el-input v-model="searchData.user" placeholder="请输入" />
-              </el-form-item>
-              <el-form-item label="电路板序列号">
-                <el-input v-model="searchData.serial" placeholder="请输入" />
-              </el-form-item>
-              <el-form-item label="报告类型">
-                <el-select
-                  v-model="searchData.type"
-                  placeholder="请选择"
-                  style="width: 200px"
-                  @visible-change="getTestTypeData"
-                >
-                  <el-option v-for="item in testTypeList" :key="item.id" :label="item.name" :value="item.number" />
-                </el-select>
-              </el-form-item>
-              <el-form-item>
-                <el-button :icon="Search" style="margin-right: 10px" type="primary" @click="handleSearch"
-                  >查询</el-button
-                >
-                <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
-              </el-form-item>
-            </el-form>
-          </el-card>
-          <el-card v-loading="loading" shadow="never">
-            <div class="toolbar-wrapper">
-              <div />
-              <div>
-                <el-tooltip content="刷新当前页">
-                  <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
-                </el-tooltip>
+          <div class="report-list-shell">
+            <el-card v-loading="loading" class="report-list-card" shadow="never">
+              <div class="report-list-toolbar">
+                <el-form ref="searchFormRef" :inline="true" :model="searchData" class="report-filter-form">
+                  <el-form-item label="测试人">
+                    <el-input v-model="searchData.user" placeholder="请输入" />
+                  </el-form-item>
+                  <el-form-item label="电路板序列号">
+                    <el-input v-model="searchData.serial" placeholder="请输入" />
+                  </el-form-item>
+                  <el-form-item label="报告类型">
+                    <el-select
+                      v-model="searchData.type"
+                      placeholder="请选择"
+                      style="width: 200px"
+                      @visible-change="getTestTypeData"
+                    >
+                      <el-option
+                        v-for="item in testTypeList"
+                        :key="item.id"
+                        :label="item.name"
+                        :value="item.number"
+                      />
+                    </el-select>
+                  </el-form-item>
+                </el-form>
+                <div class="report-toolbar-actions">
+                  <el-button :icon="Search" type="primary" @click="handleSearch">查询</el-button>
+                  <el-button :icon="Refresh" @click="resetSearch">重置</el-button>
+                  <el-tooltip content="刷新当前页">
+                    <el-button circle icon="RefreshRight" type="primary" @click="getTableData" />
+                  </el-tooltip>
+                </div>
               </div>
-            </div>
-            <div class="table-wrapper">
-              <TableComponent :column-data="headers1" :tableData="TableData" stripe>
-                <template #status="{ row }">
-                  <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核</el-tag>
-                  <el-tag v-if="row['status'] === '1'" type="danger"> 测试正常</el-tag>
-                  <el-tag v-if="row['status'] === '2'" type="danger"> 测试异常</el-tag>
-                </template>
+              <div class="table-wrapper">
+                <TableComponent :column-data="headers1" :tableData="TableData" height="100%" stripe>
+                  <template #status="{ row }">
+                    <el-tag v-if="row['status'] === '0'" type="warning"> 测试待审核</el-tag>
+                    <el-tag v-if="row['status'] === '1'" type="danger"> 测试正常</el-tag>
+                    <el-tag v-if="row['status'] === '2'" type="danger"> 测试异常</el-tag>
+                  </template>
 
-                <template #link="{ row }">
-                  <el-link v-for="i in row['link']" :key="i" class="el-link" type="primary" @click="handleLink(row, i)"
-                    >{{ i }}
-                  </el-link>
-                </template>
-              </TableComponent>
-            </div>
+                  <template #link="{ row }">
+                    <el-link
+                      v-for="i in row['link']"
+                      :key="i"
+                      class="el-link"
+                      type="primary"
+                      @click="handleLink(row, i)"
+                      >{{ i }}
+                    </el-link>
+                  </template>
+                </TableComponent>
+              </div>
 
-            <div class="pager-wrapper">
-              <el-pagination
-                :currentPage="paginationData.currentPage"
-                :layout="paginationData.layout"
-                :page-size="paginationData.pageSize"
-                :page-sizes="paginationData.pageSizes"
-                :total="paginationData.total"
-                background
-                @size-change="handleSizeChange"
-                @current-change="handleCurrentChange"
-              />
-            </div>
-          </el-card>
+              <div class="pager-wrapper">
+                <el-pagination
+                  :currentPage="paginationData.currentPage"
+                  :layout="paginationData.layout"
+                  :page-size="paginationData.pageSize"
+                  :page-sizes="paginationData.pageSizes"
+                  :total="paginationData.total"
+                  background
+                  @size-change="handleSizeChange"
+                  @current-change="handleCurrentChange"
+                />
+              </div>
+            </el-card>
+          </div>
         </el-tab-pane>
 
         <!-- HALT-HASS 报告审核 Tab -->

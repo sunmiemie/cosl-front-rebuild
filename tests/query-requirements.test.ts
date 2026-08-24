@@ -42,30 +42,29 @@ describe("检验检测查询功能需求", () => {
     ])
   })
 
-  it("生产和临时测试工单支持批次号、电路板序列号、供应商查询", () => {
+  it("生产和临时测试工单使用服务端多字段关键字查询", () => {
     for (const file of [
       "src/views/testmanage/testorder/components/ProdOrder.vue",
       "src/views/testmanage/testorder/components/TempOrder.vue"
     ]) {
       expectContains(file, [
-        'label="批次号"',
-        "searchData.batchId",
-        'label="电路板序列号"',
-        "searchData.serial",
-        'label="供应商"',
-        "searchData.supplier"
+        'label="关键字"',
+        "searchData.keyword",
+        "批次号",
+        "序列号",
+        "供应商",
+        'label="创建时间范围"'
       ])
     }
   })
 
-  it("疑问工单支持批次号、电路板序列号、供应商查询和列表展示", () => {
+  it("疑问工单使用多字段关键字查询并保留追溯信息展示", () => {
     expectContains("src/views/testmanage/Questionlist/index.vue", [
-      'label="批次号"',
-      "searchData.batchId",
-      'label="电路板序列号"',
-      "searchData.serial",
-      'label="供应商"',
-      "searchData.supplier",
+      'label="关键字"',
+      "searchData.keyword",
+      "批次号",
+      "序列号",
+      "供应商",
       'label: "批次号"',
       'label: "电路板序列号"'
     ])
@@ -116,6 +115,34 @@ describe("检验检测查询功能需求", () => {
     expectContains("src/views/datamanage/historymange/components/BatchReport.vue", [
       'label="批次号"',
       "searchData.batchId"
+    ])
+  })
+
+  it("具备审核状态的报告列表统一支持状态筛选", () => {
+    for (const file of [
+      "src/views/datamanage/historymange/components/ProdReport.vue",
+      "src/views/datamanage/historymange/components/TempReport.vue"
+    ]) {
+      expectContains(file, ['label="报告状态"', "searchData.status", "status: searchData.status || undefined"])
+    }
+
+    for (const file of [
+      "src/views/datamanage/historymange/components/WaterCycleReport.vue",
+      "src/views/datamanage/historymange/components/HighTemperatureReport.vue",
+      "src/views/datamanage/historymange/components/VibrationReport.vue",
+      "src/views/datamanage/historymange/components/HighTemperaturePressureReport.vue"
+    ]) {
+      expectContains(file, ['label="审核状态"', "searchForm.status", "status: searchForm.status"])
+    }
+
+    expectContains("src/views/datamanage/historymange/components/HaltHassReport.vue", [
+      'label="审核状态"',
+      "searchForm.reviewStatus"
+    ])
+    expectContains("src/views/datamanage/historymange/components/SimulationWellReport.vue", [
+      'label="审核状态"',
+      "searchForm.status",
+      ':data="tableData"'
     ])
   })
 })

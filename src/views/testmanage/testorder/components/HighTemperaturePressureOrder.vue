@@ -679,30 +679,23 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="affix-container">
-    <el-card class="search-wrapper" shadow="never">
-      <el-form :inline="true" :model="searchForm">
-        <el-form-item label="任务单号">
-          <el-input v-model="searchForm.taskNumber" placeholder="请输入任务单号" clearable />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px">
-            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
+  <div class="affix-container management-list-shell">
+    <el-card v-loading="loading" class="management-list-card" shadow="never">
+      <div class="management-list-toolbar">
+        <el-form :inline="true" :model="searchForm" class="management-filter-form">
+          <el-form-item label="任务单号">
+            <el-input v-model="searchForm.taskNumber" placeholder="请输入任务单号" clearable />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px">
+              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <div class="management-toolbar-actions">
           <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
+          <el-button type="primary" icon="CirclePlus" @click="showCreateDialog">新增</el-button>
           <el-button icon="Refresh" @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-
-    <el-card v-loading="loading" shadow="never">
-      <div class="toolbar-wrapper">
-        <div>
-          <el-button type="primary" icon="CirclePlus" @click="showCreateDialog">新增高温高压井工单</el-button>
-        </div>
-        <div>
           <el-tooltip content="刷新当前页">
             <el-button type="primary" icon="RefreshRight" circle @click="getList" />
           </el-tooltip>
@@ -714,6 +707,7 @@ onMounted(() => {
           :data="tableData"
           stripe
           border
+          height="100%"
           class="high-pressure-order-table"
           table-layout="fixed"
           style="width: 100%"
@@ -752,7 +746,7 @@ onMounted(() => {
               <el-tag :type="getStatusType(row.status)">{{ row.status_text || row.status }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" min-width="105" align="center">
+          <el-table-column label="操作" width="176" align="center" fixed="right">
             <template #default="{ row }">
               <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
               <el-link v-if="row.status === 0" type="success" class="el-link" @click="showPublishDialog(row)"

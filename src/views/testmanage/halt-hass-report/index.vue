@@ -232,67 +232,73 @@ watch(
 </script>
 
 <template>
-  <div class="app-container">
-    <el-card>
-      <template #header>
-        <div class="card-header">
-          <span>HALT-HASS 报告审核</span>
-        </div>
-      </template>
-
-      <el-form :inline="true" :model="searchForm" class="search-form">
-        <el-form-item label="工单号">
-          <el-input v-model="searchForm.orderNo" placeholder="请输入工单号" clearable />
-        </el-form-item>
-        <el-form-item label="审核状态">
-          <el-select v-model="searchForm.reviewStatus" placeholder="全部状态" clearable style="width: 150px">
-            <el-option v-for="item in reviewStatusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
+  <div class="app-container management-list-page">
+    <el-card class="report-list-card" shadow="never">
+      <div class="report-list-toolbar">
+        <el-form :inline="true" :model="searchForm" class="report-filter-form">
+          <el-form-item label="工单号">
+            <el-input v-model="searchForm.orderNo" placeholder="请输入工单号" clearable />
+          </el-form-item>
+          <el-form-item label="审核状态">
+            <el-select v-model="searchForm.reviewStatus" placeholder="全部状态" clearable style="width: 150px">
+              <el-option
+                v-for="item in reviewStatusOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <div class="report-toolbar-actions">
           <el-button type="primary" @click="handleSearch">搜索</el-button>
           <el-button @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
+          <el-tooltip content="刷新当前页">
+            <el-button type="primary" icon="RefreshRight" circle @click="getList" />
+          </el-tooltip>
+        </div>
+      </div>
 
-      <el-table :data="tableData" v-loading="loading" stripe border style="width: 100%">
-        <el-table-column prop="id" label="报告 ID" width="90" align="center" />
-        <el-table-column label="工单号" width="180" align="center">
-          <template #default="{ row }">
-            {{ row.order?.orderNo || "-" }}
-          </template>
-        </el-table-column>
-        <el-table-column label="测试结果" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="getResultType(row.result)">{{ row.resultText }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="审核状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="getReviewStatusType(row.reviewStatus)">{{ row.reviewStatusText }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createdAt" label="提交时间" width="170" align="center" />
-        <el-table-column label="审核时间" width="170" align="center">
-          <template #default="{ row }">
-            {{ row.reviewTime || "-" }}
-          </template>
-        </el-table-column>
-        <el-table-column label="审核意见" min-width="200">
-          <template #default="{ row }">
-            {{ row.reviewComment || "-" }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="180" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="handleDetail(row)">详情</el-button>
-            <el-button v-if="row.reviewStatus === 0" link type="success" @click="handleApprove(row)">通过</el-button>
-            <el-button v-if="row.reviewStatus === 0" link type="danger" @click="handleReject(row)">驳回</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+      <div class="table-wrapper">
+        <el-table :data="tableData" v-loading="loading" stripe border height="100%" style="width: 100%">
+          <el-table-column prop="id" label="报告 ID" width="90" align="center" />
+          <el-table-column label="工单号" width="180" align="center">
+            <template #default="{ row }">
+              {{ row.order?.orderNo || "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column label="测试结果" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getResultType(row.result)">{{ row.resultText }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="审核状态" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getReviewStatusType(row.reviewStatus)">{{ row.reviewStatusText }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createdAt" label="提交时间" width="170" align="center" />
+          <el-table-column label="审核时间" width="170" align="center">
+            <template #default="{ row }">
+              {{ row.reviewTime || "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column label="审核意见" min-width="200">
+            <template #default="{ row }">
+              {{ row.reviewComment || "-" }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="180" align="center" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="handleDetail(row)">详情</el-button>
+              <el-button v-if="row.reviewStatus === 0" link type="success" @click="handleApprove(row)">通过</el-button>
+              <el-button v-if="row.reviewStatus === 0" link type="danger" @click="handleReject(row)">驳回</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
 
-      <div class="pagination-container">
+      <div class="pager-wrapper">
         <el-pagination
           v-model:current-page="pagination.page"
           v-model:page-size="pagination.pageSize"
@@ -428,20 +434,8 @@ watch(
 </template>
 
 <style scoped>
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .search-form {
   margin-bottom: 20px;
-}
-
-.pagination-container {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
 }
 
 .flowchart-result {

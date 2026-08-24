@@ -41,11 +41,8 @@ const TableData = ref<any>([])
 const questionList = ref<any>([])
 const reportJson = ref<any>([])
 const searchData = reactive({
-  id: "",
-  status: "",
-  batchId: "",
-  serial: "",
-  supplier: ""
+  keyword: "",
+  status: ""
 })
 const defineLink = (status: string) => {
   switch (status) {
@@ -62,11 +59,8 @@ const getTableData = () => {
   questionUnitDataApi({
     currentPage: paginationData.currentPage,
     size: paginationData.pageSize,
-    id: searchData.id,
-    status: searchData.status,
-    batchId: searchData.batchId,
-    serial: searchData.serial,
-    supplier: searchData.supplier
+    keyword: searchData.keyword,
+    status: searchData.status
   })
     .then((res) => {
       TableData.value = res.list
@@ -122,6 +116,7 @@ const handleLink = (data: any, i: string) => {
   }
 }
 const handleSearch = () => {
+  searchData.keyword = searchData.keyword.trim()
   paginationData.currentPage === 1 ? getTableData() : (paginationData.currentPage = 1)
 }
 const hasProperty = (obj, prop) => {
@@ -141,11 +136,8 @@ const hasProperty = (obj, prop) => {
   return false
 }
 const resetSearch = () => {
-  searchData.id = ""
+  searchData.keyword = ""
   searchData.status = ""
-  searchData.batchId = ""
-  searchData.serial = ""
-  searchData.supplier = ""
   handleSearch()
 }
 const uploadFunc = () => {
@@ -339,45 +331,36 @@ watch([() => questionList.value], checkCanUpdate, { immediate: true, deep: true 
 </script>
 
 <template>
-  <div class="app-container">
-    <el-card v-loading="loading" class="search-wrapper" shadow="never">
-      <el-form :inline="true" :model="searchData">
-        <el-form-item label="疑问工单号" prop="number">
-          <el-input v-model="searchData.id" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="批次号" prop="batchId">
-          <el-input v-model="searchData.batchId" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="电路板序列号" prop="serial">
-          <el-input v-model="searchData.serial" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="供应商" prop="supplier">
-          <el-input v-model="searchData.supplier" placeholder="请输入" />
-        </el-form-item>
-        <el-form-item label="工单状态" prop="username">
-          <el-select v-model="searchData.status" placeholder="请选择" style="width: 200px">
-            <el-option label="待处理" value="0" />
-            <el-option label="处理中" value="1" />
-            <el-option label="处理完成" value="2" />
-          </el-select>
-        </el-form-item>
-        <el-form-item>
+  <div class="app-container management-list-page">
+    <el-card v-loading="loading" class="management-list-card" shadow="never">
+      <div class="management-list-toolbar">
+        <el-form :inline="true" :model="searchData" class="management-filter-form">
+          <el-form-item class="management-filter-keyword" label="关键字" prop="keyword">
+            <el-input
+              v-model="searchData.keyword"
+              clearable
+              placeholder="疑问工单号 / 关联工单号 / 名称 / 批次号 / 序列号 / 供应商"
+              @keyup.enter="handleSearch"
+            />
+          </el-form-item>
+          <el-form-item label="工单状态" prop="username">
+            <el-select v-model="searchData.status" placeholder="请选择" style="width: 200px">
+              <el-option label="待处理" value="0" />
+              <el-option label="处理中" value="1" />
+              <el-option label="处理完成" value="2" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+        <div class="management-toolbar-actions">
           <el-button icon="Search" type="primary" @click="handleSearch">查询</el-button>
           <el-button icon="Refresh" @click="resetSearch">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-    <el-card v-loading="loading" shadow="never">
-      <div class="toolbar-wrapper">
-        <div />
-        <div>
           <el-tooltip content="刷新当前页">
             <el-button icon="RefreshRight" circle type="primary" @click="getTableData" />
           </el-tooltip>
         </div>
       </div>
       <div class="table-wrapper">
-        <TableComponent :column-data="headers" :tableData="TableData" stripe>
+        <TableComponent :column-data="headers" :tableData="TableData" border height="100%" stripe>
           <template #status="{ row }">
             <el-tag v-if="row['status'] === '0'" type="warning"> 待处理</el-tag>
             <el-tag v-if="row['status'] === '1'" type="primary"> 处理中</el-tag>

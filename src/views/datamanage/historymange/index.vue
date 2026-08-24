@@ -1,7 +1,7 @@
 <template>
-  <div class="app-container">
-    <el-card>
-      <el-tabs v-model="activeName" @tab-click="handleTabClick">
+  <div class="app-container management-list-page report-history-page">
+    <el-card class="management-tabs-card report-tabs-card" shadow="never">
+      <el-tabs v-model="activeName" class="management-tabs report-tabs" tab-position="top" @tab-click="handleTabClick">
         <el-tab-pane label="&#x751F;&#x4EA7;&#x6D4B;&#x8BD5;&#x62A5;&#x544A;" name="prod">
           <ProdReport ref="prodReportComponent" />
         </el-tab-pane>

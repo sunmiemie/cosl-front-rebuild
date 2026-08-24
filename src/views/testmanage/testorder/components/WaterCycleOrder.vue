@@ -1,9 +1,10 @@
 <!-- 水循环测试工单 -->
 
 <template>
-  <div class="affix-container water-cycle-order">
-    <el-card class="search-wrapper" shadow="never">
-      <el-form :inline="true" :model="searchForm">
+  <div class="affix-container water-cycle-order management-list-shell">
+    <el-card v-loading="loading" class="management-list-card" shadow="never">
+      <div class="management-list-toolbar">
+        <el-form :inline="true" :model="searchForm" class="management-filter-form">
         <el-form-item label="任务单号">
           <el-input v-model="searchForm.taskNumber" placeholder="请输入任务单号" clearable />
         </el-form-item>
@@ -12,23 +13,19 @@
             <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
-        <el-form-item>
+        </el-form>
+        <div class="management-toolbar-actions">
           <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
+          <el-button type="primary" icon="CirclePlus" @click="showCreateDialog">新增</el-button>
           <el-button icon="Refresh" @click="handleReset">重置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
-
-    <el-card v-loading="loading" shadow="never">
-      <div class="toolbar-wrapper">
-        <el-button type="primary" icon="CirclePlus" @click="showCreateDialog">新增水循环工单</el-button>
-        <el-tooltip content="刷新当前页">
-          <el-button type="primary" icon="RefreshRight" circle @click="getList" />
-        </el-tooltip>
+          <el-tooltip content="刷新当前页">
+            <el-button type="primary" icon="RefreshRight" circle @click="getList" />
+          </el-tooltip>
+        </div>
       </div>
 
       <div class="table-wrapper">
-        <el-table :data="tableData" stripe border style="width: 100%">
+        <el-table :data="tableData" stripe border height="100%" style="width: 100%">
           <el-table-column prop="table_no" label="表格编号" min-width="170" align="center" show-overflow-tooltip />
           <el-table-column prop="task_number" label="任务单号" min-width="170" align="center" show-overflow-tooltip />
           <el-table-column prop="applicant" label="申请人" min-width="110" align="center" />

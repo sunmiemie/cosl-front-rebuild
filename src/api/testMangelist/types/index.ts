@@ -22,6 +22,7 @@ export type getBordsInfoType = {
 }
 
 export type inpTestMangeTableDataType = {
+  keyword?: string
   number?: string
   TestName?: string
   TestType?: string

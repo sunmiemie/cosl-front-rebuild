@@ -114,6 +114,7 @@ export const deleteDevTestUnitApi = (id: string) => {
 }
 
 export const getTestMangeTable = ({
+  keyword,
   number,
   TestName,
   TestType,
@@ -130,6 +131,7 @@ export const getTestMangeTable = ({
     url: "/test/getTableData",
     method: "get",
     params: {
+      keyword,
       number,
       TestName,
       TestType,
@@ -173,6 +175,7 @@ export const invalidTestUnitApi = (id: number, testUnitType: string) => {
   })
 }
 export const getTempTestMangeTable = ({
+  keyword,
   number,
   TestName,
   TestType,
@@ -191,6 +194,7 @@ export const getTempTestMangeTable = ({
     url: "/test/getTempTableData",
     method: "get",
     params: {
+      keyword,
       number,
       TestName,
       TestType,

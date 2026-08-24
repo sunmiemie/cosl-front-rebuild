@@ -39,6 +39,33 @@ export type WorkOrderSchedulePayload = {
   skipAssistantPush?: boolean
 }
 
+export type WorkOrderScheduleHistoryItem = {
+  id: number
+  equipmentType: WorkOrderScheduleEquipment
+  targetKind: ScheduleTargetKind
+  orderId: string
+  targetId: string
+  taskNumber: string
+  orderTitle: string
+  targetName: string
+  applicant: string
+  status: string
+  statusText: string
+  scheduledStartAt: string
+  scheduledEndAt: string
+  scheduleSegments: WorkOrderScheduleSegment[]
+  archivedAt: string
+}
+
+export type WorkOrderScheduleHistoryResponse = {
+  code: number
+  msg?: string
+  data: {
+    list: WorkOrderScheduleHistoryItem[]
+    total: number
+  }
+}
+
 export type CircuitBoardSequenceBatchPayload = {
   order_ids: number[]
   equipment_id?: string
@@ -136,6 +163,18 @@ export function clearWorkOrderSchedule(equipment: EndpointScheduleEquipment, tar
   return request<any>({
     url: buildScheduleUrl(equipment, targetId),
     method: "delete"
+  })
+}
+
+export function getWorkOrderScheduleHistory(params: {
+  equipmentType: Exclude<WorkOrderScheduleEquipment, "circuit-board-module">
+  startDate: string
+  endDate: string
+}) {
+  return request<WorkOrderScheduleHistoryResponse>({
+    url: "test/work-order-schedule/history/",
+    method: "get",
+    params
   })
 }
 
