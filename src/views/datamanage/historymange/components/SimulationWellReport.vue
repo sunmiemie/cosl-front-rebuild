@@ -3,16 +3,24 @@ import { computed, onMounted, reactive, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { Download, Refresh, Search, Upload } from "@element-plus/icons-vue"
-import { syncEngineerAssistantLocalReportApi } from "@/api/engineer-assistant"
+import { syncEngineerAssistantReportsApi } from "@/api/engineer-assistant"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
   getSimulatedWellReportDetailApi,
-  getSimulatedWellReportCurveZipApi,
+  getSimulatedWellReportCurveDownloadTicketApi,
   getSimulatedWellReportListApi,
   getSimulatedWellReportPdfApi,
   updateSimulatedWellReportApi,
   type SimulatedWellReportListItem
 } from "@/api/simulated-well-report"
+import {
+  downloadPdfBlob,
+  getAssistantReportSyncStatusText,
+  getAssistantReportSyncTagType,
+  getAssistantSyncError,
+  getAssistantSyncFeedback,
+  normalizeAssistantReportPushOutcome
+} from "@/utils/assistant-report-sync"
 import { displayReportValue, resolveReportFileUrl } from "@/utils/high-temp-pressure-paper-report"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
@@ -30,6 +38,7 @@ type ReportSearchState = {
 
 type AuditRow = SimulatedWellReportListItem & {
   meta: ReportJson
+  report_name: string
   template_no: string
   job_no: string
   test_product: string
@@ -225,7 +234,7 @@ const fieldType = (field: unknown) => {
 
 const fieldKey = (prefix: string, index: number, suffix = "") => `${prefix}_${index}${suffix ? `_${suffix}` : ""}`
 
-const displayReadonlyValue = (value: unknown, empty = "未填写") => {
+const displayReadonlyValue = (value: unknown, empty = "") => {
   if (value === undefined || value === null || value === "") return empty
   const statusText: Record<string, string> = {
     normal: "正常",
@@ -236,6 +245,45 @@ const displayReadonlyValue = (value: unknown, empty = "未填写") => {
   if (typeof value === "string") return statusText[value] || value
   if (typeof value === "boolean") return value ? "是" : "否"
   return String(value)
+}
+
+const displayRangeRadioResult = (value: unknown) => {
+  if (value === "abnormal" || value === "异常" || value === "不正常") return "不正常"
+  return displayReadonlyValue(value)
+}
+
+const displayNumberWithUnit = (value: unknown, unit: unknown) => {
+  const numberValue = displayReadonlyValue(value)
+  if (value === undefined || value === null || value === "") return numberValue
+  return `${numberValue}${String(unit || "").trim()}`
+}
+
+const displayValueWithUnit = (value: unknown, unit: unknown) => {
+  const text = displayReadonlyValue(value)
+  if (text === "") return ""
+  return `${text}${String(unit || "").trim()}`
+}
+
+const transferColumns = (field: unknown): Record<string, any>[] => {
+  const normalized = normalizeTemplateField(field)
+  if (!normalized || typeof normalized !== "object") return []
+  const columns = (normalized as Record<string, any>).columns
+  return Array.isArray(columns) ? columns as Record<string, any>[] : []
+}
+
+const buildReadonlyTransferDataRows = (fields: unknown, values: unknown): ReadonlyReportRow[] => {
+  if (!Array.isArray(fields)) return []
+  const valueMap = values && typeof values === "object" ? values as Record<string, unknown> : {}
+  return fields.flatMap((field, fieldIndex) => {
+    if (fieldType(field) !== "single-row-multi-column") return []
+    return transferColumns(field).map((column, columnIndex) => {
+      const label = `${fieldLabel(field, "")}${fieldLabel(column, "")}` || `转样数据${fieldIndex + 1}子字段${columnIndex + 1}`
+      return {
+        label,
+        value: displayValueWithUnit(valueMap[fieldKey("transfer", fieldIndex, `c${columnIndex}`)], column.unit)
+      }
+    })
+  })
 }
 
 const positiveFieldCount = (value: unknown, fallback: number) => {
@@ -258,23 +306,36 @@ const buildReadonlyReportRows = (
     const key = fieldKey(prefix, index)
     const label = fieldLabel(rawField, `${sectionName}${index + 1}`)
     const type = fieldType(rawField)
-    if (!["depth-group", "range-radio", "multi-input-row", "sampling-group", "card-group"].includes(type)) {
+    if (!["depth-group", "range-radio", "multi-input-row", "sampling-group", "card-group", "single-input"].includes(type)) {
+      if (type === "number") return { label, value: displayNumberWithUnit(valueMap[key], definition.unit) }
       return { label, value: displayReadonlyValue(valueMap[key]) }
+    }
+    if (type === "single-input") {
+      const inputValue = displayReadonlyValue(valueMap[key])
+      const unit = String(definition.unit || "").trim()
+      const valueWithUnit = inputValue ? `${inputValue}${unit}` : ""
+      return {
+        label: `${label}：${valueWithUnit}`,
+        value: displayReadonlyValue(valueMap[fieldKey(prefix, index, "result")]),
+      }
     }
     if (type === "depth-group") {
       const unit = displayReadonlyValue(definition.unit, "m")
       const points = Array.from({ length: positiveFieldCount(definition.pointCount, 4) }, (_, pointIndex) => {
         const point = pointIndex + 1
-        const depth = displayReadonlyValue(valueMap[fieldKey(prefix, index, `p${point}`)])
+        const depth = displayValueWithUnit(valueMap[fieldKey(prefix, index, `p${point}`)], unit)
         const result = valueMap[fieldKey(prefix, index, `p${point}_result`)]
-        return `第${point}点：${depth}${unit}${result === undefined || result === null || result === "" ? "" : `，${displayReadonlyValue(result)}`}`
+        return `第${point}点：${depth}${result === undefined || result === null || result === "" ? "" : `，${displayReadonlyValue(result)}`}`
       })
       return { label, value: points.join("；") }
     }
     if (type === "range-radio") {
+      const start = displayReadonlyValue(valueMap[fieldKey(prefix, index, "from")])
+      const end = displayReadonlyValue(valueMap[fieldKey(prefix, index, "to")])
+      const unit = String(definition.unit || "").trim()
       return {
-        label,
-        value: `${displayReadonlyValue(valueMap[fieldKey(prefix, index, "from")])} ~ ${displayReadonlyValue(valueMap[fieldKey(prefix, index, "to")])}；${displayReadonlyValue(valueMap[fieldKey(prefix, index, "result")])}`
+        label: `${label}：${start || end ? `${start} ~ ${end}${unit}` : ""}`,
+        value: displayRangeRadioResult(valueMap[fieldKey(prefix, index, "result")]),
       }
     }
     if (type === "multi-input-row") {
@@ -284,7 +345,7 @@ const buildReadonlyReportRows = (
           (column: unknown, columnIndex: number) =>
             `${fieldLabel(column, `输入${columnIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `r${rowIndex + 1}c${columnIndex}`)])}`
         )
-        return `第${rowIndex + 1}点：${row.join("，") || "未填写"}`
+        return `第${rowIndex + 1}点：${row.join("，")}`
       })
       return { label, value: rows.join("；") }
     }
@@ -296,7 +357,7 @@ const buildReadonlyReportRows = (
           (item: unknown, itemIndex: number) =>
             `${fieldLabel(item, `项目${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `p${point}i${itemIndex}`)])}`
         )
-        return `第${point}点：${values.join("，") || "未填写"}`
+        return `第${point}点：${values.join("，")}`
       })
       return { label, value: points.join("；") }
     }
@@ -308,9 +369,9 @@ const buildReadonlyReportRows = (
         (item: unknown, itemIndex: number) =>
           `${fieldLabel(item, `字段${itemIndex + 1}`)}：${displayReadonlyValue(valueMap[fieldKey(prefix, index, `c${cardIndex}f${itemIndex}`)])}`
       )
-      return `${displayReadonlyValue(cardDefinition.title, `卡片${cardIndex + 1}`)}：${values.join("，") || "未填写"}`
+      return `${displayReadonlyValue(cardDefinition.title, `卡片${cardIndex + 1}`)}：${values.join("，")}`
     })
-    return { label, value: cardValues.join("；") || "未填写" }
+    return { label, value: cardValues.join("；") }
   })
 }
 
@@ -334,6 +395,9 @@ const currentEvaluationRows = computed(() =>
     "评价标准"
   )
 )
+const currentTransferDataRows = computed(() => buildReadonlyTransferDataRows(currentTemplateSnapshot.value?.transfer_data_records, currentReport.value?.meta.transfer_data_records))
+
+const isResearchReport = (report?: AuditRow | null) => Number(report?.meta?.order_type) === 1
 
 const getDeviceText = (meta: ReportJson) => {
   const device = meta.selected_device || meta.device || {}
@@ -345,6 +409,7 @@ const normalizeRow = (report: SimulatedWellReportListItem): AuditRow => {
   return {
     ...report,
     meta,
+    report_name: String(meta.report_name || ""),
     template_no: firstText(meta.template_code, meta.selected_template?.report_no),
     job_no: firstText(meta.operation_no, report.task_number),
     test_product: getDeviceText(meta),
@@ -352,7 +417,7 @@ const normalizeRow = (report: SimulatedWellReportListItem): AuditRow => {
   }
 }
 
-const formatTime = (time?: string) => (time ? String(time).replace("T", " ").slice(0, 19) : "-")
+const formatTime = (time?: string | null) => (time ? String(time).replace("T", " ").slice(0, 19) : "-")
 
 const statusText = (status: number) => {
   if (status === 1) return "审核通过"
@@ -481,13 +546,14 @@ const showApproveDialog = (row: AuditRow) => {
 
 const handleApprove = async () => {
   if (!approvingRow.value) return
-  const res = await updateSimulatedWellReportApi(approvingRow.value.id, reviewPayload(1, approveReason.value))
+  const report = approvingRow.value
+  const res = await updateSimulatedWellReportApi(report.id, reviewPayload(1, approveReason.value))
   if (res.code === 0) {
-    ElMessage.success("审核通过成功")
     approveDialogVisible.value = false
     detailDialogVisible.value = false
     void taskCenterStore.refresh(true)
     await getList()
+    await showApprovalSyncResult(res, report)
   } else {
     ElMessage.error(res.msg || "审核失败")
   }
@@ -521,20 +587,11 @@ const handleDownload = async (row: AuditRow) => {
   downloadingId.value = row.id
   try {
     const blob = await getSimulatedWellReportPdfApi(row.id)
-    const pdfBlob = blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" })
-    const url = URL.createObjectURL(pdfBlob)
-    const filename = `${(row.report_no || "模拟井测试报告").replace(/[\\/:*?"<>|]/g, "-")}.pdf`
-    const a = document.createElement("a")
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
-    ElMessage.success("PDF 下载开始")
-  } catch (error) {
+    await downloadPdfBlob(blob, row.report_no || "模拟井测试报告")
+    ElMessage.success("正式 PDF 下载开始")
+  } catch (error: any) {
     console.error("下载模拟井报告 PDF 失败", error)
-    ElMessage.error("PDF 下载失败")
+    ElMessage.error(error?.message || "正式 PDF 下载失败")
   } finally {
     downloadingId.value = null
   }
@@ -543,17 +600,13 @@ const handleDownload = async (row: AuditRow) => {
 const handleCurveDownload = async (row: AuditRow) => {
   curveDownloadingId.value = row.id
   try {
-    const blob = await getSimulatedWellReportCurveZipApi(row.id)
-    const zipBlob = blob.type === "application/zip" ? blob : new Blob([blob], { type: "application/zip" })
-    const url = URL.createObjectURL(zipBlob)
-    const filename = `${(row.report_no || "模拟井测试报告").replace(/[\\/:*?"<>|]/g, "-")}-曲线图.zip`
+    const ticket = await getSimulatedWellReportCurveDownloadTicketApi(row.id)
+    const base = String(import.meta.env.VITE_BASE_API || "/").replace(/\/+$/, "")
+    const path = ticket.data.url.replace(/^\/+/, "")
+    const url = /^https?:\/\//i.test(ticket.data.url) ? ticket.data.url : `${base}/${path}`
     const a = document.createElement("a")
     a.href = url
-    a.download = filename
-    document.body.appendChild(a)
     a.click()
-    a.remove()
-    URL.revokeObjectURL(url)
     ElMessage.success("原始文件下载已开始")
   } catch (error) {
     console.error("下载模拟井报告曲线图失败", error)
@@ -563,21 +616,62 @@ const handleCurveDownload = async (row: AuditRow) => {
   }
 }
 
-const handlePushAssistant = async (row: AuditRow) => {
-  await ElMessageBox.confirm("确定重新推送该正式报告到工程师小助手吗？", "推送报告", { type: "warning" })
+const retryAssistantReport = async (row: AuditRow) => {
   assistantPushingId.value = row.id
   try {
-    await syncEngineerAssistantLocalReportApi({
+    const response = await syncEngineerAssistantReportsApi({
+      source: "local",
+      action: "push",
       reportType: "simulated-well",
-      reportId: row.id
+      reportId: row.id,
+      force: true
     })
-    ElMessage.success("报告已推送到小助手")
-  } catch (error) {
-    console.error("推送模拟井报告失败", error)
-    ElMessage.error("报告推送失败，请检查正式附件和同步日志")
+    const outcome = normalizeAssistantReportPushOutcome(response)
+    if (outcome.success) {
+      ElMessage.success("本申请单当前报告快照已推送小助手")
+    } else {
+      ElMessage.error(`本申请单当前报告快照推送失败：${outcome.error}`)
+    }
+    await getList()
+  } catch (error: any) {
+    const message = error?.response?.data?.msg || error?.message || "未知错误"
+    ElMessage.error(`本申请单当前报告快照推送失败：${message}`)
+    await getList()
   } finally {
     assistantPushingId.value = null
   }
+}
+
+const showApprovalSyncResult = async (response: unknown, report: AuditRow) => {
+  const assistantSync = getAssistantSyncFeedback(response)
+  if (assistantSync?.success === true) {
+    ElMessage.success("报告审核通过，并已推送小助手")
+    return
+  }
+
+  const error = getAssistantSyncError(assistantSync)
+  ElMessage.warning(`本地报告已审核通过，但推送小助手失败：${error}`)
+  try {
+    await ElMessageBox.confirm(
+      `本地审核已经成功，不会回滚。推送小助手失败：${error}。是否立即重新推送？`,
+      "审核成功，但小助手同步失败",
+      {
+        type: "warning",
+        confirmButtonText: "立即重试",
+        cancelButtonText: "稍后处理"
+      }
+    )
+  } catch {
+    return
+  }
+  await retryAssistantReport(report)
+}
+
+const handlePushAssistant = async (row: AuditRow) => {
+  await ElMessageBox.confirm("确定重新推送本申请单当前已审核报告快照到小助手吗？", "重新推送本申请单报告", {
+    type: "warning"
+  })
+  await retryAssistantReport(row)
 }
 
 const openRouteReportDetail = async () => {
@@ -659,7 +753,11 @@ defineExpose({ resetSearch: handleReset })
       <div class="table-wrapper">
         <el-table :data="tableData" stripe border height="100%">
           <el-table-column prop="report_no" label="报告编号" min-width="160" />
+          <el-table-column prop="report_name" label="报告名称" min-width="180" show-overflow-tooltip />
           <el-table-column prop="job_no" label="作业编号" min-width="150" />
+          <el-table-column prop="instrument_sn" label="被测 SN" min-width="150">
+            <template #default="{ row }">{{ row.instrument_sn || row.equipmentId || "-" }}</template>
+          </el-table-column>
           <el-table-column prop="test_product" label="测试产品" min-width="180" show-overflow-tooltip />
           <el-table-column prop="operator_engineer" label="测试人员" width="120" />
           <el-table-column prop="test_date" label="测试日期" width="130" />
@@ -674,16 +772,33 @@ defineExpose({ resetSearch: handleReset })
               <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="270" fixed="right" align="center">
+          <el-table-column label="小助手同步" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getAssistantReportSyncTagType(row.assistant_sync_status)">
+                {{ getAssistantReportSyncStatusText(row.assistant_sync_status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="同步时间" width="170">
+            <template #default="{ row }">{{ formatTime(row.assistant_synced_at) }}</template>
+          </el-table-column>
+          <el-table-column label="同步尝试次数" width="110" align="center">
+            <template #default="{ row }">{{ row.assistant_sync_retry_count || 0 }}</template>
+          </el-table-column>
+          <el-table-column label="同步失败原因" min-width="220" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.assistant_sync_error || "-" }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="390" fixed="right" align="center">
             <template #default="{ row }">
               <el-button link type="primary" @click="handleDetail(row)">查看</el-button>
               <el-button v-if="row.status === 0" link type="success" @click="showApproveDialog(row)">通过</el-button>
               <el-button v-if="row.status === 0" link type="danger" @click="showRejectDialog(row)">驳回</el-button>
               <el-button
-                v-if="row.status === 1"
+                v-if="row.status === 1 && !isResearchReport(row)"
                 :loading="downloadingId === row.id"
                 link
                 type="success"
+                title="非研究院已通过报告可下载正式 PDF"
                 @click="handleDownload(row)"
               >
                 下载 PDF
@@ -691,12 +806,12 @@ defineExpose({ resetSearch: handleReset })
               <el-button
                 v-if="row.status === 1"
                 :icon="Upload"
-                :loading="assistantPushingId === row.id"
                 link
                 type="primary"
+                :disabled="assistantPushingId !== null || row.assistant_sync_status === 'syncing'"
                 @click="handlePushAssistant(row)"
               >
-                推送
+                {{ assistantPushingId === row.id ? "推送中" : "重新推送本申请单报告" }}
               </el-button>
             </template>
           </el-table-column>
@@ -723,6 +838,9 @@ defineExpose({ resetSearch: handleReset })
           <el-descriptions :column="2" border>
             <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
             <el-descriptions-item label="任务编号">{{ currentReport.task_number }}</el-descriptions-item>
+            <el-descriptions-item label="被测 SN">{{
+              currentReport.instrument_sn || currentReport.equipmentId || "-"
+            }}</el-descriptions-item>
             <el-descriptions-item label="测试日期">{{ currentReport.test_date }}</el-descriptions-item>
             <el-descriptions-item label="测试人员">{{ currentReport.tester }}</el-descriptions-item>
             <el-descriptions-item label="电子签名" :span="2">
@@ -750,15 +868,29 @@ defineExpose({ resetSearch: handleReset })
             <el-descriptions-item label="审核状态">
               <el-tag :type="statusType(currentReport.status)">{{ statusText(currentReport.status) }}</el-tag>
             </el-descriptions-item>
+            <el-descriptions-item label="小助手同步状态">
+              <el-tag :type="getAssistantReportSyncTagType(currentReport.assistant_sync_status)">
+                {{ getAssistantReportSyncStatusText(currentReport.assistant_sync_status) }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="小助手同步时间">{{
+              formatTime(currentReport.assistant_synced_at)
+            }}</el-descriptions-item>
+            <el-descriptions-item label="同步尝试次数">{{
+              currentReport.assistant_sync_retry_count || 0
+            }}</el-descriptions-item>
+            <el-descriptions-item label="同步失败原因">{{
+              currentReport.assistant_sync_error || "-"
+            }}</el-descriptions-item>
           </el-descriptions>
         </div>
 
         <div class="detail-card">
           <div class="detail-card-title">报告内容</div>
           <div class="report-grid">
-            <div class="info-tile">
+            <div v-if="!isResearchReport(currentReport)" class="info-tile">
               <span>报告名称</span>
-              <strong>{{ firstText(currentReport.meta.report_name, currentReport.report_no) }}</strong>
+              <strong>{{ currentReport.report_name }}</strong>
             </div>
             <div class="info-tile">
               <span>测试产品</span>
@@ -775,7 +907,7 @@ defineExpose({ resetSearch: handleReset })
           </div>
         </div>
 
-        <div class="detail-card">
+        <div v-if="!isResearchReport(currentReport)" class="detail-card">
           <div class="detail-card-title">测试项目</div>
           <el-empty v-if="!currentTemplateSnapshot" description="暂无可用项目定义" :image-size="56" />
           <el-empty v-else-if="!currentTestItemRows.length" description="当前模板未配置测试项目" :image-size="56" />
@@ -787,12 +919,22 @@ defineExpose({ resetSearch: handleReset })
           </div>
         </div>
 
-        <div class="detail-card">
+        <div v-if="!isResearchReport(currentReport)" class="detail-card">
           <div class="detail-card-title">资料评价标准值</div>
           <el-empty v-if="!currentTemplateSnapshot" description="暂无可用项目定义" :image-size="56" />
           <el-empty v-else-if="!currentEvaluationRows.length" description="当前模板未配置评价标准" :image-size="56" />
           <div v-else class="readonly-report-list">
             <div v-for="row in currentEvaluationRows" :key="row.label" class="readonly-report-row">
+              <div class="readonly-report-label">{{ row.label }}</div>
+              <div class="readonly-report-value">{{ row.value }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="!isResearchReport(currentReport) && currentTransferDataRows.length" class="detail-card">
+          <div class="detail-card-title">测试完成转样数据记录</div>
+          <div class="readonly-report-list">
+            <div v-for="row in currentTransferDataRows" :key="row.label" class="readonly-report-row">
               <div class="readonly-report-label">{{ row.label }}</div>
               <div class="readonly-report-value">{{ row.value }}</div>
             </div>

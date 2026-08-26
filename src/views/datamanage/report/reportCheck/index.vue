@@ -3,11 +3,18 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { checkReportDataApi, checkReportFeedbackApi, checkReportPassApi, generateQuestionUnitApi } from "@/api/report"
+import {
+  checkReportDataApi,
+  checkReportFeedbackApi,
+  checkReportPassApi,
+  generateQuestionUnitApi,
+  retryReportAssistantSyncApi,
+  restoreReportSourceApi
+} from "@/api/report"
 import { useUserStore } from "@/store/modules/user"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import ReportPreview from "@/components/Check/ReportPreview.vue"
-import { ElMessageBox } from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
 import { ReportCheck } from "@/utils/report"
 import { appendJsonFile, buildFeedbackFile, buildQuestionFile, jsonToFile } from "@/utils/report-feedback"
 
@@ -29,6 +36,13 @@ const hasQuestion = ref(false)
 const hasWarn = ref(false)
 const loading = ref(false)
 const loaded = ref(false)
+const isRecoveredPlaceholder = ref(false)
+const loadError = ref("")
+const canRestoreSource = ref(false)
+const restoreVisible = ref(false)
+const restoring = ref(false)
+const restoreFile = ref(null)
+const restoreFileList = ref([])
 const route = useRoute()
 const router = useRouter()
 const errorList = ref([])
@@ -635,6 +649,50 @@ const getErrorQuestionWarnList = () => {
   }
 }
 
+const finishReportAudit = async (response) => {
+  const syncResult = response?.data?.assistantSync
+  if (syncResult?.attempted && !syncResult.success) {
+    const reason = syncResult.error || "外部接口暂时不可用"
+    try {
+      await ElMessageBox.confirm(
+        `本地审核结果已保存，但报告尚未同步到小助手：${reason}。是否立即重试？`,
+        "报告同步未完成",
+        {
+          confirmButtonText: "立即重试",
+          cancelButtonText: "稍后处理",
+          type: "warning"
+        }
+      )
+    } catch {
+      ElMessage.warning("审核已保存，报告尚未同步；可在当前页面再次审核以重试")
+      return
+    }
+
+    loading.value = true
+    try {
+      const retryResponse = await retryReportAssistantSyncApi({ id: anyObj.id })
+      const retryResult = retryResponse?.data?.assistantSync
+      if (!retryResult?.success) {
+        ElMessage.warning(retryResult?.error || "审核已保存，但报告同步重试仍未成功")
+        return
+      }
+      ElMessage.success(retryResult.message || `审核已完成，已同步 ${retryResult.synced || 0} 份报告`)
+    } catch (error) {
+      console.error("报告同步重试失败", error)
+      ElMessage.warning("审核已保存，但报告同步重试失败，请稍后再次重试")
+      return
+    } finally {
+      loading.value = false
+    }
+  } else if (syncResult?.attempted) {
+    ElMessage.success(syncResult.message || `审核已完成，已同步 ${syncResult.synced || 0} 份报告`)
+  } else {
+    ElMessage.success("审核完成")
+  }
+
+  void taskCenterStore.refresh(true)
+  router.push({ name: "reportCheckList" })
+}
 const checkPass = () => {
   loading.value = true
   const blob = jsonToFile(reportJson.value)
@@ -648,13 +706,15 @@ const checkPass = () => {
     formData.append(key, data[key])
   }
   appendJsonFile(formData, "file", reportFixed.value ? blob : null, "data.json")
-  checkReportPassApi(formData).then((res) => {
-    if (res.msg === "success") {
+  checkReportPassApi(formData)
+    .then(async (res) => {
+      if (res.msg === "success") {
+        await finishReportAudit(res)
+      }
+    })
+    .finally(() => {
       loading.value = false
-      void taskCenterStore.refresh(true)
-      router.push({ name: "reportCheckList" })
-    }
-  })
+    })
 }
 const checkFeedback = () => {
   loading.value = true
@@ -713,7 +773,10 @@ const generateQuestionUnit = () => {
 }
 
 const handlePass = () => {
-  ElMessageBox.confirm("确认通过审核吗？", "确认审核", {
+  const confirmMessage = isRecoveredPlaceholder.value
+    ? "当前报告是根据数据库元数据生成的恢复版，原始检测图片缺失。确认仍通过审核吗？"
+    : "确认通过审核吗？"
+  ElMessageBox.confirm(confirmMessage, "确认审核", {
     confirmButtonText: "确认",
     cancelButtonText: "取消",
     type: "warning"
@@ -773,40 +836,112 @@ const handleSelectionChange = (value) => {
   feedbackList.value = stepList.value.filter((item) => value.includes(item))
   console.log(feedbackList.value)
 }
-const reGetReport = () => {
-  loading.value = true
-  reportFixed.value = false
-  checkReportDataApi({ id: route.query.id }).then((res) => {
-    loaded.value = true
-    loading.value = false
-    getErrorQuestionWarnList()
-    reportJson.value = res.data
-    console.log(reportJson.value)
-  })
+const resolveLoadFailure = (error) => {
+  const payload = error?.response?.data || error?.data || {}
+  return {
+    message: payload?.msg || payload?.message || error?.message || "读取报告原始数据失败",
+    canRestore: Boolean(payload?.data?.canRestore)
+  }
 }
-const loadReportData = () => {
+
+const fetchReportData = async () => {
   loading.value = true
+  loaded.value = false
+  loadError.value = ""
+  canRestoreSource.value = false
+  try {
+    const res = await checkReportDataApi({ id: route.query.id })
+    reportJson.value = res.data || {}
+    isRecoveredPlaceholder.value = Boolean(reportJson.value?.sourceRecovery?.isRecoveredPlaceholder)
+    loaded.value = true
+    getErrorQuestionWarnList()
+  } catch (error) {
+    const failure = resolveLoadFailure(error)
+    reportJson.value = {}
+    isRecoveredPlaceholder.value = false
+    loadError.value = failure.message
+    canRestoreSource.value = failure.canRestore
+    console.error("读取报告原始数据失败", error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const reGetReport = async () => {
+  reportFixed.value = false
+  await fetchReportData()
+}
+
+const loadReportData = async () => {
   anyObj.type = route.query.type
   anyObj.id = route.query.id
   anyObj.name = route.query.name
   anyObj.user = route.query.user
   anyObj.date = route.query.date
-  checkReportDataApi({ id: route.query.id }).then((res) => {
-    loaded.value = true
-    loading.value = false
-    getErrorQuestionWarnList()
-    reportJson.value = res.data
-  })
+  await fetchReportData()
+}
+
+const clearRestoreFile = () => {
+  restoreFile.value = null
+  restoreFileList.value = []
+}
+
+const openRestoreDialog = () => {
+  clearRestoreFile()
+  restoreVisible.value = true
+}
+
+const handleRestoreFileChange = (file) => {
+  const raw = file?.raw
+  clearRestoreFile()
+  if (!raw) return
+  if (!raw.name.toLowerCase().endsWith(".json")) {
+    ElMessage.error("仅支持上传 JSON 文件")
+    return
+  }
+  if (raw.size > 200 * 1024 * 1024) {
+    ElMessage.error("报告原始 JSON 文件不能超过 200MB")
+    return
+  }
+  restoreFile.value = raw
+  restoreFileList.value = [file]
+}
+
+const handleRestoreFileExceed = () => {
+  ElMessage.warning("每次只能选择一个报告原始 JSON 文件")
+}
+
+const submitRestoreSource = async () => {
+  if (!restoreFile.value) {
+    ElMessage.warning("请先选择报告原始 JSON 文件")
+    return
+  }
+
+  restoring.value = true
+  try {
+    const formData = new FormData()
+    formData.append("id", String(route.query.id || ""))
+    formData.append("file", restoreFile.value)
+    await restoreReportSourceApi(formData)
+    ElMessage.success("报告原始文件恢复成功")
+    restoreVisible.value = false
+    clearRestoreFile()
+    await fetchReportData()
+  } catch (error) {
+    console.error("恢复报告原始文件失败", error)
+  } finally {
+    restoring.value = false
+  }
 }
 onMounted(() => {
-  loadReportData()
+  void loadReportData()
   watch([() => reportJson.value], getErrorQuestionWarnList, { immediate: true, deep: true })
 })
 
 watch(
   () => route.fullPath,
   () => {
-    loadReportData()
+    void loadReportData()
   }
 )
 </script>
@@ -832,7 +967,8 @@ watch(
 
       <div style="display: flex; justify-content: space-between; align-items: center">
         <div>
-          <el-text v-if="!hasQuestion && !hasError" size="large" style="color: green">测试正常</el-text>
+          <el-text v-if="loaded && isRecoveredPlaceholder" size="large" type="warning">恢复版报告</el-text>
+          <el-text v-else-if="loaded && !hasQuestion && !hasError" size="large" style="color: green">测试正常</el-text>
           <el-link
             v-if="hasError"
             :underline="false"
@@ -862,21 +998,91 @@ watch(
             >存在制程警示
           </el-link>
         </div>
-        <el-button icon="Refresh" v-if="reportFixed" @click="reGetReport">重置所有更改</el-button>
+        <el-button v-if="reportFixed && loaded" icon="Refresh" @click="reGetReport">重置所有更改</el-button>
       </div>
-      <div v-loading="loading" style="display: flex; margin-top: 10px; border: #c0c4cc 1px solid; margin-bottom: 10px">
+      <el-alert
+        v-if="loaded && isRecoveredPlaceholder"
+        class="recovery-warning"
+        type="warning"
+        :closable="false"
+        show-icon
+        title="当前显示的是根据数据库元数据生成的恢复版报告"
+        :description="
+          reportJson.sourceRecovery?.message ||
+          '原始报告 JSON 和检测图片缺失。当前内容仅用于恢复页面查看，不能代替原始检测结果。'
+        "
+      />
+      <div v-loading="loading" class="report-preview-shell">
         <report-preview v-if="loaded" v-model:preview-list="reportJson" mode="check" style="width: 100vw" />
+        <el-result v-else-if="loadError && !loading" icon="error" title="无法读取报告原始数据" :sub-title="loadError">
+          <template #extra>
+            <el-button icon="Refresh" @click="reGetReport">重新读取</el-button>
+            <el-button v-if="canRestoreSource" type="primary" icon="Upload" @click="openRestoreDialog">
+              恢复原始 JSON
+            </el-button>
+          </template>
+        </el-result>
       </div>
       <div style="display: flex; align-items: center">
         <div v-if="!hasQuestion">
-          <el-button icon="Check" size="large" type="success" @click="handlePass">审核通过</el-button>
-          <el-button icon="Close" size="large" type="danger" @click="feedbackVisible = true">审核未通过</el-button>
+          <el-button :disabled="!loaded || loading" icon="Check" size="large" type="success" @click="handlePass">
+            审核通过
+          </el-button>
+          <el-button
+            :disabled="!loaded || loading"
+            icon="Close"
+            size="large"
+            type="danger"
+            @click="feedbackVisible = true"
+          >
+            审核未通过
+          </el-button>
         </div>
         <div v-else>
-          <el-button size="large" type="warning" @click="questionDialogVisible = true">生成疑问工单</el-button>
+          <el-button :disabled="!loaded || loading" size="large" type="warning" @click="questionDialogVisible = true">
+            生成疑问工单
+          </el-button>
         </div>
       </div>
     </el-card>
+
+    <el-dialog
+      v-model="restoreVisible"
+      title="恢复报告原始 JSON"
+      width="520px"
+      destroy-on-close
+      :close-on-click-modal="false"
+      @closed="clearRestoreFile"
+    >
+      <el-alert
+        type="warning"
+        :closable="false"
+        show-icon
+        title="请选择生成该报告时保存的原始 JSON 文件。恢复成功后，系统会重新加载报告内容。"
+      />
+      <el-upload
+        v-model:file-list="restoreFileList"
+        class="restore-upload"
+        drag
+        accept=".json,application/json"
+        :auto-upload="false"
+        :limit="1"
+        :on-change="handleRestoreFileChange"
+        :on-exceed="handleRestoreFileExceed"
+      >
+        <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+        <div class="el-upload__text">拖拽 JSON 文件到此处，或<em>点击选择文件</em></div>
+        <template #tip>
+          <div class="el-upload__tip">仅支持 UTF-8 编码的 JSON 文件，最大 200MB</div>
+        </template>
+      </el-upload>
+      <template #footer>
+        <el-button :disabled="restoring" @click="restoreVisible = false">取消</el-button>
+        <el-button type="primary" :loading="restoring" :disabled="!restoreFile" @click="submitRestoreSource">
+          恢复并重新读取
+        </el-button>
+      </template>
+    </el-dialog>
 
     <el-dialog v-model="errorVisible" title="缺陷操作" align-center width="80%">
       <el-table :data="errorList" max-height="70vh">
@@ -1139,3 +1345,30 @@ watch(
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.report-preview-shell {
+  display: flex;
+  min-height: 280px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--el-border-color);
+}
+
+.report-preview-shell :deep(.el-result) {
+  width: 100%;
+}
+
+.recovery-warning {
+  margin-top: 12px;
+}
+
+.restore-upload {
+  margin-top: 18px;
+}
+
+.restore-upload :deep(.el-upload),
+.restore-upload :deep(.el-upload-dragger) {
+  width: 100%;
+}
+</style>

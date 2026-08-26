@@ -43,6 +43,7 @@ export interface WaterCycleOrderListItem {
   status_text: string
   scheduled_start_at?: string | null
   scheduled_end_at?: string | null
+  instruments?: WaterCycleInstrumentItem[]
   schedule_segments?: Array<{
     scheduled_start_at?: string | null
     scheduled_end_at?: string | null

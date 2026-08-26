@@ -1,15 +1,18 @@
 <script lang="ts" setup>
 import { reactive, ref, watch } from "vue"
-import { ElMessageBox } from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
 import { usePagination } from "@/hooks/usePagination"
 import TableComponent from "@/components/Table/index.vue"
 import { questionUnitDataApi, questionOperateDataApi } from "@/api/questionunit"
-import { checkReportDataApi, checkReportPassApi, checkTempReportDataApi, checkTempReportPassApi } from "@/api/report"
-import { useRouter } from "vue-router"
+import {
+  checkReportDataApi,
+  checkReportPassApi,
+  checkTempReportDataApi,
+  checkTempReportPassApi,
+  retryReportAssistantSyncApi
+} from "@/api/report"
 import { useUserStore } from "@/store/modules/user"
 import { ReportCheck } from "@/utils/report"
-
-const router = useRouter()
 
 const userStore = useUserStore()
 const loading = ref<boolean>(false)
@@ -40,6 +43,47 @@ const headers = ref([
 const TableData = ref<any>([])
 const questionList = ref<any>([])
 const reportJson = ref<any>([])
+
+const confirmQuestionReportSync = async (response: any) => {
+  const syncResult = response?.data?.assistantSync
+  if (!syncResult?.attempted || syncResult.success) {
+    if (syncResult?.attempted) {
+      ElMessage.success(syncResult.message || `已同步 ${syncResult.synced || 0} 份报告到小助手`)
+    }
+    return true
+  }
+
+  const reason = syncResult.error || "外部接口暂时不可用"
+  try {
+    await ElMessageBox.confirm(
+      `疑问处理和本地审核结果已保存，但报告尚未同步到小助手：${reason}。是否立即重试？`,
+      "报告同步未完成",
+      {
+        confirmButtonText: "立即重试",
+        cancelButtonText: "稍后处理",
+        type: "warning"
+      }
+    )
+  } catch {
+    ElMessage.warning("疑问处理已保存，报告尚未同步到小助手")
+    return false
+  }
+
+  try {
+    const retryResponse = await retryReportAssistantSyncApi({ id: currentReportId.value as number })
+    const retryResult = retryResponse?.data?.assistantSync
+    if (!retryResult?.success) {
+      ElMessage.warning(retryResult?.error || "疑问处理已保存，但报告同步重试仍未成功")
+      return false
+    }
+    ElMessage.success(retryResult.message || `已同步 ${retryResult.synced || 0} 份报告到小助手`)
+    return true
+  } catch (error) {
+    console.error("报告同步重试失败", error)
+    ElMessage.warning("疑问处理已保存，但报告同步重试失败，请稍后再次重试")
+    return false
+  }
+}
 const searchData = reactive({
   keyword: "",
   status: ""
@@ -271,10 +315,13 @@ const handleOperate = () => {
       }
       formData.append("file", blob, "data.json")
       checkReportPassApi(formData)
-        .then((res) => {
+        .then(async (res) => {
           if (res.msg === "success") {
-            loading.value = false
-            operatorDialog.value = false
+            const syncReady = await confirmQuestionReportSync(res)
+            if (syncReady) {
+              loading.value = false
+              operatorDialog.value = false
+            }
           }
         })
         .finally(() => {

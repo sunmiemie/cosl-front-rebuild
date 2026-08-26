@@ -77,9 +77,9 @@ export function syncEngineerAssistantLocalScheduleApi(data: Types.SyncEngineerAs
   })
 }
 
-export function syncEngineerAssistantLocalReportApi(data: Types.SyncEngineerAssistantLocalReportBody) {
-  return request<Types.SyncEngineerAssistantLocalResponse>({
-    url: "external/assistant/sync/local-report/",
+export function syncEngineerAssistantReportsApi(data: Types.SyncEngineerAssistantReportsBody) {
+  return request<Types.SyncEngineerAssistantReportsResponse>({
+    url: "external/assistant/sync/reports/",
     method: "post",
     data
   })
@@ -88,14 +88,6 @@ export function syncEngineerAssistantLocalReportApi(data: Types.SyncEngineerAssi
 export function changeEngineerAssistantStatusApi(data: Types.ChangeEngineerAssistantStatusBody) {
   return request({
     url: "external/assistant/change-status/",
-    method: "post",
-    data
-  })
-}
-
-export function pushEngineerAssistantReportsApi(data: Types.PushEngineerAssistantReportsBody) {
-  return request({
-    url: "external/assistant/push-reports/",
     method: "post",
     data
   })

@@ -3,6 +3,7 @@ import { computed, reactive, ref, onBeforeUnmount, onMounted, watch } from "vue"
 import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
 import { Search, Refresh, View, Check, Close } from "@element-plus/icons-vue"
+import { syncEngineerAssistantReportsApi } from "@/api/engineer-assistant"
 import {
   getWaterCycleReportDetailApi,
   getWaterCycleReportListApi,
@@ -24,6 +25,13 @@ import {
   updateHighTempPressureReportApi
 } from "@/api/high-temp-pressure-report"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
+import {
+  getAssistantReportSyncStatusText,
+  getAssistantReportSyncTagType,
+  getAssistantSyncError,
+  getAssistantSyncFeedback,
+  normalizeAssistantReportPushOutcome
+} from "@/utils/assistant-report-sync"
 import {
   booleanReportTagType,
   curveReportTagType,
@@ -76,6 +84,10 @@ interface ReportRow {
   submit_time: string
   audit_time: string
   remark: string
+  assistant_sync_status?: string
+  assistant_synced_at?: string | null
+  assistant_sync_error?: string
+  assistant_sync_retry_count?: number
 }
 
 interface InstrumentResult {
@@ -129,6 +141,12 @@ const configs = {
 }
 
 const config = computed(() => configs[props.reportType])
+const assistantReportType = computed(() => {
+  if (props.reportType === "water-cycle" || props.reportType === "high-temp-box") return props.reportType
+  if (props.reportType === "vibration-table") return "vibration-table"
+  if (props.reportType === "high-temp-high-pressure") return "high-temp-pressure"
+  return undefined
+})
 const loading = ref(false)
 const tableData = ref<ReportRow[]>([])
 const pagination = reactive({ currentPage: 1, pageSize: 10, total: 0 })
@@ -307,20 +325,75 @@ const requireReviewerSignature = async () => {
   return reviewerSignatureInfo.value
 }
 
+const retryAssistantSyncAfterApproval = async (report: ReportRow) => {
+  const reportType = assistantReportType.value
+  if (!reportType) return
+
+  try {
+    const response = await syncEngineerAssistantReportsApi({
+      source: "local",
+      action: "push",
+      reportType,
+      reportId: report.id,
+      force: true
+    })
+    const outcome = normalizeAssistantReportPushOutcome(response)
+    if (outcome.success) {
+      ElMessage.success("本地报告已审核通过，重新推送小助手成功")
+    } else {
+      ElMessage.error(`本地报告已审核通过，但重新推送小助手仍失败：${outcome.error}`)
+    }
+  } catch (error: any) {
+    const message = error?.response?.data?.msg || error?.message || "未知错误"
+    ElMessage.error(`本地报告已审核通过，但重新推送小助手仍失败：${message}`)
+  }
+}
+
+const showApprovalSyncResult = async (response: unknown, report: ReportRow) => {
+  if (!assistantReportType.value) {
+    ElMessage.success("审核通过成功")
+    return
+  }
+
+  const assistantSync = getAssistantSyncFeedback(response)
+  if (assistantSync?.success === true) {
+    ElMessage.success("报告审核通过，并已推送小助手")
+    return
+  }
+
+  const error = getAssistantSyncError(assistantSync)
+  ElMessage.warning(`本地报告已审核通过，但推送小助手失败：${error}`)
+  try {
+    await ElMessageBox.confirm(
+      `本地审核已经成功，不会回滚。推送小助手失败：${error}。是否立即重新推送？`,
+      "审核成功，但小助手同步失败",
+      {
+        type: "warning",
+        confirmButtonText: "立即重试",
+        cancelButtonText: "稍后处理"
+      }
+    )
+  } catch {
+    return
+  }
+  await retryAssistantSyncAfterApproval(report)
+}
+
 const handleApprove = async (report: ReportRow) => {
   const signature = isHighTempPressure.value ? await requireReviewerSignature() : null
   if (isHighTempPressure.value && !signature) return
   await ElMessageBox.confirm("确定要通过该报告的审核吗？", "确认通过", { type: "success" })
-  await config.value.update(report.id, {
+  const response = await config.value.update(report.id, {
     status: 1,
     audit_time: nowText(),
     remark: report.remark || "",
     reviewer_signature_id: signature?.signatureId || undefined
   })
-  ElMessage.success("审核通过成功")
+  if (response.code !== 0) throw new Error(response.msg || "审核失败")
   detailVisible.value = false
   void taskCenterStore.refresh(true)
-  getTableData()
+  await getTableData()
+  await showApprovalSyncResult(response, report)
 }
 
 const showRejectDialog = (report: ReportRow) => {
@@ -425,6 +498,9 @@ defineExpose({ resetSearch })
         width="90"
         align="center"
       />
+      <el-table-column v-if="props.reportType !== 'high-temp-high-pressure'" prop="instrument_sn" label="被测 SN" min-width="150">
+        <template #default="{ row }">{{ row.instrument_sn || "-" }}</template>
+      </el-table-column>
       <el-table-column prop="tester" label="测试人员" width="120" align="center" />
       <el-table-column prop="test_date" label="测试日期" width="130" align="center" />
       <el-table-column prop="submit_time" label="提交时间" width="180" align="center">
@@ -433,6 +509,13 @@ defineExpose({ resetSearch })
       <el-table-column label="审核状态" width="110" align="center">
         <template #default="{ row }">
           <el-tag type="warning">{{ row.status_text || "待审核" }}</el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column label="小助手同步" width="120" align="center">
+        <template #default="{ row }">
+          <el-tag :type="getAssistantReportSyncTagType(row.assistant_sync_status)">
+            {{ getAssistantReportSyncStatusText(row.assistant_sync_status) }}
+          </el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="230" fixed="right" align="center">
@@ -474,6 +557,7 @@ defineExpose({ resetSearch })
         <el-descriptions-item v-if="props.reportType === 'high-temp-high-pressure'" label="测试轮次">{{
           currentReport.attempt_no || 1
         }}</el-descriptions-item>
+        <el-descriptions-item v-else label="被测 SN">{{ currentReport.instrument_sn || "-" }}</el-descriptions-item>
         <el-descriptions-item label="测试人员">{{ currentReport.tester }}</el-descriptions-item>
         <el-descriptions-item label="测试日期">{{ currentReport.test_date }}</el-descriptions-item>
         <el-descriptions-item label="总体结论">
@@ -486,6 +570,20 @@ defineExpose({ resetSearch })
         }}</el-descriptions-item>
         <el-descriptions-item label="提交时间">{{ formatTime(currentReport.submit_time) }}</el-descriptions-item>
         <el-descriptions-item label="审核时间">{{ formatTime(currentReport.audit_time) }}</el-descriptions-item>
+        <el-descriptions-item label="小助手同步状态">
+          <el-tag :type="getAssistantReportSyncTagType(currentReport.assistant_sync_status)">
+            {{ getAssistantReportSyncStatusText(currentReport.assistant_sync_status) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="小助手同步时间">{{
+          formatTime(currentReport.assistant_synced_at || undefined)
+        }}</el-descriptions-item>
+        <el-descriptions-item label="同步尝试次数">{{
+          currentReport.assistant_sync_retry_count || 0
+        }}</el-descriptions-item>
+        <el-descriptions-item label="同步失败原因">{{
+          currentReport.assistant_sync_error || "-"
+        }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ currentReport.remark || "-" }}</el-descriptions-item>
       </el-descriptions>
       <div v-if="currentReport && isHighTempPressure" class="detail-block reviewer-signature-card">

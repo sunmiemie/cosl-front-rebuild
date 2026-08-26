@@ -1,4 +1,5 @@
 import { request } from "@/utils/service"
+import type { AssistantReportSyncFeedback } from "@/api/engineer-assistant/types"
 
 export type HighTempPressureReportResult = "pass" | "fail" | "pending"
 
@@ -19,6 +20,7 @@ export interface HighTempPressureReportListItem {
   id: number
   report_no: string
   task_number: string
+  equipmentId?: string
   test_date: string
   tester: string
   status: number
@@ -42,6 +44,10 @@ export interface HighTempPressureReportListItem {
   submit_time: string
   audit_time: string
   remark: string
+  assistant_sync_status?: "pending" | "syncing" | "success" | "failed" | "skipped" | ""
+  assistant_synced_at?: string | null
+  assistant_sync_error?: string
+  assistant_sync_retry_count?: number
 }
 
 export interface HighTempPressureReportPayload {
@@ -73,7 +79,9 @@ export interface HighTempPressureReportPayload {
 interface HighTempPressureReportMutationResponse {
   code: number
   msg?: string
-  data?: HighTempPressureReportListItem
+  data?: HighTempPressureReportListItem & {
+    assistantSync?: AssistantReportSyncFeedback
+  }
 }
 
 export function getHighTempPressureReportListApi(params: {

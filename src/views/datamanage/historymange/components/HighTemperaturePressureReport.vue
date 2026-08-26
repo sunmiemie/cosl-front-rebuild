@@ -52,10 +52,26 @@
               {{ formatTime(row.audit_time) }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="250" align="center" fixed="right">
+          <el-table-column label="小助手同步" width="120" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getAssistantReportSyncTagType(row.assistant_sync_status)">
+                {{ getAssistantReportSyncStatusText(row.assistant_sync_status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="同步时间" width="170" align="center">
+            <template #default="{ row }">{{ formatTime(row.assistant_synced_at) }}</template>
+          </el-table-column>
+          <el-table-column label="同步尝试次数" width="110" align="center">
+            <template #default="{ row }">{{ row.assistant_sync_retry_count || 0 }}</template>
+          </el-table-column>
+          <el-table-column label="同步失败原因" min-width="220" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.assistant_sync_error || "-" }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="390" align="center" fixed="right">
             <template #default="{ row }">
               <el-link type="primary" @click="handleDetail(row)">详情</el-link>
-              <el-link type="warning" @click="handleEdit(row)">编辑</el-link>
+              <el-link v-if="row.status === 0" type="warning" @click="handleEdit(row)">编辑</el-link>
               <el-link type="success" @click="handleDownload(row)">下载</el-link>
               <el-button
                 v-if="row.status === 1 && row.is_current !== false"
@@ -63,11 +79,12 @@
                 :loading="assistantPushingId === row.id"
                 link
                 type="primary"
+                :disabled="assistantPushingId !== null || row.assistant_sync_status === 'syncing'"
                 @click="handlePushAssistant(row)"
               >
-                推送
+                {{ assistantPushingId === row.id ? "推送中" : "重新推送本申请单报告" }}
               </el-button>
-              <el-link type="danger" @click="handleDelete(row)">删除</el-link>
+              <el-link v-if="row.status === 0" type="danger" @click="handleDelete(row)">删除</el-link>
             </template>
           </el-table-column>
         </el-table>
@@ -93,7 +110,40 @@
           <el-input v-model="formData.report_no" placeholder="请输入报告编号" :disabled="!!formData.id" />
         </el-form-item>
         <el-form-item label="任务单号" prop="task_number">
-          <el-input v-model="formData.task_number" placeholder="请输入任务单号" />
+          <el-select
+            v-model="formData.task_number"
+            filterable
+            remote
+            reserve-keyword
+            :remote-method="loadOrderOptions"
+            :loading="orderOptionsLoading"
+            placeholder="请选择一个高温高压工单"
+            style="width: 100%"
+            @change="handleOrderChange"
+          >
+            <el-option
+              v-for="order in orderOptions"
+              :key="order.id"
+              :label="order.task_number"
+              :value="order.task_number"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="被测 SN" prop="instrument_sn">
+          <el-select
+            v-model="formData.instrument_sn"
+            filterable
+            placeholder="请选择该工单内一个 SN"
+            style="width: 100%"
+            :disabled="!formData.task_number"
+          >
+            <el-option
+              v-for="option in instrumentSnOptions"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+            />
+          </el-select>
         </el-form-item>
         <el-form-item label="测试日期" prop="test_date">
           <el-date-picker
@@ -148,6 +198,20 @@
         </el-descriptions-item>
         <el-descriptions-item label="提交时间">{{ formatTime(currentReport.submit_time) }}</el-descriptions-item>
         <el-descriptions-item label="审核时间">{{ formatTime(currentReport.audit_time) }}</el-descriptions-item>
+        <el-descriptions-item label="小助手同步状态">
+          <el-tag :type="getAssistantReportSyncTagType(currentReport.assistant_sync_status)">
+            {{ getAssistantReportSyncStatusText(currentReport.assistant_sync_status) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="小助手同步时间">{{
+          formatTime(currentReport.assistant_synced_at)
+        }}</el-descriptions-item>
+        <el-descriptions-item label="同步尝试次数">{{
+          currentReport.assistant_sync_retry_count || 0
+        }}</el-descriptions-item>
+        <el-descriptions-item label="同步失败原因">{{
+          currentReport.assistant_sync_error || "-"
+        }}</el-descriptions-item>
         <el-descriptions-item label="备注" :span="2">{{ currentReport.remark || "-" }}</el-descriptions-item>
       </el-descriptions>
       <div v-if="currentReport" class="detail-block">
@@ -299,7 +363,9 @@
 import { ref, reactive, onMounted, defineExpose, computed } from "vue"
 import { ElMessage, ElMessageBox, type FormInstance } from "element-plus"
 import { Upload } from "@element-plus/icons-vue"
-import { syncEngineerAssistantLocalReportApi } from "@/api/engineer-assistant"
+import { syncEngineerAssistantReportsApi } from "@/api/engineer-assistant"
+import { getHighTempPressureOrderListApi } from "@/api/high-temp-pressure"
+import type { HighTempPressureOrderListItem } from "@/api/high-temp-pressure/types"
 import {
   getHighTempPressureReportListApi,
   createHighTempPressureReportApi,
@@ -322,6 +388,13 @@ import {
   getHighTempPressurePaperReportView,
   isTestingCurveAttachment
 } from "@/utils/high-temp-pressure-paper-report"
+import {
+  downloadPdfBlob,
+  getAssistantReportSyncStatusText,
+  getAssistantReportSyncTagType,
+  normalizeAssistantReportPushOutcome
+} from "@/utils/assistant-report-sync"
+import { buildReportInstrumentSnOptions } from "@/utils/report-instrument-sn"
 
 const searchForm = reactive({
   taskNumber: "",
@@ -338,6 +411,8 @@ const pagination = reactive({
 const loading = ref(false)
 const assistantPushingId = ref<number | null>(null)
 const tableData = ref<HighTempPressureReportListItem[]>([])
+const orderOptionsLoading = ref(false)
+const orderOptions = ref<HighTempPressureOrderListItem[]>([])
 
 const detailDialogVisible = ref(false)
 const currentReport = ref<HighTempPressureReportListItem | null>(null)
@@ -359,6 +434,7 @@ const formData = reactive({
   id: undefined as number | undefined,
   report_no: "",
   task_number: "",
+  instrument_sn: "",
   test_date: "",
   tester: "",
   status: 0,
@@ -367,9 +443,36 @@ const formData = reactive({
 
 const formRules = {
   report_no: [{ required: true, message: "请输入报告编号", trigger: "blur" }],
-  task_number: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
+  task_number: [{ required: true, message: "请选择一个任务单", trigger: "change" }],
+  instrument_sn: [{ required: true, message: "请选择该任务单内一个被测 SN", trigger: "change" }],
   test_date: [{ required: true, message: "请选择测试日期", trigger: "change" }],
   tester: [{ required: true, message: "请输入测试人员", trigger: "blur" }]
+}
+
+const selectedOrder = computed(() => orderOptions.value.find((order) => order.task_number === formData.task_number))
+const instrumentSnOptions = computed(() => buildReportInstrumentSnOptions(selectedOrder.value?.instruments || []))
+
+const loadOrderOptions = async (keyword = "") => {
+  orderOptionsLoading.value = true
+  try {
+    const res = await getHighTempPressureOrderListApi({
+      page: 1,
+      pageSize: 50,
+      taskNumber: keyword.trim() || undefined
+    })
+    orderOptions.value = res.code === 0 ? res.data.list : []
+  } catch (error) {
+    console.error("加载高温高压工单失败", error)
+    orderOptions.value = []
+  } finally {
+    orderOptionsLoading.value = false
+  }
+}
+
+const handleOrderChange = () => {
+  if (!instrumentSnOptions.value.some((option) => option.value === formData.instrument_sn)) {
+    formData.instrument_sn = ""
+  }
 }
 
 const getList = async () => {
@@ -422,32 +525,54 @@ const handleAdd = () => {
   formData.id = undefined
   formData.report_no = ""
   formData.task_number = ""
+  formData.instrument_sn = ""
   formData.test_date = ""
   formData.tester = ""
   formData.status = 0
   formData.remark = ""
   dialogVisible.value = true
+  void loadOrderOptions()
 }
 
-const handleEdit = (row: HighTempPressureReportListItem) => {
+const handleEdit = async (row: HighTempPressureReportListItem) => {
   formData.id = row.id
   formData.report_no = row.report_no
   formData.task_number = row.task_number
+  formData.instrument_sn = row.instrument_sn || row.equipmentId || ""
   formData.test_date = row.test_date
   formData.tester = row.tester
   formData.status = row.status
   formData.remark = row.remark || ""
   dialogVisible.value = true
+  await loadOrderOptions(row.task_number)
 }
 
 const handleSubmit = async () => {
   if (!formRef.value) return
   await formRef.value.validate(async (valid) => {
     if (!valid) return
+    const order = selectedOrder.value
+    if (!order) {
+      ElMessage.error("请选择一个有效的高温高压工单")
+      return
+    }
+    if (!instrumentSnOptions.value.some((option) => option.value === formData.instrument_sn)) {
+      ElMessage.error("所选 SN 不属于当前任务单")
+      return
+    }
     submitLoading.value = true
     try {
-      const payload = { ...formData }
-      delete payload.id
+      const payload = {
+        report_no: formData.report_no,
+        task_number: formData.task_number,
+        instrument_sn: formData.instrument_sn,
+        order_ids: [order.id],
+        order_numbers: [order.task_number],
+        test_date: formData.test_date,
+        tester: formData.tester,
+        status: formData.status,
+        remark: formData.remark
+      }
       if (formData.id !== undefined) {
         await updateHighTempPressureReportApi(formData.id, payload)
         ElMessage.success("修改成功")
@@ -492,40 +617,45 @@ const handleDetail = async (row: HighTempPressureReportListItem) => {
 const handleDownload = async (row: HighTempPressureReportListItem) => {
   try {
     const blob = await getHighTempPressureReportPdfApi(row.id)
-    const pdfBlob = blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" })
-    const url = URL.createObjectURL(pdfBlob)
-    const filename = `${(row.report_no || "高温高压测试报告").replace(/[\\/:*?"<>|]/g, "-")}.pdf`
+    await downloadPdfBlob(blob, row.report_no || "高温高压测试报告")
+    ElMessage.success("正式 PDF 下载开始")
+  } catch (error: any) {
+    console.error("下载高温高压正式报告失败", error)
+    ElMessage.error(error?.message || "正式 PDF 下载失败")
+  }
+}
 
-    const a = document.createElement("a")
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-
-    URL.revokeObjectURL(url)
-    ElMessage.success("PDF下载开始")
-  } catch (e) {
-    console.error(e)
-    ElMessage.error("PDF下载失败")
+const retryAssistantReport = async (row: HighTempPressureReportListItem) => {
+  assistantPushingId.value = row.id
+  try {
+    const response = await syncEngineerAssistantReportsApi({
+      source: "local",
+      action: "push",
+      reportType: "high-temp-pressure",
+      reportId: row.id,
+      force: true
+    })
+    const outcome = normalizeAssistantReportPushOutcome(response)
+    if (outcome.success) {
+      ElMessage.success("本申请单当前报告快照已推送小助手")
+    } else {
+      ElMessage.error(`本申请单当前报告快照推送失败：${outcome.error}`)
+    }
+    await getList()
+  } catch (error: any) {
+    const message = error?.response?.data?.msg || error?.message || "未知错误"
+    ElMessage.error(`本申请单当前报告快照推送失败：${message}`)
+    await getList()
+  } finally {
+    assistantPushingId.value = null
   }
 }
 
 const handlePushAssistant = async (row: HighTempPressureReportListItem) => {
-  await ElMessageBox.confirm("确定重新推送该正式报告到工程师小助手吗？", "推送报告", { type: "warning" })
-  assistantPushingId.value = row.id
-  try {
-    await syncEngineerAssistantLocalReportApi({
-      reportType: "high-temp-pressure",
-      reportId: row.id
-    })
-    ElMessage.success("报告已推送到小助手")
-  } catch (error) {
-    console.error("推送高温高压报告失败", error)
-    ElMessage.error("报告推送失败，请检查正式附件和同步日志")
-  } finally {
-    assistantPushingId.value = null
-  }
+  await ElMessageBox.confirm("确定重新推送本申请单当前已审核报告快照到小助手吗？", "重新推送本申请单报告", {
+    type: "warning"
+  })
+  await retryAssistantReport(row)
 }
 
 const handleDelete = async (row: HighTempPressureReportListItem) => {
@@ -582,7 +712,7 @@ const formatMetricValue = (metrics?: Record<string, unknown>) => {
   )
 }
 
-const formatTime = (timeStr?: string) => {
+const formatTime = (timeStr?: string | null) => {
   if (!timeStr) return "-"
   const date = new Date(timeStr)
   return date.toLocaleString()

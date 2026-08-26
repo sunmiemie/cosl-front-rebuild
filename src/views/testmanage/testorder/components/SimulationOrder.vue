@@ -46,6 +46,13 @@ const wellNameOptions = [
 const getWellNameLabel = (value?: string | null) =>
   wellNameOptions.find((item) => item.value === value)?.label || "-"
 
+const orderTypeTabs = [
+  { name: "0", label: "非研究院" },
+  { name: "1", label: "研究院" }
+] as const
+
+const getOrderTypeLabel = (value?: number | null) => (value === 1 ? "研究院" : "非研究院")
+
 const searchForm = reactive({
   taskNumber: "",
   status: ""
@@ -61,6 +68,7 @@ const pagination = reactive({
 
 const loading = ref(false)
 const tableData = ref<SimulatedWellOrderListItem[]>([])
+const activeOrderType = ref<"0" | "1">("0")
 const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
@@ -81,6 +89,7 @@ const createDefaultForm = () => ({
   research_no: "",
   project_budget_no: "",
   project_name: "",
+  order_type: 0 as 0 | 1,
   well_name: "",
   tested_instrument: "",
   instrument_sn_numbers: "",
@@ -236,7 +245,8 @@ const getList = async () => {
       page: pagination.page,
       pageSize: pagination.pageSize,
       taskNumber: searchForm.taskNumber || undefined,
-      status: searchForm.status || undefined
+      status: searchForm.status || undefined,
+      orderType: activeOrderType.value
     })
     if (res.code === 0) {
       tableData.value = res.data.list
@@ -286,6 +296,8 @@ const handleCreate = async () => {
       if (res.code === 0) {
         ElMessage.success("模拟井工单已创建")
         createDialogVisible.value = false
+        activeOrderType.value = String(createForm.order_type) as "0" | "1"
+        pagination.page = 1
         void taskCenterStore.refresh(true)
         getList()
         return
@@ -331,6 +343,12 @@ const handleSizeChange = (size: number) => {
 
 const handleCurrentChange = (page: number) => {
   pagination.page = page
+  getList()
+}
+
+const handleOrderTypeTabChange = (orderType: string | number) => {
+  activeOrderType.value = String(orderType) as "0" | "1"
+  pagination.page = 1
   getList()
 }
 
@@ -509,49 +527,53 @@ onMounted(() => {
       </div>
 
       <div class="table-wrapper">
-        <el-table :data="tableData" stripe border height="100%" style="width: 100%">
-          <el-table-column prop="table_number" label="表格编号" width="150" align="center" />
-          <el-table-column prop="task_number" label="任务单编号" width="180" align="center" />
-          <el-table-column label="申请人" min-width="110" align="center">
-            <template #default="{ row }">
-              <span>{{ row.applicant || "-" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="测试申请单位" min-width="160" align="center">
-            <template #default="{ row }">
-              <span>{{ row.test_unit || row.customer_unit || "-" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="项目名称" min-width="170" align="center" show-overflow-tooltip>
-            <template #default="{ row }">
-              <span>{{ row.project_name || row.task_desc || "-" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="待测仪器" min-width="180" align="center" show-overflow-tooltip>
-            <template #default="{ row }">
-              <span>{{ row.tested_instrument || "-" }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="数量" width="90" align="center">
-            <template #default="{ row }">
-              <span>{{ row.quantity ?? row.device_count ?? 1 }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="状态" width="100" align="center">
-            <template #default="{ row }">
-              <el-tag :type="getStatusType(row.status)">{{ row.status_text || row.status }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="100" align="center" fixed="right">
-            <template #default="{ row }">
-              <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
-              <el-link v-if="row.status === 0" type="success" class="el-link" @click="showPublishDialog(row)"
-                >发布</el-link
-              >
-              <el-link v-if="row.status === 0" type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
-            </template>
-          </el-table-column>
-        </el-table>
+        <el-tabs v-model="activeOrderType" @tab-change="handleOrderTypeTabChange">
+          <el-tab-pane v-for="tab in orderTypeTabs" :key="tab.name" :label="tab.label" :name="tab.name">
+            <el-table :data="tableData" stripe border height="100%" style="width: 100%">
+              <el-table-column prop="table_number" label="表格编号" width="150" align="center" />
+              <el-table-column prop="task_number" label="任务单编号" width="180" align="center" />
+              <el-table-column label="申请人" min-width="110" align="center">
+                <template #default="{ row }">
+                  <span>{{ row.applicant || "-" }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="测试申请单位" min-width="160" align="center">
+                <template #default="{ row }">
+                  <span>{{ row.test_unit || row.customer_unit || "-" }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="项目名称" min-width="170" align="center" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span>{{ row.project_name || row.task_desc || "-" }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="待测仪器" min-width="180" align="center" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span>{{ row.tested_instrument || "-" }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="数量" width="90" align="center">
+                <template #default="{ row }">
+                  <span>{{ row.quantity ?? row.device_count ?? 1 }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="状态" width="100" align="center">
+                <template #default="{ row }">
+                  <el-tag :type="getStatusType(row.status)">{{ row.status_text || row.status }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" align="center" fixed="right">
+                <template #default="{ row }">
+                  <el-link type="primary" class="el-link" @click="handleDetail(row)">详情</el-link>
+                  <el-link v-if="row.status === 0" type="success" class="el-link" @click="showPublishDialog(row)"
+                    >发布</el-link
+                  >
+                  <el-link v-if="row.status === 0" type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-tab-pane>
+        </el-tabs>
       </div>
 
       <div class="pager-wrapper">
@@ -623,6 +645,14 @@ onMounted(() => {
           <el-col :span="12">
             <el-form-item label="项目名称" prop="project_name">
               <el-input v-model="createForm.project_name" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="工单类型" prop="order_type">
+              <el-radio-group v-model="createForm.order_type">
+                <el-radio :value="0">非研究院</el-radio>
+                <el-radio :value="1">研究院</el-radio>
+              </el-radio-group>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -714,6 +744,7 @@ onMounted(() => {
           <el-descriptions-item label="项目名称">{{
             currentOrder.project_name || currentOrder.task_desc || "-"
           }}</el-descriptions-item>
+          <el-descriptions-item label="工单类型">{{ getOrderTypeLabel(currentOrder.order_type) }}</el-descriptions-item>
           <el-descriptions-item label="实验井">{{ getWellNameLabel(currentOrder.well_name) }}</el-descriptions-item>
           <el-descriptions-item label="待测仪器">{{ currentOrder.tested_instrument || "-" }}</el-descriptions-item>
           <el-descriptions-item label="仪器SN号（资产号，多个）">{{

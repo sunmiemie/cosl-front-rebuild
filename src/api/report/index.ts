@@ -152,7 +152,17 @@ export const checkReportDataApi = (params: any) => {
   return request<TestType.CheckReportResponseData>({
     url: "data/report/check/operate",
     method: "get",
-    params
+    params,
+    silentError: true
+  })
+}
+
+export const restoreReportSourceApi = (data: FormData) => {
+  return request<TestType.ReportActionResponseData>({
+    url: "data/report/check/source-file",
+    headers: { "Content-Type": "multipart/form-data" },
+    method: "post",
+    data
   })
 }
 export const checkTempReportDataApi = (params: any) => {
@@ -167,6 +177,14 @@ export const checkReportPassApi = (data: any) => {
   return request<TestType.ReportActionResponseData>({
     url: "data/report/check/pass",
     headers: { "Content-Type": "multipart/form-data" },
+    method: "post",
+    data
+  })
+}
+
+export const retryReportAssistantSyncApi = (data: { id: number | string }) => {
+  return request<TestType.ReportActionResponseData>({
+    url: "data/report/assistant-sync/retry",
     method: "post",
     data
   })

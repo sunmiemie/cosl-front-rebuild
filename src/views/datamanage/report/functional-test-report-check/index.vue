@@ -3,11 +3,17 @@
 <script setup>
 import { onMounted, reactive, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { checkReportDataApi, checkReportFeedbackApi, checkReportPassApi, generateQuestionUnitApi } from "@/api/report"
+import {
+  checkReportDataApi,
+  checkReportFeedbackApi,
+  checkReportPassApi,
+  generateQuestionUnitApi,
+  retryReportAssistantSyncApi
+} from "@/api/report"
 import { useUserStore } from "@/store/modules/user"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import FunctionalTestingReportPreview from "@/components/Check/FunctionalTestingReportPreview.vue"
-import { ElMessageBox } from "element-plus"
+import { ElMessage, ElMessageBox } from "element-plus"
 import { ReportCheck } from "@/utils/report"
 
 const userStore = useUserStore()
@@ -639,6 +645,51 @@ const jsonToFile = (data) => {
   return new Blob([jsonString], { type: "application/json" })
 }
 
+const finishReportAudit = async (response) => {
+  const syncResult = response?.data?.assistantSync
+  if (syncResult?.attempted && !syncResult.success) {
+    const reason = syncResult.error || "外部接口暂时不可用"
+    try {
+      await ElMessageBox.confirm(
+        `本地审核结果已保存，但报告尚未同步到小助手：${reason}。是否立即重试？`,
+        "报告同步未完成",
+        {
+          confirmButtonText: "立即重试",
+          cancelButtonText: "稍后处理",
+          type: "warning"
+        }
+      )
+    } catch {
+      ElMessage.warning("审核已保存，报告尚未同步；可在当前页面再次审核以重试")
+      return
+    }
+
+    loading.value = true
+    try {
+      const retryResponse = await retryReportAssistantSyncApi({ id: anyObj.id })
+      const retryResult = retryResponse?.data?.assistantSync
+      if (!retryResult?.success) {
+        ElMessage.warning(retryResult?.error || "审核已保存，但报告同步重试仍未成功")
+        return
+      }
+      ElMessage.success(retryResult.message || `审核已完成，已同步 ${retryResult.synced || 0} 份报告`)
+    } catch (error) {
+      console.error("报告同步重试失败", error)
+      ElMessage.warning("审核已保存，但报告同步重试失败，请稍后再次重试")
+      return
+    } finally {
+      loading.value = false
+    }
+  } else if (syncResult?.attempted) {
+    ElMessage.success(syncResult.message || `审核已完成，已同步 ${syncResult.synced || 0} 份报告`)
+  } else {
+    ElMessage.success("审核完成")
+  }
+
+  void taskCenterStore.refresh(true)
+  router.push({ name: "reportCheckList" })
+}
+
 const checkPass = () => {
   loading.value = true
   const jsonString = JSON.stringify(reportJson.value)
@@ -657,13 +708,15 @@ const checkPass = () => {
   } else {
     formData.append("file", undefined)
   }
-  checkReportPassApi(formData).then((res) => {
-    if (res.msg === "success") {
+  checkReportPassApi(formData)
+    .then(async (res) => {
+      if (res.msg === "success") {
+        await finishReportAudit(res)
+      }
+    })
+    .finally(() => {
       loading.value = false
-      void taskCenterStore.refresh(true)
-      router.push({ name: "reportCheckList" })
-    }
-  })
+    })
 }
 const checkFeedback = () => {
   loading.value = true
@@ -783,10 +836,6 @@ const handleQuestion = () => {
       generateQuestionUnit()
     }
   })
-}
-const handleSelectionChange = (value) => {
-  feedbackList.value = stepList.value.filter((item) => value.includes(item))
-  console.log(feedbackList.value)
 }
 const reGetReport = () => {
   loading.value = true

@@ -75,10 +75,50 @@ describe("simulated well report review remarks", () => {
     expect(content).toContain('normal: "正常"')
     expect(content).toContain('unqualified: "不符合"')
     expect(content).toContain('"depth-group"')
+    expect(content).toContain('"single-input"')
     expect(content).toContain('"range-radio"')
     expect(content).toContain('"multi-input-row"')
     expect(content).toContain('"sampling-group"')
     expect(content).toContain('"card-group"')
+  })
+
+  it("shows configured transfer data rows only when the frozen template has valid single-row multi-column fields", () => {
+    expect(content).toContain("const currentTransferDataRows = computed")
+    expect(content).toContain("const buildReadonlyTransferDataRows")
+    expect(content).toContain('fieldType(field) !== "single-row-multi-column"')
+    expect(content).toContain('fieldKey("transfer", fieldIndex, `c${columnIndex}`)')
+    expect(content).toContain('displayValueWithUnit(valueMap[fieldKey("transfer", fieldIndex, `c${columnIndex}`)], column.unit)')
+    expect(content).toContain('const label = `${fieldLabel(field, "")}${fieldLabel(column, "")}`')
+    expect(content).toContain('v-if="!isResearchReport(currentReport) && currentTransferDataRows.length"')
+    expect(content).toContain("测试完成转样数据记录")
+    expect(content).not.toContain("Transferred Data Record Finished by Test")
+    expect(content).not.toContain("当前模板未配置转样数据")
+  })
+
+  it("formats single-input rows as a Chinese-only preview", () => {
+    expect(content).toContain('if (type === "single-input")')
+    expect(content).toContain('String(definition.unit || "").trim()')
+    expect(content).toContain('const valueWithUnit = inputValue ? `${inputValue}${unit}` : ""')
+    expect(content).toContain('`${label}：${valueWithUnit}`')
+    expect(content).not.toContain('englishLabel ? `${englishLabel}: ${valueWithUnit}`')
+    expect(content).toContain('fieldKey(prefix, index, "result")')
+    expect(content).toContain('const inputValue = displayReadonlyValue(valueMap[key])')
+    expect(content).not.toContain('未填写')
+  })
+
+  it("formats range-radio values in the Chinese label and keeps only the judgment on the right", () => {
+    expect(content).toContain("const displayRangeRadioResult = (value: unknown) =>")
+    expect(content).toContain('if (value === "abnormal" || value === "异常" || value === "不正常") return "不正常"')
+    expect(content).toContain('if (type === "range-radio")')
+    expect(content).toContain('String(definition.unit || "").trim()')
+    expect(content).toContain('label: `${label}：${start || end ? `${start} ~ ${end}${unit}` : ""}`')
+    expect(content).toContain('value: displayRangeRadioResult(valueMap[fieldKey(prefix, index, "result")])')
+  })
+
+  it("appends the optional unit to number values without appending it to missing values", () => {
+    expect(content).toContain("const displayNumberWithUnit = (value: unknown, unit: unknown) =>")
+    expect(content).toContain('if (value === undefined || value === null || value === "") return numberValue')
+    expect(content).toContain('if (type === "number") return { label, value: displayNumberWithUnit(valueMap[key], definition.unit) }')
   })
 
   it("shows the saved operator signature in report basic information", () => {
@@ -91,22 +131,29 @@ describe("simulated well report review remarks", () => {
     expect(content).toContain("未记录电子签名")
   })
 
-  it("downloads approved reports as backend-generated PDF files", () => {
+  it("downloads approved non-research reports as backend-generated PDF files", () => {
     expect(apiContent).toContain("getSimulatedWellReportPdfApi")
     expect(apiContent).toContain("test/simulated-well/report/download/${pk}/")
     expect(apiContent).toContain('responseType: "blob"')
     expect(content).toContain("const downloadingId")
     expect(content).toContain("getSimulatedWellReportPdfApi(row.id)")
-    expect(content).toContain('v-if="row.status === 1"')
+    expect(content).toContain('v-if="row.status === 1 && !isResearchReport(row)"')
     expect(content).toContain("下载 PDF")
     expect(content).not.toContain("JSON.stringify(payload, null, 2)")
   })
 
-  it("presents curve attachments as original files without changing the download API", () => {
+  it("hides report name, template data and PDF download for research reports", () => {
+    expect(content).toContain("const isResearchReport = (report?: AuditRow | null) => Number(report?.meta?.order_type) === 1")
+    expect(content).toContain('v-if="!isResearchReport(currentReport)" class="info-tile"')
+    expect(content).toContain('v-if="!isResearchReport(currentReport)" class="detail-card"')
+    expect(content).toContain("非研究院已通过报告可下载正式 PDF")
+  })
+
+  it("presents curve attachments as original files through the download ticket API", () => {
     expect(content).toContain('if (raw.includes("curve")) return "原始文件"')
     expect(content).toContain("原始文件与上传文件")
     expect(content).toContain("下载原始文件")
-    expect(content).toContain("getSimulatedWellReportCurveZipApi(row.id)")
+    expect(content).toContain("getSimulatedWellReportCurveDownloadTicketApi(row.id)")
   })
 
   it("groups original files into one attachment row with the download action", () => {

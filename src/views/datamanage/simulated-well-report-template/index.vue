@@ -18,7 +18,12 @@ import {
 } from "@/api/simulated-well-report-template"
 import { VueDraggable } from "vue-draggable-plus"
 
-type SectionKey = "test_products" | "match_instruments" | "test_items" | "evaluation_standards"
+type SectionKey =
+  | "test_products"
+  | "match_instruments"
+  | "test_items"
+  | "evaluation_standards"
+  | "transfer_data_records"
 
 type TemplateField = {
   nameCN: string
@@ -28,6 +33,13 @@ type TemplateField = {
   defaultValue?: string
   needsReview?: boolean
   [key: string]: any
+}
+
+type TemplateColumn = {
+  nameCN: string
+  nameEN: string
+  unit: string
+  needsReview?: boolean
 }
 
 type TemplateItem = {
@@ -53,7 +65,8 @@ const configDraft = reactive<Record<SectionKey, TemplateField[]>>({
   test_products: [],
   match_instruments: [],
   test_items: [],
-  evaluation_standards: []
+  evaluation_standards: [],
+  transfer_data_records: []
 })
 const configMetaDraft = reactive({
   report_no: "",
@@ -69,7 +82,8 @@ const sectionTabs = [
   { key: "test_products" as SectionKey, label: "测试产品" },
   { key: "match_instruments" as SectionKey, label: "配接仪器" },
   { key: "test_items" as SectionKey, label: "测试项目" },
-  { key: "evaluation_standards" as SectionKey, label: "评价标准" }
+  { key: "evaluation_standards" as SectionKey, label: "评价标准" },
+  { key: "transfer_data_records" as SectionKey, label: "转样数据" }
 ]
 
 const filteredTemplates = computed(() => {
@@ -103,7 +117,8 @@ const createParsedFields = reactive<Record<SectionKey, TemplateField[]>>({
   test_products: [],
   match_instruments: [],
   test_items: [],
-  evaluation_standards: []
+  evaluation_standards: [],
+  transfer_data_records: []
 })
 const createRules = {
   report_no: [{ required: true, message: "请输入报告编号", trigger: "blur" }],
@@ -118,8 +133,10 @@ type FieldType =
   | "date"
   | "select"
   | "checkbox"
+  | "single-input"
   | "depth-group"
   | "range-radio"
+  | "single-row-multi-column"
   | "multi-input-row"
   | "sampling-group"
   | "card-group"
@@ -140,8 +157,10 @@ const fieldTypeOptions = [
   {
     label: "复合类型",
     options: [
+      { value: "single-input", label: "单一输入" },
       { value: "depth-group", label: "深度输入组" },
       { value: "range-radio", label: "区间+判定" },
+      { value: "single-row-multi-column", label: "单行多列" },
       { value: "multi-input-row", label: "多列复合行" },
       { value: "sampling-group", label: "取样测试组" },
       { value: "card-group", label: "数据卡片组" }
@@ -149,33 +168,182 @@ const fieldTypeOptions = [
   }
 ] as const
 
-const compoundTypes: FieldType[] = ["depth-group", "range-radio", "multi-input-row", "sampling-group", "card-group"]
+const compoundTypes: FieldType[] = [
+  "single-input",
+  "depth-group",
+  "range-radio",
+  "single-row-multi-column",
+  "multi-input-row",
+  "sampling-group",
+  "card-group"
+]
+
+type FieldForm = {
+  type: FieldType
+  nameCN: string
+  nameEN: string
+  defaultValue: string
+  numberUnit: string
+  required: boolean
+  singleInputUnit: string
+  depthPointCount: number
+  depthUnit: string
+  depthWithJudgment: boolean
+  rangeUnit: string
+  multiRowCount: number
+  columns: TemplateColumn[]
+  samplingPointCount: number
+}
+
 const addFieldDialogVisible = ref(false)
 const editFieldDialogVisible = ref(false)
-const editFieldForm = reactive({
+const editFieldForm = reactive<FieldForm>({
+  type: "text",
   nameCN: "",
-  nameEN: ""
+  nameEN: "",
+  defaultValue: "",
+  numberUnit: "",
+  required: false,
+  singleInputUnit: "",
+  depthPointCount: 4,
+  depthUnit: "m",
+  depthWithJudgment: false,
+  rangeUnit: "m",
+  multiRowCount: 2,
+  columns: [],
+  samplingPointCount: 2
 })
 const editingField = ref<{
   section: SectionKey
   index: number
   originalValue: TemplateField
 } | null>(null)
-const addFieldForm = reactive({
+const addFieldForm = reactive<FieldForm>({
   type: "text" as FieldType,
   nameCN: "",
   nameEN: "",
   defaultValue: "",
+  numberUnit: "",
   required: false,
+  singleInputUnit: "",
   depthPointCount: 4,
   depthUnit: "m",
   depthWithJudgment: false,
   rangeUnit: "m",
   multiRowCount: 2,
+  columns: [],
   samplingPointCount: 2
 })
 
 const isCompoundType = computed(() => compoundTypes.includes(addFieldForm.type))
+const isEditCompoundType = computed(() => compoundTypes.includes(editFieldForm.type))
+
+const resetFieldForm = (form: FieldForm) => {
+  form.type = "text"
+  form.nameCN = ""
+  form.nameEN = ""
+  form.defaultValue = ""
+  form.numberUnit = ""
+  form.required = false
+  form.singleInputUnit = ""
+  form.depthPointCount = 4
+  form.depthUnit = "m"
+  form.depthWithJudgment = false
+  form.rangeUnit = "m"
+  form.multiRowCount = 2
+  form.columns = []
+  form.samplingPointCount = 2
+}
+
+const normalizeFieldType = (type: unknown): FieldType => {
+  const matched = fieldTypeOptions.some((group) => group.options.some((option) => option.value === type))
+  return matched ? (type as FieldType) : "text"
+}
+
+const positiveInteger = (value: unknown, fallback: number) => {
+  const numberValue = Number(value)
+  return Number.isFinite(numberValue) && numberValue > 0 ? Math.floor(numberValue) : fallback
+}
+
+const normalizeColumns = (columns: unknown): TemplateColumn[] =>
+  Array.isArray(columns)
+    ? columns.map((column) => ({
+        nameCN: String(column?.nameCN ?? column?.zh ?? column?.name ?? column?.label ?? "").trim(),
+        nameEN: String(column?.nameEN ?? column?.en ?? column?.english ?? "").trim(),
+        unit: String(column?.unit ?? "").trim(),
+        ...(column?.needsReview ? { needsReview: true } : {})
+      }))
+    : []
+
+const cleanColumns = (columns: TemplateColumn[]) =>
+  columns
+    .map((column) => ({
+      nameCN: column.nameCN.trim(),
+      nameEN: column.nameEN.trim(),
+      unit: column.unit.trim(),
+      ...(column.needsReview ? { needsReview: true } : {})
+    }))
+    .filter((column) => column.nameCN || column.nameEN || column.unit)
+
+const addColumn = (form: FieldForm) => {
+  form.columns.push({ nameCN: "", nameEN: "", unit: "" })
+}
+
+const removeColumn = (form: FieldForm, index: number) => {
+  form.columns.splice(index, 1)
+}
+
+const typeConfigurationKeys = [
+  "defaultValue",
+  "pointCount",
+  "unit",
+  "withJudgment",
+  "rowCount",
+  "columns",
+  "items",
+  "cards"
+]
+
+const applyFieldForm = (form: FieldForm, originalValue: TemplateField = {} as TemplateField): TemplateField => {
+  const field: TemplateField = {
+    ...originalValue,
+    nameCN: form.nameCN.trim(),
+    nameEN: form.nameEN.trim(),
+    type: form.type,
+    required: form.required
+  }
+  if (normalizeFieldType(originalValue.type) !== form.type) {
+    typeConfigurationKeys.forEach((key) => delete field[key])
+  }
+
+  if (!compoundTypes.includes(form.type) && form.defaultValue.trim()) {
+    field.defaultValue = form.defaultValue.trim()
+  } else {
+    delete field.defaultValue
+  }
+  if (form.type === "number") {
+    const unit = form.numberUnit.trim()
+    if (unit) field.unit = unit
+    else delete field.unit
+  } else if (form.type === "single-input") {
+    field.unit = form.singleInputUnit.trim()
+  } else if (form.type === "depth-group") {
+    field.pointCount = form.depthPointCount
+    field.unit = form.depthUnit
+    field.withJudgment = form.depthWithJudgment
+  } else if (form.type === "range-radio") {
+    field.unit = form.rangeUnit
+  } else if (form.type === "single-row-multi-column") {
+    field.columns = cleanColumns(form.columns)
+    delete field.rowCount
+  } else if (form.type === "multi-input-row") {
+    field.rowCount = form.multiRowCount
+    field.columns = cleanColumns(form.columns)
+  } else if (form.type === "sampling-group") {
+    field.pointCount = form.samplingPointCount
+  }
+  return field
+}
 
 const normalizeField = (item: any): TemplateField => {
   if (typeof item === "string") {
@@ -201,7 +369,11 @@ const fieldTypeName = (item: TemplateField) =>
   "文本输入"
 
 const addParsedField = (section: SectionKey) => {
-  createParsedFields[section].push({ nameCN: "", nameEN: "" })
+  createParsedFields[section].push(
+    section === "transfer_data_records"
+      ? { nameCN: "", nameEN: "", type: "single-row-multi-column", columns: [] }
+      : { nameCN: "", nameEN: "" }
+  )
 }
 
 const removeParsedField = (section: SectionKey, index: number) => {
@@ -217,6 +389,7 @@ const openCreate = () => {
   createParsedFields.match_instruments = []
   createParsedFields.test_items = []
   createParsedFields.evaluation_standards = []
+  createParsedFields.transfer_data_records = []
   createDialogVisible.value = true
 }
 
@@ -231,7 +404,8 @@ const handleCreate = async () => {
       test_products: cleanFields(createParsedFields.test_products),
       match_instruments: cleanFields(createParsedFields.match_instruments),
       test_items: cleanFields(createParsedFields.test_items),
-      evaluation_standards: cleanFields(createParsedFields.evaluation_standards)
+      evaluation_standards: cleanFields(createParsedFields.evaluation_standards),
+      transfer_data_records: cleanFields(createParsedFields.transfer_data_records)
     })
     if (res.code !== 0) {
       ElMessage.error(res.msg || "创建失败")
@@ -269,6 +443,7 @@ const handleCreateDocxChange: UploadProps["onChange"] = async (file: UploadFile)
     createParsedFields.match_instruments = normalizeFields(res.data.match_instruments)
     createParsedFields.test_items = normalizeFields(res.data.test_items)
     createParsedFields.evaluation_standards = normalizeFields(res.data.evaluation_standards)
+    createParsedFields.transfer_data_records = normalizeFields(res.data.transfer_data_records)
     createDocxFileList.value = [{ name: raw.name, status: "success" }]
     ElMessage.success("文档解析成功，已自动回填")
   } finally {
@@ -314,7 +489,8 @@ const saveConfig = async () => {
       test_products: cleanFields(configDraft.test_products),
       match_instruments: cleanFields(configDraft.match_instruments),
       test_items: cleanFields(configDraft.test_items),
-      evaluation_standards: cleanFields(configDraft.evaluation_standards)
+      evaluation_standards: cleanFields(configDraft.evaluation_standards),
+      transfer_data_records: cleanFields(configDraft.transfer_data_records)
     })
     if (res.code === 0) {
       configMetaDraft.report_name = reportName
@@ -358,46 +534,17 @@ const applyTitleEdit = () => {
 
 const addField = () => {
   const nameCN = addFieldForm.nameCN.trim()
-  const nameEN = addFieldForm.nameEN.trim()
   if (!nameCN) return
   if (currentFieldList.value.some((item) => item.nameCN === nameCN)) {
     ElMessage.warning("字段已存在")
     return
   }
-  const field: TemplateField = {
-    nameCN,
-    nameEN,
-    type: addFieldForm.type,
-    required: addFieldForm.required
-  }
-  if (addFieldForm.defaultValue.trim()) field.defaultValue = addFieldForm.defaultValue.trim()
-  if (addFieldForm.type === "depth-group") {
-    field.pointCount = addFieldForm.depthPointCount
-    field.unit = addFieldForm.depthUnit
-    field.withJudgment = addFieldForm.depthWithJudgment
-  } else if (addFieldForm.type === "range-radio") {
-    field.unit = addFieldForm.rangeUnit
-  } else if (addFieldForm.type === "multi-input-row") {
-    field.rowCount = addFieldForm.multiRowCount
-  } else if (addFieldForm.type === "sampling-group") {
-    field.pointCount = addFieldForm.samplingPointCount
-  }
-  currentFieldList.value.push(field)
+  currentFieldList.value.push(applyFieldForm(addFieldForm))
   addFieldDialogVisible.value = false
 }
 
 const openAddFieldDialog = () => {
-  addFieldForm.type = "text"
-  addFieldForm.nameCN = ""
-  addFieldForm.nameEN = ""
-  addFieldForm.defaultValue = ""
-  addFieldForm.required = false
-  addFieldForm.depthPointCount = 4
-  addFieldForm.depthUnit = "m"
-  addFieldForm.depthWithJudgment = false
-  addFieldForm.rangeUnit = "m"
-  addFieldForm.multiRowCount = 2
-  addFieldForm.samplingPointCount = 2
+  resetFieldForm(addFieldForm)
   addFieldDialogVisible.value = true
 }
 
@@ -410,16 +557,27 @@ const openEditFieldDialog = (idx: number) => {
   const originalValue = configDraft[section][idx]
   if (originalValue === undefined) return
   editingField.value = { section, index: idx, originalValue: { ...originalValue } }
+  editFieldForm.type = normalizeFieldType(originalValue.type)
   editFieldForm.nameCN = originalValue.nameCN
   editFieldForm.nameEN = originalValue.nameEN
+  editFieldForm.defaultValue = String(originalValue.defaultValue ?? "")
+  editFieldForm.numberUnit = String(originalValue.unit ?? "")
+  editFieldForm.required = Boolean(originalValue.required)
+  editFieldForm.singleInputUnit = String(originalValue.unit ?? "")
+  editFieldForm.depthPointCount = positiveInteger(originalValue.pointCount, 4)
+  editFieldForm.depthUnit = String(originalValue.unit ?? "m")
+  editFieldForm.depthWithJudgment = Boolean(originalValue.withJudgment)
+  editFieldForm.rangeUnit = String(originalValue.unit ?? "m")
+  editFieldForm.multiRowCount = positiveInteger(originalValue.rowCount, 2)
+  editFieldForm.columns = normalizeColumns(originalValue.columns)
+  editFieldForm.samplingPointCount = positiveInteger(originalValue.pointCount, 2)
   editFieldDialogVisible.value = true
 }
 
 const closeEditFieldDialog = () => {
   editFieldDialogVisible.value = false
   editingField.value = null
-  editFieldForm.nameCN = ""
-  editFieldForm.nameEN = ""
+  resetFieldForm(editFieldForm)
 }
 
 const confirmEditField = () => {
@@ -427,13 +585,8 @@ const confirmEditField = () => {
   if (!editing) return
 
   const nameCN = editFieldForm.nameCN.trim()
-  const nameEN = editFieldForm.nameEN.trim()
   if (!nameCN) {
     ElMessage.warning("字段名称不能为空")
-    return
-  }
-  if (nameCN === editing.originalValue.nameCN && nameEN === editing.originalValue.nameEN) {
-    closeEditFieldDialog()
     return
   }
 
@@ -443,7 +596,7 @@ const confirmEditField = () => {
     return
   }
 
-  fields[editing.index] = { ...editing.originalValue, nameCN, nameEN }
+  fields[editing.index] = applyFieldForm(editFieldForm, editing.originalValue)
   closeEditFieldDialog()
 }
 
@@ -481,6 +634,7 @@ const fetchDetail = async (id: number) => {
       configDraft.match_instruments = normalizeFields(res.data.match_instruments)
       configDraft.test_items = normalizeFields(res.data.test_items)
       configDraft.evaluation_standards = normalizeFields(res.data.evaluation_standards)
+      configDraft.transfer_data_records = normalizeFields(res.data.transfer_data_records)
       return
     }
     ElMessage.error(res.msg || "获取详情失败")
@@ -607,6 +761,11 @@ onMounted(() => {
                 {{ fieldName(item) }}
               </div>
               <div v-if="item.nameEN" class="field-card-english">{{ item.nameEN }}</div>
+              <div v-if="Array.isArray(item.columns) && item.columns.length" class="field-column-summary">
+                <el-tag v-for="(column, columnIndex) in item.columns" :key="columnIndex" size="small" effect="plain">
+                  {{ column.nameCN || column.nameEN || "未命名子字段" }}{{ column.unit ? `（${column.unit}）` : "" }}
+                </el-tag>
+              </div>
               <div class="field-card-meta">
                 类型：<span class="field-type-badge">{{ fieldTypeName(item) }}</span>
                 <span class="field-card-separator">|</span>
@@ -648,17 +807,124 @@ onMounted(() => {
     <el-dialog
       v-model="editFieldDialogVisible"
       title="编辑字段"
-      width="480px"
+      width="640px"
       class="simwell-admin-dialog"
       @closed="closeEditFieldDialog"
     >
       <el-form label-position="top" @submit.prevent="confirmEditField">
+        <el-form-item label="字段类型">
+          <el-select v-model="editFieldForm.type" style="width: 100%">
+            <el-option-group v-for="group in fieldTypeOptions" :key="group.label" :label="group.label">
+              <el-option v-for="item in group.options" :key="item.value" :label="item.label" :value="item.value" />
+            </el-option-group>
+          </el-select>
+        </el-form-item>
         <el-form-item label="字段名称（中文）">
           <el-input v-model="editFieldForm.nameCN" autofocus @keyup.enter="confirmEditField" />
         </el-form-item>
         <el-form-item label="字段名称（英文，可选）">
           <el-input v-model="editFieldForm.nameEN" @keyup.enter="confirmEditField" />
         </el-form-item>
+
+        <div v-if="!isEditCompoundType" class="simple-field-config">
+          <el-form-item label="默认值（可选）">
+            <el-input v-model="editFieldForm.defaultValue" />
+          </el-form-item>
+          <el-form-item v-if="editFieldForm.type === 'number'" label="单位（可选）">
+            <el-input v-model="editFieldForm.numberUnit" placeholder="例如：MPa" />
+          </el-form-item>
+        </div>
+
+        <div v-else class="compound-config-container">
+          <div v-if="editFieldForm.type === 'single-input'" class="compound-panel">
+            <div class="compound-panel-title">单一输入配置</div>
+            <el-form-item label="单位">
+              <el-input v-model="editFieldForm.singleInputUnit" placeholder="例如：MPa" />
+            </el-form-item>
+          </div>
+
+          <div v-if="editFieldForm.type === 'depth-group'" class="compound-panel">
+            <div class="compound-panel-title">深度输入组配置</div>
+            <div class="dialog-form-grid two-col">
+              <el-form-item label="测试点数量">
+                <el-input-number v-model="editFieldForm.depthPointCount" :min="1" :max="20" style="width: 100%" />
+              </el-form-item>
+              <el-form-item label="单位">
+                <el-input v-model="editFieldForm.depthUnit" placeholder="m" />
+              </el-form-item>
+            </div>
+            <el-checkbox v-model="editFieldForm.depthWithJudgment">每个测试点包含正常/不正常判定</el-checkbox>
+          </div>
+
+          <div v-if="editFieldForm.type === 'range-radio'" class="compound-panel">
+            <div class="compound-panel-title">区间+判定配置</div>
+            <el-form-item label="单位">
+              <el-input v-model="editFieldForm.rangeUnit" placeholder="m" />
+            </el-form-item>
+          </div>
+
+          <div
+            v-if="editFieldForm.type === 'single-row-multi-column' || editFieldForm.type === 'multi-input-row'"
+            class="compound-panel"
+          >
+            <div class="compound-panel-title">
+              {{ editFieldForm.type === "single-row-multi-column" ? "单行多列配置" : "多列复合行配置" }}
+            </div>
+            <el-form-item v-if="editFieldForm.type === 'multi-input-row'" label="行数">
+              <el-input-number v-model="editFieldForm.multiRowCount" :min="1" :max="50" style="width: 100%" />
+            </el-form-item>
+            <div v-for="(column, index) in editFieldForm.columns" :key="index" class="dynamic-list-item">
+              <span class="item-label">中文</span>
+              <el-input v-model="column.nameCN" placeholder="列名" />
+              <span class="item-label">EN</span>
+              <el-input v-model="column.nameEN" placeholder="Column name" />
+              <span class="item-label">单位</span>
+              <el-input v-model="column.unit" placeholder="m" style="max-width: 80px" />
+              <el-button link type="danger" @click="removeColumn(editFieldForm, index)">删除</el-button>
+            </div>
+            <div v-if="editFieldForm.columns.length === 0" class="column-config-empty">暂无子列，可按需添加</div>
+            <button type="button" class="add-item-btn" @click="addColumn(editFieldForm)">+ 添加列</button>
+          </div>
+
+          <div v-if="editFieldForm.type === 'sampling-group'" class="compound-panel">
+            <div class="compound-panel-title">取样测试组配置</div>
+            <el-form-item label="取样点数">
+              <el-input-number v-model="editFieldForm.samplingPointCount" :min="1" :max="20" style="width: 100%" />
+            </el-form-item>
+            <div class="dynamic-list-item">
+              <span class="item-label">中文</span>
+              <el-input placeholder="子项名称" />
+              <span class="item-label">EN</span>
+              <el-input placeholder="Item Name" />
+            </div>
+            <button type="button" class="add-item-btn">+ 添加子项</button>
+          </div>
+
+          <div v-if="editFieldForm.type === 'card-group'" class="compound-panel">
+            <div class="compound-panel-title">数据卡片组配置</div>
+            <div class="card-config-block">
+              <div class="card-config-header">
+                <span class="item-label">标题</span>
+                <el-input placeholder="卡片标题" />
+                <span class="item-label">EN</span>
+                <el-input placeholder="Card Title" />
+              </div>
+              <div class="card-fields-label">卡片字段</div>
+              <div class="dynamic-list-item">
+                <span class="item-label">中文</span>
+                <el-input placeholder="字段名" />
+                <span class="item-label">EN</span>
+                <el-input placeholder="Field" />
+                <span class="item-label">单位</span>
+                <el-input placeholder="单位" style="max-width: 80px" />
+              </div>
+              <button type="button" class="add-item-btn">+ 添加字段</button>
+            </div>
+            <button type="button" class="add-item-btn">+ 添加卡片</button>
+          </div>
+        </div>
+
+        <el-checkbox v-model="editFieldForm.required">必填字段</el-checkbox>
       </el-form>
       <template #footer>
         <el-button @click="closeEditFieldDialog">取消</el-button>
@@ -723,6 +989,12 @@ onMounted(() => {
                 <el-tag v-if="field.needsReview" type="warning" size="small">需确认</el-tag>
                 <el-button link type="danger" @click="removeParsedField(section.key, index)">删除</el-button>
               </div>
+              <div v-if="Array.isArray(field.columns) && field.columns.length" class="parsed-field-columns">
+                <span class="parsed-field-columns-label">子字段：</span>
+                <el-tag v-for="(column, columnIndex) in field.columns" :key="columnIndex" size="small" effect="plain">
+                  {{ column.nameCN || column.nameEN || "未命名" }}{{ column.unit ? `（${column.unit}）` : "" }}
+                </el-tag>
+              </div>
             </div>
             <div v-if="createParsedFields[section.key].length === 0" class="parsed-section-empty">暂无字段</div>
           </div>
@@ -760,9 +1032,19 @@ onMounted(() => {
           <el-form-item label="默认值（可选）">
             <el-input v-model="addFieldForm.defaultValue" />
           </el-form-item>
+          <el-form-item v-if="addFieldForm.type === 'number'" label="单位（可选）">
+            <el-input v-model="addFieldForm.numberUnit" placeholder="例如：MPa" />
+          </el-form-item>
         </div>
 
         <div v-else class="compound-config-container">
+          <div v-if="addFieldForm.type === 'single-input'" class="compound-panel">
+            <div class="compound-panel-title">单一输入配置</div>
+            <el-form-item label="单位">
+              <el-input v-model="addFieldForm.singleInputUnit" placeholder="例如：MPa" />
+            </el-form-item>
+          </div>
+
           <div v-if="addFieldForm.type === 'depth-group'" class="compound-panel">
             <div class="compound-panel-title">深度输入组配置</div>
             <div class="dialog-form-grid two-col">
@@ -783,20 +1065,27 @@ onMounted(() => {
             </el-form-item>
           </div>
 
-          <div v-if="addFieldForm.type === 'multi-input-row'" class="compound-panel">
-            <div class="compound-panel-title">多列复合行配置</div>
-            <el-form-item label="行数">
+          <div
+            v-if="addFieldForm.type === 'single-row-multi-column' || addFieldForm.type === 'multi-input-row'"
+            class="compound-panel"
+          >
+            <div class="compound-panel-title">
+              {{ addFieldForm.type === "single-row-multi-column" ? "单行多列配置" : "多列复合行配置" }}
+            </div>
+            <el-form-item v-if="addFieldForm.type === 'multi-input-row'" label="行数">
               <el-input-number v-model="addFieldForm.multiRowCount" :min="1" :max="50" style="width: 100%" />
             </el-form-item>
-            <div class="dynamic-list-item">
+            <div v-for="(column, index) in addFieldForm.columns" :key="index" class="dynamic-list-item">
               <span class="item-label">中文</span>
-              <el-input placeholder="标签" />
+              <el-input v-model="column.nameCN" placeholder="列名" />
               <span class="item-label">EN</span>
-              <el-input placeholder="Label" />
+              <el-input v-model="column.nameEN" placeholder="Column name" />
               <span class="item-label">单位</span>
-              <el-input placeholder="m" style="max-width: 80px" />
+              <el-input v-model="column.unit" placeholder="m" style="max-width: 80px" />
+              <el-button link type="danger" @click="removeColumn(addFieldForm, index)">删除</el-button>
             </div>
-            <button type="button" class="add-item-btn">+ 添加列</button>
+            <div v-if="addFieldForm.columns.length === 0" class="column-config-empty">暂无子列，可按需添加</div>
+            <button type="button" class="add-item-btn" @click="addColumn(addFieldForm)">+ 添加列</button>
           </div>
 
           <div v-if="addFieldForm.type === 'sampling-group'" class="compound-panel">
@@ -1206,6 +1495,27 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
+.parsed-field-columns {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px 4px;
+}
+
+.parsed-field-columns-label {
+  color: var(--el-text-color-secondary);
+  font-size: 12px;
+}
+
+.field-column-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 8px;
+}
+
 .parsed-section-empty {
   padding: 2px 0;
   color: var(--el-text-color-placeholder);
@@ -1247,6 +1557,12 @@ onMounted(() => {
   background: #ffffff;
   border: 1px solid #e1e8ed;
   border-radius: 6px;
+}
+
+.column-config-empty {
+  padding: 4px 0;
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
 }
 
 .item-label {

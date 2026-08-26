@@ -2044,13 +2044,13 @@ async function finishCalendarEventResize() {
 
   calendarScheduleSavingId.value = order.id
   try {
-    await saveWorkOrderSchedule(order.scheduleEquipment, targetId, payload)
+    const response = await saveWorkOrderSchedule(order.scheduleEquipment, targetId, payload)
     applySchedulePayloadToOrder(order, payload)
     syncCalendarToSchedule(parseDateTime(payload.scheduled_start_at) || new Date())
     selectedOrderId.value = order.id
     activeScheduleState.value = "scheduled"
     await reloadOrdersAfterScheduleChange()
-    ElMessage.success("排程已保存")
+    showScheduleSaveFeedback(order, response)
   } catch (error) {
     ElMessage.error("排程保存失败")
     await reloadOrdersAfterScheduleChange()
@@ -2079,8 +2079,32 @@ function requireScheduleTargetId(order: ScheduleOrder) {
 
 function isAssistantScheduleEquipment(
   equipment: WorkOrderScheduleEquipment
-): equipment is "high-temp-pressure" | "vibration-table" | "simulated-well" {
-  return equipment === "high-temp-pressure" || equipment === "vibration-table" || equipment === "simulated-well"
+): equipment is "high-temp-box" | "high-temp-pressure" | "water-cycle" | "vibration-table" | "simulated-well" {
+  return (
+    equipment === "high-temp-box" ||
+    equipment === "high-temp-pressure" ||
+    equipment === "water-cycle" ||
+    equipment === "vibration-table" ||
+    equipment === "simulated-well"
+  )
+}
+
+function showScheduleSaveFeedback(order: ScheduleOrder, response: any) {
+  if (!isAssistantScheduleEquipment(order.scheduleEquipment)) {
+    ElMessage.success("排程已保存")
+    return
+  }
+
+  const assistantSync = response?.data?.assistantSync
+  if (assistantSync?.success === true) {
+    ElMessage.success("排程已保存，并已推送小助手")
+    return
+  }
+  if (assistantSync?.success === false) {
+    ElMessage.warning(`排程已保存，但推送小助手失败：${assistantSync.error || "未知错误"}`)
+    return
+  }
+  ElMessage.warning("排程已保存，但后端未返回小助手同步结果")
 }
 
 async function handlePushAssistantSchedule(order: ScheduleOrder) {
@@ -2142,13 +2166,14 @@ async function handleSaveSchedule() {
 
   saving.value = true
   try {
+    let response: any
     if (order.scheduleEquipment === "circuit-board-module") {
       const saved = await syncCircuitBoardModuleSchedule(order, payload)
       if (!saved) return
     } else {
       const targetId = requireScheduleTargetId(order)
       if (targetId === null) return
-      await saveWorkOrderSchedule(order.scheduleEquipment, targetId, payload)
+      response = await saveWorkOrderSchedule(order.scheduleEquipment, targetId, payload)
     }
 
     applySchedulePayloadToOrder(order, payload)
@@ -2156,7 +2181,7 @@ async function handleSaveSchedule() {
     scheduleDialogVisible.value = false
     activeScheduleState.value = "scheduled"
     await reloadOrdersAfterScheduleChange()
-    ElMessage.success("排程已保存")
+    showScheduleSaveFeedback(order, response)
   } catch (error) {
     ElMessage.error("排程保存失败")
   } finally {
@@ -2327,13 +2352,13 @@ async function scheduleDraggedCalendarOrder(order: ScheduleOrder, dateStr: strin
 
   calendarScheduleSavingId.value = order.id
   try {
-    await saveWorkOrderSchedule(order.scheduleEquipment, targetId, payload)
+    const response = await saveWorkOrderSchedule(order.scheduleEquipment, targetId, payload)
     applySchedulePayloadToOrder(order, payload)
     syncCalendarToSchedule(parseDateTime(payload.scheduled_start_at) || new Date())
     selectedOrderId.value = order.id
     activeScheduleState.value = "scheduled"
     await reloadOrdersAfterScheduleChange()
-    ElMessage.success("排程已保存")
+    showScheduleSaveFeedback(order, response)
   } catch (error) {
     ElMessage.error("排程保存失败")
     await reloadOrdersAfterScheduleChange()
