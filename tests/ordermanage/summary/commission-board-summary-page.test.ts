@@ -6,14 +6,14 @@ const pageSource = () =>
   readFileSync(resolve(process.cwd(), "src/views/ordermanage/summary/index.vue"), "utf-8")
 
 describe("commission board relation summary page", () => {
-  it("keeps batch export and operation controls on the summary page", () => {
+  it("keeps operation controls on the summary page without the retired batch export", () => {
     const source = pageSource()
 
-    expect(source).toContain('type="selection"')
     expect(source).toContain('fixed="right"')
-    expect(source).toContain("selectedRows")
-    expect(source).toContain("handleExport")
-    expect(source).toContain("data/commission-board-relation/export")
+    expect(source).not.toContain('type="selection"')
+    expect(source).not.toContain("selectedRows")
+    expect(source).not.toContain("handleExport")
+    expect(source).not.toContain("data/commission-board-relation/export")
   })
 
   it("shows work hours and removes the quantity column from the table", () => {

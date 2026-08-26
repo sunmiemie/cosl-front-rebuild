@@ -142,7 +142,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="申请人" prop="applicant">
+            <el-form-item label="联系人（申请人）" prop="applicant">
               <el-input v-model="createForm.applicant" placeholder="请输入申请人" clearable />
             </el-form-item>
           </el-col>

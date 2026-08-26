@@ -44,13 +44,19 @@
       </el-form>
 
       <div class="table-toolbar">
-        <div />
         <el-tooltip content="刷新数据">
           <el-button circle icon="RefreshRight" type="primary" @click="getList" />
         </el-tooltip>
       </div>
 
-      <el-table :data="tableData" v-loading="loading" class="summary-table" max-height="600" stripe border>
+      <el-table
+        :data="tableData"
+        v-loading="loading"
+        class="summary-table"
+        max-height="600"
+        stripe
+        border
+      >
         <el-table-column prop="applicationNo" label="申请单号" min-width="136" show-overflow-tooltip />
         <el-table-column label="SN号" min-width="106">
           <template #default="{ row }">
@@ -622,21 +628,10 @@ onMounted(() => {
 
 .table-toolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
-}
-
-.toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.selection-tip {
-  font-size: 13px;
-  color: var(--el-text-color-secondary);
 }
 
 .summary-table {

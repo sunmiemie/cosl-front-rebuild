@@ -304,7 +304,8 @@
 
     <el-dialog v-model="boardDetailVisible" title="电路板详情" width="min(920px, 96vw)" :close-on-click-modal="false">
       <el-descriptions v-if="selectedBoardDetail" :column="3" border class="board-detail-descriptions">
-        <el-descriptions-item label="所属仪器">{{ getBoardDetailValue("instrument", "sscp") }}</el-descriptions-item>
+        <el-descriptions-item label="所属产品">{{ getBoardDetailValue("product", "sscp") }}</el-descriptions-item>
+        <el-descriptions-item label="所属仪器">{{ getBoardDetailValue("instrument", "instrumentModelName") }}</el-descriptions-item>
         <el-descriptions-item label="测试品名称">{{
           getBoardDetailValue("sampleName", "ypmc", "name")
         }}</el-descriptions-item>
