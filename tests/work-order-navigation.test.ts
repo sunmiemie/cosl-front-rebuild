@@ -33,6 +33,14 @@ describe("测试工单导航拆分", () => {
     expect(content).toContain("电路板模块")
   })
 
+  it("申请单标签页按需挂载，隐藏标签不会提前请求列表", () => {
+    const content = read("src/views/testmanage/circuit-module-inspection/index.vue")
+    const panes = content.match(/<el-tab-pane[\s\S]*?>/g) || []
+
+    expect(panes).toHaveLength(7)
+    expect(panes.every((pane) => /\slazy(?:\s|>)/.test(pane))).toBe(true)
+  })
+
   it("路由包含电路模块检验和首页工单排程入口", () => {
     const router = read("src/router/index.ts")
 

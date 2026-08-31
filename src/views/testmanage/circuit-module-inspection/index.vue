@@ -2,29 +2,55 @@
   <div class="app-container management-list-page">
     <el-card class="management-tabs-card" shadow="never">
       <el-tabs v-model="activeName" class="management-tabs" tab-position="top" @tab-click="handleTabClick">
-        <el-tab-pane v-if="canUse(PermissionCode.TestOrderCreateHaltHass)" label="HALT-HASS 工单" name="halt-hass">
+        <el-tab-pane
+          v-if="canUse(PermissionCode.TestOrderCreateHaltHass)"
+          label="HALT-HASS 工单"
+          name="halt-hass"
+          lazy
+        >
           <HaltHassOrder ref="haltHassOrderComponent" />
         </el-tab-pane>
-        <el-tab-pane v-if="canUse(PermissionCode.TestOrderCreateWaterCycle)" label="水循环工单" name="water-cycle">
+        <el-tab-pane
+          v-if="canUse(PermissionCode.TestOrderCreateWaterCycle)"
+          label="水循环工单"
+          name="water-cycle"
+          lazy
+        >
           <WaterCycleOrder ref="waterCycleOrderComponent" />
         </el-tab-pane>
-        <el-tab-pane v-if="canUse(PermissionCode.TestOrderCreateHighTempBox)" label="高温箱工单" name="high-temp">
+        <el-tab-pane
+          v-if="canUse(PermissionCode.TestOrderCreateHighTempBox)"
+          label="高温箱工单"
+          name="high-temp"
+          lazy
+        >
           <HighTemperatureOrder ref="highTempOrderComponent" />
         </el-tab-pane>
-        <el-tab-pane v-if="canUse(PermissionCode.TestOrderCreateVibrationTable)" label="振动台工单" name="vibration">
+        <el-tab-pane
+          v-if="canUse(PermissionCode.TestOrderCreateVibrationTable)"
+          label="振动台工单"
+          name="vibration"
+          lazy
+        >
           <VibrationOrder ref="vibrationOrderComponent" />
         </el-tab-pane>
         <el-tab-pane
           v-if="canUse(PermissionCode.TestOrderCreateHighTempPressure)"
           label="高温高压井工单"
           name="high-temp-pressure"
+          lazy
         >
           <HighTemperaturePressureOrder ref="highTempPressureOrderComponent" />
         </el-tab-pane>
-        <el-tab-pane v-if="canUse(PermissionCode.TestOrderCreateSimulatedWell)" label="模拟井工单" name="simulation">
+        <el-tab-pane
+          v-if="canUse(PermissionCode.TestOrderCreateSimulatedWell)"
+          label="模拟井工单"
+          name="simulation"
+          lazy
+        >
           <SimulationOrder ref="simulationOrderComponent" />
         </el-tab-pane>
-        <el-tab-pane label="电路板模块" name="circuit-board-module">
+        <el-tab-pane label="电路板模块" name="circuit-board-module" lazy>
           <CircuitBoardModule ref="circuitBoardModuleComponent" />
         </el-tab-pane>
       </el-tabs>
