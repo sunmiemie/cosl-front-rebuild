@@ -2,15 +2,19 @@
 import { computed, onMounted, reactive, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from "element-plus"
-import { Download, Refresh, Search, Upload } from "@element-plus/icons-vue"
+import { Download, Refresh, Search, Upload, ZoomIn, ZoomOut } from "@element-plus/icons-vue"
+import CommpontentEcharts from "@/components/Echarts/echarts.vue"
 import { syncEngineerAssistantReportsApi } from "@/api/engineer-assistant"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
   getSimulatedWellReportDetailApi,
+  getSimulatedWellReportDepthCurveApi,
   getSimulatedWellReportCurveDownloadTicketApi,
   getSimulatedWellReportListApi,
   getSimulatedWellReportPdfApi,
   updateSimulatedWellReportApi,
+  type SimulatedWellCommunicationEvent,
+  type SimulatedWellDepthCurveData,
   type SimulatedWellReportListItem
 } from "@/api/simulated-well-report"
 import {
@@ -22,6 +26,13 @@ import {
   normalizeAssistantReportPushOutcome
 } from "@/utils/assistant-report-sync"
 import { displayReportValue, resolveReportFileUrl } from "@/utils/high-temp-pressure-paper-report"
+import {
+  MIN_DEPTH_CURVE_SPAN_MS,
+  getDepthCurveRangeFromPercent,
+  getDepthCurveTimeRange,
+  resizeDepthCurveTimeRange,
+  type DepthCurveTimeRange
+} from "@/utils/depth-curve-zoom"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 type ReportJson = Record<string, any>
@@ -52,6 +63,12 @@ const loading = ref(false)
 const assistantPushingId = ref<number | null>(null)
 const downloadingId = ref<number | null>(null)
 const curveDownloadingId = ref<number | null>(null)
+const depthCurveLoading = ref(false)
+const depthCurveError = ref("")
+const depthCurveData = ref<SimulatedWellDepthCurveData | null>(null)
+const depthCurveChart = ref<InstanceType<typeof CommpontentEcharts> | null>(null)
+const depthCurveVisibleRange = ref<DepthCurveTimeRange | null>(null)
+let depthCurveRequestToken = 0
 const rows = ref<AuditRow[]>([])
 const detailDialogVisible = ref(false)
 const currentReport = ref<AuditRow | null>(null)
@@ -123,6 +140,228 @@ const tableData = computed(() => {
   const start = (pagination.page - 1) * pagination.pageSize
   return filteredRows.value.slice(start, start + pagination.pageSize)
 })
+
+const communicationSeriesConfig = [
+  { connected: 0 as const, name: "通信异常", color: "#ef4444", offset: [-7, 0] },
+  { connected: 1 as const, name: "通信恢复", color: "#22c55e", offset: [7, 0] },
+  { connected: null, name: "无法识别", color: "#64748b", offset: [0, 0] }
+]
+
+const DEPTH_CURVE_ZOOM_ID = "depth-curve-time-zoom"
+const DEPTH_CURVE_ZOOM_IN_SCALE = 0.8
+const DEPTH_CURVE_ZOOM_OUT_SCALE = 1.2
+
+const depthCurveFullRange = computed(() =>
+  getDepthCurveTimeRange([
+    ...(depthCurveData.value?.points.map((point) => point[0]) || []),
+    ...(depthCurveData.value?.communication_events.map((event) => event.timestamp_ms) || [])
+  ])
+)
+const depthCurveFullSpan = computed(() => {
+  const range = depthCurveFullRange.value
+  return range ? Math.max(0, range.end - range.start) : 0
+})
+const depthCurveVisibleSpan = computed(() => {
+  const range = depthCurveVisibleRange.value || depthCurveFullRange.value
+  return range ? Math.max(0, range.end - range.start) : 0
+})
+const depthCurveZoomEnabled = computed(() => depthCurveFullSpan.value > MIN_DEPTH_CURVE_SPAN_MS)
+const canZoomDepthCurveIn = computed(
+  () => depthCurveZoomEnabled.value && depthCurveVisibleSpan.value > MIN_DEPTH_CURVE_SPAN_MS + 1
+)
+const canZoomDepthCurveOut = computed(
+  () => depthCurveZoomEnabled.value && depthCurveVisibleSpan.value < depthCurveFullSpan.value - 1
+)
+
+const resetDepthCurveZoom = () => {
+  depthCurveVisibleRange.value = depthCurveFullRange.value ? { ...depthCurveFullRange.value } : null
+}
+
+const handleDepthCurveDataZoom = (event: any) => {
+  const fullRange = depthCurveFullRange.value
+  if (!fullRange) return
+  const payload = Array.isArray(event?.batch) ? event.batch[0] : event
+  const startValue = Number(payload?.startValue)
+  const endValue = Number(payload?.endValue)
+  if (Number.isFinite(startValue) && Number.isFinite(endValue)) {
+    depthCurveVisibleRange.value = { start: startValue, end: endValue }
+    return
+  }
+  const start = Number(payload?.start)
+  const end = Number(payload?.end)
+  if (Number.isFinite(start) && Number.isFinite(end)) {
+    depthCurveVisibleRange.value = getDepthCurveRangeFromPercent(fullRange, start, end)
+  }
+}
+
+const resizeDepthCurve = (scale: number) => {
+  const fullRange = depthCurveFullRange.value
+  const currentRange = depthCurveVisibleRange.value || fullRange
+  if (!depthCurveZoomEnabled.value || !fullRange || !currentRange) return
+  const nextRange = resizeDepthCurveTimeRange(fullRange, currentRange, scale)
+  depthCurveVisibleRange.value = nextRange
+  depthCurveChart.value?.dispatchAction({
+    type: "dataZoom",
+    dataZoomId: DEPTH_CURVE_ZOOM_ID,
+    startValue: nextRange.start,
+    endValue: nextRange.end
+  })
+}
+
+const zoomDepthCurveIn = () => resizeDepthCurve(DEPTH_CURVE_ZOOM_IN_SCALE)
+const zoomDepthCurveOut = () => resizeDepthCurve(DEPTH_CURVE_ZOOM_OUT_SCALE)
+
+const escapeChartHtml = (value: unknown) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+
+const communicationStateText = (connected: 0 | 1 | null) => {
+  if (connected === 1) return "正常"
+  if (connected === 0) return "异常"
+  return "未知"
+}
+
+const groupedCommunicationEvents = (connected: 0 | 1 | null) => {
+  const groups = new Map<
+    string,
+    {
+      value: [number, number]
+      devices: string[]
+      connected: 0 | 1 | null
+      depthCarried: boolean
+      deviceStates: Array<{ device: string; connected: 0 | 1 | null }>
+    }
+  >()
+  for (const event of depthCurveData.value?.communication_events || []) {
+    if (event.connected !== connected) continue
+    const key = `${event.timestamp_ms}|${event.depth}|${event.depth_carried}`
+    const current = groups.get(key)
+    if (current) {
+      if (!current.devices.includes(event.device)) current.devices.push(event.device)
+    } else {
+      groups.set(key, {
+        value: [event.timestamp_ms, event.depth],
+        devices: [event.device],
+        connected: event.connected,
+        depthCarried: event.depth_carried,
+        deviceStates: event.device_states?.length
+          ? event.device_states
+          : [{ device: event.device, connected: event.connected }]
+      })
+    }
+  }
+  return [...groups.values()]
+}
+
+const communicationEventSeries = () =>
+  communicationSeriesConfig.map((config) => ({
+    name: config.name,
+    type: "scatter",
+    symbol: "circle",
+    symbolSize: 11,
+    symbolOffset: config.offset,
+    z: 10,
+    data: groupedCommunicationEvents(config.connected),
+    itemStyle: { color: config.color, borderColor: "#fff", borderWidth: 2 },
+    tooltip: {
+      trigger: "item",
+      formatter: communicationPointTooltip
+    }
+  }))
+
+const depthAxisTooltip = (params: any[]) => {
+  const items = Array.isArray(params) ? params : [params]
+  const depthItem = items.find((item) => item.seriesType === "line")
+  const timestamp = Number(depthItem?.value?.[0])
+  const timeText = Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString("zh-CN", { hour12: false }) : "-"
+  const depth = depthItem?.value?.[1]
+  const depthText = typeof depth === "number" && Number.isFinite(depth) ? `${depth.toFixed(2)} m` : "--"
+  return [timeText, `深度：${depthText}`].join("<br/>")
+}
+
+const communicationPointTooltip = (params: any) => {
+  const item = Array.isArray(params) ? params[0] : params
+  const timestamp = Number(item?.value?.[0])
+  const timeText = Number.isFinite(timestamp) ? new Date(timestamp).toLocaleString("zh-CN", { hour12: false }) : "-"
+  const depth = item?.value?.[1]
+  const depthText = typeof depth === "number" && Number.isFinite(depth) ? `${depth.toFixed(2)} m` : "--"
+  const event = item?.data as
+    | {
+        devices: string[]
+        connected: SimulatedWellCommunicationEvent["connected"]
+        depthCarried: boolean
+        deviceStates: Array<{ device: string; connected: 0 | 1 | null }>
+      }
+    | undefined
+  const carried = event?.depthCarried ? "（深度沿用最近值）" : ""
+  const lines = [timeText, `深度：${depthText}${carried}`]
+  if (event) {
+    const states = event.deviceStates?.length
+      ? event.deviceStates
+      : event.devices.map((device) => ({ device, connected: event.connected }))
+    lines.push("通信状态：")
+    for (const state of states) {
+      lines.push(`${escapeChartHtml(state.device)}：${communicationStateText(state.connected)}`)
+    }
+  }
+  return lines.join("<br/>")
+}
+
+const depthCurveOption = computed(() => ({
+  animation: false,
+  grid: { left: 72, right: 30, top: 34, bottom: 52 },
+  dataZoom: [
+    {
+      id: DEPTH_CURVE_ZOOM_ID,
+      type: "inside",
+      xAxisIndex: 0,
+      start: 0,
+      end: 100,
+      minValueSpan: MIN_DEPTH_CURVE_SPAN_MS,
+      zoomLock: true,
+      zoomOnMouseWheel: false,
+      moveOnMouseWheel: false,
+      moveOnMouseMove: true,
+      disabled: !depthCurveZoomEnabled.value,
+      filterMode: "none"
+    }
+  ],
+  tooltip: {
+    trigger: "axis",
+    axisPointer: { type: "cross" },
+    formatter: depthAxisTooltip
+  },
+  xAxis: {
+    type: "time",
+    name: "时间",
+    nameLocation: "middle",
+    nameGap: 34,
+    axisLabel: { formatter: "{MM}-{dd}\n{HH}:{mm}:{ss}" }
+  },
+  yAxis: {
+    type: "value",
+    name: "深度 (m)",
+    scale: true
+  },
+  series: [
+    {
+      name: "深度",
+      type: "line",
+      data: depthCurveData.value?.points || [],
+      showSymbol: false,
+      connectNulls: false,
+      smooth: false,
+      lineStyle: { width: 2, color: "#1677ff" },
+      itemStyle: { color: "#1677ff" },
+      areaStyle: { color: "rgba(22, 119, 255, 0.08)" }
+    },
+    ...communicationEventSeries()
+  ]
+}))
 
 const getMeta = (report: SimulatedWellReportListItem): ReportJson =>
   report.report_json && typeof report.report_json === "object" ? { ...report.report_json } : {}
@@ -268,16 +507,17 @@ const transferColumns = (field: unknown): Record<string, any>[] => {
   const normalized = normalizeTemplateField(field)
   if (!normalized || typeof normalized !== "object") return []
   const columns = (normalized as Record<string, any>).columns
-  return Array.isArray(columns) ? columns as Record<string, any>[] : []
+  return Array.isArray(columns) ? (columns as Record<string, any>[]) : []
 }
 
 const buildReadonlyTransferDataRows = (fields: unknown, values: unknown): ReadonlyReportRow[] => {
   if (!Array.isArray(fields)) return []
-  const valueMap = values && typeof values === "object" ? values as Record<string, unknown> : {}
+  const valueMap = values && typeof values === "object" ? (values as Record<string, unknown>) : {}
   return fields.flatMap((field, fieldIndex) => {
     if (fieldType(field) !== "single-row-multi-column") return []
     return transferColumns(field).map((column, columnIndex) => {
-      const label = `${fieldLabel(field, "")}${fieldLabel(column, "")}` || `转样数据${fieldIndex + 1}子字段${columnIndex + 1}`
+      const label =
+        `${fieldLabel(field, "")}${fieldLabel(column, "")}` || `转样数据${fieldIndex + 1}子字段${columnIndex + 1}`
       return {
         label,
         value: displayValueWithUnit(valueMap[fieldKey("transfer", fieldIndex, `c${columnIndex}`)], column.unit)
@@ -306,7 +546,9 @@ const buildReadonlyReportRows = (
     const key = fieldKey(prefix, index)
     const label = fieldLabel(rawField, `${sectionName}${index + 1}`)
     const type = fieldType(rawField)
-    if (!["depth-group", "range-radio", "multi-input-row", "sampling-group", "card-group", "single-input"].includes(type)) {
+    if (
+      !["depth-group", "range-radio", "multi-input-row", "sampling-group", "card-group", "single-input"].includes(type)
+    ) {
       if (type === "number") return { label, value: displayNumberWithUnit(valueMap[key], definition.unit) }
       return { label, value: displayReadonlyValue(valueMap[key]) }
     }
@@ -316,7 +558,7 @@ const buildReadonlyReportRows = (
       const valueWithUnit = inputValue ? `${inputValue}${unit}` : ""
       return {
         label: `${label}：${valueWithUnit}`,
-        value: displayReadonlyValue(valueMap[fieldKey(prefix, index, "result")]),
+        value: displayReadonlyValue(valueMap[fieldKey(prefix, index, "result")])
       }
     }
     if (type === "depth-group") {
@@ -335,7 +577,7 @@ const buildReadonlyReportRows = (
       const unit = String(definition.unit || "").trim()
       return {
         label: `${label}：${start || end ? `${start} ~ ${end}${unit}` : ""}`,
-        value: displayRangeRadioResult(valueMap[fieldKey(prefix, index, "result")]),
+        value: displayRangeRadioResult(valueMap[fieldKey(prefix, index, "result")])
       }
     }
     if (type === "multi-input-row") {
@@ -395,7 +637,13 @@ const currentEvaluationRows = computed(() =>
     "评价标准"
   )
 )
-const currentTransferDataRows = computed(() => buildReadonlyTransferDataRows(currentTemplateSnapshot.value?.transfer_data_records, currentReport.value?.meta.transfer_data_records))
+
+const currentTransferDataRows = computed(() =>
+  buildReadonlyTransferDataRows(
+    currentTemplateSnapshot.value?.transfer_data_records,
+    currentReport.value?.meta.transfer_data_records
+  )
+)
 
 const isResearchReport = (report?: AuditRow | null) => Number(report?.meta?.order_type) === 1
 
@@ -527,15 +775,59 @@ const handleCurrentChange = (page: number) => {
 }
 
 const handleDetail = async (row: AuditRow) => {
+  const requestToken = ++depthCurveRequestToken
+  depthCurveLoading.value = false
+  depthCurveError.value = ""
+  depthCurveData.value = null
+  resetDepthCurveZoom()
   try {
     const res = await getSimulatedWellReportDetailApi(row.id)
+    if (requestToken !== depthCurveRequestToken) return
     currentReport.value = res.code === 0 ? normalizeRow(res.data) : row
   } catch (error) {
+    if (requestToken !== depthCurveRequestToken) return
     console.error(error)
     currentReport.value = row
     ElMessage.warning("详情接口异常，已展示列表缓存数据")
   }
   detailDialogVisible.value = true
+  void loadDepthCurve(currentReport.value, requestToken)
+}
+
+const loadDepthCurve = async (report: AuditRow | null, requestToken = ++depthCurveRequestToken) => {
+  depthCurveError.value = ""
+  depthCurveData.value = null
+  resetDepthCurveZoom()
+  if (!report?.monitor_csv_url) {
+    depthCurveLoading.value = false
+    return
+  }
+  depthCurveLoading.value = true
+  try {
+    const res = await getSimulatedWellReportDepthCurveApi(report.id)
+    if (requestToken !== depthCurveRequestToken || currentReport.value?.id !== report.id) return
+    depthCurveData.value = res.data
+    resetDepthCurveZoom()
+  } catch (error: any) {
+    if (requestToken !== depthCurveRequestToken || currentReport.value?.id !== report.id) return
+    console.error("加载模拟井深度时间曲线失败", error)
+    depthCurveError.value = error?.message || "深度时间曲线加载失败"
+  } finally {
+    if (requestToken === depthCurveRequestToken) depthCurveLoading.value = false
+  }
+}
+
+const retryDepthCurve = () => {
+  if (currentReport.value) void loadDepthCurve(currentReport.value)
+}
+
+const handleDetailClosed = () => {
+  depthCurveRequestToken += 1
+  depthCurveLoading.value = false
+  depthCurveError.value = ""
+  depthCurveData.value = null
+  resetDepthCurveZoom()
+  currentReport.value = null
 }
 
 const showApproveDialog = (row: AuditRow) => {
@@ -678,11 +970,17 @@ const openRouteReportDetail = async () => {
   if (!shouldSyncRouteTask()) return
   const reportId = Number(route.query.reportId)
   if (!reportId) return
+  const requestToken = ++depthCurveRequestToken
+  depthCurveLoading.value = false
+  depthCurveError.value = ""
+  depthCurveData.value = null
+  resetDepthCurveZoom()
   try {
     const res = await getSimulatedWellReportDetailApi(reportId)
-    if (res.code === 0) {
+    if (requestToken === depthCurveRequestToken && res.code === 0) {
       currentReport.value = normalizeRow(res.data)
       detailDialogVisible.value = true
+      void loadDepthCurve(currentReport.value, requestToken)
     }
   } catch (error) {
     console.error(error)
@@ -831,7 +1129,13 @@ defineExpose({ resetSearch: handleReset })
       </div>
     </el-card>
 
-    <el-dialog v-model="detailDialogVisible" title="模拟井报告详情" width="980px" append-to-body>
+    <el-dialog
+      v-model="detailDialogVisible"
+      title="模拟井报告详情"
+      width="980px"
+      append-to-body
+      @closed="handleDetailClosed"
+    >
       <div v-if="currentReport" class="detail-shell">
         <div class="detail-card">
           <div class="detail-card-title">基础信息</div>
@@ -905,6 +1209,35 @@ defineExpose({ resetSearch: handleReset })
               <strong>{{ currentReport.meta.conclusion === "unqualified" ? "不合格" : "合格" }}</strong>
             </div>
           </div>
+        </div>
+
+        <div class="detail-card depth-curve-card">
+          <div class="detail-card-heading depth-curve-heading">
+            <div class="detail-card-title">深度时间曲线图</div>
+            <el-button-group>
+              <el-button :icon="ZoomIn" :disabled="!canZoomDepthCurveIn" @click="zoomDepthCurveIn">放大</el-button>
+              <el-button :icon="ZoomOut" :disabled="!canZoomDepthCurveOut" @click="zoomDepthCurveOut"> 缩小 </el-button>
+            </el-button-group>
+          </div>
+          <el-skeleton v-if="depthCurveLoading" :rows="6" animated />
+          <template v-else-if="depthCurveData?.points.length">
+            <CommpontentEcharts
+              ref="depthCurveChart"
+              class="depth-curve-chart"
+              height="360px"
+              :option="depthCurveOption as any"
+              @datazoom="handleDepthCurveDataZoom"
+            />
+          </template>
+          <el-empty
+            v-else
+            :description="
+              depthCurveError || (currentReport.monitor_csv_url ? '监控 CSV 中没有有效曲线数据' : '未保存监控 CSV')
+            "
+            :image-size="72"
+          >
+            <el-button v-if="depthCurveError" type="primary" plain @click="retryDepthCurve">重新加载</el-button>
+          </el-empty>
         </div>
 
         <div v-if="!isResearchReport(currentReport)" class="detail-card">
@@ -1077,6 +1410,18 @@ defineExpose({ resetSearch: handleReset })
 
 .detail-card-heading .detail-card-title {
   margin-bottom: 0;
+}
+
+.depth-curve-card {
+  min-height: 250px;
+}
+
+.depth-curve-chart {
+  width: 100%;
+}
+
+.depth-curve-heading {
+  flex-wrap: wrap;
 }
 
 .operator-signature-image {

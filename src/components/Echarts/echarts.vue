@@ -3,6 +3,7 @@ import * as echarts from "echarts"
 import { onMounted, onUnmounted, ref, watch, withDefaults } from "vue"
 
 type EChartsOption = echarts.EChartsOption
+type EChartsActionPayload = Parameters<echarts.ECharts["dispatchAction"]>[0]
 
 interface Prop {
   width?: number | string
@@ -15,6 +16,9 @@ const prop = withDefaults(defineProps<Prop>(), {
   height: "100%",
   option: () => ({})
 })
+const emit = defineEmits<{
+  datazoom: [params: unknown]
+}>()
 
 const RefEchart = ref<HTMLDivElement | null>(null)
 let myChart: echarts.ECharts | null = null
@@ -25,9 +29,14 @@ const initChart = () => {
   }
   if (RefEchart.value) {
     myChart = echarts.init(RefEchart.value)
+    myChart.on("datazoom", (params) => emit("datazoom", params))
     myChart.setOption(prop.option, true)
     window.addEventListener("resize", resizeChart) // 添加窗口大小变化监听
   }
+}
+
+const dispatchAction = (payload: EChartsActionPayload) => {
+  myChart?.dispatchAction(payload)
 }
 
 const resizeChart = () => {
@@ -48,6 +57,8 @@ onUnmounted(() => {
     window.removeEventListener("resize", resizeChart) // 移除窗口大小变化监听
   }
 })
+
+defineExpose({ dispatchAction })
 </script>
 
 <template>

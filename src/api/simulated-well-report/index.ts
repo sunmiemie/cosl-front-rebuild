@@ -15,6 +15,7 @@ export interface SimulatedWellReportListItem {
   reviewer_id?: number | null
   operator_user_id?: number | null
   operator_signature_url?: string | null
+  monitor_csv_url?: string | null
   report_json?: Record<string, any>
   attachments?: Array<Record<string, any>>
   order_ids?: number[]
@@ -26,6 +27,27 @@ export interface SimulatedWellReportListItem {
   assistant_synced_at?: string | null
   assistant_sync_error?: string
   assistant_sync_retry_count?: number
+}
+
+export type SimulatedWellDepthCurvePoint = [timestampMs: number, depth: number | null]
+
+export interface SimulatedWellCommunicationEvent {
+  timestamp_ms: number
+  depth: number
+  device: string
+  connected: 0 | 1 | null
+  depth_carried: boolean
+  device_states?: Array<{
+    device: string
+    connected: 0 | 1 | null
+  }>
+}
+
+export interface SimulatedWellDepthCurveData {
+  points: SimulatedWellDepthCurvePoint[]
+  total: number
+  sampled: boolean
+  communication_events: SimulatedWellCommunicationEvent[]
 }
 
 export interface SimulatedWellReportPayload {
@@ -87,6 +109,18 @@ export function getSimulatedWellReportDetailApi(pk: number) {
   }>({
     url: `test/simulated-well/report/detail/${pk}/`,
     method: "get"
+  })
+}
+
+/** 获取模拟井报告的时间-深度曲线数据 */
+export function getSimulatedWellReportDepthCurveApi(pk: number) {
+  return request<{
+    code: number
+    data: SimulatedWellDepthCurveData
+  }>({
+    url: `test/simulated-well/report/depth-curve/${pk}/`,
+    method: "get",
+    silentError: true
   })
 }
 

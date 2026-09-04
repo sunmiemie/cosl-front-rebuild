@@ -5,8 +5,10 @@ import { resolve } from "node:path"
 const root = resolve(__dirname, "..")
 const pagePath = "src/views/datamanage/historymange/components/SimulationWellReport.vue"
 const apiPath = "src/api/simulated-well-report/index.ts"
+const chartPath = "src/components/Echarts/echarts.vue"
 const content = readFileSync(resolve(root, pagePath), "utf8")
 const apiContent = readFileSync(resolve(root, apiPath), "utf8")
+const chartContent = readFileSync(resolve(root, chartPath), "utf8")
 
 describe("simulated well report review remarks", () => {
   it("uses the shared report-list layout and supports conditional queries", () => {
@@ -87,7 +89,9 @@ describe("simulated well report review remarks", () => {
     expect(content).toContain("const buildReadonlyTransferDataRows")
     expect(content).toContain('fieldType(field) !== "single-row-multi-column"')
     expect(content).toContain('fieldKey("transfer", fieldIndex, `c${columnIndex}`)')
-    expect(content).toContain('displayValueWithUnit(valueMap[fieldKey("transfer", fieldIndex, `c${columnIndex}`)], column.unit)')
+    expect(content).toContain(
+      'displayValueWithUnit(valueMap[fieldKey("transfer", fieldIndex, `c${columnIndex}`)], column.unit)'
+    )
     expect(content).toContain('const label = `${fieldLabel(field, "")}${fieldLabel(column, "")}`')
     expect(content).toContain('v-if="!isResearchReport(currentReport) && currentTransferDataRows.length"')
     expect(content).toContain("测试完成转样数据记录")
@@ -99,11 +103,11 @@ describe("simulated well report review remarks", () => {
     expect(content).toContain('if (type === "single-input")')
     expect(content).toContain('String(definition.unit || "").trim()')
     expect(content).toContain('const valueWithUnit = inputValue ? `${inputValue}${unit}` : ""')
-    expect(content).toContain('`${label}：${valueWithUnit}`')
-    expect(content).not.toContain('englishLabel ? `${englishLabel}: ${valueWithUnit}`')
+    expect(content).toContain("`${label}：${valueWithUnit}`")
+    expect(content).not.toContain("englishLabel ? `${englishLabel}: ${valueWithUnit}`")
     expect(content).toContain('fieldKey(prefix, index, "result")')
-    expect(content).toContain('const inputValue = displayReadonlyValue(valueMap[key])')
-    expect(content).not.toContain('未填写')
+    expect(content).toContain("const inputValue = displayReadonlyValue(valueMap[key])")
+    expect(content).not.toContain("未填写")
   })
 
   it("formats range-radio values in the Chinese label and keeps only the judgment on the right", () => {
@@ -118,7 +122,9 @@ describe("simulated well report review remarks", () => {
   it("appends the optional unit to number values without appending it to missing values", () => {
     expect(content).toContain("const displayNumberWithUnit = (value: unknown, unit: unknown) =>")
     expect(content).toContain('if (value === undefined || value === null || value === "") return numberValue')
-    expect(content).toContain('if (type === "number") return { label, value: displayNumberWithUnit(valueMap[key], definition.unit) }')
+    expect(content).toContain(
+      'if (type === "number") return { label, value: displayNumberWithUnit(valueMap[key], definition.unit) }'
+    )
   })
 
   it("shows the saved operator signature in report basic information", () => {
@@ -143,7 +149,9 @@ describe("simulated well report review remarks", () => {
   })
 
   it("hides report name, template data and PDF download for research reports", () => {
-    expect(content).toContain("const isResearchReport = (report?: AuditRow | null) => Number(report?.meta?.order_type) === 1")
+    expect(content).toContain(
+      "const isResearchReport = (report?: AuditRow | null) => Number(report?.meta?.order_type) === 1"
+    )
     expect(content).toContain('v-if="!isResearchReport(currentReport)" class="info-tile"')
     expect(content).toContain('v-if="!isResearchReport(currentReport)" class="detail-card"')
     expect(content).toContain("非研究院已通过报告可下载正式 PDF")
@@ -166,5 +174,31 @@ describe("simulated well report review remarks", () => {
     const originalRow = content.slice(originalRowStart, otherRowStart)
     expect(originalRow).toContain("handleCurveDownload(currentReport)")
     expect(originalRow).not.toContain("openAttachment(item)")
+  })
+
+  it("loads and renders the monitor CSV depth-time curve in the report detail", () => {
+    expect(apiContent).toContain("monitor_csv_url?: string | null")
+    expect(apiContent).toContain("getSimulatedWellReportDepthCurveApi")
+    expect(apiContent).toContain("test/simulated-well/report/depth-curve/${pk}/")
+    expect(content).toContain("深度时间曲线图")
+    expect(content).toContain("depthCurveRequestToken")
+    expect(content).toContain("getSimulatedWellReportDepthCurveApi(report.id)")
+    expect(content).toContain('type: "time"')
+    expect(content).toContain('name: "深度 (m)"')
+    expect(content).toContain("connectNulls: false")
+    expect(content).toContain("dataZoom")
+    expect(content).toContain("minValueSpan: MIN_DEPTH_CURVE_SPAN_MS")
+    expect(content).toContain("zoomLock: true")
+    expect(content).toContain("zoomOnMouseWheel: false")
+    expect(content).toContain("moveOnMouseWheel: false")
+    expect(content).toContain("moveOnMouseMove: true")
+    expect(content).toContain("canZoomDepthCurveIn")
+    expect(content).toContain("canZoomDepthCurveOut")
+    expect(content).toContain("zoomDepthCurveIn")
+    expect(content).toContain("zoomDepthCurveOut")
+    expect(chartContent).toContain('emit("datazoom", params)')
+    expect(chartContent).toContain("defineExpose({ dispatchAction })")
+    expect(content).not.toContain("条数据抽稀展示")
+    expect(content).not.toContain("共 {{ depthCurveData.total }} 条数据")
   })
 })
