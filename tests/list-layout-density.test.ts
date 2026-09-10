@@ -27,6 +27,28 @@ describe("shared list layout density", () => {
     expect(styles).toContain("width: clamp(260px, 18vw, 300px) !important;")
   })
 
+  it("keeps the simulated-well table scrollable inside its order-type tabs", () => {
+    const styles = read("src/styles/management-list.scss")
+    const simulationOrder = read("src/views/testmanage/testorder/components/SimulationOrder.vue")
+
+    expect(simulationOrder).toContain('class="management-list-inner-tabs"')
+    expect(styles).toMatch(
+      /\.management-list-card \.table-wrapper > \.management-list-inner-tabs[\s\S]*height:\s*100%;[\s\S]*min-height:\s*0;/
+    )
+    expect(styles).toMatch(
+      /\.management-list-card \.management-list-inner-tabs > \.el-tabs__header[\s\S]*order:\s*0;[\s\S]*flex:\s*none;/
+    )
+    expect(styles).toMatch(
+      /\.management-list-card \.management-list-inner-tabs > \.el-tabs__content[\s\S]*order:\s*1;[\s\S]*flex:\s*1 1 0;[\s\S]*min-width:\s*0;[\s\S]*min-height:\s*0;/
+    )
+    expect(styles).toMatch(
+      /\.management-list-card \.management-list-inner-tabs > \.el-tabs__content > \.el-tab-pane[\s\S]*height:\s*100%;[\s\S]*min-height:\s*0;/
+    )
+    expect(styles).toMatch(
+      /\.management-list-card \.management-list-inner-tabs \.el-table[\s\S]*width:\s*100%;[\s\S]*height:\s*100% !important;/
+    )
+  })
+
   it("keeps data and operation cells on one line with a fixed right operation column", () => {
     const styles = read("src/styles/management-list.scss")
     const table = read("src/components/Table/index.vue")

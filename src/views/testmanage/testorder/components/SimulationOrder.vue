@@ -23,7 +23,7 @@ import type { SimulatedWellOrderListItem } from "@/api/simulated-well/types"
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 
 const statusOptions = [
-  { value: "0", label: "待审核" },
+  { value: "0", label: "已创建" },
   { value: "1", label: "待领取" },
   { value: "2", label: "测试中" },
   { value: "3", label: "待审核" },
@@ -527,7 +527,11 @@ onMounted(() => {
       </div>
 
       <div class="table-wrapper">
-        <el-tabs v-model="activeOrderType" @tab-change="handleOrderTypeTabChange">
+        <el-tabs
+          v-model="activeOrderType"
+          class="management-list-inner-tabs"
+          @tab-change="handleOrderTypeTabChange"
+        >
           <el-tab-pane v-for="tab in orderTypeTabs" :key="tab.name" :label="tab.label" :name="tab.name">
             <el-table :data="tableData" stripe border height="100%" style="width: 100%">
               <el-table-column prop="table_number" label="表格编号" width="150" align="center" />
