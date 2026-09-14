@@ -3,13 +3,16 @@ import { onMounted, reactive, ref } from "vue"
 import { ElMessage } from "element-plus"
 import { getHaltHassReportDetail, getHaltHassReportList } from "@/api/halt-hass"
 import type { HaltHassReportDetail, HaltHassReportListItem } from "@/api/halt-hass/types"
+import HaltHassReportEvidence from "@/components/halt-hass/HaltHassReportEvidence.vue"
+import HaltHassReportDownloadButton from "@/components/halt-hass/HaltHassReportDownloadButton.vue"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 
 const searchForm = reactive({
-  orderNo: "",
+  keyword: "",
   result: "",
-  reviewStatus: ""
+  reviewStatus: "",
+  reportType: "" as "" | "drive_control" | "rectifier_regulator"
 })
 
 const pagination = reactive({
@@ -58,7 +61,8 @@ const getList = async () => {
     const res = await getHaltHassReportList({
       page: pagination.page,
       pageSize: pagination.pageSize,
-      orderNo: searchForm.orderNo || undefined,
+      keyword: searchForm.keyword || undefined,
+      reportType: searchForm.reportType || undefined,
       result: searchForm.result || undefined,
       reviewStatus: searchForm.reviewStatus || undefined
     })
@@ -79,9 +83,10 @@ const handleSearch = () => {
 }
 
 const handleReset = () => {
-  searchForm.orderNo = ""
+  searchForm.keyword = ""
   searchForm.result = ""
   searchForm.reviewStatus = ""
+  searchForm.reportType = ""
   pagination.page = 1
   getList()
 }
@@ -125,8 +130,8 @@ onMounted(() => {
     <el-card v-loading="loading" class="report-list-card" shadow="never">
       <div class="report-list-toolbar">
         <el-form :inline="true" :model="searchForm" class="report-filter-form">
-          <el-form-item label="工单号">
-            <el-input v-model="searchForm.orderNo" placeholder="请输入工单号" clearable />
+          <el-form-item label="关键词">
+            <el-input v-model="searchForm.keyword" placeholder="报告号/工单号/SN/型号" clearable />
           </el-form-item>
           <el-form-item label="测试结果">
             <el-select v-model="searchForm.result" placeholder="全部结果" clearable style="width: 120px">
@@ -142,6 +147,12 @@ onMounted(() => {
               <el-option label="已驳回" value="2" />
             </el-select>
           </el-form-item>
+          <el-form-item label="报告类型">
+            <el-select v-model="searchForm.reportType" placeholder="全部类型" clearable style="width: 150px">
+              <el-option label="驱动控制" value="drive_control" />
+              <el-option label="整流稳压" value="rectifier_regulator" />
+            </el-select>
+          </el-form-item>
         </el-form>
         <div class="report-toolbar-actions">
           <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
@@ -154,12 +165,18 @@ onMounted(() => {
 
       <div class="table-wrapper">
         <el-table :data="tableData" stripe border height="100%" style="width: 100%">
-          <el-table-column prop="id" label="报告 ID" width="90" align="center" />
+          <el-table-column prop="reportNo" label="报告编号" min-width="154" show-overflow-tooltip />
+          <el-table-column label="报告类型" width="104" align="center">
+            <template #default="{ row }">{{ row.reportType === "rectifier_regulator" ? "整流稳压" : "驱动控制" }}</template>
+          </el-table-column>
           <el-table-column label="工单号" width="180" align="center">
             <template #default="{ row }">
               {{ row.order?.orderNo || "-" }}
             </template>
           </el-table-column>
+          <el-table-column prop="serial" label="目标板 SN" min-width="146" show-overflow-tooltip />
+          <el-table-column prop="boardModelName" label="板型号" min-width="112" show-overflow-tooltip />
+          <el-table-column prop="attemptNo" label="轮次" width="72" align="center" />
           <el-table-column label="板组" min-width="120" align="center">
             <template #default="{ row }">
               {{ row.order?.boardGroup?.name || "-" }}
@@ -181,9 +198,10 @@ onMounted(() => {
               {{ row.reviewTime || "-" }}
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="100" align="center" fixed="right">
+          <el-table-column label="操作" width="150" align="center" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" @click="handleDetail(row)">详情</el-button>
+              <HaltHassReportDownloadButton :report-id="row.id" :report-no="row.reportNo" :report-type="row.reportType" />
             </template>
           </el-table-column>
         </el-table>
@@ -206,8 +224,12 @@ onMounted(() => {
       <el-tabs v-if="currentReport" v-model="activeTab">
         <el-tab-pane label="基本信息" name="info">
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="报告 ID">{{ currentReport.id }}</el-descriptions-item>
+            <el-descriptions-item label="报告编号">{{ currentReport.reportNo || currentReport.id }}</el-descriptions-item>
             <el-descriptions-item label="工单号">{{ currentReport.order?.orderNo || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="目标板 SN">{{ currentReport.serial || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="板型号">{{ currentReport.boardModelName || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="测试轮次">第 {{ currentReport.attemptNo }} 轮</el-descriptions-item>
+            <el-descriptions-item label="测试场次">{{ currentReport.sessionNo || "-" }}</el-descriptions-item>
             <el-descriptions-item label="测试结果">
               <el-tag :type="getResultType(currentReport.result)">{{ currentReport.resultText }}</el-tag>
             </el-descriptions-item>
@@ -301,7 +323,14 @@ onMounted(() => {
             </el-descriptions>
           </div>
         </el-tab-pane>
+        <el-tab-pane label="测试记录与曲线" name="evidence">
+          <HaltHassReportEvidence :report-json="currentReport.reportJson" />
+        </el-tab-pane>
       </el-tabs>
+      <template #footer v-if="currentReport">
+        <HaltHassReportDownloadButton :report-id="currentReport.id" :report-no="currentReport.reportNo" :report-type="currentReport.reportType" :link="false" />
+        <el-button @click="detailDialogVisible = false">关闭</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>

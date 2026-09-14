@@ -12,6 +12,8 @@ import {
   rejectHaltHassReport
 } from "@/api/halt-hass"
 import type { HaltHassReportDetail, HaltHassReportListItem } from "@/api/halt-hass/types"
+import HaltHassReportEvidence from "@/components/halt-hass/HaltHassReportEvidence.vue"
+import HaltHassReportDownloadButton from "@/components/halt-hass/HaltHassReportDownloadButton.vue"
 
 const userStore = useUserStore()
 const route = useRoute()
@@ -25,12 +27,13 @@ const pagination = reactive({
   total: 0
 })
 const searchData = reactive({
-  orderNo: ""
+  keyword: "",
+  reportType: "" as "" | "drive_control" | "rectifier_regulator"
 })
 
 const initSearchFromRoute = () => {
   const { orderNo } = route.query
-  searchData.orderNo = typeof orderNo === "string" ? orderNo : ""
+  searchData.keyword = typeof orderNo === "string" ? orderNo : ""
 }
 
 const shouldSyncRouteTask = () => {
@@ -86,7 +89,8 @@ const getTableData = () => {
   getHaltHassReportList({
     page: pagination.currentPage,
     pageSize: pagination.pageSize,
-    orderNo: searchData.orderNo || undefined,
+    keyword: searchData.keyword || undefined,
+    reportType: searchData.reportType || undefined,
     reviewStatus: "0"
   })
     .then((res) => {
@@ -113,7 +117,8 @@ const handleSearch = () => {
 }
 
 const resetSearch = () => {
-  searchData.orderNo = ""
+  searchData.keyword = ""
+  searchData.reportType = ""
   handleSearch()
 }
 
@@ -250,13 +255,19 @@ defineExpose({ resetSearch })
   <el-card v-loading="loading" shadow="never" class="report-list-card">
     <div class="report-list-toolbar">
       <el-form :inline="true" :model="searchData" class="report-filter-form">
-        <el-form-item label="&#x5DE5;&#x5355;&#x53F7;">
+        <el-form-item label="&#x5173;&#x952E;&#x5B57;">
           <el-input
-            v-model="searchData.orderNo"
-            placeholder="&#x8BF7;&#x8F93;&#x5165;&#x5DE5;&#x5355;&#x53F7;"
+            v-model="searchData.keyword"
+            placeholder="&#x62A5;&#x544A;&#x53F7;/&#x5DE5;&#x5355;&#x53F7;/SN/&#x578B;&#x53F7;"
             clearable
             style="width: 200px"
           />
+        </el-form-item>
+        <el-form-item label="报告类型">
+          <el-select v-model="searchData.reportType" placeholder="全部类型" clearable style="width: 150px">
+            <el-option label="驱动控制" value="drive_control" />
+            <el-option label="整流稳压" value="rectifier_regulator" />
+          </el-select>
         </el-form-item>
       </el-form>
       <div class="report-toolbar-actions">
@@ -270,12 +281,18 @@ defineExpose({ resetSearch })
 
     <div class="table-wrapper">
       <el-table :data="tableData" stripe border>
-        <el-table-column prop="id" label="&#x62A5;&#x544A;ID" width="80" align="center" />
+        <el-table-column prop="reportNo" label="&#x62A5;&#x544A;&#x7F16;&#x53F7;" min-width="154" show-overflow-tooltip />
+        <el-table-column label="报告类型" width="104" align="center">
+          <template #default="{ row }">{{ row.reportType === "rectifier_regulator" ? "整流稳压" : "驱动控制" }}</template>
+        </el-table-column>
         <el-table-column label="&#x5DE5;&#x5355;&#x53F7;" width="180" align="center">
           <template #default="{ row }">
             {{ row.order?.orderNo || "-" }}
           </template>
         </el-table-column>
+        <el-table-column prop="serial" label="&#x76EE;&#x6807;&#x677F; SN" min-width="146" show-overflow-tooltip />
+        <el-table-column prop="boardModelName" label="&#x677F;&#x578B;&#x53F7;" min-width="112" show-overflow-tooltip />
+        <el-table-column prop="attemptNo" label="&#x8F6E;&#x6B21;" width="72" align="center" />
         <el-table-column prop="result" label="&#x6D4B;&#x8BD5;&#x7ED3;&#x679C;" width="100" align="center">
           <template #default="{ row }">
             <el-tag :type="getResultType(row.result)">{{ row.resultText }}</el-tag>
@@ -287,9 +304,10 @@ defineExpose({ resetSearch })
           </template>
         </el-table-column>
         <el-table-column prop="createdAt" label="&#x63D0;&#x4EA4;&#x65F6;&#x95F4;" width="170" align="center" />
-        <el-table-column label="&#x64CD;&#x4F5C;" width="200" align="center" fixed="right">
+        <el-table-column label="&#x64CD;&#x4F5C;" width="245" align="center" fixed="right">
           <template #default="{ row }">
             <el-button type="primary" link :icon="View" @click="handleDetail(row)">&#x8BE6;&#x60C5;</el-button>
+            <HaltHassReportDownloadButton :report-id="row.id" :report-no="row.reportNo" :report-type="row.reportType" />
             <el-button type="success" link :icon="Check" @click="handleApprove(row)">&#x901A;&#x8FC7;</el-button>
             <el-button type="danger" link :icon="Close" @click="showRejectDialog(row)">&#x6253;&#x56DE;</el-button>
           </template>
@@ -314,13 +332,17 @@ defineExpose({ resetSearch })
       <el-tabs v-model="activeTab" v-if="currentReport">
         <el-tab-pane label="&#x57FA;&#x672C;&#x4FE1;&#x606F;" name="info">
           <el-descriptions :column="2" border>
-            <el-descriptions-item label="&#x62A5;&#x544A;ID">{{ currentReport.id }}</el-descriptions-item>
+            <el-descriptions-item label="&#x62A5;&#x544A;&#x7F16;&#x53F7;">{{ currentReport.reportNo || currentReport.id }}</el-descriptions-item>
             <el-descriptions-item label="&#x5DE5;&#x5355;&#x53F7;">
               {{ currentReport.order?.orderNo || "-" }}
             </el-descriptions-item>
             <el-descriptions-item label="&#x6D4B;&#x8BD5;&#x7ED3;&#x679C;">
               <el-tag :type="getResultType(currentReport.result)">{{ currentReport.resultText }}</el-tag>
             </el-descriptions-item>
+            <el-descriptions-item label="&#x76EE;&#x6807;&#x677F; SN">{{ currentReport.serial || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="&#x677F;&#x578B;&#x53F7;">{{ currentReport.boardModelName || "-" }}</el-descriptions-item>
+            <el-descriptions-item label="&#x6D4B;&#x8BD5;&#x8F6E;&#x6B21;">&#x7B2C; {{ currentReport.attemptNo }} &#x8F6E;</el-descriptions-item>
+            <el-descriptions-item label="&#x6D4B;&#x8BD5;&#x573A;&#x6B21;">{{ currentReport.sessionNo || "-" }}</el-descriptions-item>
             <el-descriptions-item label="&#x5BA1;&#x6838;&#x72B6;&#x6001;">
               <el-tag type="warning">&#x5F85;&#x5BA1;&#x6838;</el-tag>
             </el-descriptions-item>
@@ -397,14 +419,8 @@ defineExpose({ resetSearch })
           <el-empty v-else description="&#x65E0;&#x6D41;&#x7A0B;&#x56FE;&#x7ED3;&#x679C;&#x6570;&#x636E;" />
         </el-tab-pane>
 
-        <el-tab-pane label="&#x7535;&#x8DEF;&#x677F;&#x4FE1;&#x606F;" name="boards">
-          <el-table :data="currentReport.reportJson?.boards || []" size="small" border>
-            <el-table-column type="index" label="&#x5E8F;&#x53F7;" width="60" align="center" />
-            <el-table-column prop="serial" label="&#x5E8F;&#x5217;&#x53F7;" />
-            <el-table-column prop="boardModelName" label="&#x578B;&#x53F7;">
-              <template #default="{ row }">{{ row.boardModelName || "-" }}</template>
-            </el-table-column>
-          </el-table>
+        <el-tab-pane label="板卡、测试记录与曲线" name="boards">
+          <HaltHassReportEvidence :report-json="currentReport.reportJson" />
 
           <div style="margin-top: 20px">
             <el-descriptions :column="2" border>
@@ -427,6 +443,7 @@ defineExpose({ resetSearch })
 
       <template #footer>
         <el-button @click="detailVisible = false">&#x5173;&#x95ED;</el-button>
+        <HaltHassReportDownloadButton v-if="currentReport" :report-id="currentReport.id" :report-no="currentReport.reportNo" :report-type="currentReport.reportType" :link="false" />
         <el-button type="danger" :icon="Close" @click="showRejectDialog(currentReport!)"> &#x6253;&#x56DE; </el-button>
         <el-button type="success" :icon="Check" @click="handleApprove(currentReport!)"> &#x901A;&#x8FC7; </el-button>
       </template>
