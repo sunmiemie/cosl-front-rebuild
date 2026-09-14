@@ -39,6 +39,12 @@
           <el-form-item prop="name" label="产品名称" label-width="100">
             <el-input v-model="formData.name" />
           </el-form-item>
+          <el-form-item label="HALT-HASS 类型" label-width="100">
+            <el-select v-model="formData.haltHassTestType" clearable placeholder="不参与 HALT-HASS" style="width: 100%">
+              <el-option label="高速率测试" :value="1" />
+              <el-option label="SDS 测试" :value="2" />
+            </el-select>
+          </el-form-item>
         </el-form>
         <template #footer>
           <el-button @click="resect">取消</el-button>
@@ -98,7 +104,8 @@ const searchData = reactive<any>({
 })
 const formData = reactive<any>({
   id: "",
-  name: ""
+  name: "",
+  haltHassTestType: null
 })
 const formRules: FormRules = reactive({
   name: [{ required: true, trigger: "blur", message: "请输入产品名称" }]
@@ -107,6 +114,7 @@ const closeProduct = () => {
   currentUpdateId.value = undefined
   formData.id = ""
   formData.name = ""
+  formData.haltHassTestType = null
 }
 const handleCreate = () => {
   const name = String(formData.name || "").trim()
@@ -116,7 +124,7 @@ const handleCreate = () => {
   }
 
   if (currentUpdateId.value === undefined) {
-    createProductDataApi({ name })
+    createProductDataApi({ name, haltHassTestType: formData.haltHassTestType })
       .then(() => {
         ElMessage.success("新增成功")
         getTableData()
@@ -129,7 +137,8 @@ const handleCreate = () => {
   } else {
     updateProductDataApi({
       name,
-      id: formData.id
+      id: formData.id,
+      haltHassTestType: formData.haltHassTestType
     })
       .then(() => {
         ElMessage.success("修改成功")
@@ -156,11 +165,13 @@ const headers = checkPermission(["6"])
   ? ref<any>([
       { prop: "id", label: "产品 ID", align: "center" },
       { prop: "name", label: "产品名称", align: "center" },
+      { prop: "haltHassTestTypeName", label: "HALT-HASS 测试类型", align: "center" },
       { prop: "link", label: "操作", type: "link", align: "center" }
     ])
   : ref<any>([
       { prop: "id", label: "产品 ID", align: "center" },
-      { prop: "name", label: "产品名称", align: "center" }
+      { prop: "name", label: "产品名称", align: "center" },
+      { prop: "haltHassTestTypeName", label: "HALT-HASS 测试类型", align: "center" }
     ])
 
 const TableData = ref<any>([])
@@ -197,6 +208,7 @@ const handleLink = (data: any, i: any) => {
     currentUpdateId.value = i
     formData.id = data.id
     formData.name = data.name
+    formData.haltHassTestType = data.haltHassTestType ?? null
     dialogVisible.value = true
   }
 }

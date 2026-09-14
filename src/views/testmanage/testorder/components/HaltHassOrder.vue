@@ -5,14 +5,14 @@
     <el-card v-loading="loading" class="management-list-card" shadow="never">
       <div class="management-list-toolbar">
         <el-form :inline="true" :model="searchForm" class="management-filter-form">
-        <el-form-item label="工单号">
-          <el-input v-model="searchForm.orderNo" placeholder="请输入工单号" clearable />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px">
-            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
+          <el-form-item label="工单号">
+            <el-input v-model="searchForm.orderNo" placeholder="请输入工单号" clearable />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px">
+              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
         </el-form>
         <div class="management-toolbar-actions">
           <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
@@ -55,21 +55,31 @@
               {{ row.boardGroup?.name || "-" }}
             </template>
           </el-table-column>
-          <el-table-column prop="process" label="工艺" min-width="112" align="center">
+          <el-table-column label="任务执行流程" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">
-              <span class="process-name">{{ getOrderProcessName(row) }}</span>
-              <el-tag v-if="row.process?.version" class="process-version-tag" size="small" type="info">
-                v{{ row.process.version }}
-              </el-tag>
+              {{ getOrderField(row, "taskExecutionDescription", "task_execution_description") }}
             </template>
           </el-table-column>
           <el-table-column label="循环次数" width="82" align="center">
             <template #default="{ row }">{{ getOrderCycleCount(row) }} 次</template>
           </el-table-column>
-          <el-table-column label="循环总时长" width="104" align="center">
-            <template #default="{ row }">{{ formatHours(getOrderTotalDuration(row)) }}</template>
+          <el-table-column label="默认温振曲线" min-width="150" show-overflow-tooltip>
+            <template #default="{ row }">{{ getOrderWorkbenchTestName(row) }}</template>
           </el-table-column>
           <el-table-column prop="boardCount" label="电路板数" width="78" align="center" />
+          <el-table-column label="逐板进度" width="116" align="center">
+            <template #default="{ row }">
+              <span class="board-progress-text">
+                {{ row.targetBoardProgress?.passed || 0 }}/{{ row.targetBoardProgress?.total || row.boardCount }} 通过
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="产品型号" min-width="110" align="center">
+            <template #default="{ row }">{{ row.productModel?.name || row.product_model?.name || "-" }}</template>
+          </el-table-column>
+          <el-table-column label="客户端测试类型" min-width="116" align="center">
+            <template #default="{ row }">{{ row.clientTestTypeName || row.client_test_type_name || "-" }}</template>
+          </el-table-column>
           <el-table-column prop="status" label="状态" width="82" align="center">
             <template #default="{ row }">
               <el-tag :type="getStatusType(row.status)">{{ row.statusText }}</el-tag>
@@ -161,12 +171,29 @@
         <el-divider content-position="left">实验配置</el-divider>
         <el-row :gutter="20">
           <el-col :span="12">
+            <el-form-item label="产品型号" prop="productModelId">
+              <el-select
+                v-model="createForm.productModelId"
+                filterable
+                placeholder="请选择待测产品型号"
+                style="width: 100%"
+                @change="handleProductModelChange"
+              >
+                <el-option v-for="item in productModelList" :key="item.id" :label="item.name" :value="item.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="客户端测试类型">
+              <el-input :model-value="clientTestTypeName" readonly placeholder="选择产品后自动确定" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="实验类型" prop="experimentType">
               <el-select
                 v-model="createForm.experimentType"
                 placeholder="请选择实验类型"
                 style="width: 100%"
-                @change="handleExperimentTypeChange"
               >
                 <el-option
                   v-for="item in experimentTypeOptions"
@@ -201,30 +228,6 @@
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="选择测试工艺" prop="processSelection">
-              <el-select
-                v-model="createForm.processSelection"
-                placeholder="请选择对应实验类型下的工艺流程或其他"
-                style="width: 100%"
-                :disabled="!createForm.boardGroupId || !createForm.experimentType"
-                @change="handleProcessSelectionChange"
-              >
-                <el-option
-                  v-for="item in filteredProcessList"
-                  :key="item.id"
-                  :label="`${item.name} (v${item.version})${item.active === 1 ? ' [当前激活]' : ''}`"
-                  :value="item.id"
-                />
-                <el-option label="其他" :value="OTHER_PROCESS_VALUE" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-          <el-col v-if="isOtherProcessSelected" :span="12">
-            <el-form-item label="其他工艺" prop="otherProcessName">
-              <el-input v-model="createForm.otherProcessName" placeholder="请输入其他工艺名称" clearable />
-            </el-form-item>
-          </el-col>
           <el-col :span="8">
             <el-form-item label="循环次数" prop="cycleCount">
               <el-input-number
@@ -237,39 +240,31 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
-            <el-form-item label="单循环时长" prop="singleCycleDurationHours">
-              <div class="duration-input">
-                <el-input-number
-                  v-model="createForm.singleCycleDurationHours"
-                  :disabled="isSingleDurationReadonly"
-                  :min="0.01"
-                  :step="0.01"
-                  :precision="2"
-                  controls-position="right"
-                />
-                <span>小时</span>
-              </div>
-              <el-text
-                v-if="createForm.processSelection && !isOtherProcessSelected && !createForm.singleCycleDurationHours"
-                type="danger"
-                size="small"
-              >
-                所选工艺未配置时长，请填写
-              </el-text>
+          <el-col :span="16">
+            <el-form-item label="默认温度、振动曲线" prop="workbenchTestName">
+              <el-input
+                v-model.trim="createForm.workbenchTestName"
+                maxlength="255"
+                placeholder="请输入工作台 ListTest 中的曲线名称；客户端开始测试时可改选"
+              />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
-            <el-form-item label="循环总时长">
-              <el-input :model-value="totalCycleDurationText" readonly>
-                <template #append>小时</template>
-              </el-input>
+          <el-col :span="24">
+            <el-form-item label="详细任务执行流程" prop="taskExecutionDescription">
+              <el-input
+                v-model.trim="createForm.taskExecutionDescription"
+                type="textarea"
+                :rows="4"
+                maxlength="2000"
+                show-word-limit
+                placeholder="请描述本工单需要完成的测试任务、执行要求和结果判定要求；具体工艺版本由客户端开始测试前选择"
+              />
             </el-form-item>
           </el-col>
         </el-row>
 
         <!-- 电路板选择区域 -->
-        <el-divider v-if="selectedBoardGroup">选择电路板</el-divider>
+        <el-divider v-if="selectedBoardGroup">绑定待测电路板编号</el-divider>
         <div v-if="selectedBoardGroup" class="board-selection-area">
           <el-row :gutter="20">
             <!-- 左侧：批次树 -->
@@ -296,20 +291,17 @@
               <el-card shadow="never">
                 <template #header>
                   <div class="board-header">
-                    <span>需选择电路板（共 {{ selectedBoardGroup.boards.length }} 种型号）</span>
-                    <el-tag type="success" v-if="allBoardsSelected">已完成</el-tag>
-                    <el-tag type="warning" v-else
-                      >{{ selectedBoardsCount }}/{{ selectedBoardGroup.boards.length }}</el-tag
-                    >
+                    <span>目标板（产品下 {{ applicableBoardModels.length }} 种型号，可任选一块或多块）</span>
+                    <el-tag :type="hasTargetBoards ? 'success' : 'warning'">已选 {{ selectedBoardsCount }} 块</el-tag>
                   </div>
                 </template>
 
                 <div class="board-models-list">
                   <div
-                    v-for="boardModel in selectedBoardGroup.boards"
+                    v-for="boardModel in applicableBoardModels"
                     :key="boardModel.id"
                     class="board-model-item"
-                    :class="{ 'is-selected': selectedBoards[boardModel.id] }"
+                    :class="{ 'is-selected': selectedBoardsForModel(boardModel.id).length > 0 }"
                   >
                     <div class="model-info">
                       <el-icon class="model-icon"><Cpu /></el-icon>
@@ -317,41 +309,54 @@
                       <span v-if="boardModel.code" class="model-code">{{ boardModel.code }}</span>
                     </div>
                     <div class="model-selection">
-                      <template v-if="selectedBoards[boardModel.id]">
-                        <el-tag type="success" closable @close="clearBoardSelection(boardModel.id)">
-                          {{ selectedBoards[boardModel.id].serial }}
+                      <div class="selected-board-tags">
+                        <el-tag
+                          v-for="board in selectedBoardsForModel(boardModel.id)"
+                          :key="board.id"
+                          type="success"
+                          closable
+                          @close="clearBoardSelection(board.id)"
+                        >
+                          {{ board.serial }}
                         </el-tag>
-                      </template>
-                      <template v-else>
-                        <el-select
-                          v-model="boardSelections[boardModel.id]"
-                          placeholder="选择电路板"
-                          filterable
-                          style="width: 200px"
-                          :loading="boardOptionsLoading[boardModel.id]"
-                          @change="(val) => handleBoardSelect(boardModel.id, val)"
+                      </div>
+                      <el-select
+                        v-model="boardSelections[boardModel.id]"
+                        placeholder="从当前批次选择，可多选"
+                        filterable
+                        multiple
+                        collapse-tags
+                        collapse-tags-tooltip
+                        style="width: 280px"
+                        :loading="boardOptionsLoading[boardModel.id]"
+                        @change="(val) => handleBoardSelectionChange(boardModel, val)"
+                      >
+                        <el-option
+                          v-for="board in boardOptions[boardModel.id] || []"
+                          :key="board.id"
+                          :label="board.serial_num"
+                          :value="board.id"
                         >
-                          <el-option
-                            v-for="board in boardOptions[boardModel.id] || []"
-                            :key="board.id"
-                            :label="board.serial_num"
-                            :value="board.id"
-                          >
-                            <span>{{ board.serial_num }}</span>
-                          </el-option>
-                        </el-select>
-                        <el-button
-                          v-if="currentBatchId && currentBoardModelId === boardModel.id"
-                          type="primary"
-                          link
-                          @click="loadBoardsForModel(boardModel.id)"
-                        >
-                          加载
-                        </el-button>
-                      </template>
+                          <span>{{ board.serial_num }}</span>
+                        </el-option>
+                      </el-select>
+                      <el-button
+                        v-if="currentBatchId && currentBoardModelId === boardModel.id"
+                        type="primary"
+                        link
+                        @click="loadBoardsForModel(boardModel.id)"
+                      >
+                        加载当前批次
+                      </el-button>
                     </div>
                   </div>
                 </div>
+
+                <el-empty
+                  v-if="!applicableBoardModels.length"
+                  description="所选产品和电路板组下暂无可选型号"
+                  :image-size="70"
+                />
 
                 <div v-if="currentBatchInfo" class="batch-info">
                   <el-text type="info">
@@ -404,24 +409,23 @@
         <el-descriptions-item label="手机">
           {{ getOrderField(currentOrder, "mobile", "mobile") }}
         </el-descriptions-item>
+        <el-descriptions-item label="产品型号">
+          {{ currentOrder.productModel?.name || currentOrder.product_model?.name || "-" }}
+        </el-descriptions-item>
+        <el-descriptions-item label="客户端测试类型">
+          {{ currentOrder.clientTestTypeName || currentOrder.client_test_type_name || "-" }}
+        </el-descriptions-item>
         <el-descriptions-item label="实验类型">{{ getOrderExperimentTypeText(currentOrder) }}</el-descriptions-item>
         <el-descriptions-item label="试验电路板状态">
           {{ getOrderCircuitBoardStatusText(currentOrder) }}
         </el-descriptions-item>
         <el-descriptions-item label="电路板组">{{ currentOrder.boardGroup?.name || "-" }}</el-descriptions-item>
-        <el-descriptions-item label="选择测试工艺">
-          {{ getOrderProcessName(currentOrder) }}
-          <span v-if="currentOrder.process?.version">(v{{ currentOrder.process.version }})</span>
-        </el-descriptions-item>
         <el-descriptions-item label="循环次数">{{ getOrderCycleCount(currentOrder) }} 次</el-descriptions-item>
-        <el-descriptions-item label="单循环时长">
-          {{ formatHours(getOrderSingleDuration(currentOrder)) }}
+        <el-descriptions-item label="默认温度、振动曲线">
+          {{ getOrderWorkbenchTestName(currentOrder) }}
         </el-descriptions-item>
-        <el-descriptions-item label="循环总时长">
-          {{ formatHours(getOrderTotalDuration(currentOrder)) }}
-        </el-descriptions-item>
-        <el-descriptions-item label="累计运行时长">
-          {{ formatRuntimeSeconds(getOrderElapsedSeconds(currentOrder)) }}
+        <el-descriptions-item label="详细任务执行流程" :span="2">
+          {{ getOrderField(currentOrder, "taskExecutionDescription", "task_execution_description") }}
         </el-descriptions-item>
         <el-descriptions-item label="电路板数量">{{ currentOrder.boardCount }}</el-descriptions-item>
         <el-descriptions-item label="创建时间">{{ currentOrder.createdAt }}</el-descriptions-item>
@@ -434,7 +438,7 @@
       </el-descriptions>
 
       <div v-if="currentOrder?.scannedBoards?.length" style="margin-top: 20px">
-        <h4>已扫描电路板</h4>
+        <h4>目标板逐板进度</h4>
         <el-table :data="currentOrder.scannedBoards" size="small" border>
           <el-table-column prop="scanOrder" label="序号" width="60" align="center">
             <template #default="{ row }">{{ row.scanOrder + 1 }}</template>
@@ -443,10 +447,19 @@
           <el-table-column prop="boardModel" label="型号">
             <template #default="{ row }">{{ row.boardModel?.name || "-" }}</template>
           </el-table-column>
-          <el-table-column prop="scannedAt" label="扫描时间" width="170" />
+          <el-table-column prop="attemptNo" label="轮次" width="72" align="center" />
+          <el-table-column prop="statusText" label="逐板状态" width="96" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getTargetBoardStatusType(row.status)" size="small">{{ row.statusText }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="failureReason" label="最近退回/异常原因" min-width="150" show-overflow-tooltip>
+            <template #default="{ row }">{{ row.failureReason || "-" }}</template>
+          </el-table-column>
         </el-table>
       </div>
     </el-dialog>
+
   </div>
 </template>
 
@@ -463,29 +476,27 @@ import {
   createHaltHassOrder,
   publishHaltHassOrder,
   deleteHaltHassOrder,
-  getHaltHassVersionList,
+  getHaltHassOrderOptions,
   getHaltHassBoardsInfo
 } from "@/api/halt-hass"
+import { getProductDataApi } from "@/api/product"
 import { getBoardGroupListApi, getBoardGroupDetailApi } from "@/api/boardgroup"
 import { getTestMangePath } from "@/api/testMangelist"
 import {
-  OTHER_PROCESS_VALUE,
   buildHaltHassCreatePayload,
-  filterHaltHassProcesses,
   getHaltHassCircuitBoardStatusText,
   getHaltHassExperimentTypeText,
   getHaltHassOrderField,
-  isHaltHassCreateFormReady,
-  type HaltHassProcessSelection
+  isHaltHassCreateFormReady
 } from "./halt-hass-order-helpers"
 import type {
   HaltHassCircuitBoardStatus,
   HaltHassExperimentType,
   HaltHassOrderDetail,
   HaltHassOrderListItem,
-  HaltHassVersionItem
+  HaltHassProductOption
 } from "@/api/halt-hass/types"
-import type { BoardGroup } from "@/api/boardgroup/types/boardgroup"
+import type { BoardGroup, BoardModelItem } from "@/api/boardgroup/types/boardgroup"
 
 const userStore = useUserStore()
 const route = useRoute()
@@ -532,16 +543,16 @@ const pagination = reactive({
 const loading = ref(false)
 const tableData = ref<HaltHassOrderListItem[]>([])
 const boardGroupList = ref<BoardGroup[]>([])
-const processList = ref<HaltHassVersionItem[]>([])
+const productModelList = ref<HaltHassProductOption[]>([])
 
 // 创建对话框
 const createDialogVisible = ref(false)
 const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
 const createForm = reactive({
+  productModelId: null as number | null,
+  clientTestType: null as 1 | 2 | null,
   boardGroupId: null as number | null,
-  processId: null as number | null,
-  processSelection: "" as HaltHassProcessSelection,
   testApplicationUnit: "",
   researchNumber: "",
   projectBudgetNumber: "",
@@ -552,13 +563,14 @@ const createForm = reactive({
   mobile: "",
   experimentType: "" as HaltHassExperimentType | "",
   circuitBoardStatus: "" as HaltHassCircuitBoardStatus | "",
-  otherProcessName: "",
+  taskExecutionDescription: "",
   cycleCount: 1,
-  singleCycleDurationHours: null as number | null,
+  workbenchTestName: "",
   remark: ""
 })
 
 const createRules = {
+  productModelId: [{ required: true, message: "请选择产品型号", trigger: "change" }],
   testApplicationUnit: [{ required: true, message: "请输入委托单位", trigger: "blur" }],
   researchNumber: [{ required: true, message: "请输入科研编号", trigger: "blur" }],
   projectBudgetNumber: [{ required: true, message: "请输入项目预算编号", trigger: "blur" }],
@@ -570,7 +582,8 @@ const createRules = {
   experimentType: [{ required: true, message: "请选择实验类型", trigger: "change" }],
   circuitBoardStatus: [{ required: true, message: "请选择试验电路板状态", trigger: "change" }],
   boardGroupId: [{ required: true, message: "请选择电路板组", trigger: "change" }],
-  processSelection: [{ required: true, message: "请选择测试工艺", trigger: "change" }],
+  taskExecutionDescription: [{ required: true, message: "请填写详细任务执行流程", trigger: "blur" }],
+  workbenchTestName: [{ required: true, message: "请输入默认温度、振动曲线名称", trigger: "blur" }],
   cycleCount: [
     {
       validator: (_rule: unknown, value: number, callback: (error?: Error) => void) => {
@@ -581,35 +594,6 @@ const createRules = {
         callback()
       },
       trigger: "change"
-    }
-  ],
-  singleCycleDurationHours: [
-    {
-      validator: (_rule: unknown, value: number | null, callback: (error?: Error) => void) => {
-        const duration = Number(value)
-        if (!Number.isFinite(duration) || duration <= 0) {
-          callback(new Error(isOtherProcessSelected.value ? "请输入单循环时长" : "所选工艺未配置单循环时长"))
-          return
-        }
-        if (Math.abs(duration * 100 - Math.round(duration * 100)) >= 1e-8) {
-          callback(new Error("单循环时长最多保留两位小数"))
-          return
-        }
-        callback()
-      },
-      trigger: "change"
-    }
-  ],
-  otherProcessName: [
-    {
-      validator: (_rule: unknown, value: string, callback: (error?: Error) => void) => {
-        if (createForm.processSelection === OTHER_PROCESS_VALUE && !String(value || "").trim()) {
-          callback(new Error("请输入其他工艺名称"))
-          return
-        }
-        callback()
-      },
-      trigger: "blur"
     }
   ]
 }
@@ -634,41 +618,32 @@ const currentBoardModelId = ref<number | null>(null)
 const currentBatchInfo = ref<{ name: string; boardModelName: string } | null>(null)
 
 // 电路板选择相关
-const selectedBoards = reactive<Record<number, { id: number; serial: string }>>({})
-const boardSelections = reactive<Record<number, number | null>>({})
+const selectedTargetBoards = ref<
+  Array<{
+    id: number
+    serial: string
+    boardModelId: number
+    boardModelName: string
+    boardModelCode?: string
+  }>
+>([])
+const boardSelections = reactive<Record<number, number[]>>({})
 const boardOptions = reactive<Record<number, any[]>>({})
 const boardOptionsLoading = reactive<Record<number, boolean>>({})
 
 // 计算属性
-const selectedBoardsCount = computed(() => Object.keys(selectedBoards).length)
-const allBoardsSelected = computed(() => {
-  if (!selectedBoardGroup.value) return false
-  return selectedBoardGroup.value.boards.every((board) => selectedBoards[board.id])
+const selectedBoardsCount = computed(() => selectedTargetBoards.value.length)
+const applicableBoardModels = computed<BoardModelItem[]>(() => selectedBoardGroup.value?.boards || [])
+const hasTargetBoards = computed(() => selectedTargetBoards.value.length > 0)
+const selectedBoardsForModel = (boardModelId: number) =>
+  selectedTargetBoards.value.filter((board) => board.boardModelId === boardModelId)
+const clientTestTypeName = computed(() => {
+  if (createForm.clientTestType === 1) return "高速率测试"
+  if (createForm.clientTestType === 2) return "SDS 测试"
+  return ""
 })
-const filteredProcessList = computed(() => filterHaltHassProcesses(processList.value, createForm.experimentType))
-const isOtherProcessSelected = computed(() => createForm.processSelection === OTHER_PROCESS_VALUE)
-const selectedProcess = computed(() => {
-  if (isOtherProcessSelected.value || !createForm.processSelection) return null
-  return processList.value.find((item) => item.id === Number(createForm.processSelection)) || null
-})
-const selectedProcessDuration = computed(() => {
-  const duration = Number(selectedProcess.value?.durationHours ?? selectedProcess.value?.duration_hours)
-  return Number.isFinite(duration) && duration > 0 ? duration : null
-})
-const isSingleDurationReadonly = computed(() => !isOtherProcessSelected.value && selectedProcessDuration.value !== null)
-const totalCycleDuration = computed(() => {
-  const singleDuration = Number(createForm.singleCycleDurationHours)
-  const cycleCount = Number(createForm.cycleCount)
-  if (!Number.isFinite(singleDuration) || singleDuration <= 0 || !Number.isInteger(cycleCount) || cycleCount <= 0) {
-    return 0
-  }
-  return Number((singleDuration * cycleCount).toFixed(2))
-})
-const totalCycleDurationText = computed(() =>
-  totalCycleDuration.value > 0 ? totalCycleDuration.value.toFixed(2) : "-"
-)
 const canCreate = computed(() => {
-  return isHaltHassCreateFormReady(createForm, allBoardsSelected.value)
+  return isHaltHassCreateFormReady(createForm, hasTargetBoards.value)
 })
 
 // 详情对话框
@@ -693,6 +668,19 @@ const getStatusType = (status: number): StatusTagType | undefined => {
   return map[status]
 }
 
+const getTargetBoardStatusType = (status: number): StatusTagType => {
+  const map: Record<number, StatusTagType> = {
+    0: "info",
+    1: "primary",
+    2: "warning",
+    3: "success",
+    4: "danger",
+    5: "danger",
+    6: "warning"
+  }
+  return map[status] || "info"
+}
+
 const getOrderRawField = (order: HaltHassOrderListItem | HaltHassOrderDetail, camelKey: string, snakeKey: string) => {
   const target = order as unknown as Record<string, unknown>
   return target[camelKey] ?? target[snakeKey] ?? ""
@@ -712,15 +700,6 @@ const getOrderCircuitBoardStatusText = (order: HaltHassOrderListItem | HaltHassO
   )
 }
 
-const getOrderOtherProcessName = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
-  const value = getOrderRawField(order, "otherProcessName", "other_process_name")
-  return String(value || "").trim()
-}
-
-const getOrderProcessName = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
-  return order.process?.name || getOrderOtherProcessName(order) || "-"
-}
-
 const getNumericOrderField = (
   order: HaltHassOrderListItem | HaltHassOrderDetail,
   camelKey: string,
@@ -734,24 +713,8 @@ const getNumericOrderField = (
 const getOrderCycleCount = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
   return getNumericOrderField(order, "cycleCount", "cycle_count", 1) || 1
 }
-const getOrderSingleDuration = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
-  return getNumericOrderField(order, "singleCycleDurationHours", "single_cycle_duration_hours")
-}
-const getOrderTotalDuration = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
-  return getNumericOrderField(order, "totalCycleDurationHours", "total_cycle_duration_hours")
-}
-const getOrderElapsedSeconds = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
-  return getNumericOrderField(order, "elapsedRuntimeSeconds", "elapsed_runtime_seconds")
-}
-const formatHours = (hours: number) => (hours > 0 ? `${hours.toFixed(2)} 小时` : "-")
-const formatRuntimeSeconds = (seconds: number) => {
-  if (seconds <= 0) return "0 秒"
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const remainingSeconds = Math.floor(seconds % 60)
-  return [hours ? `${hours} 小时` : "", minutes ? `${minutes} 分钟` : "", `${remainingSeconds} 秒`]
-    .filter(Boolean)
-    .join(" ")
+const getOrderWorkbenchTestName = (order: HaltHassOrderListItem | HaltHassOrderDetail) => {
+  return getOrderField(order, "workbenchTestName", "workbench_test_name")
 }
 
 // 获取工单列表
@@ -801,12 +764,11 @@ const getTreeData = async () => {
   }
 }
 
-// 根据电路板组过滤树数据
-const filterTreeByBoardGroup = (boardGroup: BoardGroup) => {
+// 根据工艺要求的待测板类型过滤批次树
+const filterTreeByBoardModels = (boardModels: BoardModelItem[]) => {
   if (!originalTreeData.value.length) return
 
-  // 获取电路板组中的所有型号ID（转为字符串以匹配树节点 id）
-  const boardModelIds = new Set(boardGroup.boards.map((b) => String(b.id)))
+  const boardModelIds = new Set(boardModels.map((b) => String(b.id)))
 
   // 递归过滤树，只保留匹配的型号节点及其子节点（批次）
   const filterTree = (nodes: any[]): any[] => {
@@ -873,9 +835,9 @@ const handleCurrentChange = (page: number) => {
 
 const resetCreateForm = () => {
   Object.assign(createForm, {
+    productModelId: null,
+    clientTestType: null,
     boardGroupId: null,
-    processId: null,
-    processSelection: "",
     testApplicationUnit: "",
     researchNumber: "",
     projectBudgetNumber: "",
@@ -886,105 +848,88 @@ const resetCreateForm = () => {
     mobile: "",
     experimentType: "",
     circuitBoardStatus: "",
-    otherProcessName: "",
+    taskExecutionDescription: "",
     cycleCount: 1,
-    singleCycleDurationHours: null,
+    workbenchTestName: "",
     remark: ""
   })
 }
 
-const handleProcessSelectionChange = (value: HaltHassProcessSelection) => {
-  if (value === OTHER_PROCESS_VALUE || value === "") {
-    createForm.processId = null
-    createForm.singleCycleDurationHours = null
-  } else {
-    createForm.processId = Number(value)
-    createForm.otherProcessName = ""
-    const selectedProcessItem = processList.value.find((item) => item.id === Number(value))
-    const duration = Number(selectedProcessItem?.durationHours ?? selectedProcessItem?.duration_hours)
-    createForm.singleCycleDurationHours = Number.isFinite(duration) && duration > 0 ? duration : null
-  }
-  createFormRef.value?.clearValidate(["processSelection", "otherProcessName", "singleCycleDurationHours"])
+const clearSelectedBoardBindings = () => {
+  selectedTargetBoards.value = []
+  Object.keys(boardSelections).forEach((key) => delete boardSelections[Number(key)])
+  Object.keys(boardOptions).forEach((key) => delete boardOptions[Number(key)])
+  currentBatchId.value = null
+  currentBoardModelId.value = null
+  currentBatchInfo.value = null
 }
 
-const selectDefaultProcess = () => {
-  const activeProcess = filteredProcessList.value.find((item) => item.active === 1)
-  const defaultProcess = activeProcess || filteredProcessList.value[0]
-  createForm.processSelection = defaultProcess?.id || ""
-  handleProcessSelectionChange(createForm.processSelection)
+const loadProductModels = async () => {
+  const res = await getProductDataApi({ not_paging: true })
+  productModelList.value = (res.data || []) as HaltHassProductOption[]
 }
 
-const loadHaltHassProcessList = async (boardGroupId: number) => {
-  const versionParams: Parameters<typeof getHaltHassVersionList>[0] = { boardGroupId: String(boardGroupId) }
-  if (createForm.experimentType) {
-    versionParams.experimentType = createForm.experimentType
-    versionParams.experiment_type = createForm.experimentType
+const loadProductRouting = async (boardGroupId?: number | null) => {
+  if (!createForm.productModelId) {
+    createForm.clientTestType = null
+    return
   }
 
-  const res = await getHaltHassVersionList(versionParams)
+  const res = await getHaltHassOrderOptions({
+    productModelId: createForm.productModelId,
+    boardGroupId: boardGroupId || undefined
+  })
   if (res.code === 0) {
-    processList.value = res.data || []
-    selectDefaultProcess()
+    createForm.clientTestType = res.data.clientTestType
   }
 }
 
-const handleExperimentTypeChange = async () => {
-  createForm.processSelection = ""
-  handleProcessSelectionChange("")
-  if (createForm.boardGroupId) {
-    await loadHaltHassProcessList(createForm.boardGroupId)
+const handleProductModelChange = async () => {
+  createForm.clientTestType = null
+  clearSelectedBoardBindings()
+  try {
+    await loadProductRouting(createForm.boardGroupId)
+    if (selectedBoardGroup.value) {
+      filterTreeByBoardModels(selectedBoardGroup.value.boards)
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.data?.msg || "读取产品测试类型失败")
   }
 }
 
 // 显示创建对话框
 const showCreateDialog = async () => {
   resetCreateForm()
-  processList.value = []
   selectedBoardGroup.value = null
 
-  // 清空电路板选择
-  Object.keys(selectedBoards).forEach((key) => delete selectedBoards[Number(key)])
-  Object.keys(boardSelections).forEach((key) => delete boardSelections[Number(key)])
-  Object.keys(boardOptions).forEach((key) => delete boardOptions[Number(key)])
-
-  currentBatchId.value = null
-  currentBoardModelId.value = null
-  currentBatchInfo.value = null
+  clearSelectedBoardBindings()
 
   // 获取批次树
-  await getTreeData()
+  await Promise.all([getTreeData(), loadProductModels()])
 
   createDialogVisible.value = true
 }
 
 // 电路板组变化时获取对应的工艺列表和组详情
 const handleBoardGroupChange = async (boardGroupId: number) => {
-  createForm.processId = null
-  createForm.processSelection = ""
-  createForm.otherProcessName = ""
-  createForm.singleCycleDurationHours = null
-  processList.value = []
+  createForm.workbenchTestName = ""
   selectedBoardGroup.value = null
   treeData.value = originalTreeData.value // 重置树数据
 
-  // 清空电路板选择
-  Object.keys(selectedBoards).forEach((key) => delete selectedBoards[Number(key)])
-  Object.keys(boardSelections).forEach((key) => delete boardSelections[Number(key)])
-  Object.keys(boardOptions).forEach((key) => delete boardOptions[Number(key)])
+  clearSelectedBoardBindings()
 
   if (!boardGroupId) return
 
   try {
-    // 获取工艺列表（所有审核通过的工艺都可选，status === 3 表示已通过）
-    await loadHaltHassProcessList(boardGroupId)
-
     // 获取电路板组详情
     const detailRes = await getBoardGroupDetailApi(boardGroupId)
     if (detailRes.code === 0) {
       selectedBoardGroup.value = detailRes.data
-      // 过滤树数据，只显示电路板组中的型号
-      filterTreeByBoardGroup(detailRes.data)
+      filterTreeByBoardModels(detailRes.data.boards || [])
     }
+
+    // 工单只固化产品路由，具体工艺版本由客户端执行前选择。
+    await loadProductRouting(boardGroupId)
   } catch (e) {
     console.error(e)
   }
@@ -1009,10 +954,10 @@ const handleTreeNodeClick = async (data: any, node: any) => {
     boardModelName: node.parent?.data?.label || ""
   }
 
-  // 检查当前批次对应的型号是否在选中的电路板组中
-  if (selectedBoardGroup.value && currentBoardModelId.value) {
-    const matchingModel = selectedBoardGroup.value.boards.find((board) => board.id === currentBoardModelId.value)
-    if (matchingModel && !selectedBoards[matchingModel.id]) {
+  // 只允许选择当前产品和电路板组下的待测板型号
+  if (currentBoardModelId.value) {
+    const matchingModel = applicableBoardModels.value.find((board) => board.id === currentBoardModelId.value)
+    if (matchingModel) {
       // 自动加载该型号的电路板
       await loadBoardsForModel(matchingModel.id)
     }
@@ -1033,6 +978,10 @@ const loadBoardsForModel = async (boardModelId: number) => {
       boardModelId: boardModelId
     })
     boardOptions[boardModelId] = result.data || []
+    const currentOptionIds = new Set((result.data || []).map((board) => board.id))
+    boardSelections[boardModelId] = selectedTargetBoards.value
+      .filter((board) => board.boardModelId === boardModelId && currentOptionIds.has(board.id))
+      .map((board) => board.id)
 
     if (result.data?.length === 0) {
       ElMessage.info("该批次下没有此型号的电路板")
@@ -1045,23 +994,36 @@ const loadBoardsForModel = async (boardModelId: number) => {
   }
 }
 
-// 选择电路板
-const handleBoardSelect = (boardModelId: number, boardId: number) => {
-  if (!boardId) return
-
-  const board = boardOptions[boardModelId]?.find((b) => b.id === boardId)
-  if (board) {
-    selectedBoards[boardModelId] = {
+// 当前批次支持多选；切换批次时保留其他批次已经选中的目标板。
+const handleBoardSelectionChange = (boardModel: BoardModelItem, boardIds: number[]) => {
+  const currentOptions = boardOptions[boardModel.id] || []
+  const currentOptionIds = new Set(currentOptions.map((board) => board.id))
+  const retained = selectedTargetBoards.value.filter(
+    (board) => board.boardModelId !== boardModel.id || !currentOptionIds.has(board.id)
+  )
+  const newlySelected = boardIds
+    .map((boardId) => currentOptions.find((board) => board.id === boardId))
+    .filter((board): board is { id: number; serial_num: string } => Boolean(board))
+    .map((board) => ({
       id: board.id,
-      serial: board.serial_num
-    }
-  }
+      serial: board.serial_num,
+      boardModelId: boardModel.id,
+      boardModelName: boardModel.name,
+      boardModelCode: boardModel.code || ""
+    }))
+  const uniqueBySerial = new Map(
+    [...retained, ...newlySelected].map((board) => [board.serial.trim().toUpperCase(), board])
+  )
+  selectedTargetBoards.value = Array.from(uniqueBySerial.values())
 }
 
 // 清除电路板选择
-const clearBoardSelection = (boardModelId: number) => {
-  delete selectedBoards[boardModelId]
-  boardSelections[boardModelId] = null
+const clearBoardSelection = (boardId: number) => {
+  const target = selectedTargetBoards.value.find((board) => board.id === boardId)
+  selectedTargetBoards.value = selectedTargetBoards.value.filter((board) => board.id !== boardId)
+  if (target) {
+    boardSelections[target.boardModelId] = (boardSelections[target.boardModelId] || []).filter((id) => id !== boardId)
+  }
 }
 
 // 监听树搜索
@@ -1076,8 +1038,8 @@ const handleCreate = async () => {
   await createFormRef.value.validate(async (valid) => {
     if (!valid) return
 
-    if (!allBoardsSelected.value) {
-      ElMessage.warning("请为每个电路板型号选择一块电路板")
+    if (!hasTargetBoards.value) {
+      ElMessage.warning("请至少选择一块目标板")
       return
     }
 
@@ -1089,11 +1051,22 @@ const handleCreate = async () => {
         return
       }
 
+      const selectedProduct = productModelList.value.find((item) => item.id === createForm.productModelId)
+      if (!selectedProduct || !clientTestTypeName.value) {
+        ElMessage.error("产品型号或客户端测试类型未完整匹配")
+        return
+      }
+      await ElMessageBox.confirm(
+        `产品型号：${selectedProduct.name}\n客户端测试类型：${clientTestTypeName.value}\n目标板：${selectedTargetBoards.value.length} 块\n工艺版本将在客户端开始测试前选择`,
+        "确认创建 HALT-HASS 工单",
+        { confirmButtonText: "确认创建", cancelButtonText: "返回检查", type: "warning" }
+      )
+
       const payload = buildHaltHassCreatePayload({
         form: createForm,
         creatorId,
-        boardCount: selectedBoardGroup.value!.boards.length,
-        selectedBoards
+        boardCount: selectedTargetBoards.value.length,
+        selectedBoards: selectedTargetBoards.value
       })
 
       const res = await createHaltHassOrder(payload)
@@ -1106,6 +1079,7 @@ const handleCreate = async () => {
         ElMessage.error(res.msg || "创建失败")
       }
     } catch (e) {
+      if (e === "cancel" || e === "close") return
       console.error(e)
       ElMessage.error("创建失败")
     } finally {

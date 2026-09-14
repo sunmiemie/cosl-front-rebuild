@@ -2,21 +2,18 @@ import { readFileSync } from "node:fs"
 import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 import {
-  OTHER_PROCESS_VALUE,
   buildHaltHassCreatePayload,
-  filterHaltHassProcesses,
   getHaltHassCircuitBoardStatusText,
   getHaltHassExperimentTypeText,
   getHaltHassOrderField,
   isHaltHassCreateFormReady,
   type HaltHassCreateFormModel
 } from "../src/views/testmanage/testorder/components/halt-hass-order-helpers"
-import type { HaltHassVersionItem } from "../src/api/halt-hass/types"
 
 const completeForm = (overrides: Partial<HaltHassCreateFormModel> = {}): HaltHassCreateFormModel => ({
+  productModelId: 18,
+  clientTestType: 1,
   boardGroupId: 5,
-  processSelection: 36,
-  processId: 36,
   testApplicationUnit: "中海油委托单位",
   researchNumber: "KY-001",
   projectBudgetNumber: "YS-2026-001",
@@ -27,17 +24,17 @@ const completeForm = (overrides: Partial<HaltHassCreateFormModel> = {}): HaltHas
   mobile: "13800138000",
   experimentType: "halt",
   circuitBoardStatus: "development",
-  otherProcessName: "",
+  taskExecutionDescription: "按要求完成高低温、振动循环并记录逐板结果",
   cycleCount: 3,
-  singleCycleDurationHours: 1.25,
+  workbenchTestName: "常规HASS测试",
   remark: "保留原备注",
   ...overrides
 })
 
-const selectedBoards = {
-  11: { id: 101, serial: "PCB-A" },
-  12: { id: 102, serial: "PCB-B" }
-}
+const selectedBoards = [
+  { id: 101, serial: "PCB-A", boardModelId: 11, boardModelName: "接口板", boardModelCode: "IF" },
+  { id: 102, serial: "PCB-B", boardModelId: 12, boardModelName: "控制板", boardModelCode: "CTRL" }
+]
 
 describe("HALT-HASS 新增工单字段", () => {
   it("主工单组件保留原创建属性并展示新增字段", () => {
@@ -48,6 +45,8 @@ describe("HALT-HASS 新增工单字段", () => {
 
     for (const text of [
       "电路板组",
+      "产品型号",
+      "客户端测试类型",
       "选择电路板",
       "备注",
       "委托单位",
@@ -60,28 +59,24 @@ describe("HALT-HASS 新增工单字段", () => {
       "手机",
       "实验类型",
       "试验电路板状态",
-      "选择测试工艺",
+      "详细任务执行流程",
       "循环次数",
-      "单循环时长",
-      "循环总时长",
+      "默认温振曲线",
       "HALT（高温-低温-振动三项）",
       "HASS",
       "研发",
       "故障激发",
-      "制造",
-      "其他"
+      "制造"
     ]) {
       expect(content).toContain(text)
     }
 
     expect(content).toContain("buildHaltHassCreatePayload")
-    expect(content).toContain("filterHaltHassProcesses")
     expect(content).toContain("isHaltHassCreateFormReady")
-    expect(content).toContain("loadHaltHassProcessList")
-    expect(content).toContain("await loadHaltHassProcessList(createForm.boardGroupId)")
+    expect(content).toContain("loadProductRouting")
   })
 
-  it("构建已有工艺 payload 时保留原字段并写入新增数据库字段", () => {
+  it("构建工单 payload 时只固化产品路由和任务要求", () => {
     const payload = buildHaltHassCreatePayload({
       form: completeForm(),
       creatorId: 99,
@@ -90,18 +85,20 @@ describe("HALT-HASS 新增工单字段", () => {
     })
 
     expect(payload).toMatchObject({
+      productModelId: 18,
+      product_model_id: 18,
       boardGroupId: 5,
-      processId: 36,
       boardCount: 2,
       creatorId: 99,
       board_group_id: 5,
-      process_id: 36,
       board_count: 2,
       creator_id: 99,
       cycleCount: 3,
       cycle_count: 3,
-      singleCycleDurationHours: 1.25,
-      single_cycle_duration_hours: 1.25,
+      taskExecutionDescription: "按要求完成高低温、振动循环并记录逐板结果",
+      task_execution_description: "按要求完成高低温、振动循环并记录逐板结果",
+      workbenchTestName: "常规HASS测试",
+      workbench_test_name: "常规HASS测试",
       testApplicationUnit: "中海油委托单位",
       test_application_unit: "中海油委托单位",
       researchNumber: "KY-001",
@@ -118,118 +115,27 @@ describe("HALT-HASS 新增工单字段", () => {
       experiment_type: "halt",
       circuitBoardStatus: "development",
       circuit_board_status: "development",
-      processSelection: "existing",
-      process_selection: "existing",
       remark: "保留原备注"
     })
     expect(payload.boardSerials).toEqual([
-      { serial: "PCB-A", boardModelId: 11 },
-      { serial: "PCB-B", boardModelId: 12 }
+      { serial: "PCB-A", boardModelId: 11, boardModelName: "接口板", boardModelCode: "IF" },
+      { serial: "PCB-B", boardModelId: 12, boardModelName: "控制板", boardModelCode: "CTRL" }
     ])
     expect(payload.board_serials).toEqual([
-      { serial: "PCB-A", board_model_id: 11 },
-      { serial: "PCB-B", board_model_id: 12 }
+      { serial: "PCB-A", board_model_id: 11, board_model_name: "接口板", board_model_code: "IF" },
+      { serial: "PCB-B", board_model_id: 12, board_model_name: "控制板", board_model_code: "CTRL" }
     ])
   })
 
-  it("构建其他工艺 payload 时不发送假 processId 并写入其他工艺名称", () => {
-    const payload = buildHaltHassCreatePayload({
-      form: completeForm({
-        processSelection: OTHER_PROCESS_VALUE,
-        processId: null,
-        otherProcessName: "其他环境筛选流程"
-      }),
-      creatorId: 99,
-      boardCount: 2,
-      selectedBoards
-    })
-
-    expect(payload).not.toHaveProperty("processId")
-    expect(payload).not.toHaveProperty("process_id")
-    expect(payload).toMatchObject({
-      processSelection: "other",
-      process_selection: "other",
-      otherProcessName: "其他环境筛选流程",
-      other_process_name: "其他环境筛选流程",
-      cycleCount: 3,
-      cycle_count: 3,
-      singleCycleDurationHours: 1.25,
-      single_cycle_duration_hours: 1.25
-    })
-  })
-
-  it("根据实验类型过滤工艺，未分类工艺作为兜底同时显示", () => {
-    const processes = [
-      {
-        id: 1,
-        name: "HALT 高低温振动",
-        version: "v1",
-        status: 3,
-        active: 1,
-        createdAt: "",
-        experiment_type: "halt"
-      },
-      {
-        id: 2,
-        name: "HASS 筛选",
-        version: "v1",
-        status: 3,
-        active: 0,
-        createdAt: "",
-        experimentType: "hass"
-      },
-      {
-        id: 3,
-        name: "通用流程",
-        version: "v1",
-        status: 3,
-        active: 0,
-        createdAt: ""
-      },
-      {
-        id: 4,
-        name: "草稿 HALT",
-        version: "v1",
-        status: 0,
-        active: 0,
-        createdAt: "",
-        experiment_type: "halt"
-      }
-    ] as HaltHassVersionItem[]
-
-    expect(filterHaltHassProcesses(processes, "halt").map((item) => item.id)).toEqual([1, 3])
-    expect(filterHaltHassProcesses(processes, "hass").map((item) => item.id)).toEqual([2, 3])
-  })
-
-  it("表单完整性要求新增字段、工艺选择和电路板选择都满足", () => {
+  it("表单完整性要求任务说明和电路板选择都满足", () => {
     expect(isHaltHassCreateFormReady(completeForm(), true)).toBe(true)
     expect(isHaltHassCreateFormReady(completeForm({ phone: "" }), true)).toBe(false)
     expect(isHaltHassCreateFormReady(completeForm({ mobile: "" }), true)).toBe(false)
     expect(isHaltHassCreateFormReady(completeForm({ cycleCount: 0 }), true)).toBe(false)
     expect(isHaltHassCreateFormReady(completeForm({ cycleCount: 1.5 }), true)).toBe(false)
-    expect(isHaltHassCreateFormReady(completeForm({ singleCycleDurationHours: null }), true)).toBe(false)
-    expect(isHaltHassCreateFormReady(completeForm({ singleCycleDurationHours: 1.234 }), true)).toBe(false)
+    expect(isHaltHassCreateFormReady(completeForm({ workbenchTestName: "" }), true)).toBe(false)
     expect(isHaltHassCreateFormReady(completeForm(), false)).toBe(false)
-    expect(
-      isHaltHassCreateFormReady(
-        completeForm({
-          processSelection: OTHER_PROCESS_VALUE,
-          processId: null,
-          otherProcessName: ""
-        }),
-        true
-      )
-    ).toBe(false)
-    expect(
-      isHaltHassCreateFormReady(
-        completeForm({
-          processSelection: OTHER_PROCESS_VALUE,
-          processId: null,
-          otherProcessName: "其他环境筛选流程"
-        }),
-        true
-      )
-    ).toBe(true)
+    expect(isHaltHassCreateFormReady(completeForm({ taskExecutionDescription: "" }), true)).toBe(false)
   })
 
   it("兼容列表和详情中的 camelCase / snake_case 字段显示", () => {

@@ -159,6 +159,23 @@ export const getHaltHassOrderDetail = (orderId: number): Promise<HaltHass.HaltHa
   })
 }
 
+/** 根据产品型号及目标板范围读取只读测试类型与可用工艺。 */
+export const getHaltHassOrderOptions = (params: {
+  productModelId: number
+  instrumentModelId?: number
+  boardGroupId?: number
+  boardModelIds?: number[]
+}): Promise<HaltHass.HaltHassOrderOptionsResponse> => {
+  return request<HaltHass.HaltHassOrderOptionsResponse>({
+    url: "/test/halt-hass/order/options/",
+    method: "get",
+    params: {
+      ...params,
+      boardModelIds: params.boardModelIds?.join(",")
+    }
+  })
+}
+
 /**
  * 创建 HALT-HASS 工单
  */
@@ -212,6 +229,8 @@ export const getHaltHassReportList = (params: {
   result?: string
   reviewStatus?: string
   orderNo?: string
+  keyword?: string
+  reportType?: HaltHass.HaltHassReportType
 }): Promise<HaltHass.HaltHassReportListResponse> => {
   return request<HaltHass.HaltHassReportListResponse>({
     url: "/test/halt-hass/report/list/",
@@ -227,6 +246,17 @@ export const getHaltHassReportDetail = (reportId: number): Promise<HaltHass.Halt
   return request<HaltHass.HaltHassReportDetailResponse>({
     url: `/test/halt-hass/report/detail/${reportId}/`,
     method: "get"
+  })
+}
+
+/**
+ * 下载 HALT-HASS Word 报告
+ */
+export const downloadHaltHassReport = (reportId: number): Promise<Blob> => {
+  return request<Blob>({
+    url: `/test/halt-hass/report/download/${reportId}/`,
+    method: "get",
+    responseType: "blob"
   })
 }
 

@@ -1,19 +1,13 @@
 import type {
   HaltHassCircuitBoardStatus,
   HaltHassExperimentType,
-  HaltHassOrderCreateParams,
-  HaltHassProcessSelectionType,
-  HaltHassVersionItem
+  HaltHassOrderCreateParams
 } from "@/api/halt-hass/types"
 
-export const OTHER_PROCESS_VALUE = "other"
-
-export type HaltHassProcessSelection = number | typeof OTHER_PROCESS_VALUE | ""
-
 export interface HaltHassCreateFormModel {
+  productModelId: number | null
+  clientTestType: 1 | 2 | null
   boardGroupId: number | null
-  processId?: number | null
-  processSelection: HaltHassProcessSelection
   testApplicationUnit: string
   researchNumber: string
   projectBudgetNumber: string
@@ -24,22 +18,25 @@ export interface HaltHassCreateFormModel {
   mobile: string
   experimentType: HaltHassExperimentType | ""
   circuitBoardStatus: HaltHassCircuitBoardStatus | ""
-  otherProcessName: string
+  taskExecutionDescription: string
   cycleCount: number
-  singleCycleDurationHours: number | null
+  workbenchTestName?: string
   remark: string
 }
 
 export interface SelectedHaltHassBoard {
   id: number
   serial: string
+  boardModelId: number
+  boardModelName: string
+  boardModelCode?: string
 }
 
 export interface BuildHaltHassCreatePayloadParams {
   form: HaltHassCreateFormModel
   creatorId: number
   boardCount: number
-  selectedBoards: Record<number, SelectedHaltHassBoard>
+  selectedBoards: SelectedHaltHassBoard[]
 }
 
 const EXPERIMENT_TYPE_LABELS: Record<HaltHassExperimentType, string> = {
@@ -55,37 +52,10 @@ const CIRCUIT_BOARD_STATUS_LABELS: Record<HaltHassCircuitBoardStatus, string> = 
 
 const trimValue = (value: unknown) => String(value ?? "").trim()
 
-const isPositiveTwoDecimalNumber = (value: unknown) => {
-  const numericValue = Number(value)
-  return Number.isFinite(numericValue) && numericValue > 0 && Math.abs(numericValue * 100 - Math.round(numericValue * 100)) < 1e-8
-}
-
-export const normalizeHaltHassExperimentType = (process: HaltHassVersionItem): HaltHassExperimentType | "" => {
-  const directType = trimValue(process.experimentType ?? process.experiment_type).toLowerCase()
-  if (directType === "halt" || directType === "hass") return directType
-
-  const text = `${process.name || ""} ${process.version || ""}`.toLowerCase()
-  if (text.includes("hass")) return "hass"
-  if (text.includes("halt") || text.includes("高温") || text.includes("低温") || text.includes("振动")) return "halt"
-
-  return ""
-}
-
-export const filterHaltHassProcesses = (
-  processes: HaltHassVersionItem[],
-  experimentType: HaltHassExperimentType | ""
-) => {
-  return processes.filter((process) => {
-    if (process.status !== 3) return false
-    if (!experimentType) return true
-
-    const normalizedType = normalizeHaltHassExperimentType(process)
-    return !normalizedType || normalizedType === experimentType
-  })
-}
-
 export const isHaltHassCreateFormReady = (form: HaltHassCreateFormModel, allBoardsSelected: boolean) => {
   const requiredValues = [
+    form.productModelId,
+    form.clientTestType,
     form.boardGroupId,
     form.testApplicationUnit,
     form.researchNumber,
@@ -97,20 +67,14 @@ export const isHaltHassCreateFormReady = (form: HaltHassCreateFormModel, allBoar
     form.mobile,
     form.experimentType,
     form.circuitBoardStatus,
-    form.processSelection
+    form.taskExecutionDescription,
+    form.workbenchTestName
   ]
 
   const baseReady = allBoardsSelected && requiredValues.every((value) => trimValue(value))
   if (!baseReady) return false
 
-  if (!Number.isInteger(Number(form.cycleCount)) || Number(form.cycleCount) <= 0) return false
-  if (!isPositiveTwoDecimalNumber(form.singleCycleDurationHours)) return false
-
-  if (form.processSelection === OTHER_PROCESS_VALUE) {
-    return Boolean(trimValue(form.otherProcessName))
-  }
-
-  return Number.isFinite(Number(form.processSelection))
+  return Number.isInteger(Number(form.cycleCount)) && Number(form.cycleCount) > 0
 }
 
 export const buildHaltHassCreatePayload = ({
@@ -119,19 +83,22 @@ export const buildHaltHassCreatePayload = ({
   boardCount,
   selectedBoards
 }: BuildHaltHassCreatePayloadParams): HaltHassOrderCreateParams => {
-  const isOtherProcess = form.processSelection === OTHER_PROCESS_VALUE
-  const selectedProcessId = isOtherProcess ? null : Number(form.processSelection)
-  const processSelection: HaltHassProcessSelectionType = isOtherProcess ? "other" : "existing"
-  const boardSerials = Object.entries(selectedBoards).map(([boardModelId, board]) => ({
+  const boardSerials = selectedBoards.map((board) => ({
     serial: board.serial,
-    boardModelId: Number(boardModelId)
+    boardModelId: board.boardModelId,
+    boardModelName: board.boardModelName,
+    boardModelCode: board.boardModelCode || ""
   }))
   const boardSerialsSnake = boardSerials.map((board) => ({
     serial: board.serial,
-    board_model_id: board.boardModelId
+    board_model_id: board.boardModelId,
+    board_model_name: board.boardModelName,
+    board_model_code: board.boardModelCode || ""
   }))
 
   const payload: HaltHassOrderCreateParams = {
+    productModelId: form.productModelId!,
+    product_model_id: form.productModelId!,
     boardGroupId: form.boardGroupId!,
     boardCount,
     creatorId,
@@ -140,6 +107,10 @@ export const buildHaltHassCreatePayload = ({
     creator_id: creatorId,
     cycleCount: Number(form.cycleCount),
     cycle_count: Number(form.cycleCount),
+    taskExecutionDescription: trimValue(form.taskExecutionDescription),
+    task_execution_description: trimValue(form.taskExecutionDescription),
+    workbenchTestName: trimValue(form.workbenchTestName),
+    workbench_test_name: trimValue(form.workbenchTestName),
     remark: form.remark,
     boardSerials,
     board_serials: boardSerialsSnake,
@@ -158,19 +129,7 @@ export const buildHaltHassCreatePayload = ({
     experimentType: form.experimentType as HaltHassExperimentType,
     experiment_type: form.experimentType as HaltHassExperimentType,
     circuitBoardStatus: form.circuitBoardStatus as HaltHassCircuitBoardStatus,
-    circuit_board_status: form.circuitBoardStatus as HaltHassCircuitBoardStatus,
-    processSelection,
-    process_selection: processSelection,
-    singleCycleDurationHours: Number(form.singleCycleDurationHours),
-    single_cycle_duration_hours: Number(form.singleCycleDurationHours)
-  }
-
-  if (isOtherProcess) {
-    payload.otherProcessName = form.otherProcessName
-    payload.other_process_name = form.otherProcessName
-  } else {
-    payload.processId = selectedProcessId
-    payload.process_id = selectedProcessId
+    circuit_board_status: form.circuitBoardStatus as HaltHassCircuitBoardStatus
   }
 
   return payload

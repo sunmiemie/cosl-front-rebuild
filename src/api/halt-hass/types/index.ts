@@ -5,6 +5,54 @@ export interface BoardGroup {
   name: string
 }
 
+export interface HaltHassApplicableBoardModel {
+  id: number
+  name: string
+  code?: string
+}
+
+export interface HaltHassProductModel {
+  id: number
+  name: string
+}
+
+export type HaltHassClientTestType = 1 | 2
+export type HaltHassReportType = "drive_control" | "rectifier_regulator"
+
+export interface RectifierProcessConfig {
+  inputVoltageSteps: number[]
+  sourceCurrentLimitA: number
+  voltageSettleSeconds: number
+  halfLoadSettleSeconds: number
+  fullLoadSettleSeconds: number
+  halfLoad: { load48Ohm: number; load90Ohm: number }
+  fullLoad: { load48Ohm: number; load90Ohm: number }
+  output48VoltageRange: { min: number; max: number }
+  output90VoltageRange: { min: number; max: number }
+  currentUnit: "A"
+}
+
+export interface HaltHassProductOption extends HaltHassProductModel {
+  haltHassTestType?: HaltHassClientTestType | null
+  haltHassTestTypeName?: string
+}
+
+export interface HaltHassAssemblySlot {
+  slotNo: number
+  name: string
+  required: boolean
+  allowCompanion: boolean
+  allowedBoardModelIds: number[]
+}
+
+export interface HaltHassAssemblyRule {
+  slotCount: number
+  minimumTargetBoards: number
+  allowCompanionBoards: boolean
+  allowEmptySlots: boolean
+  slots: HaltHassAssemblySlot[]
+}
+
 export interface HaltHassProcessListItem {
   id: number
   name: string
@@ -15,6 +63,10 @@ export interface HaltHassProcessListItem {
   userName: string
   auditNum: number
   active: number
+  productModel?: HaltHassProductModel | null
+  productModelId?: number | null
+  clientTestType?: HaltHassClientTestType | null
+  clientTestTypeName?: string
 }
 
 export interface HaltHassProcessListResponse {
@@ -73,6 +125,12 @@ export interface ProcessJson {
     name?: string
     version?: string
     description?: string
+    productModel?: HaltHassProductModel | null
+    experimentMode?: "halt" | "hass" | ""
+    applicableBoardModels?: HaltHassApplicableBoardModel[]
+    assemblyRule?: HaltHassAssemblyRule
+    reportType?: HaltHassReportType
+    rectifierConfig?: RectifierProcessConfig
   }
   installGuide: InstallGuide
   testFlow: FlowchartData
@@ -91,6 +149,10 @@ export interface HaltHassProcessDetail {
   feedback: string[]
   auditNum: number
   active: number
+  productModel?: HaltHassProductModel | null
+  productModelId?: number | null
+  clientTestType?: HaltHassClientTestType | null
+  clientTestTypeName?: string
 }
 
 export interface HaltHassProcessDetailResponse {
@@ -115,8 +177,6 @@ export interface HaltHassProcessUpdateParams {
 
 export type HaltHassExperimentType = "halt" | "hass"
 export type HaltHassCircuitBoardStatus = "development" | "fault_excitation" | "manufacturing"
-export type HaltHassProcessSelectionType = "existing" | "other"
-
 export interface HaltHassVersionItem {
   id: number
   name: string
@@ -126,8 +186,10 @@ export interface HaltHassVersionItem {
   createdAt: string
   experimentType?: HaltHassExperimentType | string
   experiment_type?: HaltHassExperimentType | string
-  durationHours?: number | null
-  duration_hours?: number | null
+  productModel?: HaltHassProductModel | null
+  productModelId?: number | null
+  clientTestType?: HaltHassClientTestType | null
+  clientTestTypeName?: string
 }
 
 export interface HaltHassVersionListResponse {
@@ -149,6 +211,16 @@ export interface HaltHassOrderProcess {
 }
 
 export interface HaltHassOrderBusinessFields {
+  productModel?: HaltHassProductModel | null
+  product_model?: HaltHassProductModel | null
+  instrumentModel?: HaltHassProductModel | null
+  instrument_model?: HaltHassProductModel | null
+  clientTestType?: HaltHassClientTestType | null
+  client_test_type?: HaltHassClientTestType | null
+  clientTestTypeName?: string
+  client_test_type_name?: string
+  taskExecutionDescription?: string
+  task_execution_description?: string
   testApplicationUnit?: string
   test_application_unit?: string
   researchNumber?: string
@@ -165,38 +237,18 @@ export interface HaltHassOrderBusinessFields {
   experiment_type?: HaltHassExperimentType | string
   circuitBoardStatus?: HaltHassCircuitBoardStatus | string
   circuit_board_status?: HaltHassCircuitBoardStatus | string
-  processSelection?: HaltHassProcessSelectionType
-  process_selection?: HaltHassProcessSelectionType
-  otherProcessName?: string
-  other_process_name?: string
   cycleCount?: number
   cycle_count?: number
-  singleCycleDurationHours?: number
-  single_cycle_duration_hours?: number
-  totalCycleDurationHours?: number
-  total_cycle_duration_hours?: number
-  requiredRuntimeSeconds?: number
-  required_runtime_seconds?: number
-  elapsedRuntimeSeconds?: number
-  elapsed_runtime_seconds?: number
-  remainingRuntimeSeconds?: number
-  remaining_runtime_seconds?: number
-  runtimeProgress?: number
-  runtime_progress?: number
-  runtimeConfigured?: boolean
-  runtime_configured?: boolean
-  runtimeCompleted?: boolean
-  runtime_completed?: boolean
-  currentRunStartedAt?: string | null
-  current_run_started_at?: string | null
+  workbenchTestName?: string
+  workbench_test_name?: string
 }
 
 export interface HaltHassOrderListItem extends HaltHassOrderBusinessFields {
   id: number
   orderNo: string
   boardGroup: HaltHassOrderBoardGroup | null
-  process: HaltHassOrderProcess | null
   boardCount: number
+  targetBoardProgress?: HaltHassTargetBoardProgress
   status: number
   statusText: string
   creatorId: number | null
@@ -230,10 +282,30 @@ export interface BoardModelInGroup {
 }
 
 export interface ScannedBoard {
+  id: number
   serial: string
   boardModel: BoardModelInGroup | null
+  boardModelId?: number | null
+  boardModelName?: string
+  boardModelCode?: string
+  status: number
+  statusText: string
+  attemptNo: number
   scanOrder: number
-  scannedAt: string
+  scannedAt: string | null
+  completedAt?: string | null
+  failureReason?: string
+}
+
+export interface HaltHassTargetBoardProgress {
+  total: number
+  pending: number
+  testing: number
+  reviewing: number
+  passed: number
+  redo: number
+  abnormal: number
+  question: number
 }
 
 export interface HaltHassOrderDetail extends HaltHassOrderBusinessFields {
@@ -241,7 +313,6 @@ export interface HaltHassOrderDetail extends HaltHassOrderBusinessFields {
   orderNo: string
   boardGroup: HaltHassOrderBoardGroup | null
   boardsInGroup: BoardModelInGroup[]
-  process: (HaltHassOrderProcess & { content?: string }) | null
   boardCount: number
   boardSerials: string[]
   scannedBoards: ScannedBoard[]
@@ -268,26 +339,34 @@ export interface HaltHassOrderDetailResponse {
 }
 
 export interface HaltHassOrderCreateParams {
+  productModelId: number
+  product_model_id?: number
+  instrumentModelId?: number | null
+  instrument_model_id?: number | null
   boardGroupId: number
-  processId?: number | null
   boardCount: number
   creatorId: number
   cycleCount: number
   board_group_id?: number
-  process_id?: number | null
   board_count?: number
   creator_id?: number
   cycle_count: number
-  singleCycleDurationHours?: number
-  single_cycle_duration_hours?: number
+  taskExecutionDescription: string
+  task_execution_description: string
+  workbenchTestName: string
+  workbench_test_name: string
   remark?: string
   boardSerials?: Array<{
     serial: string
     boardModelId: number
+    boardModelName?: string
+    boardModelCode?: string
   }>
   board_serials?: Array<{
     serial: string
     board_model_id: number
+    board_model_name?: string
+    board_model_code?: string
   }>
   testApplicationUnit: string
   test_application_unit: string
@@ -305,10 +384,18 @@ export interface HaltHassOrderCreateParams {
   experiment_type: HaltHassExperimentType
   circuitBoardStatus: HaltHassCircuitBoardStatus
   circuit_board_status: HaltHassCircuitBoardStatus
-  processSelection: HaltHassProcessSelectionType
-  process_selection: HaltHassProcessSelectionType
-  otherProcessName?: string
-  other_process_name?: string
+}
+
+export interface HaltHassOrderOptionsResponse {
+  code: number
+  msg?: string
+  data: {
+    productModel: HaltHassProductModel
+    instrumentModel?: HaltHassProductModel | null
+    clientTestType: HaltHassClientTestType
+    clientTestTypeName: string
+    processes: HaltHassVersionItem[]
+  }
 }
 
 // ==================== HALT-HASS 报告类型 ====================
@@ -320,7 +407,17 @@ export interface HaltHassReportOrder {
 
 export interface HaltHassReportListItem {
   id: number
+  reportNo: string | null
+  reportType?: HaltHassReportType
   order: HaltHassReportOrder | null
+  sessionId: number | null
+  sessionNo: string
+  targetBoardId: number | null
+  serial: string
+  boardModelName: string
+  boardModelCode: string
+  attemptNo: number
+  isCurrent: boolean
   result: number
   resultText: string
   operatorId: number | null
@@ -366,21 +463,126 @@ export interface FlowchartResultData {
 
 export interface HaltHassReportJson {
   orderNo: string
+  reportType?: HaltHassReportType
+  currentUnit?: "A" | "mA"
   boards: Array<{
     serial: string
     boardModelId?: number
     boardModelName?: string
+    boardModelCode?: string
+    role?: "target" | "companion"
+    slotNo?: number
   }>
   startTime: string
   endTime: string
   duration: number
   flowchartResult: FlowchartResultData
   remark?: string
+  reportSubject?: {
+    targetBoardId: number
+    targetSerial: string
+    targetBoardModel: string
+  }
+  scannedBoardSummary?: {
+    scannedBoardCount: number
+    testedTargetBoardCount: number
+    nonTargetBoardCount: number
+  }
+  periodicRecords?: Array<{
+    intervalIndex: number
+    recordedAt: string
+    elapsedSeconds: number
+    isPartialInterval: boolean
+    temperature: number | null
+    vibration: number | null
+    communications: {
+      interfaceBoard: "正常" | "异常" | "不适用"
+      controlBoard: "正常" | "异常" | "不适用"
+      storageBoard: "正常" | "异常" | "不适用"
+    }
+    pulserSummary: "正常" | "异常"
+    current48v: number | null
+    current90v: number | null
+    missingReasons: string[]
+  }>
+  chartImages?: Array<{
+    chartType: "pulser" | "temperature" | "vibration" | "current"
+    title: string
+    fileName: string
+    mimeType: string
+    startAt: string
+    endAt: string
+    checksum: string
+    rendererVersion: string
+    fileUrl?: string
+    size?: number
+  }>
+  rectifierReport?: {
+    currentUnit: "A"
+    stages: Array<{
+      stageIndex: number
+      stageIdentity: string
+      targetTemperature: number | null
+      actualTemperature: number | null
+      targetVibration: number | null
+      actualVibration: number | null
+      startedAt: string
+      completedAt: string
+      voltageSteps: Array<{
+        inputVoltage: number
+        voltageChangedAt: string
+        halfLoad: RectifierLoadRecord
+        fullLoad: RectifierLoadRecord
+      }>
+    }>
+    boardConclusions: RectifierBoardConclusion[]
+  }
+}
+
+export type HaltHassPassResult = "合格" | "不合格"
+
+export interface RectifierResultReview {
+  originalResult: HaltHassPassResult
+  result: HaltHassPassResult
+  modifiedBy?: number
+  modifiedAt?: string
+}
+
+export interface RectifierLoadRecord {
+  load48Ohm: number
+  load90Ohm: number
+  output48Voltage: number | null
+  output48CurrentA: number | null
+  output90Voltage: number | null
+  output90CurrentA: number | null
+  output48Result: RectifierResultReview
+  output90Result: RectifierResultReview
+  recordedAt: string
+  missingReasons: string[]
+}
+
+export interface RectifierBoardConclusion extends RectifierResultReview {
+  serial: string
+  boardModelId?: number
+  boardModelName: string
+  boardModelCode?: string
+  role: "target" | "companion"
+  slotNo: number
 }
 
 export interface HaltHassReportDetail {
   id: number
+  reportNo: string | null
+  reportType?: HaltHassReportType
   order: HaltHassReportDetailOrder | null
+  sessionId: number | null
+  sessionNo: string
+  targetBoardId: number | null
+  serial: string
+  boardModelName: string
+  boardModelCode: string
+  attemptNo: number
+  isCurrent: boolean
   reportJson: HaltHassReportJson
   result: number
   resultText: string
