@@ -5,6 +5,9 @@ export interface InspectionUserOption {
   name: string
   department_id: string
   department_name: string
+  telPhone?: string
+  phone?: string
+  email?: string
 }
 
 export interface InspectionUserOptionsResponse {

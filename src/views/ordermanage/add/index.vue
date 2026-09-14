@@ -45,20 +45,27 @@
             <el-col :span="12">
               <el-form-item
                 label="联系人 *"
-                prop="contactName"
+                prop="contactUserId"
                 :rules="[{ required: true, message: '请选择联系人', trigger: 'change' }]"
               >
                 <el-select
-                  v-model="form.contactName"
+                  v-model="form.contactUserId"
                   filterable
-                  placeholder="输入姓名或部门搜索..."
+                  clearable
+                  :loading="personnelLoading"
+                  placeholder="请输入姓名或部门查询"
                   style="width: 100%"
                   @change="handleContactChange"
                 >
-                  <el-option v-for="item in personnelList" :key="item.name" :label="item.name" :value="item.name">
+                  <el-option
+                    v-for="item in personnelList"
+                    :key="item.id"
+                    :label="getPersonnelLabel(item)"
+                    :value="item.id"
+                  >
                     <span style="float: left">{{ item.name }}</span>
                     <span style="float: right; color: var(--el-text-color-secondary); font-size: 12px">{{
-                      item.dept
+                      item.department_name || "未提供部门"
                     }}</span>
                   </el-option>
                 </el-select>
@@ -262,25 +269,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from "vue"
+import { onMounted, ref, reactive } from "vue"
 import { ElMessage } from "element-plus"
 import type { FormInstance } from "element-plus"
 import { request } from "@/utils/service"
+import { getInspectionUserOptionsApi } from "@/api/inspection-base"
+import type { InspectionUserOption } from "@/api/inspection-base/types"
 
 const categories = ["连接器及线缆线束组件", "PCBA工艺", "关键电子器件", "关键部件", "研发故障排查"]
 
-const personnelList = [
-  { name: "李明", dept: "油田研究院·测控所", phone: "138-0010-0021", email: "liming@oiltech.com" },
-  { name: "赵云", dept: "信号处理研究所", phone: "139-5500-5566", email: "zhaoyun@signal.com" },
-  { name: "刘刚", dept: "装备研发部·电子组", phone: "136-8800-8801", email: "liugang@equip.com" },
-  { name: "孙强", dept: "质检中心", phone: "137-2200-2244", email: "sunqiang@qc.com" },
-  { name: "陈丹", dept: "装备部·维保组", phone: "135-9900-9977", email: "chendan@maint.com" },
-  { name: "周平", dept: "油田研究院·材料所", phone: "131-3300-3388", email: "zhouping@oiltech.com" },
-  { name: "吴霞", dept: "通信技术部", phone: "133-7700-7712", email: "wuxia@comm.com" },
-  { name: "郑伟", dept: "信号处理研究所", phone: "188-4400-4410", email: "zhengwei@signal.com" },
-  { name: "王芳", dept: "质检中心·工艺组", phone: "132-6600-6688", email: "wangfang@qc.com" },
-  { name: "张磊", dept: "电子器件研究室", phone: "139-1100-1123", email: "zhanglei@elab.com" }
-]
+const personnelList = ref<InspectionUserOption[]>([])
+const personnelLoading = ref(false)
 
 const formRef = ref<FormInstance>()
 const submitLoading = ref(false)
@@ -300,6 +299,7 @@ const form = reactive({
   commOrg: "",
   address: "",
   budgetNo: "",
+  contactUserId: "",
   contactName: "",
   phone: "",
   email: "",
@@ -318,13 +318,31 @@ const form = reactive({
 })
 
 const handleContactChange = (val: string) => {
-  const person = personnelList.find((p) => p.name === val)
+  const person = personnelList.value.find((item) => item.id === val)
   if (person) {
-    form.phone = person.phone
-    form.email = person.email
+    form.contactName = person.name
+    form.phone = person.telPhone || person.phone || ""
+    form.email = person.email || ""
   } else {
+    form.contactName = ""
     form.phone = ""
     form.email = ""
+  }
+}
+
+const getPersonnelLabel = (person: InspectionUserOption) =>
+  person.department_name ? `${person.name}（${person.department_name}）` : person.name
+
+const loadPersonnelList = async () => {
+  personnelLoading.value = true
+  try {
+    const res = await getInspectionUserOptionsApi()
+    personnelList.value = Array.isArray(res.data) ? res.data : []
+  } catch {
+    personnelList.value = []
+    ElMessage.error("加载小助手人员列表失败")
+  } finally {
+    personnelLoading.value = false
   }
 }
 
@@ -341,6 +359,8 @@ const resetForm = () => {
     formRef.value.resetFields()
   }
   form.samples = [getInitialSample()]
+  form.contactUserId = ""
+  form.contactName = ""
   form.phone = ""
   form.email = ""
   form.receiveMethod = "自送"
@@ -370,6 +390,7 @@ const submitForm = () => {
           address: form.address,
           budget_no: form.budgetNo,
           contact_name: form.contactName,
+          assistant_user_id: form.contactUserId,
           phone: form.phone,
           email: form.email,
           service_level: form.serviceLevel,
@@ -410,6 +431,8 @@ const submitForm = () => {
     }
   })
 }
+
+onMounted(loadPersonnelList)
 </script>
 
 <style lang="scss" scoped>
