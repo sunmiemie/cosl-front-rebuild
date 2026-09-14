@@ -37,6 +37,13 @@
         >
           <HighTemperaturePressureReport ref="highTemperaturePressureReportComponent" />
         </el-tab-pane>
+        <el-tab-pane
+          v-if="canUseTab('sensorless-oven')"
+          label="&#x65E0;&#x611F;&#x70D8;&#x7BB1;&#x62A5;&#x544A;"
+          name="sensorless-oven"
+        >
+          <SensorlessOvenReport ref="sensorlessOvenReportComponent" />
+        </el-tab-pane>
         <el-tab-pane v-if="canUseTab('simulation')" label="&#x6A21;&#x62DF;&#x4E95;&#x62A5;&#x544A;" name="simulation">
           <SimulationWellReport ref="simulationWellReportComponent" />
         </el-tab-pane>
@@ -60,6 +67,7 @@ import WaterCycleReport from "./components/WaterCycleReport.vue"
 import HighTemperatureReport from "./components/HighTemperatureReport.vue"
 import VibrationReport from "./components/VibrationReport.vue"
 import HighTemperaturePressureReport from "./components/HighTemperaturePressureReport.vue"
+import SensorlessOvenReport from "./components/SensorlessOvenReport.vue"
 import SimulationWellReport from "./components/SimulationWellReport.vue"
 
 const activeName = ref<any>("prod")
@@ -72,6 +80,7 @@ const waterCycleReportComponent = ref<InstanceType<typeof WaterCycleReport> | nu
 const highTempReportComponent = ref<InstanceType<typeof HighTemperatureReport> | null>(null)
 const vibrationReportComponent = ref<InstanceType<typeof VibrationReport> | null>(null)
 const highTemperaturePressureReportComponent = ref<InstanceType<typeof HighTemperaturePressureReport> | null>(null)
+const sensorlessOvenReportComponent = ref<InstanceType<typeof SensorlessOvenReport> | null>(null)
 const simulationWellReportComponent = ref<InstanceType<typeof SimulationWellReport> | null>(null)
 
 const router = useRouter()
@@ -86,6 +95,7 @@ const visibleTabs = computed(() =>
     { name: "high-temp", permission: PermissionCode.ReportReviewHighTempBox },
     { name: "vibration", permission: PermissionCode.ReportReviewVibrationTable },
     { name: "high-pressure", permission: PermissionCode.ReportReviewHighTempPressure },
+    { name: "sensorless-oven", permission: PermissionCode.ReportReviewSensorlessOven },
     { name: "simulation", permission: PermissionCode.ReportReviewSimulatedWell }
   ].filter((item) => !item.permission || checkPermission([item.permission]))
 )
@@ -125,6 +135,9 @@ function resetTab(tabName: unknown) {
       break
     case "high-pressure":
       highTemperaturePressureReportComponent.value?.resetSearch()
+      break
+    case "sensorless-oven":
+      sensorlessOvenReportComponent.value?.resetSearch()
       break
     case "simulation":
       simulationWellReportComponent.value?.resetSearch()

@@ -8,6 +8,7 @@ export type WorkOrderScheduleEquipment =
   | "simulated-well"
   | "halt-hass"
   | "circuit-board-module"
+  | "sensorless-oven"
 
 export type ScheduleTargetKind = "order" | "instrument" | "device"
 export type EndpointScheduleEquipment = WorkOrderScheduleEquipment
@@ -134,6 +135,10 @@ const scheduleEndpointMap: Record<EndpointScheduleEquipment, ScheduleEndpointCon
   "circuit-board-module": {
     targetKind: "order",
     baseUrl: "test/circuit-board-module/order/schedule/"
+  },
+  "sensorless-oven": {
+    targetKind: "order",
+    baseUrl: "test/sensorless-oven/order/schedule/"
   }
 }
 

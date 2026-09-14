@@ -62,7 +62,9 @@ const createLoading = ref(false)
 const createFormRef = ref<FormInstance>()
 const highTempPressureDeviceOptions = ref<HighTempPressureDeviceOption[]>([])
 const highTempPressureDeviceLoading = ref(false)
-const testTypeOptions = ["250容器", "480", "高压测试", "高温高压测试", "在线测试"]
+const testTypeOptions = ["高压测试", "高温高压测试"]
+const testContainerOptions = ["250容器", "480容器"]
+const onlineTestText = (value: boolean | null | undefined) => value === true ? "是" : value === false ? "否" : "未填写"
 
 const todayText = () => new Date().toISOString().split("T")[0]
 const pad = (value: number) => String(value).padStart(3, "0")
@@ -121,7 +123,9 @@ const createForm = reactive({
   planned_time: "",
   test_location: "",
   test_purpose: "",
-  test_type: testTypeOptions[0],
+  test_type: "",
+  test_container: "",
+  online_test: null as boolean | null,
   target_temp: 0,
   target_pressure: 0,
   max_diameter: null as number | null,
@@ -139,7 +143,6 @@ const instrumentFormList = ref<HighTempPressureOrderInstrumentItem[]>([
   {
     instrument_name: "",
     instrument_sn: "",
-    test_type: testTypeOptions[0],
     quantity: 1,
     instrument_length: "",
     max_diameter: null
@@ -162,6 +165,8 @@ const createRules = {
   client: [{ required: true, message: "请输入委托人", trigger: "blur" }],
   planned_time: [{ required: true, message: "请选择时间", trigger: "change" }],
   test_type: [{ required: true, message: "请选择测试类型", trigger: "change" }],
+  test_container: [{ required: true, message: "请选择测试容器", trigger: "change" }],
+  online_test: [{ required: true, message: "请选择是否在线测试", trigger: "change" }],
   use_device: [{ required: true, message: "请选择使用设备", trigger: "change" }],
   equipment_list: [{ required: true, message: "请输入设备清单", trigger: "blur" }]
 }
@@ -179,6 +184,8 @@ const canCreate = computed(() => {
       createForm.client &&
       createForm.planned_time &&
       createForm.test_type &&
+      createForm.test_container &&
+      typeof createForm.online_test === "boolean" &&
       createForm.use_device
     )
   ) {
@@ -192,6 +199,23 @@ const detailDialogVisible = ref(false)
 const currentOrder = ref<HighTempPressureOrderListItem | null>(null)
 
 const publishDialogVisible = ref(false)
+const publishStep = ref<"number" | "confirmation">("number")
+const publishTestNumber = ref("")
+const validatePublishTestNumber = () => {
+  publishTestNumber.value = publishTestNumber.value.trim()
+  if (!publishTestNumber.value) {
+    ElMessage.warning("请输入测试单号")
+    return false
+  }
+  if (publishTestNumber.value.length > 100) {
+    ElMessage.warning("测试单号不能超过100个字符")
+    return false
+  }
+  return true
+}
+const nextPublishStep = () => {
+  if (validatePublishTestNumber()) publishStep.value = "confirmation"
+}
 const publishLoading = ref(false)
 const publishOrder = ref<HighTempPressureOrderListItem | null>(null)
 const publishSignatureFileList = ref<UploadUserFile[]>([])
@@ -246,6 +270,8 @@ const publishSignatureStatusText = computed(() =>
 )
 
 const resetPublishDialog = () => {
+  publishStep.value = "number"
+  publishTestNumber.value = ""
   publishSignatureFileList.value = []
   publishSignatureRawFile.value = null
   publishSignatureSource.value = ""
@@ -413,7 +439,9 @@ const showCreateDialog = () => {
     planned_time: "",
     test_location: "",
     test_purpose: "",
-    test_type: testTypeOptions[0],
+    test_type: "",
+    test_container: "",
+    online_test: null,
     target_temp: 0,
     target_pressure: 0,
     max_diameter: null,
@@ -430,7 +458,6 @@ const showCreateDialog = () => {
     {
       instrument_name: "",
       instrument_sn: "",
-      test_type: testTypeOptions[0],
       quantity: 1,
       instrument_length: "",
       max_diameter: null
@@ -444,7 +471,6 @@ const addInstrumentRow = () => {
   instrumentFormList.value.push({
     instrument_name: "",
     instrument_sn: "",
-    test_type: createForm.test_type,
     quantity: 1,
     instrument_length: "",
     max_diameter: null
@@ -473,7 +499,6 @@ const handleCreate = async () => {
         instruments: instrumentFormList.value.map((i) => ({
           instrument_name: i.instrument_name,
           instrument_sn: i.instrument_sn,
-          test_type: i.test_type || createForm.test_type,
           quantity: i.quantity,
           instrument_length: i.instrument_length || "",
           max_diameter: i.max_diameter ?? null
@@ -607,7 +632,7 @@ const openSignaturePreview = () => {
 }
 
 const handleConfirmPublish = async () => {
-  if (!publishOrder.value) return
+  if (!publishOrder.value || publishLoading.value || !validatePublishTestNumber()) return
   if (sanxinDoneCount.value !== 2) {
     ElMessage.warning("请完成测试方确认项（序号1-2）填写")
     return
@@ -619,6 +644,7 @@ const handleConfirmPublish = async () => {
   publishLoading.value = true
   try {
     const formData = new FormData()
+    formData.append("test_number", publishTestNumber.value)
     formData.append("admin_signature", publishSignatureRawFile.value)
     formData.append("confirm_date", publishConfirmDate.value)
     formData.append("tester_item_1", sanxinTesterAnswers[0] || "")
@@ -683,8 +709,8 @@ onMounted(() => {
     <el-card v-loading="loading" class="management-list-card" shadow="never">
       <div class="management-list-toolbar">
         <el-form :inline="true" :model="searchForm" class="management-filter-form">
-          <el-form-item label="任务单号">
-            <el-input v-model="searchForm.taskNumber" placeholder="请输入任务单号" clearable />
+          <el-form-item label="单号">
+            <el-input v-model="searchForm.taskNumber" placeholder="测试单号/任务单号/表格编号" clearable />
           </el-form-item>
           <el-form-item label="状态">
             <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px">
@@ -714,6 +740,7 @@ onMounted(() => {
         >
           <el-table-column prop="table_no" label="表格编号" min-width="110" align="center" />
           <el-table-column prop="task_number" label="任务单编号" min-width="130" align="center" />
+          <el-table-column prop="test_number" label="测试单号" min-width="130" align="center" />
           <el-table-column prop="applicant" label="申请人" min-width="80" align="center" />
           <el-table-column prop="test_application_unit" label="测试申请单位" min-width="110" align="center" />
           <el-table-column label="待测仪器" min-width="130" align="center">
@@ -728,8 +755,12 @@ onMounted(() => {
           </el-table-column>
           <el-table-column label="测试类型" min-width="105" align="center">
             <template #default="{ row }">
-              <span>{{ row.test_types || "-" }}</span>
+              <span>{{ row.test_type || "-" }}</span>
             </template>
+          </el-table-column>
+          <el-table-column prop="test_container" label="测试容器" min-width="100" align="center" />
+          <el-table-column label="在线测试" min-width="90" align="center">
+            <template #default="{ row }">{{ onlineTestText(row.online_test) }}</template>
           </el-table-column>
           <el-table-column label="待测数量" min-width="70" align="center">
             <template #default="{ row }">
@@ -955,6 +986,21 @@ onMounted(() => {
             </el-form-item>
           </el-col>
           <el-col :span="12">
+            <el-form-item label="测试容器" prop="test_container">
+              <el-select v-model="createForm.test_container" placeholder="请选择测试容器" style="width: 100%">
+                <el-option v-for="item in testContainerOptions" :key="item" :label="item" :value="item" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="是否在线测试" prop="online_test">
+              <el-select v-model="createForm.online_test" placeholder="请选择是否在线测试" style="width: 100%">
+                <el-option label="是" :value="true" />
+                <el-option label="否" :value="false" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
             <el-form-item label="测试地点" prop="test_location">
               <el-input v-model="createForm.test_location" placeholder="请输入测试地点" />
             </el-form-item>
@@ -1006,7 +1052,9 @@ onMounted(() => {
 
     <el-dialog
       v-model="publishDialogVisible"
-      width="920px"
+      :width="publishStep === 'number' ? '460px' : '920px'"
+      :show-close="!publishLoading"
+      :close-on-press-escape="!publishLoading"
       :close-on-click-modal="false"
       class="publish-dialog"
       @closed="resetPublishDialog"
@@ -1014,12 +1062,17 @@ onMounted(() => {
       <template #header>
         <div class="publish-dialog-header">
           <div>
-            <div class="publish-dialog-title">工单分配 · "三新"测试确认单填写</div>
-            <div class="publish-dialog-subtitle">WT3-TC/ZZ-01-R04 · v1.0 | 测试方确认项由管理员填写</div>
+            <div class="publish-dialog-title">{{ publishStep === "number" ? "填写测试单号" : '工单分配 · "三新"测试确认单填写' }}</div>
+            <div v-if="publishStep === 'confirmation'" class="publish-dialog-subtitle">WT3-TC/ZZ-01-R04 · v1.0 | 测试方确认项由管理员填写</div>
           </div>
         </div>
       </template>
-      <div class="publish-wrap">
+      <el-form v-if="publishStep === 'number'" label-width="100px" @submit.prevent="nextPublishStep">
+        <el-form-item label="测试单号" required>
+          <el-input v-model="publishTestNumber" maxlength="100" show-word-limit placeholder="请输入唯一的测试单号" />
+        </el-form-item>
+      </el-form>
+      <div v-show="publishStep === 'confirmation'" class="publish-wrap">
         <el-row :gutter="20">
           <el-col :span="14">
             <el-card v-if="publishOrder" shadow="never" class="publish-card">
@@ -1028,6 +1081,7 @@ onMounted(() => {
               </template>
               <el-descriptions :column="2" border>
                 <el-descriptions-item label="工单编号">{{ publishOrder.task_number }}</el-descriptions-item>
+                <el-descriptions-item label="测试单号">{{ publishTestNumber }}</el-descriptions-item>
                 <el-descriptions-item label="状态">
                   <el-tag :type="getStatusType(publishOrder.status)">{{
                     publishOrder.status_text || publishOrder.status
@@ -1140,8 +1194,11 @@ onMounted(() => {
         </el-row>
       </div>
       <template #footer>
-        <el-button @click="publishDialogVisible = false">取消</el-button>
+        <el-button :disabled="publishLoading" @click="publishDialogVisible = false">取消</el-button>
+        <el-button v-if="publishStep === 'number'" type="primary" @click="nextPublishStep">下一步</el-button>
+        <el-button v-else :disabled="publishLoading" @click="publishStep = 'number'">返回修改单号</el-button>
         <el-button
+          v-if="publishStep === 'confirmation'"
           type="primary"
           :loading="publishLoading"
           :disabled="!canConfirmPublish"
@@ -1174,6 +1231,7 @@ onMounted(() => {
         <el-descriptions :column="2" border>
           <el-descriptions-item label="表格编号">{{ currentOrder.table_no || "-" }}</el-descriptions-item>
           <el-descriptions-item label="任务单号">{{ currentOrder.task_number }}</el-descriptions-item>
+          <el-descriptions-item label="测试单号">{{ currentOrder.test_number }}</el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag :type="getStatusType(currentOrder.status)">{{ currentOrder.status_text }}</el-tag>
           </el-descriptions-item>
@@ -1196,6 +1254,8 @@ onMounted(() => {
           <el-descriptions-item label="设备名称">{{ currentOrder.device_name }}</el-descriptions-item>
           <el-descriptions-item label="设备编号">{{ currentOrder.device_number }}</el-descriptions-item>
           <el-descriptions-item label="测试类型">{{ currentOrder.test_type || "-" }}</el-descriptions-item>
+          <el-descriptions-item label="测试容器">{{ currentOrder.test_container || "未填写" }}</el-descriptions-item>
+          <el-descriptions-item label="是否在线测试">{{ onlineTestText(currentOrder.online_test) }}</el-descriptions-item>
           <el-descriptions-item label="时间">{{ currentOrder.planned_time || "-" }}</el-descriptions-item>
           <el-descriptions-item label="测试地点" :span="2">{{
             currentOrder.test_location || "-"

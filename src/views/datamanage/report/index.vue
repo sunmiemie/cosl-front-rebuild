@@ -25,6 +25,7 @@ import WaterCycleReportReview from "./components/WaterCycleReportReview.vue"
 import HighTempBoxReportReview from "./components/HighTempBoxReportReview.vue"
 import VibrationTableReportReview from "./components/VibrationTableReportReview.vue"
 import HighTempHighPressureReportReview from "./components/HighTempHighPressureReportReview.vue"
+import SensorlessOvenReportReview from "./components/SensorlessOvenReportReview.vue"
 import SimulationWellReportReview from "../historymange/components/SimulationWellReport.vue"
 
 const loading = ref(false)
@@ -43,6 +44,7 @@ const reportTabs = computed(() =>
     { name: "high-temp-box", permission: PermissionCode.ReportReviewHighTempBox },
     { name: "vibration-table", permission: PermissionCode.ReportReviewVibrationTable },
     { name: "high-temp-high-pressure", permission: PermissionCode.ReportReviewHighTempPressure },
+    { name: "sensorless-oven", permission: PermissionCode.ReportReviewSensorlessOven },
     { name: "simulation", permission: PermissionCode.ReportReviewSimulatedWell }
   ].filter((item) => checkPermission([item.permission]))
 )
@@ -60,6 +62,7 @@ const waterCycleReviewRef = ref<InstanceType<typeof WaterCycleReportReview> | nu
 const highTempBoxReviewRef = ref<InstanceType<typeof HighTempBoxReportReview> | null>(null)
 const vibrationReviewRef = ref<InstanceType<typeof VibrationTableReportReview> | null>(null)
 const hthpReviewRef = ref<InstanceType<typeof HighTempHighPressureReportReview> | null>(null)
+const sensorlessOvenReviewRef = ref<InstanceType<typeof SensorlessOvenReportReview> | null>(null)
 const simulationReviewRef = ref<InstanceType<typeof SimulationWellReportReview> | null>(null)
 
 interface TestCheckType {
@@ -1262,6 +1265,9 @@ const handleTabClick = (tab: TabsPaneContext) => {
   if (tab.props.name === "high-temp-high-pressure" && hthpReviewRef.value) {
     hthpReviewRef.value.resetSearch()
   }
+  if (tab.props.name === "sensorless-oven" && sensorlessOvenReviewRef.value) {
+    sensorlessOvenReviewRef.value.resetSearch()
+  }
 }
 
 onMounted(() => {
@@ -1403,6 +1409,14 @@ watch(
           name="high-temp-high-pressure"
         >
           <HighTempHighPressureReportReview ref="hthpReviewRef" />
+        </el-tab-pane>
+
+        <el-tab-pane
+          v-if="canReview(PermissionCode.ReportReviewSensorlessOven)"
+          label="无感烘箱报告审核"
+          name="sensorless-oven"
+        >
+          <SensorlessOvenReportReview ref="sensorlessOvenReviewRef" />
         </el-tab-pane>
 
         <el-tab-pane

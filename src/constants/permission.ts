@@ -5,6 +5,7 @@ export const PermissionCode = {
   TestOrderCreateHaltHass: "TEST_ORDER_CREATE_HALT_HASS",
   TestOrderCreateWaterCycle: "TEST_ORDER_CREATE_WATER_CYCLE",
   TestOrderCreateHighTempBox: "TEST_ORDER_CREATE_HIGH_TEMP_BOX",
+  TestOrderCreateSensorlessOven: "TEST_ORDER_CREATE_SENSORLESS_OVEN",
   TestOrderCreateVibrationTable: "TEST_ORDER_CREATE_VIBRATION_TABLE",
   TestOrderCreateHighTempPressure: "TEST_ORDER_CREATE_HIGH_TEMP_PRESSURE",
   TestOrderCreateSimulatedWell: "TEST_ORDER_CREATE_SIMULATED_WELL",
@@ -15,6 +16,7 @@ export const PermissionCode = {
   ReportReviewVibrationTable: "REPORT_REVIEW_VIBRATION_TABLE",
   ReportReviewHighTempPressure: "REPORT_REVIEW_HIGH_TEMP_PRESSURE",
   ReportReviewSimulatedWell: "REPORT_REVIEW_SIMULATED_WELL",
+  ReportReviewSensorlessOven: "REPORT_REVIEW_SENSORLESS_OVEN",
   UserManage: "USER_MANAGE",
   RoleManage: "ROLE_MANAGE",
   SignatureManage: "SIGNATURE_MANAGE",
@@ -27,6 +29,7 @@ export const AddOrderPermissionCodes = [
   PermissionCode.TestOrderCreateHaltHass,
   PermissionCode.TestOrderCreateWaterCycle,
   PermissionCode.TestOrderCreateHighTempBox,
+  PermissionCode.TestOrderCreateSensorlessOven,
   PermissionCode.TestOrderCreateVibrationTable,
   PermissionCode.TestOrderCreateHighTempPressure,
   PermissionCode.TestOrderCreateSimulatedWell
@@ -39,5 +42,6 @@ export const ReportReviewPermissionCodes = [
   PermissionCode.ReportReviewHighTempBox,
   PermissionCode.ReportReviewVibrationTable,
   PermissionCode.ReportReviewHighTempPressure,
-  PermissionCode.ReportReviewSimulatedWell
+  PermissionCode.ReportReviewSimulatedWell,
+  PermissionCode.ReportReviewSensorlessOven
 ]

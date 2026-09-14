@@ -27,6 +27,14 @@
           <HighTemperatureOrder ref="highTempOrderComponent" />
         </el-tab-pane>
         <el-tab-pane
+          v-if="canUse(PermissionCode.TestOrderCreateSensorlessOven)"
+          label="无感烘箱工单"
+          name="sensorless-oven"
+          lazy
+        >
+          <SensorlessOvenOrder ref="sensorlessOvenOrderComponent" />
+        </el-tab-pane>
+        <el-tab-pane
           v-if="canUse(PermissionCode.TestOrderCreateVibrationTable)"
           label="振动台工单"
           name="vibration"
@@ -69,6 +77,7 @@ import { checkPermission } from "@/utils/permission"
 import HaltHassOrder from "../testorder/components/HaltHassOrder.vue"
 import WaterCycleOrder from "../testorder/components/WaterCycleOrder.vue"
 import HighTemperatureOrder from "../testorder/components/HighTemperatureOrder.vue"
+import SensorlessOvenOrder from "../testorder/components/SensorlessOvenOrder.vue"
 import VibrationOrder from "../testorder/components/VibrationOrder.vue"
 import HighTemperaturePressureOrder from "../testorder/components/HighTemperaturePressureOrder.vue"
 import SimulationOrder from "../testorder/components/SimulationOrder.vue"
@@ -79,6 +88,7 @@ const availableTabs = computed(() =>
     { name: "halt-hass", permission: PermissionCode.TestOrderCreateHaltHass },
     { name: "water-cycle", permission: PermissionCode.TestOrderCreateWaterCycle },
     { name: "high-temp", permission: PermissionCode.TestOrderCreateHighTempBox },
+    { name: "sensorless-oven", permission: PermissionCode.TestOrderCreateSensorlessOven },
     { name: "vibration", permission: PermissionCode.TestOrderCreateVibrationTable },
     { name: "high-temp-pressure", permission: PermissionCode.TestOrderCreateHighTempPressure },
     { name: "simulation", permission: PermissionCode.TestOrderCreateSimulatedWell },
@@ -93,6 +103,7 @@ const router = useRouter()
 const haltHassOrderComponent = ref<InstanceType<typeof HaltHassOrder> | null>(null)
 const waterCycleOrderComponent = ref<InstanceType<typeof WaterCycleOrder> | null>(null)
 const highTempOrderComponent = ref<InstanceType<typeof HighTemperatureOrder> | null>(null)
+const sensorlessOvenOrderComponent = ref<InstanceType<typeof SensorlessOvenOrder> | null>(null)
 const vibrationOrderComponent = ref<InstanceType<typeof VibrationOrder> | null>(null)
 const highTempPressureOrderComponent = ref<InstanceType<typeof HighTemperaturePressureOrder> | null>(null)
 const simulationOrderComponent = ref<InstanceType<typeof SimulationOrder> | null>(null)
@@ -105,6 +116,8 @@ const refreshActiveTab = (name: string) => {
     waterCycleOrderComponent.value?.refresh?.()
   } else if (name === "high-temp") {
     highTempOrderComponent.value?.refresh?.()
+  } else if (name === "sensorless-oven") {
+    sensorlessOvenOrderComponent.value?.refresh?.()
   } else if (name === "vibration") {
     vibrationOrderComponent.value?.refresh?.()
   } else if (name === "high-temp-pressure") {

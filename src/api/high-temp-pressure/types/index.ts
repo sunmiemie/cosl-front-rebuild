@@ -6,6 +6,7 @@ export interface HighTempPressureOrderListItem {
   device_name: string
   device_number: string
   task_number: string
+  test_number?: string | null
   target_temp: number
   target_pressure: number
   applicant: string
@@ -22,6 +23,8 @@ export interface HighTempPressureOrderListItem {
   test_purpose?: string | null
   others?: unknown
   test_type?: string
+  test_container?: string
+  online_test?: boolean | null
   project_members?: string
   equipment_list?: string
   instrument_combination?: string
@@ -113,6 +116,8 @@ export interface CreateHighTempPressureOrderRequest {
   test_purpose?: string | null
   others?: unknown
   test_type?: string
+  test_container?: string
+  online_test?: boolean | null
   project_members?: string
   equipment_list?: string
   instrument_combination?: string

@@ -24,6 +24,11 @@ import {
   getHighTempPressureReportListApi,
   updateHighTempPressureReportApi
 } from "@/api/high-temp-pressure-report"
+import {
+  getSensorlessOvenReportDetailApi,
+  getSensorlessOvenReportListApi,
+  updateSensorlessOvenReportApi
+} from "@/api/sensorless-oven-report"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import {
   getAssistantReportSyncStatusText,
@@ -49,7 +54,7 @@ import VibrationDocReportView from "./VibrationDocReportView.vue"
 import { getMySignatureApi, getSignatureImageApi } from "@/api/signature"
 import type { SignatureInfo } from "@/api/signature/types"
 
-type ReportType = "water-cycle" | "high-temp-box" | "vibration-table" | "high-temp-high-pressure"
+type ReportType = "water-cycle" | "high-temp-box" | "vibration-table" | "high-temp-high-pressure" | "sensorless-oven"
 type ReportReviewPayload = {
   status: number
   audit_time: string
@@ -137,6 +142,13 @@ const configs = {
     getList: getHighTempPressureReportListApi,
     getDetail: getHighTempPressureReportDetailApi,
     update: (id: number, payload: ReportReviewPayload) => updateHighTempPressureReportApi(id, payload as any)
+  },
+  "sensorless-oven": {
+    title: "无感烘箱报告审核",
+    taskLabel: "无感烘箱任务单号",
+    getList: getSensorlessOvenReportListApi,
+    getDetail: getSensorlessOvenReportDetailApi,
+    update: (id: number, payload: ReportReviewPayload) => updateSensorlessOvenReportApi(id, payload as any)
   }
 }
 
@@ -170,6 +182,34 @@ const currentCurveImages = computed(() =>
     .filter((item) => Boolean(item.url))
 )
 const isHighTempPressure = computed(() => props.reportType === "high-temp-high-pressure")
+const isSensorlessOven = computed(() => props.reportType === "sensorless-oven")
+
+const sensorlessAttachments = computed(() => (currentReport.value?.attachments || []) as Array<Record<string, any>>)
+const sensorlessCurveImages = computed(() =>
+  sensorlessAttachments.value
+    .filter((item) => ["testing_curve"].includes(String(item?.field || item?.type || "")))
+    .map((item) => getAttachmentFileUrl(item))
+    .filter((url): url is string => Boolean(url))
+)
+const sensorlessSignatureUrl = computed(() => {
+  const sig = sensorlessAttachments.value.find(
+    (item) => String(item?.field || item?.type || "") === "tester_signature"
+  )
+  return sig ? getAttachmentFileUrl(sig) : ""
+})
+const sensorlessReportInfo = computed(() => {
+  const rj = (currentReport.value?.report_json || {}) as Record<string, any>
+  const overallResult = String(rj.overall_result || "")
+  return {
+    basic: (rj.basic_info || {}) as Record<string, any>,
+    summary: (rj.summary || {}) as Record<string, any>,
+    instruments: Array.isArray(rj.instruments) ? (rj.instruments as Array<Record<string, any>>) : [],
+    overallText:
+      rj.overall_result_text || (overallResult === "fail" ? "不合格" : overallResult === "pass" ? "合格" : "-"),
+    overallResult,
+    conclusion: String(rj.conclusion || "")
+  }
+})
 
 const initSearchFromRoute = () => {
   const { taskNumber, tester } = route.query
@@ -733,6 +773,63 @@ defineExpose({ resetSearch })
           />
         </div>
       </div>
+      <div v-if="currentReport && isSensorlessOven" class="detail-block paper-report-block">
+        <h4>无感烘箱报告内容</h4>
+        <el-descriptions :column="2" border size="small">
+          <el-descriptions-item label="设备名称">{{
+            displayReportValue(sensorlessReportInfo.basic.device_name)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="目标温度">{{
+            displayReportValue(sensorlessReportInfo.basic.target_temp)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="温度最高值">{{
+            displayReportValue(sensorlessReportInfo.summary.max_temp)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="温度最低值">{{
+            displayReportValue(sensorlessReportInfo.summary.min_temp)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="采集条数">{{
+            displayReportValue(sensorlessReportInfo.summary.point_count)
+          }}</el-descriptions-item>
+          <el-descriptions-item label="整体结论">
+            <el-tag :type="sensorlessReportInfo.overallResult === 'fail' ? 'danger' : 'success'">
+              {{ sensorlessReportInfo.overallText }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="结论说明" :span="2">{{
+            displayReportValue(sensorlessReportInfo.conclusion)
+          }}</el-descriptions-item>
+        </el-descriptions>
+        <el-table
+          v-if="sensorlessReportInfo.instruments.length"
+          :data="sensorlessReportInfo.instruments"
+          size="small"
+          border
+          style="margin-top: 10px"
+        >
+          <el-table-column type="index" label="序号" width="60" />
+          <el-table-column prop="instrument_name" label="仪器名称" />
+          <el-table-column prop="instrument_sn" label="编号(SN)" />
+          <el-table-column label="结论" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.result === 'fail' ? 'danger' : 'success'">
+                {{ row.result === "fail" ? "不合格" : "合格" }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+        <div v-for="(url, idx) in sensorlessCurveImages" :key="url" class="curve-preview-card">
+          <div class="curve-preview-head">
+            <span>测试曲线{{ idx + 1 }}</span>
+            <el-link :href="url" target="_blank" type="primary">下载/打开原图</el-link>
+          </div>
+          <el-image :src="url" fit="contain" :preview-src-list="sensorlessCurveImages" class="curve-preview-image" />
+        </div>
+        <div v-if="sensorlessSignatureUrl" class="reviewer-signature-card" style="margin-top: 10px">
+          <div class="signature-caption">测试人电子签名</div>
+          <el-image :src="sensorlessSignatureUrl" fit="contain" class="signature-preview-image" />
+        </div>
+      </div>
       <div v-if="currentReport && props.reportType === 'vibration-table'" class="detail-block paper-report-block">
         <h4>doc 报告内容</h4>
         <VibrationDocReportView :report-json="currentReport.report_json" :attachments="currentReport.attachments" />
@@ -837,6 +934,20 @@ defineExpose({ resetSearch })
     border: 1px solid #bfdbfe;
     border-radius: 12px;
     background: #eff6ff;
+  }
+
+  .signature-caption {
+    margin-bottom: 8px;
+    color: #64748b;
+    font-size: 12px;
+  }
+
+  .signature-preview-image {
+    width: 200px;
+    height: 72px;
+    border: 1px solid #dbeafe;
+    border-radius: 8px;
+    background: #fff;
   }
 
   .reviewer-signature-head,

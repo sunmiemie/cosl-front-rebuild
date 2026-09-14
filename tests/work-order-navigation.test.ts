@@ -14,6 +14,7 @@ describe("测试工单导航拆分", () => {
     expect(content).not.toContain("HaltHassOrder")
     expect(content).not.toContain("WaterCycleOrder")
     expect(content).not.toContain("HighTemperatureOrder")
+    expect(content).not.toContain("SensorlessOvenOrder")
     expect(content).not.toContain("VibrationOrder")
     expect(content).not.toContain("HighTemperaturePressureOrder")
     expect(content).not.toContain("SimulationOrder")
@@ -27,6 +28,7 @@ describe("测试工单导航拆分", () => {
     expect(content).toContain("HaltHassOrder")
     expect(content).toContain("WaterCycleOrder")
     expect(content).toContain("HighTemperatureOrder")
+    expect(content).toContain("SensorlessOvenOrder")
     expect(content).toContain("VibrationOrder")
     expect(content).toContain("HighTemperaturePressureOrder")
     expect(content).toContain("SimulationOrder")
@@ -37,7 +39,7 @@ describe("测试工单导航拆分", () => {
     const content = read("src/views/testmanage/circuit-module-inspection/index.vue")
     const panes = content.match(/<el-tab-pane[\s\S]*?>/g) || []
 
-    expect(panes).toHaveLength(7)
+    expect(panes).toHaveLength(8)
     expect(panes.every((pane) => /\slazy(?:\s|>)/.test(pane))).toBe(true)
   })
 

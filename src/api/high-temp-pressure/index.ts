@@ -71,6 +71,6 @@ export function deleteHighTempPressureOrder(id: number) {
   return deleteHighTempPressureOrderApi(id)
 }
 
-export function publishHighTempPressureOrder(id: number) {
-  return publishHighTempPressureOrderApi(id)
+export function publishHighTempPressureOrder(id: number, data?: FormData) {
+  return publishHighTempPressureOrderApi(id, data)
 }

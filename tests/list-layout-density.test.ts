@@ -74,6 +74,7 @@ describe("shared list layout density", () => {
       "src/views/testmanage/testorder/components/HaltHassOrder.vue",
       "src/views/testmanage/testorder/components/WaterCycleOrder.vue",
       "src/views/testmanage/testorder/components/HighTemperatureOrder.vue",
+      "src/views/testmanage/testorder/components/SensorlessOvenOrder.vue",
       "src/views/testmanage/testorder/components/VibrationOrder.vue",
       "src/views/testmanage/testorder/components/HighTemperaturePressureOrder.vue",
       "src/views/testmanage/testorder/components/SimulationOrder.vue",

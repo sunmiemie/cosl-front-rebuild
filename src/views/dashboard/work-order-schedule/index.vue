@@ -418,6 +418,7 @@ import { getHighTemperatureOrderList, publishHighTemperatureOrder } from "@/api/
 import { getHighTempPressureOrderList, publishHighTempPressureOrderApi } from "@/api/high-temp-pressure"
 import { getSimulatedWellOrderList, publishSimulatedWellOrderApi } from "@/api/simulated-well"
 import { getHaltHassOrderList, publishHaltHassOrder } from "@/api/halt-hass"
+import { getSensorlessOvenOrderList, publishSensorlessOvenOrder } from "@/api/sensorless-oven"
 import {
   getCircuitModuleApplicationList,
   syncCircuitModuleApplicationList,
@@ -470,6 +471,7 @@ type EquipmentKey =
   | "high-temp-box"
   | "halt-hass"
   | "circuit-board-module"
+  | "sensorless-oven"
 
 type ScheduleSegment = {
   scheduledStartAt?: string
@@ -593,6 +595,7 @@ const equipmentTabs: Array<{ key: EquipmentKey; label: string; scheduleEquipment
   { key: "water-cycle", label: "水循环工单", scheduleEquipment: "water-cycle" },
   { key: "simulated-well", label: "模拟井工单", scheduleEquipment: "simulated-well" },
   { key: "high-temp-box", label: "高温箱工单", scheduleEquipment: "high-temp-box" },
+  { key: "sensorless-oven", label: "无感烘箱工单", scheduleEquipment: "sensorless-oven" },
   { key: "circuit-board-module", label: "电路板模块", scheduleEquipment: "circuit-board-module" }
 ]
 
@@ -672,6 +675,7 @@ const orderMap = reactive<Record<EquipmentKey, ScheduleOrder[]>>({
   "water-cycle": [],
   "simulated-well": [],
   "high-temp-box": [],
+  "sensorless-oven": [],
   "circuit-board-module": []
 })
 const historyOrders = ref<ScheduleOrder[]>([])
@@ -684,6 +688,7 @@ const removedPriorityOrderIds = reactive<Record<EquipmentKey, string[]>>({
   "water-cycle": [],
   "simulated-well": [],
   "high-temp-box": [],
+  "sensorless-oven": [],
   "circuit-board-module": []
 })
 
@@ -705,6 +710,7 @@ const EQUIPMENT_DEVICE_KEYWORDS: Record<EquipmentKey, string[]> = {
   "water-cycle": ["水循环"],
   "simulated-well": ["模拟井"],
   "high-temp-box": ["高温箱"],
+  "sensorless-oven": ["无感烘箱"],
   "circuit-board-module": ["电路板模块", "电路板", "X-Ray", "XRay", "X射线"]
 }
 
@@ -1438,6 +1444,10 @@ async function fetchOrders(equipment: EquipmentKey) {
     const [res] = await Promise.all([getHaltHassOrderList({ ...params }), hostDevicesPromise])
     return res.data?.list || []
   }
+  if (equipment === "sensorless-oven") {
+    const [res] = await Promise.all([getSensorlessOvenOrderList(params), hostDevicesPromise])
+    return res.data?.list || []
+  }
   if (equipment === "circuit-board-module") {
     const [res] = await Promise.all([getCircuitModuleApplicationList(), hostDevicesPromise])
     return res.data?.list || []
@@ -1489,6 +1499,7 @@ function normalizeOrders(equipment: EquipmentKey, list: any[]): ScheduleOrder[] 
   if (equipment === "simulated-well") return normalizeSimulatedWellOrders(list)
   if (equipment === "vibration-table") return normalizeVibrationOrders(list)
   if (equipment === "water-cycle") return normalizeWaterCycleOrders(list)
+  if (equipment === "sensorless-oven") return normalizeSensorlessOvenOrders(list)
   return normalizeHighTempBoxOrders(list)
 }
 
@@ -1530,6 +1541,36 @@ function normalizeWaterCycleOrders(list: any[]): ScheduleOrder[] {
       scheduledStartAt: item.scheduled_start_at || null,
       scheduledEndAt: item.scheduled_end_at || null,
       scheduleSegments: normalizeSnakeSegments(item.schedule_segments),
+      raw: item
+    }
+  })
+}
+
+function normalizeSensorlessOvenOrders(list: any[]): ScheduleOrder[] {
+  return list.map((item) => {
+    const completedStatusText = getCompletedScheduleOrderStatusText(item)
+    const scheduledStartAt = item.scheduledStartAt ?? item.scheduled_start_at ?? null
+    const scheduledEndAt = item.scheduledEndAt ?? item.scheduled_end_at ?? null
+    return {
+      id: `sensorless-oven-${item.id}`,
+      dbId: item.id,
+      targetId: item.id,
+      equipment: "sensorless-oven",
+      scheduleEquipment: "sensorless-oven",
+      taskNumber: getString(item.taskNumber, item.task_number) || `无感烘箱-${item.id}`,
+      title: getString(item.projectName, item.project_name, item.specification) || "无感烘箱工单",
+      applicant: getString(item.applicant) || "",
+      targetName: "无感烘箱",
+      durationHours: 2,
+      status: item.status,
+      statusText:
+        completedStatusText ||
+        item.statusText ||
+        item.status_text ||
+        defaultStatusText(item.status, scheduledStartAt, scheduledEndAt),
+      scheduledStartAt,
+      scheduledEndAt,
+      scheduleSegments: normalizeSnakeSegments(item.scheduleSegments ?? item.schedule_segments),
       raw: item
     }
   })
@@ -2096,12 +2137,21 @@ function showScheduleSaveFeedback(order: ScheduleOrder, response: any) {
   }
 
   const assistantSync = response?.data?.assistantSync
+  if (assistantSync?.skipped === true && assistantSync?.reason === "not_assistant_order") {
+    ElMessage.success("排程已保存")
+    return
+  }
+  if (assistantSync?.queued === true) {
+    ElMessage.info("排程已保存，小助手同步处理中")
+    return
+  }
   if (assistantSync?.success === true) {
     ElMessage.success("排程已保存，并已推送小助手")
     return
   }
   if (assistantSync?.success === false) {
-    ElMessage.warning(`排程已保存，但推送小助手失败：${assistantSync.error || "未知错误"}`)
+    const failedItem = assistantSync.list?.find((item: any) => item.error || item.reason)
+    ElMessage.warning(`排程已保存，但推送小助手失败：${assistantSync.error || failedItem?.error || failedItem?.reason || "未知错误"}`)
     return
   }
   ElMessage.warning("排程已保存，但后端未返回小助手同步结果")
@@ -2228,6 +2278,7 @@ async function publishScheduleOrder(order: ScheduleOrder) {
   if (order.equipment === "high-temp-pressure") return publishHighTempPressureOrderApi(Number(order.dbId))
   if (order.equipment === "simulated-well") return publishSimulatedWellOrderApi(Number(order.dbId))
   if (order.equipment === "halt-hass") return publishHaltHassOrder(Number(order.dbId))
+  if (order.equipment === "sensorless-oven") return publishSensorlessOvenOrder(Number(order.dbId))
   if (order.equipment === "circuit-board-module") {
     const rows = order.relationRows?.length ? order.relationRows : [order.raw as CircuitModuleApplicationRelation]
     await syncCircuitModuleApplicationList(rows.map((row) => ({ ...row, status: PENDING_CLAIM_STATUS })))
