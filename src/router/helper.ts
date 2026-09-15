@@ -43,16 +43,24 @@ const promoteRouteLevel = (route: RouteRecordRaw) => {
   })
   const routes = router.getRoutes()
   // 在 addToChildren 函数中使用上面获取到的路由信息来更新 route 的 children
-  addToChildren(routes, route.children || [], route)
+  const children = route.children || []
+  route.children = []
+  addToChildren(routes, children, route, route.path)
   router = null
   // 转为二级路由后，去除所有子路由中的 children
   route.children = route.children?.map((item) => omit(item, "children") as RouteRecordRaw)
 }
 
 /** 将给定的子路由添加到指定的路由模块中 */
-const addToChildren = (routes: RouteRecordNormalized[], children: RouteRecordRaw[], routeModule: RouteRecordRaw) => {
+const addToChildren = (
+  routes: RouteRecordNormalized[],
+  children: RouteRecordRaw[],
+  routeModule: RouteRecordRaw,
+  parentPath: string
+) => {
   children.forEach((child) => {
-    const route = routes.find((item) => item.name === child.name)
+    const path = child.path.startsWith("/") ? child.path : `${parentPath.replace(/\/$/, "")}/${child.path}`
+    const route = routes.find((item) => (child.name !== undefined ? item.name === child.name : item.path === path))
     if (route) {
       // 初始化 routeModule 的 children
       routeModule.children = routeModule.children || []
@@ -62,7 +70,7 @@ const addToChildren = (routes: RouteRecordNormalized[], children: RouteRecordRaw
       }
       // 如果该子路由还有自己的子路由，则递归调用此函数将它们也添加进去
       if (child.children?.length) {
-        addToChildren(routes, child.children, routeModule)
+        addToChildren(routes, child.children, routeModule, route.path)
       }
     }
   })
