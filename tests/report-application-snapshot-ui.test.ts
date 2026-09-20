@@ -62,6 +62,27 @@ describe("type3/type5/type7 申请单报告快照前端", () => {
     }
   })
 
+  it("高温高压报告将业务编号作为只读快照展示在报告ID之后", () => {
+    const api = read("src/api/high-temp-pressure-report/index.ts")
+    const review = read("src/views/datamanage/report/components/GenericEquipmentReportReview.vue")
+    const history = read("src/views/datamanage/historymange/components/HighTemperaturePressureReport.vue")
+    const payloadBlock = history.slice(
+      history.indexOf("const payload = {"),
+      history.indexOf("if (formData.id !== undefined)")
+    )
+
+    expect(api).toContain("report_number?: string")
+    expect(review).toContain('prop="report_number"')
+    expect(review).toContain('row.report_number || "-"')
+    expect(review).toContain("props.reportType !== 'high-temp-high-pressure'")
+    expect(history.indexOf('prop="report_no" label="报告ID"')).toBeLessThan(
+      history.indexOf('prop="report_number" label="报告编号"')
+    )
+    expect(history).toContain(":model-value=\"formReportNumber || '-'\"")
+    expect(history).toContain("formData.id ? formData.report_number : selectedOrder.value?.test_number")
+    expect(payloadBlock).not.toContain("report_number:")
+  })
+
   it("工单 SN 选项同时支持 type3 的 instrument_sn 和 type5 的 snNumbers", () => {
     expect(
       buildReportInstrumentSnOptions([

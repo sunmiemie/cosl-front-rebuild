@@ -29,7 +29,10 @@
 
       <div class="table-wrapper">
         <el-table :data="tableData" stripe border height="100%" style="width: 100%">
-          <el-table-column prop="report_no" label="报告编号" width="180" align="center" />
+          <el-table-column prop="report_no" label="报告ID" width="180" align="center" />
+          <el-table-column prop="report_number" label="报告编号" width="160" align="center">
+            <template #default="{ row }">{{ row.report_number || "-" }}</template>
+          </el-table-column>
           <el-table-column prop="task_number" label="任务单号" width="180" align="center" />
           <el-table-column prop="instrument_name" label="待测设备" min-width="140" align="center" />
           <el-table-column prop="instrument_sn" label="设备SN" min-width="140" align="center" />
@@ -106,8 +109,11 @@
     <!-- 新增/编辑 对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="600px" append-to-body>
       <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
-        <el-form-item label="报告编号" prop="report_no">
-          <el-input v-model="formData.report_no" placeholder="请输入报告编号" :disabled="!!formData.id" />
+        <el-form-item label="报告ID" prop="report_no">
+          <el-input v-model="formData.report_no" placeholder="请输入报告ID" :disabled="!!formData.id" />
+        </el-form-item>
+        <el-form-item label="报告编号">
+          <el-input :model-value="formReportNumber || '-'" disabled />
         </el-form-item>
         <el-form-item label="任务单号" prop="task_number">
           <el-select
@@ -177,7 +183,8 @@
     <!-- 详情 对话框 -->
     <el-dialog v-model="detailDialogVisible" title="报告详情" width="980px">
       <el-descriptions :column="2" border v-if="currentReport">
-        <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
+        <el-descriptions-item label="报告ID">{{ currentReport.report_no }}</el-descriptions-item>
+        <el-descriptions-item label="报告编号">{{ currentReport.report_number || "-" }}</el-descriptions-item>
         <el-descriptions-item label="任务单号">{{ currentReport.task_number }}</el-descriptions-item>
         <el-descriptions-item label="待测设备">{{ currentReport.instrument_name || "-" }}</el-descriptions-item>
         <el-descriptions-item label="设备SN">{{ currentReport.instrument_sn || "-" }}</el-descriptions-item>
@@ -433,6 +440,7 @@ const formRef = ref<FormInstance>()
 const formData = reactive({
   id: undefined as number | undefined,
   report_no: "",
+  report_number: "",
   task_number: "",
   instrument_sn: "",
   test_date: "",
@@ -442,7 +450,7 @@ const formData = reactive({
 })
 
 const formRules = {
-  report_no: [{ required: true, message: "请输入报告编号", trigger: "blur" }],
+  report_no: [{ required: true, message: "请输入报告ID", trigger: "blur" }],
   task_number: [{ required: true, message: "请选择一个任务单", trigger: "change" }],
   instrument_sn: [{ required: true, message: "请选择该任务单内一个被测 SN", trigger: "change" }],
   test_date: [{ required: true, message: "请选择测试日期", trigger: "change" }],
@@ -450,6 +458,7 @@ const formRules = {
 }
 
 const selectedOrder = computed(() => orderOptions.value.find((order) => order.task_number === formData.task_number))
+const formReportNumber = computed(() => (formData.id ? formData.report_number : selectedOrder.value?.test_number || ""))
 const instrumentSnOptions = computed(() => buildReportInstrumentSnOptions(selectedOrder.value?.instruments || []))
 
 const loadOrderOptions = async (keyword = "") => {
@@ -524,6 +533,7 @@ const handleCurrentChange = (page: number) => {
 const handleAdd = () => {
   formData.id = undefined
   formData.report_no = ""
+  formData.report_number = ""
   formData.task_number = ""
   formData.instrument_sn = ""
   formData.test_date = ""
@@ -537,6 +547,7 @@ const handleAdd = () => {
 const handleEdit = async (row: HighTempPressureReportListItem) => {
   formData.id = row.id
   formData.report_no = row.report_no
+  formData.report_number = row.report_number || ""
   formData.task_number = row.task_number
   formData.instrument_sn = row.instrument_sn || row.equipmentId || ""
   formData.test_date = row.test_date

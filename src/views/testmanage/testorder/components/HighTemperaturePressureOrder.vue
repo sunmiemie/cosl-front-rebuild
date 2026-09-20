@@ -64,7 +64,21 @@ const highTempPressureDeviceOptions = ref<HighTempPressureDeviceOption[]>([])
 const highTempPressureDeviceLoading = ref(false)
 const testTypeOptions = ["高压测试", "高温高压测试"]
 const testContainerOptions = ["250容器", "480容器"]
-const onlineTestText = (value: boolean | null | undefined) => value === true ? "是" : value === false ? "否" : "未填写"
+const onlineTestText = (value: boolean | null | undefined) =>
+  value === true ? "是" : value === false ? "否" : "未填写"
+const normalizeTargetTemperature = (value: unknown) => String(value ?? "").trim()
+const formatTargetTemperature = (value: unknown) => {
+  const text = normalizeTargetTemperature(value)
+  if (!text) return "-"
+  if (/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(text)) return `${text}°C`
+  return text
+}
+const validateTargetTemperature = (_rule: unknown, value: unknown, callback: (error?: Error) => void) => {
+  const text = normalizeTargetTemperature(value)
+  if (!text) return callback(new Error("请输入目标温度"))
+  if (text.length > 100) return callback(new Error("目标温度不能超过100个字符"))
+  callback()
+}
 
 const todayText = () => new Date().toISOString().split("T")[0]
 const pad = (value: number) => String(value).padStart(3, "0")
@@ -126,7 +140,7 @@ const createForm = reactive({
   test_type: "",
   test_container: "",
   online_test: null as boolean | null,
-  target_temp: 0,
+  target_temp: "",
   target_pressure: 0,
   max_diameter: null as number | null,
   hold_time: null as number | null,
@@ -154,7 +168,7 @@ const createRules = {
   test_date: [{ required: true, message: "请选择测试日期", trigger: "change" }],
   table_no: [{ required: true, message: "请填写表格编号", trigger: "blur" }],
   task_number: [{ required: true, message: "请输入任务单号", trigger: "blur" }],
-  target_temp: [{ required: true, message: "请输入目标温度", trigger: "blur" }],
+  target_temp: [{ validator: validateTargetTemperature, trigger: "blur" }],
   target_pressure: [{ required: true, message: "请输入目标压力", trigger: "blur" }],
   applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }],
   applicant_phone: [{ required: true, message: "请输入申请人电话", trigger: "blur" }],
@@ -185,6 +199,7 @@ const canCreate = computed(() => {
       createForm.planned_time &&
       createForm.test_type &&
       createForm.test_container &&
+      normalizeTargetTemperature(createForm.target_temp) &&
       typeof createForm.online_test === "boolean" &&
       createForm.use_device
     )
@@ -442,7 +457,7 @@ const showCreateDialog = () => {
     test_type: "",
     test_container: "",
     online_test: null,
-    target_temp: 0,
+    target_temp: "",
     target_pressure: 0,
     max_diameter: null,
     hold_time: null,
@@ -491,6 +506,7 @@ const handleCreate = async () => {
     createLoading.value = true
     try {
       const firstInstrument = instrumentFormList.value[0]
+      createForm.target_temp = normalizeTargetTemperature(createForm.target_temp)
       createForm.device_name = firstInstrument.instrument_name
       createForm.device_number = firstInstrument.instrument_sn
       createForm.test_date = createForm.application_date
@@ -1006,8 +1022,13 @@ onMounted(() => {
             </el-form-item>
           </el-col>
           <el-col :span="8">
-            <el-form-item label="温度(°C)" prop="target_temp">
-              <el-input-number v-model="createForm.target_temp" :min="0" style="width: 100%" />
+            <el-form-item label="目标温度" prop="target_temp">
+              <el-input
+                v-model="createForm.target_temp"
+                maxlength="100"
+                show-word-limit
+                placeholder="请输入温度，如 120、常温、120~150"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -1062,8 +1083,12 @@ onMounted(() => {
       <template #header>
         <div class="publish-dialog-header">
           <div>
-            <div class="publish-dialog-title">{{ publishStep === "number" ? "填写测试单号" : '工单分配 · "三新"测试确认单填写' }}</div>
-            <div v-if="publishStep === 'confirmation'" class="publish-dialog-subtitle">WT3-TC/ZZ-01-R04 · v1.0 | 测试方确认项由管理员填写</div>
+            <div class="publish-dialog-title">
+              {{ publishStep === "number" ? "填写测试单号" : '工单分配 · "三新"测试确认单填写' }}
+            </div>
+            <div v-if="publishStep === 'confirmation'" class="publish-dialog-subtitle">
+              WT3-TC/ZZ-01-R04 · v1.0 | 测试方确认项由管理员填写
+            </div>
           </div>
         </div>
       </template>
@@ -1089,7 +1114,9 @@ onMounted(() => {
                 </el-descriptions-item>
                 <el-descriptions-item label="设备名称">{{ publishOrder.device_name || "-" }}</el-descriptions-item>
                 <el-descriptions-item label="设备编号">{{ publishOrder.device_number || "-" }}</el-descriptions-item>
-                <el-descriptions-item label="目标温度">{{ publishOrder.target_temp }}°C</el-descriptions-item>
+                <el-descriptions-item label="目标温度">{{
+                  formatTargetTemperature(publishOrder.target_temp)
+                }}</el-descriptions-item>
                 <el-descriptions-item label="目标压力">{{ publishOrder.target_pressure }}MPa</el-descriptions-item>
               </el-descriptions>
             </el-card>
@@ -1255,12 +1282,16 @@ onMounted(() => {
           <el-descriptions-item label="设备编号">{{ currentOrder.device_number }}</el-descriptions-item>
           <el-descriptions-item label="测试类型">{{ currentOrder.test_type || "-" }}</el-descriptions-item>
           <el-descriptions-item label="测试容器">{{ currentOrder.test_container || "未填写" }}</el-descriptions-item>
-          <el-descriptions-item label="是否在线测试">{{ onlineTestText(currentOrder.online_test) }}</el-descriptions-item>
+          <el-descriptions-item label="是否在线测试">{{
+            onlineTestText(currentOrder.online_test)
+          }}</el-descriptions-item>
           <el-descriptions-item label="时间">{{ currentOrder.planned_time || "-" }}</el-descriptions-item>
           <el-descriptions-item label="测试地点" :span="2">{{
             currentOrder.test_location || "-"
           }}</el-descriptions-item>
-          <el-descriptions-item label="目标温度(°C)">{{ currentOrder.target_temp }}</el-descriptions-item>
+          <el-descriptions-item label="目标温度">{{
+            formatTargetTemperature(currentOrder.target_temp)
+          }}</el-descriptions-item>
           <el-descriptions-item label="目标压力(MPa)">{{ currentOrder.target_pressure }}</el-descriptions-item>
           <el-descriptions-item label="保温保压时间(分)">{{ currentOrder.hold_time ?? "-" }}</el-descriptions-item>
           <el-descriptions-item label="测试日期">{{ currentOrder.test_date }}</el-descriptions-item>

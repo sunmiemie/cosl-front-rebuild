@@ -65,6 +65,7 @@ type ReportReviewPayload = {
 interface ReportRow {
   id: number
   report_no: string
+  report_number?: string
   task_number: string
   test_date: string
   tester: string
@@ -192,9 +193,7 @@ const sensorlessCurveImages = computed(() =>
     .filter((url): url is string => Boolean(url))
 )
 const sensorlessSignatureUrl = computed(() => {
-  const sig = sensorlessAttachments.value.find(
-    (item) => String(item?.field || item?.type || "") === "tester_signature"
-  )
+  const sig = sensorlessAttachments.value.find((item) => String(item?.field || item?.type || "") === "tester_signature")
   return sig ? getAttachmentFileUrl(sig) : ""
 })
 const sensorlessReportInfo = computed(() => {
@@ -355,11 +354,7 @@ const loadReviewerSignature = async (showError = false) => {
 
 const requireReviewerSignature = async () => {
   const currentId = reviewerSignatureInfo.value?.signatureId
-  if (
-    !currentId ||
-    !selectedReviewerSignatureId.value ||
-    currentId !== selectedReviewerSignatureId.value
-  ) {
+  if (!currentId || !selectedReviewerSignatureId.value || currentId !== selectedReviewerSignatureId.value) {
     return loadReviewerSignature(true)
   }
   return reviewerSignatureInfo.value
@@ -516,55 +511,78 @@ defineExpose({ resetSearch })
 
     <div class="table-wrapper">
       <el-table :data="tableData" stripe border height="100%">
-      <el-table-column prop="id" label="报告ID" width="90" align="center" />
-      <el-table-column prop="report_no" label="报告编号" min-width="160" />
-      <el-table-column prop="task_number" label="任务单号" min-width="160" />
-      <el-table-column
-        v-if="props.reportType === 'high-temp-high-pressure'"
-        prop="instrument_name"
-        label="待测设备"
-        min-width="140"
-      />
-      <el-table-column
-        v-if="props.reportType === 'high-temp-high-pressure'"
-        prop="instrument_sn"
-        label="设备SN"
-        min-width="140"
-      />
-      <el-table-column
-        v-if="props.reportType === 'high-temp-high-pressure'"
-        prop="attempt_no"
-        label="测试轮次"
-        width="90"
-        align="center"
-      />
-      <el-table-column v-if="props.reportType !== 'high-temp-high-pressure'" prop="instrument_sn" label="被测 SN" min-width="150">
-        <template #default="{ row }">{{ row.instrument_sn || "-" }}</template>
-      </el-table-column>
-      <el-table-column prop="tester" label="测试人员" width="120" align="center" />
-      <el-table-column prop="test_date" label="测试日期" width="130" align="center" />
-      <el-table-column prop="submit_time" label="提交时间" width="180" align="center">
-        <template #default="{ row }">{{ formatTime(row.submit_time) }}</template>
-      </el-table-column>
-      <el-table-column label="审核状态" width="110" align="center">
-        <template #default="{ row }">
-          <el-tag type="warning">{{ row.status_text || "待审核" }}</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="小助手同步" width="120" align="center">
-        <template #default="{ row }">
-          <el-tag :type="getAssistantReportSyncTagType(row.assistant_sync_status)">
-            {{ getAssistantReportSyncStatusText(row.assistant_sync_status) }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" width="230" fixed="right" align="center">
-        <template #default="{ row }">
-          <el-button :icon="View" link type="primary" @click="handleDetail(row)">详情</el-button>
-          <el-button :icon="Check" link type="success" @click="handleApprove(row)">通过</el-button>
-          <el-button :icon="Close" link type="danger" @click="showRejectDialog(row)">打回</el-button>
-        </template>
-      </el-table-column>
+        <el-table-column
+          v-if="props.reportType !== 'high-temp-high-pressure'"
+          prop="id"
+          label="报告ID"
+          width="90"
+          align="center"
+        />
+        <el-table-column
+          prop="report_no"
+          :label="props.reportType === 'high-temp-high-pressure' ? '报告ID' : '报告编号'"
+          min-width="160"
+        />
+        <el-table-column
+          v-if="props.reportType === 'high-temp-high-pressure'"
+          prop="report_number"
+          label="报告编号"
+          min-width="150"
+        >
+          <template #default="{ row }">{{ row.report_number || "-" }}</template>
+        </el-table-column>
+        <el-table-column prop="task_number" label="任务单号" min-width="160" />
+        <el-table-column
+          v-if="props.reportType === 'high-temp-high-pressure'"
+          prop="instrument_name"
+          label="待测设备"
+          min-width="140"
+        />
+        <el-table-column
+          v-if="props.reportType === 'high-temp-high-pressure'"
+          prop="instrument_sn"
+          label="设备SN"
+          min-width="140"
+        />
+        <el-table-column
+          v-if="props.reportType === 'high-temp-high-pressure'"
+          prop="attempt_no"
+          label="测试轮次"
+          width="90"
+          align="center"
+        />
+        <el-table-column
+          v-if="props.reportType !== 'high-temp-high-pressure'"
+          prop="instrument_sn"
+          label="被测 SN"
+          min-width="150"
+        >
+          <template #default="{ row }">{{ row.instrument_sn || "-" }}</template>
+        </el-table-column>
+        <el-table-column prop="tester" label="测试人员" width="120" align="center" />
+        <el-table-column prop="test_date" label="测试日期" width="130" align="center" />
+        <el-table-column prop="submit_time" label="提交时间" width="180" align="center">
+          <template #default="{ row }">{{ formatTime(row.submit_time) }}</template>
+        </el-table-column>
+        <el-table-column label="审核状态" width="110" align="center">
+          <template #default="{ row }">
+            <el-tag type="warning">{{ row.status_text || "待审核" }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="小助手同步" width="120" align="center">
+          <template #default="{ row }">
+            <el-tag :type="getAssistantReportSyncTagType(row.assistant_sync_status)">
+              {{ getAssistantReportSyncStatusText(row.assistant_sync_status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="230" fixed="right" align="center">
+          <template #default="{ row }">
+            <el-button :icon="View" link type="primary" @click="handleDetail(row)">详情</el-button>
+            <el-button :icon="Check" link type="success" @click="handleApprove(row)">通过</el-button>
+            <el-button :icon="Close" link type="danger" @click="showRejectDialog(row)">打回</el-button>
+          </template>
+        </el-table-column>
       </el-table>
     </div>
 
@@ -583,16 +601,21 @@ defineExpose({ resetSearch })
 
     <el-dialog v-model="detailVisible" title="报告审核" width="980px">
       <el-descriptions v-if="currentReport" :column="2" border>
-        <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
+        <el-descriptions-item :label="props.reportType === 'high-temp-high-pressure' ? '报告ID' : '报告编号'">{{
+          currentReport.report_no
+        }}</el-descriptions-item>
+        <el-descriptions-item v-if="props.reportType === 'high-temp-high-pressure'" label="报告编号">{{
+          currentReport.report_number || "-"
+        }}</el-descriptions-item>
         <el-descriptions-item label="任务单号">{{ currentReport.task_number }}</el-descriptions-item>
         <el-descriptions-item v-if="props.reportType === 'high-temp-high-pressure'" label="待测设备">{{
-          currentReport.instrument_name || '-'
+          currentReport.instrument_name || "-"
         }}</el-descriptions-item>
         <el-descriptions-item v-if="props.reportType === 'high-temp-high-pressure'" label="设备SN">{{
-          currentReport.instrument_sn || '-'
+          currentReport.instrument_sn || "-"
         }}</el-descriptions-item>
         <el-descriptions-item v-if="props.reportType === 'high-temp-high-pressure'" label="测试台 psi_id">{{
-          currentReport.equipment_id || '-'
+          currentReport.equipment_id || "-"
         }}</el-descriptions-item>
         <el-descriptions-item v-if="props.reportType === 'high-temp-high-pressure'" label="测试轮次">{{
           currentReport.attempt_no || 1
@@ -654,11 +677,7 @@ defineExpose({ resetSearch })
               :label="`${reviewerSignatureInfo.nickname || reviewerSignatureInfo.username} · ${reviewerSignatureInfo.originalFilename || '电子签名'}`"
             />
           </el-select>
-          <img
-            v-if="reviewerSignaturePreviewUrl"
-            :src="reviewerSignaturePreviewUrl"
-            alt="当前复核人电子签名"
-          />
+          <img v-if="reviewerSignaturePreviewUrl" :src="reviewerSignaturePreviewUrl" alt="当前复核人电子签名" />
         </div>
       </div>
       <div v-if="currentReport" class="detail-block">
@@ -756,7 +775,7 @@ defineExpose({ resetSearch })
           }}</el-descriptions-item>
           <el-descriptions-item label="测试曲线路径" :span="2">{{
             displayReportValue(
-              currentPaperReportView.flowCurveAttachments.map(item => item.file_url || item.local_path)
+              currentPaperReportView.flowCurveAttachments.map((item) => item.file_url || item.local_path)
             )
           }}</el-descriptions-item>
         </el-descriptions>
@@ -768,7 +787,7 @@ defineExpose({ resetSearch })
           <el-image
             :src="item.url"
             fit="contain"
-            :preview-src-list="currentCurveImages.map(image => image.url)"
+            :preview-src-list="currentCurveImages.map((image) => image.url)"
             class="curve-preview-image"
           />
         </div>

@@ -10,6 +10,7 @@ import {
 import { useUserStore } from "@/store/modules/user"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import TempReportPreview from "@/components/Check/TempReportPreview.vue"
+import FunctionalTestingDevReportPreview from "@/components/Check/FunctionalTestingDevReportPreview.vue"
 import { ElMessageBox } from "element-plus"
 import { appendJsonFile, buildFeedbackFile, buildQuestionFile, jsonToFile } from "@/utils/report-feedback"
 
@@ -45,21 +46,46 @@ const anyObj = reactive({
   user: "",
   date: ""
 })
+
+const isFunctionalReport = () => route.query.type === "功能性测试"
+
+const hasFailedFunctionalItem = (value) => {
+  if (Array.isArray(value)) {
+    return value.some(hasFailedFunctionalItem)
+  }
+  if (value === null || typeof value !== "object") {
+    return false
+  }
+  if (typeof value.result === "string" && value.result.toUpperCase() === "FAIL") {
+    return true
+  }
+  return Object.values(value).some(hasFailedFunctionalItem)
+}
+
 const updateStatus = () => {
   console.log("update")
   hasError.value = false
   hasQuestion.value = false
   hasWarning.value = false
 
+  if (isFunctionalReport()) {
+    hasError.value = hasFailedFunctionalItem(reportJson.value)
+    return
+  }
+
   if (route.query.type === "弓曲度测试") {
-    if (reportJson.value.json.plane.leftPass === 2 || reportJson.value.json.plane.rightPass === 2) {
+    const plane = reportJson.value?.json?.plane
+    if (!plane) return
+    if (plane.leftPass === 2 || plane.rightPass === 2) {
       hasError.value = true
     }
-    if (reportJson.value.json.plane.leftPass === 3 || reportJson.value.json.plane.rightPass === 3) {
+    if (plane.leftPass === 3 || plane.rightPass === 3) {
       hasQuestion.value = true
     }
   } else if (route.query.type === "3D检测" || route.query.type === "X-Ray测试") {
-    reportJson.value.json.tempTest.forEach((item) => {
+    const tempTest = reportJson.value?.json?.tempTest
+    if (!Array.isArray(tempTest)) return
+    tempTest.forEach((item) => {
       if (item.pass === 2 || item.pass === 4) {
         hasError.value = true
       }
@@ -77,7 +103,10 @@ const getErrorQuestionWarnList = () => {
   questionList.value = []
   warnList.value = []
   stepList.value = []
-  reportJson.value.json.tempTest.forEach((item) => {
+  if (isFunctionalReport()) return
+  const tempTest = reportJson.value?.json?.tempTest
+  if (!Array.isArray(tempTest)) return
+  tempTest.forEach((item) => {
     item.type = anyObj.type
     if (item.pass === 4 || item.pass === 2) {
       errorList.value.push(item)
@@ -544,7 +573,12 @@ watch(
           width: 100%;
         "
       >
-        <temp-report-preview v-if="loaded" v-model:preview-list="reportJson" class="temp-view" />
+        <FunctionalTestingDevReportPreview
+          v-if="loaded && isFunctionalReport()"
+          :previewList="reportJson"
+          class="temp-view"
+        />
+        <temp-report-preview v-else-if="loaded" v-model:preview-list="reportJson" class="temp-view" />
       </div>
       <div style="display: flex; align-items: center">
         <div v-if="!hasQuestion">

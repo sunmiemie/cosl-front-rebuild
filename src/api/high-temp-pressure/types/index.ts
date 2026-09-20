@@ -7,7 +7,7 @@ export interface HighTempPressureOrderListItem {
   device_number: string
   task_number: string
   test_number?: string | null
-  target_temp: number
+  target_temp: string
   target_pressure: number
   applicant: string
   applicant_phone?: string
@@ -100,7 +100,7 @@ export interface CreateHighTempPressureOrderRequest {
   device_name: string
   device_number: string
   task_number: string
-  target_temp: number
+  target_temp: string
   target_pressure: number
   applicant: string
   applicant_phone?: string

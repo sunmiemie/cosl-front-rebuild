@@ -3,17 +3,49 @@ import { resolve } from "node:path"
 import { describe, expect, it } from "vitest"
 import ts from "typescript"
 
-const page = readFileSync(resolve(__dirname, "../src/views/testmanage/testorder/components/HighTemperaturePressureOrder.vue"), "utf8")
+const page = readFileSync(
+  resolve(__dirname, "../src/views/testmanage/testorder/components/HighTemperaturePressureOrder.vue"),
+  "utf8"
+)
 const script = page.split('<script setup lang="ts">')[1].split("</script>")[0]
 const ast = ts.createSourceFile("order.ts", script, ts.ScriptTarget.Latest, true)
-const names = new Set(["testTypeOptions", "testContainerOptions", "onlineTestText", "createForm", "instrumentFormList", "canCreate", "addInstrumentRow"])
-const source = ast.statements.filter((node) => ts.isVariableStatement(node) && node.declarationList.declarations.some((declaration) => names.has(declaration.name.getText(ast)))).map((node) => node.getText(ast)).join("\n")
-const createState = () => new Function("reactive", "ref", "computed", "todayText", ts.transpileModule(source, {}).outputText + "\nreturn {createForm,instrumentFormList,canCreate,addInstrumentRow,testTypeOptions,testContainerOptions,onlineTestText}")(
-  (value: unknown) => value,
-  (value: unknown) => ({ value }),
-  (get: () => unknown) => ({ get value() { return get() } }),
-  () => "2026-09-09"
-)
+const names = new Set([
+  "testTypeOptions",
+  "testContainerOptions",
+  "onlineTestText",
+  "normalizeTargetTemperature",
+  "formatTargetTemperature",
+  "createForm",
+  "instrumentFormList",
+  "canCreate",
+  "addInstrumentRow"
+])
+const source = ast.statements
+  .filter(
+    (node) =>
+      ts.isVariableStatement(node) &&
+      node.declarationList.declarations.some((declaration) => names.has(declaration.name.getText(ast)))
+  )
+  .map((node) => node.getText(ast))
+  .join("\n")
+const createState = () =>
+  new Function(
+    "reactive",
+    "ref",
+    "computed",
+    "todayText",
+    ts.transpileModule(source, {}).outputText +
+      "\nreturn {createForm,instrumentFormList,canCreate,addInstrumentRow,testTypeOptions,testContainerOptions,onlineTestText,formatTargetTemperature}"
+  )(
+    (value: unknown) => value,
+    (value: unknown) => ({ value }),
+    (get: () => unknown) => ({
+      get value() {
+        return get()
+      }
+    }),
+    () => "2026-09-09"
+  )
 
 describe("高温高压工单三项要求", () => {
   it("不预选，容器和测试方式使用独立选项", () => {
@@ -27,9 +59,22 @@ describe("高温高压工单三项要求", () => {
 
   it("明确选择否可以创建，未选择则不能创建", () => {
     const state = createState()
-    for (const key of ["table_no", "task_number", "applicant", "applicant_phone", "test_application_unit", "test_application_unit_manager", "project_name", "client", "planned_time", "use_device"]) state.createForm[key] = "filled"
+    for (const key of [
+      "table_no",
+      "task_number",
+      "applicant",
+      "applicant_phone",
+      "test_application_unit",
+      "test_application_unit_manager",
+      "project_name",
+      "client",
+      "planned_time",
+      "use_device"
+    ])
+      state.createForm[key] = "filled"
     state.createForm.test_type = "高压测试"
     state.createForm.test_container = "480容器"
+    state.createForm.target_temp = "常温"
     state.instrumentFormList.value[0].instrument_name = "仪器"
     state.instrumentFormList.value[0].instrument_sn = "SN-1"
     expect(state.canCreate.value).toBe(false)
@@ -37,6 +82,16 @@ describe("高温高压工单三项要求", () => {
     expect(state.canCreate.value).toBe(true)
     expect(state.onlineTestText(false)).toBe("否")
     expect(state.onlineTestText(null)).toBe("未填写")
+  })
+
+  it("目标温度使用文本录入并按内容决定是否显示单位", () => {
+    const state = createState()
+    expect(state.createForm.target_temp).toBe("")
+    expect(state.formatTargetTemperature("120")).toBe("120°C")
+    expect(state.formatTargetTemperature("常温")).toBe("常温")
+    expect(state.formatTargetTemperature("120~150")).toBe("120~150")
+    expect(page).toContain('v-model="createForm.target_temp"')
+    expect(page).not.toContain('<el-input-number v-model="createForm.target_temp"')
   })
 
   it("仪器行不再携带可能过期的测试类型，列表使用主工单", () => {

@@ -19,6 +19,7 @@ export interface HighTempPressureInstrumentResult {
 export interface HighTempPressureReportListItem {
   id: number
   report_no: string
+  report_number?: string
   task_number: string
   equipmentId?: string
   test_date: string
