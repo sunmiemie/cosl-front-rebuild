@@ -510,7 +510,15 @@ defineExpose({ resetSearch })
     </div>
 
     <div class="table-wrapper">
-      <el-table :data="tableData" stripe border height="100%">
+      <el-table
+        :data="tableData"
+        stripe
+        border
+        height="100%"
+        :tooltip-options="props.reportType === 'high-temp-high-pressure'
+          ? { placement: 'top', appendTo: 'body', popperClass: 'high-temp-pressure-cell-tooltip' }
+          : undefined"
+      >
         <el-table-column
           v-if="props.reportType !== 'high-temp-high-pressure'"
           prop="id"
@@ -522,27 +530,36 @@ defineExpose({ resetSearch })
           prop="report_no"
           :label="props.reportType === 'high-temp-high-pressure' ? '报告ID' : '报告编号'"
           min-width="160"
+          :show-overflow-tooltip="props.reportType === 'high-temp-high-pressure'"
         />
         <el-table-column
           v-if="props.reportType === 'high-temp-high-pressure'"
           prop="report_number"
           label="报告编号"
           min-width="150"
+          show-overflow-tooltip
         >
           <template #default="{ row }">{{ row.report_number || "-" }}</template>
         </el-table-column>
-        <el-table-column prop="task_number" label="任务单号" min-width="160" />
+        <el-table-column
+          prop="task_number"
+          label="任务单号"
+          min-width="160"
+          :show-overflow-tooltip="props.reportType === 'high-temp-high-pressure'"
+        />
         <el-table-column
           v-if="props.reportType === 'high-temp-high-pressure'"
           prop="instrument_name"
           label="待测设备"
           min-width="140"
+          show-overflow-tooltip
         />
         <el-table-column
           v-if="props.reportType === 'high-temp-high-pressure'"
           prop="instrument_sn"
           label="设备SN"
           min-width="140"
+          show-overflow-tooltip
         />
         <el-table-column
           v-if="props.reportType === 'high-temp-high-pressure'"
@@ -559,7 +576,13 @@ defineExpose({ resetSearch })
         >
           <template #default="{ row }">{{ row.instrument_sn || "-" }}</template>
         </el-table-column>
-        <el-table-column prop="tester" label="测试人员" width="120" align="center" />
+        <el-table-column
+          prop="tester"
+          label="测试人员"
+          width="120"
+          align="center"
+          :show-overflow-tooltip="props.reportType === 'high-temp-high-pressure'"
+        />
         <el-table-column prop="test_date" label="测试日期" width="130" align="center" />
         <el-table-column prop="submit_time" label="提交时间" width="180" align="center">
           <template #default="{ row }">{{ formatTime(row.submit_time) }}</template>

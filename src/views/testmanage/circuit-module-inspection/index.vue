@@ -73,6 +73,7 @@ import { useRouter } from "vue-router"
 import { ElMessage, TabsPaneContext } from "element-plus"
 import { syncEngineerAssistantApplicationFormsApi } from "@/api/engineer-assistant"
 import { PermissionCode } from "@/constants/permission"
+import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import { checkPermission } from "@/utils/permission"
 import HaltHassOrder from "../testorder/components/HaltHassOrder.vue"
 import WaterCycleOrder from "../testorder/components/WaterCycleOrder.vue"
@@ -99,6 +100,7 @@ const availableTabs = computed(() =>
 const canUse = (permission: string) => checkPermission([permission])
 const activeName = ref<any>(availableTabs.value[0]?.name || "")
 const router = useRouter()
+const taskCenterStore = useTaskCenterStoreHook()
 
 const haltHassOrderComponent = ref<InstanceType<typeof HaltHassOrder> | null>(null)
 const waterCycleOrderComponent = ref<InstanceType<typeof WaterCycleOrder> | null>(null)
@@ -135,8 +137,12 @@ const syncApplicationFormsOnRefresh = async () => {
       dryRun: false,
       pushStatus: true
     })
-    if (res.data.summary.failed > 0) {
-      ElMessage.warning(`有 ${res.data.summary.failed} 条小助手申请单同步失败，当前显示已成功同步及本地数据`)
+    const summary = res.data.summary
+    if (summary.processed > 0) {
+      await taskCenterStore.refresh(true)
+    }
+    if (summary.failed > 0) {
+      ElMessage.warning(`有 ${summary.failed} 条小助手申请单同步失败，当前显示已成功同步及本地数据`)
     }
   } catch (error) {
     console.warn("小助手申请单同步失败，继续显示本地工单数据", error)

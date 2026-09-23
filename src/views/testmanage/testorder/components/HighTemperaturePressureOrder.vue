@@ -753,28 +753,29 @@ onMounted(() => {
           class="high-pressure-order-table"
           table-layout="fixed"
           style="width: 100%"
+          :tooltip-options="{ placement: 'top', appendTo: 'body', popperClass: 'high-temp-pressure-cell-tooltip' }"
         >
-          <el-table-column prop="table_no" label="表格编号" min-width="110" align="center" />
-          <el-table-column prop="task_number" label="任务单编号" min-width="130" align="center" />
-          <el-table-column prop="test_number" label="测试单号" min-width="130" align="center" />
-          <el-table-column prop="applicant" label="申请人" min-width="80" align="center" />
-          <el-table-column prop="test_application_unit" label="测试申请单位" min-width="110" align="center" />
-          <el-table-column label="待测仪器" min-width="130" align="center">
+          <el-table-column prop="table_no" label="表格编号" min-width="110" align="center" show-overflow-tooltip />
+          <el-table-column prop="task_number" label="任务单编号" min-width="130" align="center" show-overflow-tooltip />
+          <el-table-column prop="test_number" label="测试单号" min-width="130" align="center" show-overflow-tooltip />
+          <el-table-column prop="applicant" label="申请人" min-width="80" align="center" show-overflow-tooltip />
+          <el-table-column prop="test_application_unit" label="测试申请单位" min-width="110" align="center" show-overflow-tooltip />
+          <el-table-column label="待测仪器" min-width="130" align="center" show-overflow-tooltip>
             <template #default="{ row }">
               <span>{{ row.instrument_names || "-" }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="仪器SN号" min-width="130" align="center">
+          <el-table-column label="仪器SN号" min-width="130" align="center" show-overflow-tooltip>
             <template #default="{ row }">
               <span>{{ row.instrument_sns || "-" }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="测试类型" min-width="105" align="center">
+          <el-table-column label="测试类型" min-width="105" align="center" show-overflow-tooltip>
             <template #default="{ row }">
               <span>{{ row.test_type || "-" }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="test_container" label="测试容器" min-width="100" align="center" />
+          <el-table-column prop="test_container" label="测试容器" min-width="100" align="center" show-overflow-tooltip />
           <el-table-column label="在线测试" min-width="90" align="center">
             <template #default="{ row }">{{ onlineTestText(row.online_test) }}</template>
           </el-table-column>
@@ -783,7 +784,7 @@ onMounted(() => {
               <span>{{ row.instrument_count ?? 0 }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="使用设备" min-width="100" align="center">
+          <el-table-column label="使用设备" min-width="100" align="center" show-overflow-tooltip>
             <template #default="{ row }">
               <span>{{ row.use_device || row.device_name || "-" }}</span>
             </template>

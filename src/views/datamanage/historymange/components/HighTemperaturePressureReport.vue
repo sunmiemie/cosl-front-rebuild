@@ -28,17 +28,24 @@
       </div>
 
       <div class="table-wrapper">
-        <el-table :data="tableData" stripe border height="100%" style="width: 100%">
-          <el-table-column prop="report_no" label="报告ID" width="180" align="center" />
-          <el-table-column prop="report_number" label="报告编号" width="160" align="center">
+        <el-table
+          :data="tableData"
+          stripe
+          border
+          height="100%"
+          style="width: 100%"
+          :tooltip-options="{ placement: 'top', appendTo: 'body', popperClass: 'high-temp-pressure-cell-tooltip' }"
+        >
+          <el-table-column prop="report_no" label="报告ID" width="180" align="center" show-overflow-tooltip />
+          <el-table-column prop="report_number" label="报告编号" width="160" align="center" show-overflow-tooltip>
             <template #default="{ row }">{{ row.report_number || "-" }}</template>
           </el-table-column>
-          <el-table-column prop="task_number" label="任务单号" width="180" align="center" />
-          <el-table-column prop="instrument_name" label="待测设备" min-width="140" align="center" />
-          <el-table-column prop="instrument_sn" label="设备SN" min-width="140" align="center" />
+          <el-table-column prop="task_number" label="任务单号" width="180" align="center" show-overflow-tooltip />
+          <el-table-column prop="instrument_name" label="待测设备" min-width="140" align="center" show-overflow-tooltip />
+          <el-table-column prop="instrument_sn" label="设备SN" min-width="140" align="center" show-overflow-tooltip />
           <el-table-column prop="attempt_no" label="轮次" width="75" align="center" />
           <el-table-column prop="test_date" label="测试日期" width="170" align="center" />
-          <el-table-column prop="tester" label="测试人员" min-width="120" align="center" />
+          <el-table-column prop="tester" label="测试人员" min-width="120" align="center" show-overflow-tooltip />
           <el-table-column prop="status_text" label="审核状态" width="100" align="center">
             <template #default="{ row }">
               <el-tag v-if="row.is_current === false" type="info">重测历史</el-tag>
