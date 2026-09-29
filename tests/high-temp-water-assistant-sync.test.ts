@@ -175,7 +175,14 @@ describe("高温箱和水循环报告同步", () => {
     expect(content).toContain("getAssistantSyncFeedback")
     expect(content).toContain("立即重试")
     expect(content).toContain("本地审核已经成功，不会回滚")
-    expect(content).toContain('prop="instrument_sn" label="被测 SN"')
+    // 验证模板属性而非源码排版，避免格式化换行造成误报。
+    const template = new DOMParser().parseFromString(content, "text/html").querySelector("template")!
+    const columns = Array.from(template.content.querySelectorAll("el-table-column"))
+    expect(
+      columns.some(
+        (column) => column.getAttribute("prop") === "instrument_sn" && column.getAttribute("label") === "被测 SN"
+      )
+    ).toBe(true)
     expect(content).toContain('label="被测 SN">{{ currentReport.instrument_sn')
     expect(content).not.toContain("halt-hass")
   })
