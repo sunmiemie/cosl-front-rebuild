@@ -617,10 +617,20 @@ const buildReadonlyReportRows = (
   })
 }
 
-const currentTemplateSnapshot = computed<ReportJson | null>(() => {
-  const snapshot = currentReport.value?.meta.template_snapshot
-  return snapshot && typeof snapshot === "object" ? (snapshot as ReportJson) : null
-})
+const isResearchReport = (report?: AuditRow | null) => Number(report?.meta?.order_type) === 1
+
+const getReportTemplateSnapshot = (report?: AuditRow | null): ReportJson | null => {
+  const snapshot = report?.meta.template_snapshot
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null
+  return String((snapshot as ReportJson).report_no || "").trim() ? (snapshot as ReportJson) : null
+}
+
+const hasSelectedReportTemplate = (report?: AuditRow | null) => Boolean(getReportTemplateSnapshot(report))
+
+const shouldShowTemplateReport = (report?: AuditRow | null) =>
+  !isResearchReport(report) || hasSelectedReportTemplate(report)
+
+const currentTemplateSnapshot = computed<ReportJson | null>(() => getReportTemplateSnapshot(currentReport.value))
 const currentTestItemRows = computed(() =>
   buildReadonlyReportRows(
     currentTemplateSnapshot.value?.test_items,
@@ -645,9 +655,18 @@ const currentTransferDataRows = computed(() =>
   )
 )
 
-const isResearchReport = (report?: AuditRow | null) => Number(report?.meta?.order_type) === 1
+const reportDevices = (report: AuditRow) => {
+  const meta = report.meta
+  if (Array.isArray(meta.devices) && meta.devices.length) return meta.devices
+  const rows = report.instrument_results || []
+  return rows.length ? rows.map((row) => ({ ...row, device_name: meta.device_name || "-" }))
+    : [{ device_name: meta.device_name || meta.test_product || "-", instrument_sn: report.instrument_sn || meta.device_sn || "-" }]
+}
 
 const getDeviceText = (meta: ReportJson) => {
+  if (Array.isArray(meta.devices) && meta.devices.length) {
+    return `${meta.devices.map((device: any) => device.device_name || "-").join("、")}（${meta.devices.length} 台）`
+  }
   const device = meta.selected_device || meta.device || {}
   return firstText(device.deviceName, device.name, meta.device_name, meta.test_product)
 }
@@ -1092,11 +1111,11 @@ defineExpose({ resetSearch: handleReset })
               <el-button v-if="row.status === 0" link type="success" @click="showApproveDialog(row)">通过</el-button>
               <el-button v-if="row.status === 0" link type="danger" @click="showRejectDialog(row)">驳回</el-button>
               <el-button
-                v-if="row.status === 1 && !isResearchReport(row)"
+                v-if="row.status === 1 && shouldShowTemplateReport(row)"
                 :loading="downloadingId === row.id"
                 link
                 type="success"
-                title="非研究院已通过报告可下载正式 PDF"
+                title="已选择模板的通过报告可下载正式 PDF"
                 @click="handleDownload(row)"
               >
                 下载 PDF
@@ -1142,6 +1161,11 @@ defineExpose({ resetSearch: handleReset })
           <el-descriptions :column="2" border>
             <el-descriptions-item label="报告编号">{{ currentReport.report_no }}</el-descriptions-item>
             <el-descriptions-item label="任务编号">{{ currentReport.task_number }}</el-descriptions-item>
+            <el-descriptions-item label="待测仪器" :span="2">
+              <div v-for="(device, index) in reportDevices(currentReport)" :key="index">
+                {{ device.device_name || "-" }} · {{ device.instrument_sn || device.device_sn || "-" }}
+              </div>
+            </el-descriptions-item>
             <el-descriptions-item label="被测 SN">{{
               currentReport.instrument_sn || currentReport.equipmentId || "-"
             }}</el-descriptions-item>
@@ -1192,7 +1216,7 @@ defineExpose({ resetSearch: handleReset })
         <div class="detail-card">
           <div class="detail-card-title">报告内容</div>
           <div class="report-grid">
-            <div v-if="!isResearchReport(currentReport)" class="info-tile">
+            <div v-if="shouldShowTemplateReport(currentReport)" class="info-tile">
               <span>报告名称</span>
               <strong>{{ currentReport.report_name }}</strong>
             </div>
@@ -1240,7 +1264,7 @@ defineExpose({ resetSearch: handleReset })
           </el-empty>
         </div>
 
-        <div v-if="!isResearchReport(currentReport)" class="detail-card">
+        <div v-if="shouldShowTemplateReport(currentReport)" class="detail-card">
           <div class="detail-card-title">测试项目</div>
           <el-empty v-if="!currentTemplateSnapshot" description="暂无可用项目定义" :image-size="56" />
           <el-empty v-else-if="!currentTestItemRows.length" description="当前模板未配置测试项目" :image-size="56" />
@@ -1252,7 +1276,7 @@ defineExpose({ resetSearch: handleReset })
           </div>
         </div>
 
-        <div v-if="!isResearchReport(currentReport)" class="detail-card">
+        <div v-if="shouldShowTemplateReport(currentReport)" class="detail-card">
           <div class="detail-card-title">资料评价标准值</div>
           <el-empty v-if="!currentTemplateSnapshot" description="暂无可用项目定义" :image-size="56" />
           <el-empty v-else-if="!currentEvaluationRows.length" description="当前模板未配置评价标准" :image-size="56" />
@@ -1264,7 +1288,7 @@ defineExpose({ resetSearch: handleReset })
           </div>
         </div>
 
-        <div v-if="!isResearchReport(currentReport) && currentTransferDataRows.length" class="detail-card">
+        <div v-if="shouldShowTemplateReport(currentReport) && currentTransferDataRows.length" class="detail-card">
           <div class="detail-card-title">测试完成转样数据记录</div>
           <div class="readonly-report-list">
             <div v-for="row in currentTransferDataRows" :key="row.label" class="readonly-report-row">

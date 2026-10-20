@@ -92,8 +92,8 @@ describe("simulated well report review remarks", () => {
     expect(content).toContain(
       'displayValueWithUnit(valueMap[fieldKey("transfer", fieldIndex, `c${columnIndex}`)], column.unit)'
     )
-    expect(content).toContain('const label = `${fieldLabel(field, "")}${fieldLabel(column, "")}`')
-    expect(content).toContain('v-if="!isResearchReport(currentReport) && currentTransferDataRows.length"')
+    expect(content).toContain('`${fieldLabel(field, "")}${fieldLabel(column, "")}`')
+    expect(content).toContain('v-if="shouldShowTemplateReport(currentReport) && currentTransferDataRows.length"')
     expect(content).toContain("测试完成转样数据记录")
     expect(content).not.toContain("Transferred Data Record Finished by Test")
     expect(content).not.toContain("当前模板未配置转样数据")
@@ -137,24 +137,28 @@ describe("simulated well report review remarks", () => {
     expect(content).toContain("未记录电子签名")
   })
 
-  it("downloads approved non-research reports as backend-generated PDF files", () => {
+  it("downloads approved reports with template mode as backend-generated PDF files", () => {
     expect(apiContent).toContain("getSimulatedWellReportPdfApi")
     expect(apiContent).toContain("test/simulated-well/report/download/${pk}/")
     expect(apiContent).toContain('responseType: "blob"')
     expect(content).toContain("const downloadingId")
     expect(content).toContain("getSimulatedWellReportPdfApi(row.id)")
-    expect(content).toContain('v-if="row.status === 1 && !isResearchReport(row)"')
+    expect(content).toContain('v-if="row.status === 1 && shouldShowTemplateReport(row)"')
     expect(content).toContain("下载 PDF")
     expect(content).not.toContain("JSON.stringify(payload, null, 2)")
   })
 
-  it("hides report name, template data and PDF download for research reports", () => {
+  it("shows full template mode only when a research report has a valid frozen template snapshot", () => {
     expect(content).toContain(
       "const isResearchReport = (report?: AuditRow | null) => Number(report?.meta?.order_type) === 1"
     )
-    expect(content).toContain('v-if="!isResearchReport(currentReport)" class="info-tile"')
-    expect(content).toContain('v-if="!isResearchReport(currentReport)" class="detail-card"')
-    expect(content).toContain("非研究院已通过报告可下载正式 PDF")
+    expect(content).toContain("const getReportTemplateSnapshot = (report?: AuditRow | null): ReportJson | null =>")
+    expect(content).toContain('String((snapshot as ReportJson).report_no || "").trim()')
+    expect(content).toContain("const hasSelectedReportTemplate = (report?: AuditRow | null) =>")
+    expect(content).toContain("!isResearchReport(report) || hasSelectedReportTemplate(report)")
+    expect(content).toContain('v-if="shouldShowTemplateReport(currentReport)" class="info-tile"')
+    expect(content).toContain('v-if="shouldShowTemplateReport(currentReport)" class="detail-card"')
+    expect(content).toContain("已选择模板的通过报告可下载正式 PDF")
   })
 
   it("presents curve attachments as original files through the download ticket API", () => {

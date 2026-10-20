@@ -96,6 +96,8 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
     ],
     /** Vitest 单元测试配置：https://cn.vitest.dev/config */
     test: {
+      // 转换 Element Plus 的依赖导入，确保真实表单校验在 Vitest 中正常运行。
+      server: { deps: { inline: ["element-plus"] } },
       include: ["tests/**/*.test.ts"],
       environment: "jsdom"
     }

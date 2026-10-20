@@ -24,4 +24,20 @@ describe("模拟井工单类型", () => {
     expect(component).toContain('<el-radio :value="0">非研究院</el-radio>')
     expect(component).toContain('<el-radio :value="1">研究院</el-radio>')
   })
+
+  it("详情抽屉通过待测仪器列表展示仪器名称和 SN 号", () => {
+    const component = read("src/views/testmanage/testorder/components/SimulationOrder.vue")
+    const drawerStart = component.indexOf("<el-drawer")
+    const drawerEnd = component.indexOf("</el-drawer>", drawerStart)
+    const drawer = component.slice(drawerStart, drawerEnd)
+
+    expect(drawer).not.toContain('<el-descriptions-item label="待测仪器">')
+    expect(drawer).not.toContain('<el-descriptions-item label="仪器SN号（资产号，多个）">')
+    expect(drawer).toContain("待测仪器列表")
+    expect(drawer).toContain('prop="device_name" label="仪器名称"')
+    expect(drawer).toContain('prop="device_number" label="仪器SN号"')
+    expect(drawer).toContain('description="暂无待测仪器"')
+    expect(component).toContain('<el-table-column label="待测仪器"')
+    expect(component).toContain('<el-form-item label="仪器明细" prop="instruments" required>')
+  })
 })

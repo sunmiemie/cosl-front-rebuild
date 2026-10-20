@@ -4,6 +4,7 @@ import { useRoute } from "vue-router"
 import {
   ElMessage,
   ElMessageBox,
+  type FormRules,
   type FormInstance,
   type UploadFile,
   type UploadProps,
@@ -19,6 +20,7 @@ import {
 import { getMySignatureApi, getSignatureImageApi } from "@/api/signature"
 import { useTaskCenterStoreHook } from "@/store/modules/task-center"
 import type { SimulatedWellOrderListItem } from "@/api/simulated-well/types"
+import type { SimulatedWellInstrumentRow } from "../../../../../types/simulated-well"
 
 type TagType = "success" | "warning" | "info" | "primary" | "danger" | undefined
 
@@ -43,8 +45,7 @@ const wellNameOptions = [
   { value: "other", label: "其他" }
 ]
 
-const getWellNameLabel = (value?: string | null) =>
-  wellNameOptions.find((item) => item.value === value)?.label || "-"
+const getWellNameLabel = (value?: string | null) => wellNameOptions.find((item) => item.value === value)?.label || "-"
 
 const orderTypeTabs = [
   { name: "0", label: "非研究院" },
@@ -91,8 +92,7 @@ const createDefaultForm = () => ({
   project_name: "",
   order_type: 0 as 0 | 1,
   well_name: "",
-  tested_instrument: "",
-  instrument_sn_numbers: "",
+  instruments: [{ device_name: "", device_number: "" }] as SimulatedWellInstrumentRow[],
   quantity: 1,
   client: "",
   entrusted_time: todayText(),
@@ -108,16 +108,30 @@ const createDefaultForm = () => ({
   sanxin_applicant_signer: ""
 })
 const createForm = reactive(createDefaultForm())
-const createRules = {
+const createRules: FormRules = {
   table_number: [{ required: true, message: "请输入表格编号", trigger: "blur" }],
   task_number: [{ required: true, message: "请输入任务单编号", trigger: "blur" }],
   applicant: [{ required: true, message: "请输入申请人", trigger: "blur" }],
   test_unit: [{ required: true, message: "请输入测试申请单位", trigger: "blur" }],
   project_name: [{ required: true, message: "请输入项目名称", trigger: "blur" }],
   well_name: [{ required: true, message: "请选择实验井", trigger: "change" }],
-  tested_instrument: [{ required: true, message: "请输入待测仪器", trigger: "blur" }],
-  instrument_sn_numbers: [{ required: true, message: "请输入仪器SN号", trigger: "blur" }],
-  quantity: [{ required: true, message: "请输入数量", trigger: "change" }],
+  instruments: [
+    {
+      validator: (_rule, value: SimulatedWellInstrumentRow[], callback) => {
+        if (!value.length) return callback(new Error("请至少添加一台待测仪器"))
+        const invalidIndex = value.findIndex((item) => !item.device_name.trim() || !item.device_number.trim())
+        if (invalidIndex !== -1) {
+          return callback(new Error(`请填写第 ${invalidIndex + 1} 行的仪器名称和 SN 号`))
+        }
+        callback()
+      },
+      trigger: "blur"
+    }
+  ],
+  quantity: [
+    { required: true, message: "请输入数量", trigger: "change" },
+    { type: "integer", min: 1, message: "数量必须为正整数", trigger: "change" }
+  ],
   test_purpose: [{ required: true, message: "请输入测试目的", trigger: "blur" }],
   test_steps: [{ required: true, message: "请输入测试步骤", trigger: "blur" }],
   safety_risks: [{ required: true, message: "请输入安全风险及预防措施", trigger: "blur" }]
@@ -269,11 +283,17 @@ const openCreateDialog = () => {
   createDialogVisible.value = true
 }
 
-const splitInstrumentSnNumbers = (value: string) =>
-  String(value || "")
-    .split(/[\n,，;；]+/)
-    .map((item) => item.trim())
-    .filter(Boolean)
+const addInstrument = () => {
+  createForm.instruments.push({ device_name: "", device_number: "" })
+  createForm.quantity = createForm.instruments.length
+}
+
+const removeInstrument = (index: number) => {
+  if (createForm.instruments.length === 1) return
+  createForm.instruments.splice(index, 1)
+  createForm.quantity = createForm.instruments.length
+  createFormRef.value?.clearValidate("instruments")
+}
 
 const handleCreate = async () => {
   if (!createFormRef.value) return
@@ -281,16 +301,19 @@ const handleCreate = async () => {
     if (!valid) return
     createLoading.value = true
     try {
-      const sns = splitInstrumentSnNumbers(createForm.instrument_sn_numbers)
+      const { instruments, ...formFields } = createForm
+      const devices = instruments.map((item) => ({
+        device_name: item.device_name.trim(),
+        device_number: item.device_number.trim()
+      }))
       const payload = {
-        ...createForm,
+        ...formFields,
         customer_unit: createForm.test_unit,
         task_desc: createForm.project_name,
         device_count: createForm.quantity,
-        devices: sns.map((sn) => ({
-          device_name: createForm.tested_instrument,
-          device_number: sn
-        }))
+        tested_instrument: devices.map((item) => item.device_name).join("\n"),
+        instrument_sn_numbers: devices.map((item) => item.device_number).join("\n"),
+        devices
       }
       const res = await createSimulatedWellOrderApi(payload)
       if (res.code === 0) {
@@ -507,14 +530,14 @@ onMounted(() => {
     <el-card v-loading="loading" class="management-list-card" shadow="never">
       <div class="management-list-toolbar">
         <el-form :inline="true" :model="searchForm" class="management-filter-form">
-        <el-form-item label="任务单号">
-          <el-input v-model="searchForm.taskNumber" placeholder="请输入任务单号" clearable />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px">
-            <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
-          </el-select>
-        </el-form-item>
+          <el-form-item label="任务单号">
+            <el-input v-model="searchForm.taskNumber" placeholder="请输入任务单号" clearable />
+          </el-form-item>
+          <el-form-item label="状态">
+            <el-select v-model="searchForm.status" placeholder="全部状态" clearable style="width: 150px">
+              <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
+            </el-select>
+          </el-form-item>
         </el-form>
         <div class="management-toolbar-actions">
           <el-button type="primary" icon="Search" @click="handleSearch">查询</el-button>
@@ -527,11 +550,7 @@ onMounted(() => {
       </div>
 
       <div class="table-wrapper">
-        <el-tabs
-          v-model="activeOrderType"
-          class="management-list-inner-tabs"
-          @tab-change="handleOrderTypeTabChange"
-        >
+        <el-tabs v-model="activeOrderType" class="management-list-inner-tabs" @tab-change="handleOrderTypeTabChange">
           <el-tab-pane v-for="tab in orderTypeTabs" :key="tab.name" :label="tab.label" :name="tab.name">
             <el-table :data="tableData" stripe border height="100%" style="width: 100%">
               <el-table-column prop="table_number" label="表格编号" width="150" align="center" />
@@ -572,7 +591,9 @@ onMounted(() => {
                   <el-link v-if="row.status === 0" type="success" class="el-link" @click="showPublishDialog(row)"
                     >发布</el-link
                   >
-                  <el-link v-if="row.status === 0" type="danger" class="el-link" @click="handleDelete(row)">删除</el-link>
+                  <el-link v-if="row.status === 0" type="danger" class="el-link" @click="handleDelete(row)"
+                    >删除</el-link
+                  >
                 </template>
               </el-table-column>
             </el-table>
@@ -666,24 +687,41 @@ onMounted(() => {
               </el-select>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="待测仪器" prop="tested_instrument">
-              <el-input v-model="createForm.tested_instrument" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="16">
-            <el-form-item label="仪器SN号（资产号，多个）" prop="instrument_sn_numbers">
-              <el-input
-                v-model="createForm.instrument_sn_numbers"
-                type="textarea"
-                :rows="2"
-                placeholder="多个 SN 可用逗号、分号或换行分隔"
-              />
+          <el-col :span="24">
+            <el-form-item label="仪器明细" prop="instruments" required>
+              <div class="instrument-editor">
+                <el-table :data="createForm.instruments" border>
+                  <el-table-column type="index" label="序号" width="60" align="center" />
+                  <el-table-column label="待测仪器" min-width="180">
+                    <template #default="{ row }">
+                      <el-input v-model="row.device_name" placeholder="请输入待测仪器" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="仪器SN号（资产号）" min-width="220">
+                    <template #default="{ row }">
+                      <el-input v-model="row.device_number" placeholder="请输入一个仪器 SN 号" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="90" align="center">
+                    <template #default="{ $index }">
+                      <el-button
+                        link
+                        type="danger"
+                        :disabled="createForm.instruments.length === 1"
+                        @click="removeInstrument($index)"
+                      >
+                        删除
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+                <el-button class="add-instrument-btn" icon="Plus" @click="addInstrument">添加仪器</el-button>
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="数量" prop="quantity">
-              <el-input-number v-model="createForm.quantity" :min="1" style="width: 100%" />
+              <el-input-number v-model="createForm.quantity" :min="1" :precision="0" style="width: 100%" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -750,10 +788,6 @@ onMounted(() => {
           }}</el-descriptions-item>
           <el-descriptions-item label="工单类型">{{ getOrderTypeLabel(currentOrder.order_type) }}</el-descriptions-item>
           <el-descriptions-item label="实验井">{{ getWellNameLabel(currentOrder.well_name) }}</el-descriptions-item>
-          <el-descriptions-item label="待测仪器">{{ currentOrder.tested_instrument || "-" }}</el-descriptions-item>
-          <el-descriptions-item label="仪器SN号（资产号，多个）">{{
-            currentOrder.instrument_sn_numbers || "-"
-          }}</el-descriptions-item>
           <el-descriptions-item label="数量">{{
             currentOrder.quantity ?? currentOrder.device_count ?? 1
           }}</el-descriptions-item>
@@ -771,12 +805,12 @@ onMounted(() => {
         </el-descriptions>
 
         <div style="margin-top: 16px">
-          <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px">测试设备列表</div>
+          <div style="font-size: 14px; font-weight: 600; margin-bottom: 10px">待测仪器列表</div>
           <el-table :data="currentOrder.devices || []" stripe border style="width: 100%">
-            <el-table-column prop="device_name" label="设备名称" min-width="130" align="center" />
-            <el-table-column prop="device_number" label="设备编号" min-width="130" align="center" />
+            <el-table-column prop="device_name" label="仪器名称" min-width="130" align="center" />
+            <el-table-column prop="device_number" label="仪器SN号" min-width="130" align="center" />
           </el-table>
-          <el-empty v-if="(currentOrder.devices || []).length === 0" description="暂无测试设备" />
+          <el-empty v-if="(currentOrder.devices || []).length === 0" description="暂无待测仪器" />
         </div>
       </div>
     </el-drawer>
@@ -938,6 +972,15 @@ onMounted(() => {
 </template>
 
 <style scoped>
+.instrument-editor {
+  width: 100%;
+}
+
+.add-instrument-btn {
+  width: 100%;
+  margin-top: 18px;
+}
+
 .search-wrapper {
   margin-bottom: 20px;
 }

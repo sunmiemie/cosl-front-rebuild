@@ -20,6 +20,7 @@ export interface SimulatedWellReportListItem {
   attachments?: Array<Record<string, any>>
   order_ids?: number[]
   order_numbers?: string[]
+  instrument_results?: Array<{ order_id: number; device_id: number; instrument_sn: string }>
   client_submit_id?: string | null
   instrument_sn?: string
   equipmentId?: string
@@ -61,6 +62,7 @@ export interface SimulatedWellReportPayload {
   attachments?: Array<Record<string, any>>
   order_ids?: number[]
   order_numbers?: string[]
+  instrument_results?: Array<{ order_id: number; device_id: number; instrument_sn: string }>
   client_submit_id?: string | null
 }
 
