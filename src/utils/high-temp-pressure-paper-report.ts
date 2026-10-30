@@ -179,6 +179,9 @@ const formatDocValue = (value: unknown): string => {
 }
 
 const formatDocTime = (value: unknown) => {
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? "-" : value.toLocaleString()
+  }
   const text = formatDocValue(value)
   if (text === "-") return text
   const date = new Date(text)

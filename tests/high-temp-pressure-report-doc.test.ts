@@ -1,4 +1,13 @@
-import { describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { buildHighTempPressureReportDoc } from "@/utils/high-temp-pressure-paper-report"
+
+const getExportedTime = (html: string) => {
+  const document = new DOMParser().parseFromString(html, "text/html")
+  const row = Array.from(document.querySelectorAll("tr")).find(
+    (row) => row.querySelector("th")?.textContent === "导出时间"
+  )
+  return row?.querySelector("td")?.textContent
+}
 
 const sampleReport = {
   id: 1,
@@ -55,14 +64,12 @@ const sampleReport = {
 }
 
 describe("高温高压报告 Word 下载", () => {
-  it("生成 doc 文件并用表格展示报告数据", async () => {
-    const mod = await import("../src/utils/high-temp-pressure-paper-report")
-    const buildDoc = (mod as Record<string, any>).buildHighTempPressureReportDoc
+  afterEach(() => {
+    vi.useRealTimers()
+  })
 
-    expect(buildDoc, "应提供高温高压报告 Word 导出构建函数").toBeTypeOf("function")
-    if (typeof buildDoc !== "function") return
-
-    const doc = buildDoc(sampleReport, { exportedAt: "2026-06-08T10:00:00Z" })
+  it("生成 doc 文件并用表格展示报告数据", () => {
+    const doc = buildHighTempPressureReportDoc(sampleReport, { exportedAt: "2026-06-08T10:00:00Z" })
 
     expect(doc.filename).toBe("Y-WY-001.doc")
     expect(doc.mimeType).toBe("application/msword;charset=utf-8")
@@ -76,5 +83,31 @@ describe("高温高压报告 Word 下载", () => {
     expect(doc.html).not.toContain("<pre")
     expect(doc.html).not.toContain('"report_no"')
     expect(doc.html).not.toContain('{"pressure"')
+    expect(getExportedTime(doc.html)).toBe(new Date("2026-06-08T10:00:00Z").toLocaleString())
+  })
+
+  it("显式 Date 导出时间与对应的字符串保持一致", () => {
+    const exportedAt = new Date("2026-10-30T12:00:00Z")
+    const doc = buildHighTempPressureReportDoc(sampleReport, { exportedAt })
+    const stringDoc = buildHighTempPressureReportDoc(sampleReport, { exportedAt: exportedAt.toISOString() })
+
+    expect(getExportedTime(doc.html)).toBe(exportedAt.toLocaleString())
+    expect(getExportedTime(doc.html)).toBe(getExportedTime(stringDoc.html))
+  })
+
+  it("未指定导出时间时显示当前时间", () => {
+    const now = new Date("2026-10-30T12:34:56Z")
+    vi.useFakeTimers()
+    vi.setSystemTime(now)
+
+    const doc = buildHighTempPressureReportDoc(sampleReport)
+
+    expect(getExportedTime(doc.html)).toBe(now.toLocaleString())
+  })
+
+  it("无效 Date 保持占位文本", () => {
+    const doc = buildHighTempPressureReportDoc(sampleReport, { exportedAt: new Date("invalid") })
+
+    expect(getExportedTime(doc.html)).toBe("-")
   })
 })
