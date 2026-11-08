@@ -213,7 +213,7 @@ export class ReportCheck {
           report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.forEach((item: any, index: any) => {
             if (item.id === obj.id) {
               if (report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.length === 1) {
-                delete report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1]
+                delete report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList
               } else {
                 report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.splice(index, 1)
               }
