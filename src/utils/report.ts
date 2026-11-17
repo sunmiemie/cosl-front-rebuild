@@ -16,10 +16,10 @@ export class ReportCheck {
             }
           }
         })
-        if (report.json.threeD.eyes.total.warnList !== undefined) {
+        if (report.json.threeD.eyes.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyes.total.warnList.find((warn: any) => warn.id === obj.id).error
         }
-        if (report.json.threeD.eyes.total.questionList !== undefined) {
+        if (report.json.threeD.eyes.total.questionList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyes.total.questionList.find((warn: any) => warn.id === obj.id).error
         }
       } else if (obj.position === "area") {
@@ -38,11 +38,13 @@ export class ReportCheck {
               }
             }
           })
-          if (report.json.threeD.eyes.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (report.json.threeD.eyes.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].general.warnList.find((warn: any) => warn.id === obj.id)
               .error
           }
-          if (report.json.threeD.eyes.area[obj.areaId - 1].general.questionList !== undefined) {
+          if (
+            report.json.threeD.eyes.area[obj.areaId - 1].general.questionList?.some((item: any) => item.id === obj.id)
+          ) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].general.questionList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -66,12 +68,20 @@ export class ReportCheck {
               }
             }
           )
-          if (report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn: any) => warn.id === obj.id
             ).error
           }
-          if (report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList !== undefined) {
+          if (
+            report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -94,10 +104,10 @@ export class ReportCheck {
             }
           }
         })
-        if (report.json.threeD.eyesBak.total.warnList !== undefined) {
+        if (report.json.threeD.eyesBak.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyesBak.total.warnList.find((warn: any) => warn.id === obj.id).error
         }
-        if (report.json.threeD.eyesBak.total.questionList !== undefined) {
+        if (report.json.threeD.eyesBak.total.questionList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyesBak.total.questionList.find((warn: any) => warn.id === obj.id).error
         }
       } else if (obj.position === "area") {
@@ -116,12 +126,18 @@ export class ReportCheck {
               }
             }
           })
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.find(
               (warn: any) => warn.id === obj.id
             ).error
           }
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -147,12 +163,20 @@ export class ReportCheck {
               }
             }
           )
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn: any) => warn.id === obj.id
             ).error
           }
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -175,10 +199,10 @@ export class ReportCheck {
             }
           }
         })
-        if (report.json.xray.total.warnList !== undefined) {
+        if (report.json.xray.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.xray.total.warnList.find((warn: any) => warn.id === obj.id).error
         }
-        if (report.json.xray.total.questionList !== undefined) {
+        if (report.json.xray.total.questionList?.some((item: any) => item.id === obj.id)) {
           delete report.json.xray.total.questionList.find((warn: any) => warn.id === obj.id).error
         }
       } else if (obj.position === "area") {
@@ -197,10 +221,10 @@ export class ReportCheck {
               }
             }
           })
-          if (report.json.xray.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (report.json.xray.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)) {
             delete report.json.xray.area[obj.areaId - 1].general.warnList.find((warn: any) => warn.id === obj.id).error
           }
-          if (report.json.xray.area[obj.areaId - 1].general.questionList !== undefined) {
+          if (report.json.xray.area[obj.areaId - 1].general.questionList?.some((item: any) => item.id === obj.id)) {
             delete report.json.xray.area[obj.areaId - 1].general.questionList.find((warn: any) => warn.id === obj.id)
               .error
           }
@@ -219,12 +243,20 @@ export class ReportCheck {
               }
             }
           })
-          if (report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn: any) => warn.id === obj.id
             ).error
           }
-          if (report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList !== undefined) {
+          if (
+            report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -264,12 +296,12 @@ export class ReportCheck {
             report.json.threeD.eyes.total.stepList[obj.id - 1].pass = 3
           }
         })
-        if (report.json.threeD.eyes.total.warnList !== undefined) {
+        if (report.json.threeD.eyes.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyes.total.warnList.find((warn: any) => warn.id === obj.id).error
           report.json.threeD.eyes.total.warnList.find((warn: any) => warn.id === obj.id).question =
             report.json.threeD.eyes.total.questionList.find((warn: any) => warn.id === obj.id).question
         }
-        if (report.json.threeD.eyes.total.questionList !== undefined) {
+        if (report.json.threeD.eyes.total.questionList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyes.total.questionList.find((warn: any) => warn.id === obj.id).error
         }
       } else if (obj.position === "area") {
@@ -303,7 +335,7 @@ export class ReportCheck {
               report.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
             }
           })
-          if (report.json.threeD.eyes.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (report.json.threeD.eyes.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].general.warnList.find((warn: any) => warn.id === obj.id)
               .error
             report.json.threeD.eyes.area[obj.areaId - 1].general.warnList.find(
@@ -312,7 +344,9 @@ export class ReportCheck {
               (warn: any) => warn.id === obj.id
             ).question
           }
-          if (report.json.threeD.eyes.area[obj.areaId - 1].general.questionList !== undefined) {
+          if (
+            report.json.threeD.eyes.area[obj.areaId - 1].general.questionList?.some((item: any) => item.id === obj.id)
+          ) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].general.questionList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -353,7 +387,11 @@ export class ReportCheck {
               }
             }
           )
-          if (report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -363,7 +401,11 @@ export class ReportCheck {
               (warn: any) => warn.id === obj.id
             ).question
           }
-          if (report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList !== undefined) {
+          if (
+            report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -398,12 +440,12 @@ export class ReportCheck {
             report.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 3
           }
         })
-        if (report.json.threeD.eyesBak.total.warnList !== undefined) {
+        if (report.json.threeD.eyesBak.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyesBak.total.warnList.find((warn: any) => warn.id === obj.id).error
           report.json.threeD.eyesBak.total.warnList.find((warn: any) => warn.id === obj.id).question =
             report.json.threeD.eyesBak.total.questionList.find((warn: any) => warn.id === obj.id).question
         }
-        if (report.json.threeD.eyesBak.total.questionList !== undefined) {
+        if (report.json.threeD.eyesBak.total.questionList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyesBak.total.questionList.find((warn: any) => warn.id === obj.id).error
         }
       } else if (obj.position === "area") {
@@ -437,7 +479,9 @@ export class ReportCheck {
               report.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
             }
           })
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -447,7 +491,11 @@ export class ReportCheck {
               (warn: any) => warn.id === obj.id
             ).question
           }
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].general.questionList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -491,7 +539,11 @@ export class ReportCheck {
               }
             }
           )
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -501,7 +553,11 @@ export class ReportCheck {
               (warn: any) => warn.id === obj.id
             ).question
           }
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -536,12 +592,12 @@ export class ReportCheck {
             report.json.xray.total.stepList[obj.id - 1].pass = 3
           }
         })
-        if (report.json.xray.total.warnList !== undefined) {
+        if (report.json.xray.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.xray.total.warnList.find((warn: any) => warn.id === obj.id).error
           report.json.xray.total.warnList.find((warn: any) => warn.id === obj.id).question =
             report.json.xray.total.questionList.find((warn: any) => warn.id === obj.id).question
         }
-        if (report.json.xray.total.questionList !== undefined) {
+        if (report.json.xray.total.questionList?.some((item: any) => item.id === obj.id)) {
           delete report.json.xray.total.questionList.find((warn: any) => warn.id === obj.id).error
         }
       } else if (obj.position === "area") {
@@ -574,14 +630,14 @@ export class ReportCheck {
               report.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 3
             }
           })
-          if (report.json.xray.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (report.json.xray.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)) {
             delete report.json.xray.area[obj.areaId - 1].general.warnList.find((warn: any) => warn.id === obj.id).error
             report.json.xray.area[obj.areaId - 1].general.warnList.find((warn: any) => warn.id === obj.id).question =
               report.json.xray.area[obj.areaId - 1].general.questionList.find(
                 (warn: any) => warn.id === obj.id
               ).question
           }
-          if (report.json.xray.area[obj.areaId - 1].general.questionList !== undefined) {
+          if (report.json.xray.area[obj.areaId - 1].general.questionList?.some((item: any) => item.id === obj.id)) {
             delete report.json.xray.area[obj.areaId - 1].general.questionList.find((warn: any) => warn.id === obj.id)
               .error
           }
@@ -617,7 +673,11 @@ export class ReportCheck {
               report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 3
             }
           })
-          if (report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -627,7 +687,11 @@ export class ReportCheck {
               (warn: any) => warn.id === obj.id
             ).question
           }
-          if (report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList !== undefined) {
+          if (
+            report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].questionList.find(
               (warn: any) => warn.id === obj.id
             ).error
@@ -655,10 +719,10 @@ export class ReportCheck {
             }
           }
         })
-        if (report.json.threeD.eyes.total.warnList !== undefined) {
+        if (report.json.threeD.eyes.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyes.total.warnList.find((warn) => warn.id === obj.id).question
         }
-        if (report.json.threeD.eyes.total.errorList !== undefined) {
+        if (report.json.threeD.eyes.total.errorList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyes.total.errorList.find((warn) => warn.id === obj.id).question
         }
       } else if (obj.position === "area") {
@@ -677,11 +741,11 @@ export class ReportCheck {
               }
             }
           })
-          if (report.json.threeD.eyes.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (report.json.threeD.eyes.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id)
               .question
           }
-          if (report.json.threeD.eyes.area[obj.areaId - 1].general.errorList !== undefined) {
+          if (report.json.threeD.eyes.area[obj.areaId - 1].general.errorList?.some((item: any) => item.id === obj.id)) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id)
               .question
           }
@@ -702,12 +766,20 @@ export class ReportCheck {
               }
             }
           })
-          if (report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn) => warn.id === obj.id
             ).question
           }
-          if (report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
+          if (
+            report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
               (warn) => warn.id === obj.id
             ).question
@@ -730,10 +802,10 @@ export class ReportCheck {
             }
           }
         })
-        if (report.json.threeD.eyesBak.total.warnList !== undefined) {
+        if (report.json.threeD.eyesBak.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyesBak.total.warnList.find((warn) => warn.id === obj.id).question
         }
-        if (report.json.threeD.eyesBak.total.errorList !== undefined) {
+        if (report.json.threeD.eyesBak.total.errorList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyesBak.total.errorList.find((warn) => warn.id === obj.id).question
         }
       } else if (obj.position === "area") {
@@ -752,11 +824,15 @@ export class ReportCheck {
               }
             }
           })
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id)
               .question
           }
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList?.some((item: any) => item.id === obj.id)
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id)
               .question
           }
@@ -784,12 +860,20 @@ export class ReportCheck {
               }
             }
           )
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn) => warn.id === obj.id
             ).question
           }
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
               (warn) => warn.id === obj.id
             ).question
@@ -812,10 +896,10 @@ export class ReportCheck {
             }
           }
         })
-        if (report.json.xray.total.warnList !== undefined) {
+        if (report.json.xray.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.xray.total.warnList.find((warn) => warn.id === obj.id).question
         }
-        if (report.json.xray.total.errorList !== undefined) {
+        if (report.json.xray.total.errorList?.some((item: any) => item.id === obj.id)) {
           delete report.json.xray.total.errorList.find((warn) => warn.id === obj.id).question
         }
       } else if (obj.position === "area") {
@@ -834,10 +918,10 @@ export class ReportCheck {
               }
             }
           })
-          if (report.json.xray.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (report.json.xray.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)) {
             delete report.json.xray.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id).question
           }
-          if (report.json.xray.area[obj.areaId - 1].general.errorList !== undefined) {
+          if (report.json.xray.area[obj.areaId - 1].general.errorList?.some((item: any) => item.id === obj.id)) {
             delete report.json.xray.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id).question
           }
         } else if (obj.areaPosition === "detail") {
@@ -855,12 +939,20 @@ export class ReportCheck {
               }
             }
           })
-          if (report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn) => warn.id === obj.id
             ).question
           }
-          if (report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
+          if (
+            report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
               (warn) => warn.id === obj.id
             ).question
@@ -900,12 +992,12 @@ export class ReportCheck {
             report.json.threeD.eyes.total.stepList[obj.id - 1].pass = 2
           }
         })
-        if (report.json.threeD.eyes.total.warnList !== undefined) {
+        if (report.json.threeD.eyes.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyes.total.warnList.find((warn) => warn.id === obj.id).question
           report.json.threeD.eyes.total.warnList.find((warn) => warn.id === obj.id).error =
             report.json.threeD.eyes.total.errorList.find((warn) => warn.id === obj.id).error
         }
-        if (report.json.threeD.eyes.total.errorList !== undefined) {
+        if (report.json.threeD.eyes.total.errorList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyes.total.errorList.find((warn) => warn.id === obj.id).question
         }
       } else if (obj.position === "area") {
@@ -939,13 +1031,13 @@ export class ReportCheck {
               report.json.threeD.eyes.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
             }
           })
-          if (report.json.threeD.eyes.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (report.json.threeD.eyes.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id)
               .question
             report.json.threeD.eyes.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id).error =
               report.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id).error
           }
-          if (report.json.threeD.eyes.area[obj.areaId - 1].general.errorList !== undefined) {
+          if (report.json.threeD.eyes.area[obj.areaId - 1].general.errorList?.some((item: any) => item.id === obj.id)) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id)
               .question
           }
@@ -983,7 +1075,11 @@ export class ReportCheck {
               report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
             }
           })
-          if (report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn) => warn.id === obj.id
             ).question
@@ -993,7 +1089,11 @@ export class ReportCheck {
               (warn) => warn.id === obj.id
             ).error
           }
-          if (report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
+          if (
+            report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyes.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
               (warn) => warn.id === obj.id
             ).question
@@ -1028,12 +1128,12 @@ export class ReportCheck {
             report.json.threeD.eyesBak.total.stepList[obj.id - 1].pass = 2
           }
         })
-        if (report.json.threeD.eyesBak.total.warnList !== undefined) {
+        if (report.json.threeD.eyesBak.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyesBak.total.warnList.find((warn) => warn.id === obj.id).question
           report.json.threeD.eyesBak.total.warnList.find((warn) => warn.id === obj.id).error =
             report.json.threeD.eyesBak.total.errorList.find((warn) => warn.id === obj.id).error
         }
-        if (report.json.threeD.eyesBak.total.errorList !== undefined) {
+        if (report.json.threeD.eyesBak.total.errorList?.some((item: any) => item.id === obj.id)) {
           delete report.json.threeD.eyesBak.total.errorList.find((warn) => warn.id === obj.id).question
         }
       } else if (obj.position === "area") {
@@ -1067,13 +1167,17 @@ export class ReportCheck {
               report.json.threeD.eyesBak.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
             }
           })
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id)
               .question
             report.json.threeD.eyesBak.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id).error =
               report.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id).error
           }
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList?.some((item: any) => item.id === obj.id)
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id)
               .question
           }
@@ -1118,7 +1222,11 @@ export class ReportCheck {
               }
             }
           )
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn) => warn.id === obj.id
             ).question
@@ -1128,7 +1236,11 @@ export class ReportCheck {
               (warn) => warn.id === obj.id
             ).error
           }
-          if (report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
+          if (
+            report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.threeD.eyesBak.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
               (warn) => warn.id === obj.id
             ).question
@@ -1163,12 +1275,12 @@ export class ReportCheck {
             report.json.xray.total.stepList[obj.id - 1].pass = 2
           }
         })
-        if (report.json.xray.total.warnList !== undefined) {
+        if (report.json.xray.total.warnList?.some((item: any) => item.id === obj.id)) {
           delete report.json.xray.total.warnList.find((warn) => warn.id === obj.id).question
           report.json.xray.total.warnList.find((warn) => warn.id === obj.id).error =
             report.json.xray.total.errorList.find((warn) => warn.id === obj.id).error
         }
-        if (report.json.xray.total.errorList !== undefined) {
+        if (report.json.xray.total.errorList?.some((item: any) => item.id === obj.id)) {
           delete report.json.xray.total.errorList.find((warn) => warn.id === obj.id).question
         }
       } else if (obj.position === "area") {
@@ -1200,12 +1312,12 @@ export class ReportCheck {
               report.json.xray.area[obj.areaId - 1].general.stepList[obj.id - 1].pass = 2
             }
           })
-          if (report.json.xray.area[obj.areaId - 1].general.warnList !== undefined) {
+          if (report.json.xray.area[obj.areaId - 1].general.warnList?.some((item: any) => item.id === obj.id)) {
             delete report.json.xray.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id).question
             report.json.xray.area[obj.areaId - 1].general.warnList.find((warn) => warn.id === obj.id).error =
               report.json.xray.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id).error
           }
-          if (report.json.xray.area[obj.areaId - 1].general.errorList !== undefined) {
+          if (report.json.xray.area[obj.areaId - 1].general.errorList?.some((item: any) => item.id === obj.id)) {
             delete report.json.xray.area[obj.areaId - 1].general.errorList.find((warn) => warn.id === obj.id).question
           }
         } else if (obj.areaPosition === "detail") {
@@ -1240,7 +1352,11 @@ export class ReportCheck {
               report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].stepList[obj.id - 1].pass = 2
             }
           })
-          if (report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList !== undefined) {
+          if (
+            report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].warnList.find(
               (warn) => warn.id === obj.id
             ).question
@@ -1250,7 +1366,11 @@ export class ReportCheck {
               (warn) => warn.id === obj.id
             ).error
           }
-          if (report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList !== undefined) {
+          if (
+            report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList?.some(
+              (item: any) => item.id === obj.id
+            )
+          ) {
             delete report.json.xray.area[obj.areaId - 1].detail[obj.detailId - 1].errorList.find(
               (warn) => warn.id === obj.id
             ).question
