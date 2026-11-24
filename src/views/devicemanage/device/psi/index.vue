@@ -363,7 +363,14 @@ const openEditDialog = async (row: DeviceInstanceRow) => {
 
 const currentHostId = () => detailData.value?.id
 
-const todayString = () => new Date().toISOString().slice(0, 10)
+const todayString = () => {
+  // 日期字段使用本地日历日期，避免转换 UTC 后跨到前一天或后一天。
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = String(today.getMonth() + 1).padStart(2, "0")
+  const day = String(today.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
 
 const extractList = <T,>(response: any): T[] => {
   const payload = response?.data ?? response ?? {}
